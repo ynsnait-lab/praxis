@@ -10,6 +10,7 @@
   ./praxis solution py-01    compare ta version à la solution (après au moins un essai)
   ./praxis reset py-01       remet le code de départ du lab (via git)
   ./praxis app               construit l'app et l'ouvre en local (demande Node.js)
+  ./praxis launcher          installe Praxis.app sur macOS (Launchpad, Dock, Spotlight)
 
 Options de check : --solution (vérifie la solution de référence), --verbose.
 """
@@ -18,6 +19,8 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import difflib
+import functools
+import http.server
 import json
 import os
 import platform
@@ -27,6 +30,9 @@ import signal
 import subprocess
 import sys
 import tempfile
+import threading
+import time
+import webbrowser
 from pathlib import Path
 
 RACINE = Path(__file__).resolve().parent
@@ -449,34 +455,127 @@ def cmd_setup(args: argparse.Namespace) -> int:
     return cmd_doctor(args)
 
 
-def cmd_app(args: argparse.Namespace) -> int:
+# ------------------------------------------------------------------ app locale
+
+SOURCES_APP = ("content", "app", "labs")
+FICHIERS_APP = ("tools/build.mjs", "tools/content.py", "package.json", "package-lock.json")
+
+
+def app_a_jour() -> bool:
+    """dist/ existe et est plus récent que tout ce qui sert à le construire (contenu, code, énoncés des labs)."""
+    cible = RACINE / "dist" / "index.html"
+    if not cible.exists() or not (RACINE / "dist" / "pyodide" / "pyodide.mjs").exists():
+        return False
+    t = cible.stat().st_mtime
+    for f in FICHIERS_APP:
+        chemin = RACINE / f
+        if chemin.exists() and chemin.stat().st_mtime > t:
+            return False
+    for d in SOURCES_APP:
+        for chemin in (RACINE / d).rglob("*"):
+            if d == "labs" and chemin.name not in ("README.md", "lab.json"):
+                continue
+            if chemin.is_file() and chemin.stat().st_mtime > t:
+                return False
+    return True
+
+
+def construire_app(verbeux: bool) -> bool:
     if not shutil.which("node"):
-        print(avert("Node.js est nécessaire pour construire l'app en local (brew install node)."))
+        if (RACINE / "dist" / "index.html").exists():
+            print(avert("Node.js est absent : je sers la dernière version construite (brew install node pour la mettre à jour)."))
+            return True
+        print(ko("Node.js est nécessaire pour construire l'app (brew install node)."))
         print("En attendant, la version en ligne : https://ynsnait-lab.github.io/praxis/")
-        return 1
+        return False
     if not (RACINE / "node_modules" / "esbuild").exists():
-        code, out = lancer(["npm", "ci"], RACINE, args.verbose)
+        print("Installation des outils de construction (npm ci)…")
+        code, out = lancer(["npm", "ci", "--no-audit", "--no-fund"], RACINE, verbeux)
         if code != 0:
             print(ko(out[-1500:]))
-            return 1
+            return False
     py = python_du_projet()
     code, _ = lancer([py, "-c", "import yaml"], RACINE, False)
     if code != 0:
         print(ko("PyYAML manque pour assembler le contenu : lance ./praxis setup"))
-        return 1
-    code, out = lancer(["node", "tools/build.mjs"], RACINE, args.verbose, env={**os.environ, "PYTHON": py})
+        return False
+    print("Construction de l'app…")
+    code, out = lancer(["node", "tools/build.mjs"], RACINE, verbeux, env={**os.environ, "PYTHON": py})
     print(out.strip())
-    if code != 0:
-        return 1
-    port = args.port
-    print(ok(f"app servie sur http://localhost:{port}/  (Ctrl+C pour arrêter)"))
-    if platform.system() == "Darwin":
-        subprocess.Popen(["open", f"http://localhost:{port}/"])
+    return code == 0
+
+
+class ServeurApp(http.server.SimpleHTTPRequestHandler):
+    """Sert dist/ : bons types MIME pour Pyodide, revalidation à chaque chargement, pas de journal."""
+
+    extensions_map = {
+        **http.server.SimpleHTTPRequestHandler.extensions_map,
+        ".wasm": "application/wasm", ".mjs": "text/javascript", ".js": "text/javascript",
+        ".json": "application/json", ".webmanifest": "application/manifest+json", ".svg": "image/svg+xml",
+    }
+
+    def end_headers(self) -> None:
+        self.send_header("Cache-Control", "no-cache")
+        super().end_headers()
+
+    def log_message(self, format: str, *args: object) -> None:  # noqa: A002
+        pass
+
+
+def surveiller_parent(pid: int) -> None:
+    """Lancé par Praxis.app : s'arrêter dès que l'app se ferme, même si elle plante."""
+    parent_initial = os.getppid()
+    while True:
+        time.sleep(1)
+        if os.getppid() != parent_initial:         # l'app est morte : on a été rattaché à launchd
+            os._exit(0)
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            os._exit(0)
+        except PermissionError:
+            pass
+
+
+def cmd_app(args: argparse.Namespace) -> int:
+    sys.stdout.reconfigure(line_buffering=True)
+    if args.rebuild or not app_a_jour():
+        if not construire_app(args.verbose):
+            return 1
+    else:
+        print(ok("app déjà à jour"))
     try:
-        subprocess.run([sys.executable, "-m", "http.server", str(port), "--bind", "127.0.0.1"], cwd=RACINE / "dist")
+        serveur = http.server.ThreadingHTTPServer(
+            ("127.0.0.1", args.port), functools.partial(ServeurApp, directory=str(RACINE / "dist")))
+    except OSError:
+        print(ko(f"le port {args.port} est déjà utilisé : ./praxis app --port {args.port + 1}"))
+        return 1
+    if args.parent_pid:
+        threading.Thread(target=surveiller_parent, args=(args.parent_pid,), daemon=True).start()
+    url = f"http://localhost:{args.port}/"
+    print(ok(f"app servie sur {url}  (Ctrl+C pour arrêter)"))
+    if not args.no_open:
+        if platform.system() == "Darwin":
+            subprocess.Popen(["open", url])
+        else:
+            webbrowser.open(url)
+    try:
+        serveur.serve_forever()
     except KeyboardInterrupt:
         pass
+    finally:
+        serveur.server_close()
     return 0
+
+
+def cmd_launcher(args: argparse.Namespace) -> int:
+    if platform.system() != "Darwin":
+        print(avert("Le lanceur est une app macOS. Ailleurs, lance ./praxis app"))
+        return 1
+    if not shutil.which("swiftc"):
+        print(ko("Le compilateur Swift manque : xcode-select --install"))
+        return 1
+    return subprocess.run(["bash", str(RACINE / "launcher" / "macos" / "build.sh")], cwd=RACINE).returncode
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -500,12 +599,17 @@ def main(argv: list[str] | None = None) -> int:
     pr.add_argument("id")
     pa = sub.add_parser("app", help="construire et ouvrir l'app en local")
     pa.add_argument("--port", type=int, default=8000)
+    pa.add_argument("--no-open", action="store_true", help="ne pas ouvrir le navigateur")
+    pa.add_argument("--rebuild", action="store_true", help="reconstruire même si l'app est à jour")
+    pa.add_argument("--parent-pid", type=int, default=0, help=argparse.SUPPRESS)
+    sub.add_parser("launcher", help="installer l'app Praxis pour macOS (Launchpad, Dock)")
     args = p.parse_args(argv)
     if not args.cmd:
         p.print_help()
         return 0
     return {"doctor": cmd_doctor, "setup": cmd_setup, "list": cmd_list, "next": cmd_next, "check": cmd_check,
-            "hint": cmd_hint, "solution": cmd_solution, "reset": cmd_reset, "app": cmd_app}[args.cmd](args)
+            "hint": cmd_hint, "solution": cmd_solution, "reset": cmd_reset, "app": cmd_app,
+            "launcher": cmd_launcher}[args.cmd](args)
 
 
 if __name__ == "__main__":

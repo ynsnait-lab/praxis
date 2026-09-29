@@ -59,7 +59,9 @@ function page(C, js, css, { full }) {
 <title>Praxis</title>
 <meta name="description" content="Praxis : apprendre Python, le C++ et la culture d'ingénieur avec des cours en crescendo, des exercices, des pièges et de la révision espacée.">
 <meta name="theme-color" content="#0E4F4C">
-<link rel="icon" href="data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#0E4F4C"/><rect x="11" y="11" width="10" height="10" transform="rotate(45 16 16)" fill="#F2C230"/></svg>')}">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,${encodeURIComponent(favicon())}">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 ${fonts}
 <style>${css}</style>
 </head>
@@ -68,6 +70,28 @@ ${body}
 </body>
 </html>
 `;
+}
+
+// Logo (tools/logo.py) : favicon en ligne, icônes et manifeste pour « Ajouter au Dock » et l'écran d'accueil.
+const ICONS = path.join(ROOT, "app/icons");
+function favicon() {
+  return fs.readFileSync(path.join(ICONS, "praxis.svg"), "utf8").replace(/\s*\n\s*/g, " ").trim();
+}
+function copyIcons() {
+  const dst = path.join(DIST, "icons");
+  fs.mkdirSync(dst, { recursive: true });
+  for (const f of fs.readdirSync(ICONS)) fs.copyFileSync(path.join(ICONS, f), path.join(dst, f));
+  const manifest = {
+    name: "Praxis", short_name: "Praxis", lang: "fr",
+    description: "Python, C++ et culture d'ingénieur en crescendo : cours, exercices, pièges, révision espacée.",
+    start_url: "./", scope: "./", display: "standalone", background_color: "#EEF1EF", theme_color: "#0E4F4C",
+    icons: [
+      { src: "icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { src: "icons/icon-512.png", sizes: "512x512", type: "image/png" },
+      { src: "icons/praxis.svg", sizes: "any", type: "image/svg+xml" },
+    ],
+  };
+  fs.writeFileSync(path.join(DIST, "manifest.webmanifest"), JSON.stringify(manifest, null, 2));
 }
 
 function copyPyodide() {
@@ -92,6 +116,7 @@ async function main() {
   fs.mkdirSync(DIST, { recursive: true });
   fs.writeFileSync(path.join(DIST, "index.html"), page(C, js, css, { full: true }));
   fs.writeFileSync(path.join(DIST, "artifact.html"), page(C, js, css, { full: false }));
+  copyIcons();
   if (!args.has("--no-pyodide")) copyPyodide();
   const kb = (f) => (fs.statSync(path.join(DIST, f)).size / 1024).toFixed(0);
   const nLessons = Object.values(C.modules).filter((m) => m.lesson).length;

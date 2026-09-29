@@ -18,6 +18,15 @@ Chaque module suit la même pente : un cours découpé en petites étapes (de «
 
 La progression reste dans le navigateur ; *Réglages → Exporter* la sauvegarde dans un fichier JSON.
 
+## L'app sur ton Mac
+
+```shell
+./praxis app        # construit l'app et l'ouvre dans ton navigateur (http://localhost:8000)
+./praxis launcher   # macOS : installe Praxis.app, à lancer depuis le Launchpad, Spotlight ou le Dock
+```
+
+Praxis.app ouvre Praxis dans sa propre fenêtre et s'occupe du serveur local toute seule. Voir [launcher/README.md](launcher/README.md).
+
 ## Les labs, sur ta machine
 
 ```shell
@@ -38,6 +47,7 @@ app/          l'app : JavaScript sans framework, empaqueté par esbuild
 content/      tout le contenu, en YAML : cours, exercices, pièges, culture d'ingé
 labs/         les labs (énoncé, code de départ, tests, indices)
 solutions/    les solutions de référence des labs
+launcher/     Praxis.app, le lanceur macOS, et le logo
 tools/        construction de l'app et vérification du contenu
 praxis        l'outil en ligne de commande des labs (Python 3.9+, aucune dépendance)
 ```
