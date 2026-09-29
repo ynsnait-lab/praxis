@@ -46,10 +46,11 @@ export function reglagesView() {
     setting("Python dans le navigateur", `Pyodide ${PYODIDE_VERSION}, chargé au premier exercice de code (~12 Mo, une seule fois).`,
       h("div.row", {}, pyOut, h("button.btn.sm", {
         onclick: async (e) => {
-          e.currentTarget.disabled = true;
+          const btn = e.currentTarget;          // après un await, e.currentTarget vaut null
+          btn.disabled = true;
           pyOut.textContent = "chargement…";
           const r = await python.run('import sys; print("Python", sys.version.split()[0], "prêt")');
-          e.currentTarget.disabled = false;
+          btn.disabled = false;
           pyOut.textContent = r.ok ? r.out.trim() : `indisponible ici : ${r.err}`;
         },
       }, "Tester"))),
