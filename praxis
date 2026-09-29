@@ -473,6 +473,8 @@ def app_a_jour() -> bool:
             return False
     for d in SOURCES_APP:
         for chemin in (RACINE / d).rglob("*"):
+            if chemin.name.startswith(".") or "__pycache__" in chemin.parts:
+                continue                            # .DS_Store du Finder, caches : rien à reconstruire
             if d == "labs" and chemin.name not in ("README.md", "lab.json"):
                 continue
             if chemin.is_file() and chemin.stat().st_mtime > t:
