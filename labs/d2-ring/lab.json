@@ -1,0 +1,18 @@
+{
+  "id": "d2",
+  "ordre": 24,
+  "lang": "cpp",
+  "genre": "defi",
+  "niveau": "avancé",
+  "minutes": 120,
+  "titre": "Buffer circulaire générique",
+  "modules": ["cpp05", "cpp08", "cpp11", "cpp12"],
+  "resume": "Une file sans allocation entre une interruption et la boucle principale : template, puissance de 2, atomiques, zéro copie involontaire.",
+  "requis": [
+    {"fichier": "ring.hpp", "motif": "static_assert", "message": "impose N puissance de 2 avec un static_assert"}
+  ],
+  "interdits": [
+    {"fichier": "ring.hpp", "motif": "%\\s*N\\b", "message": "remplace % N par & (N - 1)"},
+    {"fichier": "ring.hpp", "motif": "\\bnew\\b|\\bmalloc\\b|std::vector", "message": "aucune allocation dynamique dans la file"}
+  ]
+}

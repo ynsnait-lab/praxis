@@ -1,0 +1,348 @@
+id: pf05
+track: python
+title: Boucles
+goal: Répéter une action sur chaque élément ou tant qu'une condition tient, et savoir exactement combien de tours la boucle fait.
+level: fondations
+requires: [pf04]
+concepts: [for, while, range, accumulateur]
+lesson:
+  minutes: 15
+  intro: |
+    Les boucles sont ce qui rend un ordinateur utile : traiter 10 000 mesures prend autant de lignes de code que d'en traiter 3. Deux boucles suffisent en Python : `for` quand tu sais sur quoi tu itères, `while` quand tu répètes jusqu'à ce qu'une condition change. Le vrai travail est de savoir **combien de tours** elles font — les erreurs « à un près » sont les bugs les plus fréquents du monde.
+  steps:
+    - level: 1
+      title: Pour chaque élément…
+      body: |
+        `for` se lit comme en français : « **pour chaque** mesure **dans** la liste, fais ceci ».
+
+        ```python
+        for mesure in [21.5, 22.0, 21.8]:
+            print(mesure)
+        ```
+
+        À chaque tour, la variable `mesure` prend la valeur suivante, puis le bloc décalé s'exécute. Quand il n'y a plus d'élément, la boucle s'arrête et le programme continue après le bloc.
+
+        `while` se lit « **tant que** la condition est vraie, recommence » :
+
+        ```python
+        niveau = 100
+        while niveau > 20:
+            niveau = niveau - 30
+        ```
+    - level: 2
+      title: range, le compteur de tours
+      body: |
+        Pour répéter un nombre donné de fois, on itère sur `range(...)`, qui produit une suite d'entiers :
+
+        - `range(5)` → 0, 1, 2, 3, 4 (**cinq** valeurs, de 0 à 4) ;
+        - `range(2, 6)` → 2, 3, 4, 5 (le début est inclus, la **fin est exclue**) ;
+        - `range(0, 10, 3)` → 0, 3, 6, 9 (un pas de 3) ;
+        - `range(5, 0, -1)` → 5, 4, 3, 2, 1 (à rebours).
+
+        Pourquoi exclure la fin ? Parce que `range(n)` donne exactement `n` valeurs, et que `range(a, b)` en donne `b - a`. Avec l'habitude, c'est ce qui évite les erreurs à un près.
+      code: |
+        for i in range(3):
+            print("tour", i)
+        print(list(range(2, 6)))
+        print(list(range(10, 0, -3)))
+      run: true
+      out: |
+        tour 0
+        tour 1
+        tour 2
+        [2, 3, 4, 5]
+        [10, 7, 4, 1]
+      check:
+        q: "Combien de fois s'affiche « bip » avec `for i in range(1, 10): print(\"bip\")` ?"
+        choices:
+          - t: "9"
+            ok: true
+            why: "i prend les valeurs 1 à 9 : 10 − 1 = 9 tours."
+          - t: "10"
+            why: "La borne de fin (10) est exclue."
+          - t: "11"
+            why: "Il faudrait `range(0, 11)` ou `range(11)`."
+    - level: 3
+      title: Les motifs à connaître par cœur
+      body: |
+        Trois motifs couvrent l'essentiel des boucles de traitement de données : l'**accumulateur** (somme, comptage), la **recherche** (min, max, premier élément qui…), et la **transformation** (construire une nouvelle liste).
+      code: |
+        mesures = [21.5, 22.4, 35.9, 21.8, 22.1]
+
+        # accumulateur : somme et comptage
+        total = 0
+        n_hautes = 0
+        for m in mesures:
+            total += m
+            if m > 30:
+                n_hautes += 1
+        print(f"moyenne {total / len(mesures):.2f}, {n_hautes} valeur(s) > 30")
+
+        # recherche du maximum et de sa position
+        i_max = 0
+        for i in range(len(mesures)):
+            if mesures[i] > mesures[i_max]:
+                i_max = i
+        print("max", mesures[i_max], "à l'index", i_max)
+
+        # transformation : nouvelle liste
+        kelvins = []
+        for m in mesures:
+            kelvins.append(round(m + 273.15, 2))
+        print(kelvins)
+      run: true
+      out: |
+        moyenne 24.74, 1 valeur(s) > 30
+        max 35.9 à l'index 2
+        [294.65, 295.55, 309.05, 294.95, 295.25]
+    - level: 4
+      title: break, continue et les boucles qui ne s'arrêtent pas
+      body: |
+        Deux mots-clés modifient le déroulé d'une boucle :
+        - `break` **sort** immédiatement de la boucle ;
+        - `continue` **passe au tour suivant** sans finir le tour actuel.
+
+        Le danger de `while` est la **boucle infinie** : si rien dans le bloc ne rend un jour la condition fausse, le programme tourne pour toujours (dans le terminal, Ctrl+C l'arrête). Avant d'écrire un `while`, demande-toi : « qu'est-ce qui, dans ce bloc, rapproche la condition de la sortie ? »
+
+        Et un détail qui surprend : **modifier la variable de boucle d'un `for` ne change pas le tour suivant**. `for i in range(5): i += 10` ne saute rien, car au tour suivant `i` reprend la valeur suivante de `range`.
+      code: |
+        # chercher la première mesure aberrante, ignorer les valeurs manquantes
+        mesures = [21.5, None, 22.0, 99.0, 21.7]
+        for i, m in enumerate(mesures):
+            if m is None:
+                continue          # on ignore et on passe au suivant
+            if m > 50:
+                print("aberrante à l'index", i, ":", m)
+                break             # inutile de chercher plus loin
+        print("fin")
+      run: true
+      out: |
+        aberrante à l'index 3 : 99.0
+        fin
+      after: |
+        `enumerate(liste)` donne à chaque tour le couple **(index, valeur)** : c'est la façon propre d'avoir les deux, au lieu de `range(len(liste))`.
+    - level: 5
+      title: Choisir la bonne boucle
+      body: |
+        - Tu parcours une collection existante → `for x in collection`.
+        - Tu as besoin de l'index aussi → `for i, x in enumerate(collection)`.
+        - Tu parcours deux listes en parallèle → `for t, v in zip(temps, valeurs)`.
+        - Tu répètes N fois → `for _ in range(N)` (le `_` dit « je n'utilise pas la variable »).
+        - Tu attends un événement ou une convergence → `while`, avec une **garde** (un nombre maximal d'essais) pour ne jamais boucler à l'infini.
+
+        ```python
+        essais = 0
+        while not connecte() and essais < 10:
+            reconnecter()
+            essais += 1
+        ```
+
+        Sur un microcontrôleur, `loop()` est une boucle infinie volontaire. Sur un PC, une boucle infinie sans `sleep` consomme un cœur de processeur à 100 %.
+  recap:
+    - "`for x in collection:` pour parcourir ; `while cond:` pour répéter tant que."
+    - "`range(a, b)` va de a **inclus** à b **exclu** : b − a valeurs. `range(n)` = 0 à n−1."
+    - Motifs de base : accumulateur, recherche (min/max), transformation (nouvelle liste).
+    - "`break` sort, `continue` passe au tour suivant. Tout `while` doit avoir une sortie garantie."
+    - "`enumerate` donne (index, valeur) ; `zip` parcourt plusieurs listes ensemble."
+  pieges: [py-range-exclu, py-boucle-infinie]
+exercises:
+  - id: pf05.1
+    type: predict
+    level: 1
+    q: Qu'affiche ce script ?
+    code: |
+      for i in range(1, 4):
+          print(i * 10)
+    answer: |
+      10
+      20
+      30
+    trap_answers:
+      - |
+        10
+        20
+        30
+        40
+    piege: py-range-exclu
+    e: "`range(1, 4)` produit 1, 2, 3 : la fin (4) est exclue. Nombre de tours = 4 − 1 = 3."
+  - id: pf05.2
+    type: qcm
+    level: 1
+    q: "Tu veux afficher les nombres de 1 à 100 inclus. Quelle ligne choisir ?"
+    piege: py-range-exclu
+    choices:
+      - t: "`for n in range(1, 101):`"
+        ok: true
+      - t: "`for n in range(1, 100):`"
+        piege: true
+        why: "S'arrête à 99 : la borne de fin est exclue."
+      - t: "`for n in range(100):`"
+        why: "Va de 0 à 99."
+      - t: "`for n in range(0, 100, 1):`"
+        why: "Même chose que `range(100)` : 0 à 99."
+    e: "Pour aller de a à b **inclus**, écris `range(a, b + 1)`."
+  - id: pf05.3
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      total = 0
+      for k in range(0, 10, 2):
+          total += k
+      print(total)
+    answer: "20"
+    e: "`range(0, 10, 2)` donne 0, 2, 4, 6, 8 (10 exclu). La somme vaut 20."
+  - id: pf05.4
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      n = 0
+      while n < 10:
+          n += 3
+      print(n)
+    answer: "12"
+    trap_answers: ["9"]
+    e: |
+      n passe par 3, 6, 9 : à 9, la condition `9 < 10` est encore vraie, donc un tour de plus → 12. Ensuite `12 < 10` est faux : la boucle s'arrête.
+
+      La condition d'un `while` est testée **au début** de chaque tour : la dernière valeur dépasse souvent le seuil.
+  - id: pf05.5
+    type: bug
+    level: 2
+    q: "Ce programme doit afficher un compte à rebours de 5 à 1, mais il ne s'arrête jamais. Quelle ligne est fausse ?"
+    code: |
+      compteur = 5
+      while compteur > 0:
+          print(compteur)
+          compteur + 1
+      print("décollage")
+    bad: 4
+    fix: "    compteur -= 1"
+    piege: py-boucle-infinie
+    e: |
+      Deux erreurs en une ligne : `compteur + 1` calcule une valeur **sans l'affecter** (rien ne change), et le sens est faux (il faut décrémenter). La condition `compteur > 0` reste donc vraie pour toujours.
+
+      Le réflexe : dans un `while`, repère la ligne qui fait progresser la variable de la condition vers la sortie.
+  - id: pf05.6
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      for i in range(4):
+          print(i)
+          i += 10
+    answer: |
+      0
+      1
+      2
+      3
+    trap_answers:
+      - "0"
+    e: |
+      Modifier la variable de boucle ne change **pas** la suite : à chaque tour, `for` va chercher la valeur suivante de `range(4)` et l'affecte à `i`, écrasant ta modification.
+
+      Si tu as besoin de sauter des valeurs selon une condition, utilise un `while` et gère l'index toi-même.
+  - id: pf05.7
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      for x in [4, 7, -1, 9, 2]:
+          if x < 0:
+              break
+          if x % 2 == 1:
+              continue
+          print(x)
+    answer: "4"
+    e: "4 est affiché. 7 est impair : `continue` saute l'affichage. −1 est négatif : `break` sort de la boucle. 9 et 2 ne sont jamais examinés."
+  - id: pf05.8
+    type: code
+    level: 1
+    q: |
+      Écris `somme_carres(n)` qui renvoie 1² + 2² + … + n². Pour `n = 0`, renvoie 0.
+    start: |
+      def somme_carres(n):
+          total = 0
+          # ta boucle ici
+          return total
+    sol: |
+      def somme_carres(n):
+          total = 0
+          for k in range(1, n + 1):
+              total += k ** 2
+          return total
+    tests: |
+      assert somme_carres(0) == 0
+      assert somme_carres(1) == 1
+      assert somme_carres(3) == 14, somme_carres(3)
+      assert somme_carres(10) == 385, "vérifie la borne : n doit être inclus"
+      print("OK")
+    hint: "`range(1, n + 1)` va de 1 à n inclus."
+    e: "Le piège est la borne : `range(1, n)` oublie le dernier terme. Vérification : n(n+1)(2n+1)/6 = 385 pour n = 10."
+  - id: pf05.9
+    type: code
+    level: 2
+    q: |
+      Écris `premier_depassement(mesures, seuil)` qui renvoie **l'index** de la première mesure strictement supérieure à `seuil`, ou `-1` s'il n'y en a aucune.
+    start: |
+      def premier_depassement(mesures, seuil):
+          ...
+    sol: |
+      def premier_depassement(mesures, seuil):
+          for i, m in enumerate(mesures):
+              if m > seuil:
+                  return i
+          return -1
+    tests: |
+      assert premier_depassement([1, 5, 9, 12], 8) == 2
+      assert premier_depassement([1, 2], 8) == -1
+      assert premier_depassement([], 0) == -1
+      assert premier_depassement([8, 8.5], 8) == 1, "strictement supérieur"
+      print("OK")
+    e: "Le `return` à l'intérieur de la boucle arrête tout dès qu'on trouve : pas besoin de `break`. Le `return -1` après la boucle n'est atteint que si aucune mesure ne convenait."
+  - id: pf05.10
+    type: cloze
+    level: 1
+    q: Complète pour afficher chaque couple (temps, valeur) en parcourant les deux listes ensemble.
+    tpl: |
+      temps = [0.0, 0.5, 1.0]
+      valeurs = [2.1, 2.4, 2.2]
+      for t, v in ⟦0⟧(temps, valeurs):
+          print(t, v)
+    blanks:
+      - [zip]
+    run: true
+    out: |
+      0.0 2.1
+      0.5 2.4
+      1.0 2.2
+    e: "`zip` avance dans plusieurs listes en même temps et s'arrête à la plus courte."
+  - id: pf05.11
+    type: parsons
+    level: 2
+    q: "Reconstruis une boucle qui retente une connexion au plus 5 fois, et s'arrête dès que `connecter()` renvoie `True`."
+    lang: python
+    lines:
+      - "essais = 0"
+      - "ok = False"
+      - "while not ok and essais < 5:"
+      - "    ok = connecter()"
+      - "    essais += 1"
+      - "print(\"connecté\" if ok else \"échec\")"
+    extra:
+      - "while True:"
+      - "    essais = 0"
+    e: |
+      La condition combine le but (`not ok`) et une **garde** (`essais < 5`) : impossible de boucler à l'infini même si l'appareil ne répond jamais.
+
+      L'intrus `while True:` n'a pas de sortie sans `break`. L'autre intrus remettrait le compteur à zéro à chaque tour.
+  - id: pf05.12
+    type: flash
+    level: 1
+    q: "Que produisent `range(5)`, `range(2, 5)` et `range(5, 0, -2)` ?"
+    back: |
+      - `range(5)` → 0, 1, 2, 3, 4
+      - `range(2, 5)` → 2, 3, 4
+      - `range(5, 0, -2)` → 5, 3, 1
+    e: "Début inclus, fin exclue, toujours. Le nombre d'éléments de `range(a, b)` est b − a."

@@ -1,0 +1,595 @@
+id: py06
+track: python
+title: Itérateurs, générateurs, comprehensions
+goal: Traiter un flux de mesures sans tout charger en mémoire.
+level: avance
+requires:
+- py03
+- py05
+concepts:
+- iterable
+- generateur
+- comprehension
+- itertools
+lesson:
+  minutes: 17
+  intro: |
+    Un fichier de log de 5 Go, un flux de mesures qui ne s'arrête jamais : impossible de tout charger dans une liste. Les **itérateurs** et les **générateurs** permettent de traiter les données une par une, au fil de l'eau, avec une mémoire constante. Et les *comprehensions* écrivent en une ligne lisible la plupart des boucles qui construisent une liste.
+  steps:
+    - level: 1
+      title: La caisse ou le tapis roulant
+      body: |
+        Une **liste**, c'est une caisse livrée pleine : toutes les pièces sont là d'un coup, tu peux les compter, les reprendre, y revenir. Mais il faut la place de ranger toute la caisse.
+
+        Un **générateur**, c'est un tapis roulant : il t'amène une pièce à chaque fois que tu en demandes une, et ne fabrique la suivante qu'à ce moment-là. Il prend très peu de place, il peut même tourner indéfiniment. En échange, une pièce passée est passée : **on ne rembobine pas le tapis**.
+    - level: 2
+      title: Itérable, itérateur, générateur
+      body: |
+        - Un **itérable** est tout ce qu'on peut parcourir avec `for` : liste, tuple, texte, dict, fichier, `range`.
+        - Un **itérateur** est le curseur qui avance dedans : `it = iter(v)` le crée, `next(it)` donne l'élément suivant, et `StopIteration` signale la fin. Une boucle `for` ne fait rien d'autre.
+        - Une **fonction génératrice** contient `yield` au lieu de `return`. L'appeler n'exécute **rien** : elle renvoie un générateur. Chaque `next` exécute le corps jusqu'au prochain `yield`, qui livre une valeur et met la fonction **en pause**, variables comprises.
+        - Une **expression génératrice** `(x * x for x in v)` a la syntaxe d'une *list comprehension* `[x * x for x in v]`, mais elle est paresseuse et à usage unique. Il existe aussi les compréhensions de dict `{k: v for …}` et de set `{x for …}`.
+        - `sum`, `min`, `max`, `any`, `all`, `zip`, `enumerate` et le module `itertools` (`islice`, `pairwise`, `chain`, `accumulate`…) travaillent tous sur des itérateurs, sans créer de liste intermédiaire.
+      check:
+        q: "`g = (x for x in [1, 2, 3])` puis `print(sum(g), sum(g))`. Qu'affiche Python ?"
+        choices:
+          - t: "`6 0`"
+            ok: true
+            why: Le premier `sum` épuise le générateur ; le second ne reçoit plus rien et renvoie 0.
+          - t: "`6 6`"
+            why: Ce serait vrai avec une liste. Un générateur ne se parcourt qu'une fois.
+          - t: Une erreur au second `sum`
+            why: Un générateur épuisé ne lève pas d'erreur, il est simplement vide.
+    - level: 3
+      title: Un pipeline de mesures
+      body: |
+        Le fichier est simulé par `io.StringIO`, qui se comporte exactement comme un fichier ouvert. Suis bien **quand** chaque ligne est lue.
+      code: |
+        import io
+        from itertools import islice, pairwise
+
+        fichier = io.StringIO("# t_s;temp_C\n0;20.1\n1;20.4\n2;ERREUR\n3;21.0\n4;22.6\n5;22.9\n")
+
+        def lire_mesures(f):
+            for ligne in f:                    # un fichier se lit ligne par ligne
+                if ligne.startswith("#"):
+                    continue
+                t, v = ligne.strip().split(";")
+                try:
+                    yield int(t), float(v)
+                except ValueError:
+                    print("  ligne ignorée :", ligne.strip())
+
+        mesures = lire_mesures(fichier)
+        print(type(mesures).__name__)          # rien n'est encore lu
+        print(next(mesures))
+        instants_chauds = [t for t, v in mesures if v > 20.5]    # consomme la suite
+        print(instants_chauds)
+        print(list(mesures))                   # épuisé
+
+        valeurs = [20.1, 20.4, 21.0, 22.6, 22.9]
+        print([round(b - a, 1) for a, b in pairwise(valeurs)])
+        print(list(islice((v * 2 for v in valeurs), 3)))
+        print(any(v > 22.8 for v in valeurs), {round(v) for v in valeurs})
+      run: true
+      out: |
+        generator
+        (0, 20.1)
+          ligne ignorée : 2;ERREUR
+        [3, 4, 5]
+        []
+        [0.3, 0.6, 1.6, 0.3]
+        [40.2, 40.8, 42.0]
+        True {20, 21, 23}
+      after: |
+        Le message « ligne ignorée » s'affiche **pendant** la compréhension, au moment où elle réclame la ligne suivante : le générateur ne travaille qu'à la demande. Et le `list(mesures)` final est vide, sans erreur.
+    - level: 4
+      title: Le protocole d'itération sous le capot
+      body: |
+        `for x in obj` appelle `iter(obj)`, qui appelle `obj.__iter__()` ; puis, à chaque tour, `next()`, qui appelle `__next__()`, jusqu'à `StopIteration`. Tu peux écrire un itérateur à la main avec ces deux méthodes, mais un générateur fait la même chose en trois lignes : Python garde la fonction en pause, avec ses variables locales, entre deux `yield`.
+
+        Côté mémoire, une liste d'un million d'entiers occupe plusieurs mégaoctets ; le générateur équivalent, quelques centaines d'octets, quelle que soit la longueur.
+      code: |
+        import sys
+
+        class Rampe:                           # itérateur écrit à la main
+            def __init__(self, debut, fin, pas):
+                self.v, self.fin, self.pas = debut, fin, pas
+            def __iter__(self):
+                return self
+            def __next__(self):
+                if self.v > self.fin:
+                    raise StopIteration
+                v = self.v
+                self.v += self.pas
+                return v
+
+        def rampe(debut, fin, pas):            # le même, en générateur
+            v = debut
+            while v <= fin:
+                yield v
+                v += pas
+
+        print(list(Rampe(0, 10, 2.5)), list(rampe(0, 10, 2.5)))
+
+        it = iter([10, 20])
+        print(next(it), next(it), next(it, "fin"))
+
+        carres_liste = [x * x for x in range(1_000_000)]
+        carres_gen = (x * x for x in range(1_000_000))
+        print(sys.getsizeof(carres_liste) > 1_000_000, sys.getsizeof(carres_gen) < 1_000)
+        print(sum(carres_gen) == sum(carres_liste))
+      run: true
+      out: |
+        [0, 2.5, 5.0, 7.5, 10.0] [0, 2.5, 5.0, 7.5, 10.0]
+        10 20 fin
+        True True
+        True
+      after: |
+        `next(it, "fin")` renvoie la valeur par défaut au lieu de lever `StopIteration` : pratique pour « le premier élément qui vérifie une condition, sinon None » : `next((m for m in mesures if m > seuil), None)`.
+    - level: 5
+      title: Sur le terrain
+      body: |
+        - Gros fichier : `for ligne in f`, jamais `f.read()` ni `f.readlines()` sur un log de plusieurs Go. `csv.reader` est paresseux lui aussi.
+        - Découpe un traitement en **pipeline de générateurs** : lignes → mesures → mesures valides → moyennes glissantes. Chaque étape est petite, testable seule, et l'ensemble tourne en mémoire constante.
+        - Besoin de parcourir deux fois ? Si ça tient en mémoire, fais-en une liste ; sinon, rappelle la fonction génératrice pour repartir du début.
+        - Une fonction qui accepte « un itérable » ne doit utiliser ni `len()` ni `v[i]` : un générateur n'a ni l'un ni l'autre.
+        - Une compréhension avec plus de deux `for` ou une condition compliquée se lit mal : écris une vraie boucle.
+  recap:
+    - "Itérable = parcourable ; itérateur = curseur (`iter`, `next`, `StopIteration`)."
+    - "`yield` fait une fonction génératrice : exécution à la demande, pause entre deux valeurs."
+    - "`[…]` construit une liste ; `(…)` un générateur paresseux à usage unique."
+    - "Un générateur épuisé est vide, sans erreur."
+    - "`itertools`, `sum`, `any`, `zip` consomment des itérateurs sans liste intermédiaire."
+  pieges: [py-generateur-epuise, py-modifier-en-iterant]
+exercises:
+- id: py06.1
+  type: predict
+  level: 2
+  concepts:
+  - generateur
+  q: Sortie ?
+  code: |-
+    def compte():
+        print("debut")
+        for i in range(3):
+            yield i
+        print("fin")
+
+    g = compte()
+    print("cree")
+    print(next(g), next(g))
+  answer: |-
+    cree
+    debut
+    0 1
+  e: |-
+    Appeler une fonction génératrice **n’exécute rien** : elle renvoie un objet générateur. Le corps ne démarre qu’au premier `next()`.
+
+    `"fin"` ne s’affiche pas : le générateur est suspendu après `yield 1`.
+
+    C’est ce qui rend les générateurs parfaits pour un flux capteur : la mémoire reste constante, le travail est fait à la demande.
+- id: py06.2
+  type: qcm
+  level: 2
+  concepts:
+  - iterable
+  q: Un générateur a déjà été parcouru par `list(g)`. Que renvoie `list(g)` la seconde fois ?
+  choices:
+  - t: '`[]` — un générateur est épuisé après un parcours'
+    ok: true
+    why: 'Exact, et c’est silencieux : aucune erreur.'
+  - t: Les mêmes éléments
+    ok: false
+    why: Non, un générateur n’est pas rembobinable.
+  - t: '`StopIteration`'
+    ok: false
+    why: L’exception est capturée par `list`, qui s’arrête simplement.
+  - t: Une erreur `ValueError`
+    ok: false
+    why: 'Rien du tout : c’est le danger.'
+  e: |-
+    Épuisement silencieux = bug discret. Symptôme typique :
+
+    ```python
+    lignes = (l.strip() for l in fichier)
+    n = sum(1 for _ in lignes)     # consomme tout
+    data = [parse(l) for l in lignes]   # → [] !
+    ```
+
+    Si tu dois parcourir deux fois : matérialise (`lignes = list(...)`) ou refais un générateur. `itertools.tee` existe mais met en cache — pas gratuit.
+- id: py06.3
+  type: predict
+  level: 2
+  concepts:
+  - comprehension
+  q: Sortie ?
+  code: |-
+    v = [1, 2, 3, 4, 5]
+    print([x * x for x in v if x % 2])
+    print({x % 3 for x in v})
+    print({x: x * 2 for x in v if x > 3})
+    print(sum(x for x in v if x > 2))
+  answer: |-
+    [1, 9, 25]
+    {0, 1, 2}
+    {4: 8, 5: 10}
+    12
+  e: |-
+    Quatre formes : liste `[...]`, ensemble `{...}`, dict `{k: v ...}`, et **expression génératrice** `(...)` — cette dernière ne construit rien en mémoire.
+
+    Règle de style : dès que la comprehension dépasse une ligne lisible ou empile deux `for` + deux `if`, écris une boucle. La compacité n’est pas le but.
+
+    `sum(x for x in v ...)` : les parenthèses de l’appel suffisent, pas besoin de doubler.
+- id: py06.4
+  type: qcm
+  level: 3
+  concepts:
+  - itertools
+  q: 'Tu veux parcourir un flux par paires **glissantes** : `(a,b), (b,c), (c,d)`. Le plus direct en Python 3.10+ ?'
+  choices:
+  - t: '`itertools.pairwise(flux)`'
+    ok: true
+    why: Ajouté en 3.10, exactement pour ça, en O(1) mémoire.
+  - t: '`zip(flux, flux[1:])`'
+    ok: false
+    why: Correct sur une liste, impossible sur un générateur (pas de slicing).
+  - t: '`itertools.combinations(flux, 2)`'
+    ok: false
+    why: Donne **toutes** les paires, pas les paires adjacentes.
+  - t: '`zip(*[iter(flux)] * 2)`'
+    ok: false
+    why: Ça, c’est le découpage par blocs disjoints `(a,b),(c,d)`.
+  e: |-
+    `pairwise` sert dès que tu calcules une **différence entre échantillons successifs** : dérivée, détection de front, delta de temps.
+
+    ```python
+    from itertools import pairwise
+    pentes = [(v2 - v1) / dt for v1, v2 in pairwise(mesures)]
+    ```
+
+    Autres pièces d’itertools à connaître : `islice` (slicing sur générateur), `chain`, `groupby` (attention : nécessite une entrée **triée**), `accumulate`, `batched` (3.12).
+- id: py06.5
+  type: parsons
+  level: 3
+  concepts:
+  - generateur
+  q: Reconstitue un générateur qui lit un fichier de log ligne par ligne et ne renvoie que les mesures valides, sans tout charger en mémoire.
+  lang: python
+  lines:
+  - 'def mesures_valides(chemin):'
+  - '    with open(chemin, encoding="utf-8") as f:'
+  - '        for ligne in f:'
+  - '            ligne = ligne.strip()'
+  - '            if not ligne or ligne.startswith("#"):'
+  - '                continue'
+  - '            try:'
+  - '                yield float(ligne.split(";")[1])'
+  - '            except (IndexError, ValueError):'
+  - '                continue'
+  extra:
+  - '        return [float(l) for l in f]'
+  - '    lignes = f.readlines()'
+  e: |-
+    Points de qualité :
+    - `for ligne in f` itère **paresseusement** : un fichier de 4 Go passe.
+    - Le `with` garantit la fermeture même si le consommateur abandonne le générateur.
+    - `continue` sur ligne vide/commentaire, `try/except` **serré** autour de la seule opération qui peut rater.
+    - On attrape `IndexError` **et** `ValueError` : colonne absente ou non numérique.
+
+    Piège à connaître : si l’appelant n’épuise pas le générateur, le `with` ne se ferme qu’au ramassage de l’objet. `contextlib.closing` ou une consommation complète évite l’ambiguïté.
+- id: py06.6
+  type: cloze
+  level: 2
+  concepts:
+  - iterable
+  q: 'Complète : itérer avec l’index, et itérer deux séquences en parallèle.'
+  tpl: |-
+    for i, v in ⟦0⟧(mesures, start=1):
+        print(i, v)
+
+    for t, v in ⟦1⟧(temps, mesures, strict=True):
+        print(t, v)
+  blanks:
+  - - enumerate
+  - - zip
+  e: |-
+    `enumerate(seq, start=1)` évite le `i = 0 ... i += 1` manuel.
+
+    `zip(a, b)` s’arrête sur la **plus courte** — source silencieuse de perte de données. Depuis Python 3.10, `strict=True` lève `ValueError` si les longueurs diffèrent. **Utilise-le systématiquement** quand les deux séquences doivent s’aligner (temps ↔ mesures).
+
+    `itertools.zip_longest(a, b, fillvalue=None)` fait l’inverse.
+- id: py06.7
+  type: code
+  level: 3
+  concepts:
+  - generateur
+  - comprehension
+  q: Écris `fronts(signal, seuil)` — un **générateur** qui renvoie les indices où le signal franchit `seuil` vers le haut (échantillon précédent < seuil, courant >= seuil).
+  lang: python
+  start: |-
+    def fronts(signal, seuil):
+        ...
+  sol: |-
+    from itertools import pairwise
+
+    def fronts(signal, seuil):
+        for i, (a, b) in enumerate(pairwise(signal), start=1):
+            if a < seuil <= b:
+                yield i
+  tests: |-
+    import types
+    g = fronts([0, 0, 5, 5, 0, 7], 3)
+    assert isinstance(g, types.GeneratorType), "doit etre un generateur (yield)"
+    assert list(g) == [2, 5], list(fronts([0,0,5,5,0,7], 3))
+    assert list(fronts([], 1)) == []
+    assert list(fronts([9], 1)) == [], "un seul echantillon : aucun front"
+    assert list(fronts([5, 5, 5], 3)) == [], "pas de franchissement"
+    assert list(fronts([0, 3], 3)) == [1], "le seuil est atteint (>=)"
+    print("OK")
+  e: |-
+    `a < seuil <= b` : la comparaison chaînée dit exactement la condition de front montant, en une expression.
+
+    Le `yield` fait de la fonction un générateur : on peut l’enchaîner sur un flux infini (`islice(fronts(flux, 2.5), 10)` → les 10 premiers fronts).
+
+    Cas limites testés : liste vide, un seul point, signal déjà au-dessus. Ce sont exactement ceux qu’on oublie.
+- id: py06.8
+  type: predict
+  level: 3
+  concepts:
+  - generateur
+  q: Sortie ?
+  code: |-
+    def source():
+        for i in range(5):
+            yield i
+
+    g = source()
+    print(next(g))
+    print(list(g))
+    print(list(g))
+  answer: |-
+    0
+    [1, 2, 3, 4]
+    []
+  e: |-
+    Un générateur maintient sa position. Après `next(g)` il est à 1 ; `list(g)` consomme le reste ; le troisième appel trouve un générateur **épuisé** et renvoie une liste vide, sans erreur.
+
+    Un générateur épuisé le reste **définitivement**. Il n'y a pas de `reset()`.
+
+    C'est la source de bugs la plus discrète du module : une fonction qui reçoit un « itérable » et le parcourt deux fois marche avec une liste et échoue silencieusement avec un générateur. Si ta fonction doit itérer deux fois, commence par `v = list(v)` et documente-le.
+- id: py06.9
+  type: cloze
+  level: 2
+  concepts:
+  - itertools
+  q: Compose un pipeline de traitement sur un flux de mesures.
+  tpl: |-
+    from itertools import islice, ⟦0⟧, ⟦1⟧
+
+    premiers = list(islice(flux, 100))                 # les 100 premiers
+    tout = list(⟦0⟧(fichier_a, fichier_b))             # bout à bout
+    cumul = list(⟦1⟧([1, 2, 3, 4]))                    # [1, 3, 6, 10]
+  blanks:
+  - - chain
+  - - accumulate
+  e: |-
+    `itertools` est la boîte à outils du traitement de flux :
+
+    | besoin | outil |
+    | --- | --- |
+    | slicing sur un générateur | `islice(it, debut, fin)` |
+    | concaténer des sources | `chain(a, b)` · `chain.from_iterable(sources)` |
+    | somme/max cumulés | `accumulate(it, func=operator.add)` |
+    | paires glissantes | `pairwise(it)` (3.10+) |
+    | blocs de n | `batched(it, n)` (3.12+) |
+    | regrouper | `groupby(it, key)` — **exige une entrée triée** |
+    | répéter, cycler | `repeat`, `cycle`, `count` |
+
+    Tout est **paresseux** : mémoire constante, quelle que soit la taille du flux.
+- id: py06.10
+  type: predict
+  level: 2
+  concepts:
+  - comprehension
+  q: Sortie ?
+  code: |-
+    m = [[1, 2], [3, 4], [5]]
+    print([x for ligne in m for x in ligne])
+    print([[x * 2 for x in ligne] for ligne in m])
+  answer: |-
+    [1, 2, 3, 4, 5]
+    [[2, 4], [6, 8], [10]]
+  e: |-
+    **L'ordre des `for` imbriqués se lit comme une boucle classique**, de gauche à droite :
+
+    ```python
+    [x for ligne in m for x in ligne]
+    # ≡
+    for ligne in m:
+        for x in ligne:
+            ...x...
+    ```
+
+    C'est l'aplatissement (flatten). L'alternative lisible : `list(itertools.chain.from_iterable(m))`.
+
+    La seconde forme est différente : la comprehension **imbriquée** produit une liste de listes, pas un aplatissement.
+
+    Au-delà de deux `for`, écris une boucle. La compacité n'est pas un objectif.
+- id: py06.11
+  type: qcm
+  level: 3
+  concepts:
+  - generateur
+  q: Quelle est la vraie différence entre `[x*x for x in v]` et `(x*x for x in v)` ?
+  choices:
+  - t: La liste alloue tous les éléments ; l’expression génératrice ne calcule rien avant qu’on itère
+    ok: true
+    why: Mémoire O(n) contre O(1), et le calcul est différé.
+  - t: La seconde est un tuple
+    ok: false
+    why: Un tuple s’écrit `tuple(x*x for x in v)`. Les parenthèses seules font un générateur.
+  - t: La seconde est plus rapide à parcourir entièrement
+    ok: false
+    why: Légèrement plus lente en parcours complet (une frame par `next`). Son gain est la mémoire et l’arrêt anticipé.
+  - t: Aucune, c’est du style
+    ok: false
+    why: La différence est structurelle.
+  e: |-
+    Choisis selon l'usage :
+
+    ```python
+    somme = sum(x * x for x in v)            # générateur : rien en mémoire
+    top = sorted(v, reverse=True)[:10]        # liste obligatoire (tri)
+    if any(x > seuil for x in v): ...         # générateur : s'arrête au premier vrai
+    ```
+
+    Le gain décisif est l'**arrêt anticipé** : `any(...)` sur un générateur s'arrête dès qu'il trouve ; sur une liste, tout est calculé d'abord.
+
+    Sur 10 000 mesures, `sum([...])` alloue 10 000 objets pour rien.
+- id: py06.12
+  type: code
+  level: 3
+  concepts:
+  - generateur
+  q: Écris `fenetres(it, n)` — un **générateur** qui produit les fenêtres glissantes de taille `n` (sous forme de tuples) d’un itérable quelconque, sans le matérialiser.
+  lang: python
+  start: |-
+    from collections import deque
+
+    def fenetres(it, n):
+        ...
+  sol: |-
+    from collections import deque
+
+    def fenetres(it, n):
+        if n <= 0:
+            return
+        buf = deque(maxlen=n)
+        for x in it:
+            buf.append(x)
+            if len(buf) == n:
+                yield tuple(buf)
+  tests: |-
+    import types
+    g = fenetres(iter([1,2,3,4]), 2)
+    assert isinstance(g, types.GeneratorType)
+    assert list(g) == [(1,2),(2,3),(3,4)]
+    assert list(fenetres(iter([1,2]), 3)) == [], "trop court : rien"
+    assert list(fenetres(iter([]), 2)) == []
+    assert list(fenetres(iter([1,2,3]), 1)) == [(1,),(2,),(3,)]
+    assert list(fenetres(iter([1,2]), 0)) == []
+    assert list(fenetres((x for x in range(4)), 3)) == [(0,1,2),(1,2,3)], "doit marcher sur un generateur"
+    print("OK")
+  e: |-
+    Points de conception :
+    - `deque(maxlen=n)` évince automatiquement le plus ancien : la fenêtre glisse sans code d'index.
+    - `tuple(buf)` **fige** le contenu. Sans ce `tuple`, toutes les fenêtres émises pointeraient sur le même deque, qui continue de changer — un bug classique et très déroutant.
+    - `return` nu dans un générateur = arrêt immédiat (il ne renvoie pas `None`, il termine l'itération).
+    - Le test avec un générateur en entrée vérifie qu'on n'utilise ni `len()` ni indexation.
+
+    C'est la brique de base d'un filtre glissant, d'une détection de motif, ou d'un calcul de dérivée sur un flux.
+- id: py06.13
+  type: bug
+  level: 2
+  concepts:
+  - iterable
+  q: Cette fonction plante quand on lui passe un générateur. Clique sur la première ligne fautive.
+  code: |-
+    def resume(mesures):
+        n = len(mesures)
+        total = sum(mesures)
+        return {"n": n, "moyenne": total / n if n else 0.0}
+  bad: 2
+  fix: '    mesures = list(mesures)   # matérialise une fois, puis len/sum sont sûrs'
+  e: |-
+    `len()` exige `__len__` : les listes, tuples et dicts l'ont ; les générateurs, `map`, `filter`, `zip` et les fichiers **non**. → `TypeError: object of type 'generator' has no len()`.
+
+    Et même si `len` passait, `sum(mesures)` ligne 3 consommerait un générateur déjà épuisé.
+
+    Deux stratégies :
+    1. **Matérialiser** en tête (`mesures = list(mesures)`) : simple, mais tu perds l'avantage mémoire.
+    2. **Une seule passe** :
+    ```python
+    n = total = 0
+    for x in mesures:
+        n += 1; total += x
+    ```
+    Choisis 2 dès que le flux peut être gros. Documente dans la signature : `Sequence` (relisable) vs `Iterable` (une passe).
+- id: py06.14
+  type: predict
+  level: 3
+  concepts:
+  - itertools
+  q: Sortie ?
+  code: |-
+    from itertools import groupby
+    v = [("T", 1), ("T", 2), ("P", 3), ("T", 4)]
+    for cle, grp in groupby(v, key=lambda x: x[0]):
+        print(cle, [x[1] for x in grp], end=" | ")
+  answer: 'T [1, 2] | P [3] | T [4] | '
+  e: |-
+    `groupby` regroupe les éléments **consécutifs** ayant la même clé. Il ne trie pas : `"T"` apparaît deux fois parce que les éléments ne sont pas adjacents.
+
+    Pour un vrai regroupement : `groupby(sorted(v, key=f), key=f)` — la même clé aux deux endroits.
+
+    Deuxième piège : les groupes sont des **itérateurs paresseux** partageant la source. Dès que tu passes au groupe suivant, le précédent est invalidé. `list(groupby(...))` donne des groupes vides. Consomme chaque groupe **avant** d'avancer, comme ici.
+
+    Quand tu n'as pas besoin de l'ordre, un `defaultdict(list)` est plus simple et plus sûr.
+- id: py06.15
+  type: flash
+  level: 3
+  concepts:
+  - generateur
+  q: Que fait `yield from` et pourquoi c’est plus qu’une boucle `for ... yield` ?
+  back: |-
+    `yield from it` délègue entièrement à un autre itérable :
+
+    ```python
+    def tout(sources):
+        for s in sources:
+            yield from lire(s)      # ≡ for x in lire(s): yield x
+    ```
+
+    Ce que la boucle manuelle ne fait pas :
+    - transmet `send()`, `throw()` et `close()` au sous-générateur ;
+    - récupère sa valeur de retour : `resultat = yield from sous()` ;
+    - est nettement plus rapide (pas de va-et-vient par élément).
+  e: |-
+    En pratique tu l'utilises surtout pour **chaîner des sources** : parcourir récursivement une arborescence de fichiers, concaténer plusieurs journaux d'acquisition, aplatir une structure imbriquée.
+
+    ```python
+    def parcourir(dossier):
+        for p in dossier.iterdir():
+            if p.is_dir():
+                yield from parcourir(p)
+            else:
+                yield p
+    ```
+- id: py06.16
+  type: qcm
+  level: 2
+  concepts:
+  - comprehension
+  q: Que vaut `[y for x in [] for y in x]` et pourquoi est-ce important de le savoir ?
+  choices:
+  - t: '`[]` — une comprehension sur une source vide ne lève jamais'
+    ok: true
+    why: 'Aucun tour de boucle, donc aucun risque : c’est ce qui la rend sûre sur des données absentes.'
+  - t: '`IndexError`'
+    ok: false
+    why: Une comprehension n’indexe rien.
+  - t: '`None`'
+    ok: false
+    why: Une comprehension de liste renvoie toujours une liste.
+  - t: '`TypeError`'
+    ok: false
+    why: Itérer une liste vide est parfaitement valide.
+  e: |-
+    C'est un point de robustesse sous-estimé : les comprehensions, `sum`, `any`, `all`, `max(..., default=)` se comportent tous proprement sur du vide.
+
+    Attention aux deux exceptions :
+    - `max([])` et `min([])` **lèvent** `ValueError`. Utilise `max(v, default=0)`.
+    - `sum([]) == 0` et `all([]) == True` (vrai par vacuité) — ce dernier surprend : « toutes les mesures sont valides » est vrai quand il n'y en a aucune.
+
+    Dans un pipeline d'acquisition, le cas « zéro mesure » arrive dès la première coupure de câble. Teste-le systématiquement.

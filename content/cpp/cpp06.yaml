@@ -1,0 +1,731 @@
+id: cpp06
+track: cpp
+title: Conteneurs de la STL
+goal: Choisir le conteneur juste et éviter l’invalidation d’itérateurs.
+level: avance
+requires:
+- cpp02
+concepts:
+- vector
+- array-span
+- map-set
+- invalidation
+lesson:
+  minutes: 18
+  intro: |
+    La bibliothèque standard (la STL) fournit des conteneurs testés, rapides et sûrs : tu n'as presque jamais besoin d'écrire un tableau dynamique ou une table de hachage à la main. Encore faut-il choisir le bon, et connaître ses règles : ce qui coûte cher, ce qui réalloue, et quelles opérations rendent invalides les itérateurs que tu tiens. Ce module te donne la carte, avec `std::vector` en conteneur par défaut.
+  steps:
+    - level: 1
+      title: Le mobilier de rangement
+      body: |
+        - `std::vector` : une rangée de casiers **contigus**. Parcourir est très rapide, ajouter à la fin ne coûte presque rien ; insérer au milieu oblige à décaler tout ce qui suit ; et quand la rangée est pleine, on déménage tout dans une rangée deux fois plus grande.
+        - `std::array` : une rangée de taille fixe, vissée au mur : sa taille est connue à la compilation, aucune allocation. Le favori de l'embarqué.
+        - `std::map` : un classeur **trié** par étiquette. On y trouve une clé en quelques comparaisons, et on le parcourt dans l'ordre.
+        - `std::unordered_map` : l'armoire à tiroirs du dictionnaire Python : accès immédiat par hachage, aucun ordre.
+        - `std::deque` : des rangées chaînées, pour ajouter et retirer aux **deux** bouts.
+        - `std::span` : pas un meuble, une **fenêtre** posée sur une rangée existante (adresse + taille), sans rien posséder.
+    - level: 2
+      title: Coûts, itérateurs, invalidation
+      body: |
+        - `v.size()` est le nombre d'éléments, `v.capacity()` la place réservée. `push_back` est en temps constant **amorti** : de temps en temps, une réallocation recopie (ou déplace) tout. `v.reserve(n)` réserve d'avance et évite ces réallocations.
+        - Un **itérateur** désigne une position dans un conteneur ; `begin()` le premier élément, `end()` la position **après** le dernier (intervalle semi-ouvert, comme `range` en Python). Les algorithmes de `<algorithm>` travaillent sur ces paires.
+        - **Invalidation** : une réallocation de `vector` invalide **tous** les itérateurs, pointeurs et références vers ses éléments ; `insert` et `erase` invalident tout ce qui est après la position. Les nœuds d'une `map` ne bougent jamais.
+        - `std::map` : recherche, insertion et suppression en O(log n), parcours trié. `std::unordered_map` : O(1) en moyenne.
+        - Attention : `m[cle]` **insère** la clé avec une valeur par défaut si elle est absente. Pour lire : `m.find(cle)`, `m.contains(cle)` (C++20) ou `m.at(cle)` (lève une exception si absente).
+        - Supprimer selon un critère : `std::erase_if(v, predicat)` (C++20).
+      check:
+        q: "`std::vector<int> v; v.reserve(100); v.push_back(1);` Que valent `v.size()` et `v.capacity()` ?"
+        choices:
+          - t: 1 et au moins 100
+            ok: true
+            why: "`reserve` réserve de la place sans créer d'éléments ; `size` compte les éléments présents."
+          - t: 100 et 100
+            why: "C'est ce que ferait `v.resize(100)` : créer 100 éléments."
+          - t: 1 et 1
+            why: "`reserve(100)` a déjà réservé la place de 100 éléments."
+    - level: 3
+      title: Les conteneurs du quotidien
+      code: |
+        #include <array>
+        #include <iostream>
+        #include <map>
+        #include <span>
+        #include <string>
+        #include <unordered_map>
+        #include <vector>
+
+        double moyenne(std::span<const double> valeurs) {      // accepte vector, array, tableau C
+            double s = 0.0;
+            for (double v : valeurs) s += v;
+            return valeurs.empty() ? 0.0 : s / static_cast<double>(valeurs.size());
+        }
+
+        int main() {
+            std::vector<double> v;
+            v.reserve(100);                                      // une seule allocation
+            for (int i = 0; i < 5; ++i) v.push_back(20.0 + i);
+            std::cout << v.size() << "/" << v.capacity() << ", moyenne " << moyenne(v) << '\n';
+
+            std::array<double, 3> etalon{1.0, 2.0, 3.0};        // taille fixe, aucune allocation
+            std::cout << moyenne(etalon) << " " << moyenne(std::span(v).subspan(1, 2)) << '\n';
+
+            std::erase_if(v, [](double x) { return x > 22.5; });
+            std::cout << v.size() << " valeurs restantes\n";
+
+            std::map<std::string, int> erreurs;                  // trié par clé
+            for (const char* code : {"E12", "E04", "E12", "E31", "E12"}) ++erreurs[code];
+            for (const auto& [code, n] : erreurs) std::cout << code << "×" << n << " ";
+            std::cout << '\n';
+
+            std::unordered_map<std::string, double> seuils{{"T1", 25.0}};
+            std::cout << seuils.contains("T2") << " " << seuils.size() << '\n';
+            double s = seuils["T2"];                             // [] crée l'entrée si absente !
+            std::cout << s << " " << seuils.size() << '\n';
+            if (auto it = seuils.find("T3"); it == seuils.end()) std::cout << "T3 sans seuil\n";
+        }
+      out: |
+        5/100, moyenne 22
+        2 21.5
+        3 valeurs restantes
+        E04×1 E12×3 E31×1 
+        0 1
+        0 2
+        T3 sans seuil
+      after: |
+        `++erreurs[code]` exploite volontairement la création automatique (le compteur part de 0). Mais la lecture `seuils["T2"]` a ajouté une entrée fantôme : la table fait maintenant 2 éléments.
+    - level: 4
+      title: Sous le capot, et les boucles qui effacent
+      body: |
+        Un `std::vector` tient dans trois pointeurs (début, fin des éléments, fin de la réserve) : 24 octets sur une machine 64 bits, quel que soit le nombre d'éléments. Sa capacité double à chaque réallocation (avec GCC et Clang), ce qui garantit le coût amorti constant.
+
+        Une `std::map` alloue un **nœud** par élément, relié aux autres dans un arbre équilibré : chaque recherche saute d'un nœud à l'autre en mémoire. C'est pour ça qu'un `vector` trié, parcouru ou fouillé par dichotomie (`std::lower_bound`), bat souvent une `map` sur quelques milliers d'éléments : les données contiguës profitent du cache du processeur.
+
+        Pour effacer pendant un parcours, on utilise l'itérateur **renvoyé** par `erase`, qui désigne l'élément suivant ; l'ancien est invalide.
+      code: |
+        #include <algorithm>
+        #include <iostream>
+        #include <vector>
+
+        int main() {
+            std::vector<int> v{3, 8, 8, 1, 8, 5};
+            for (auto it = v.begin(); it != v.end(); ) {
+                if (*it == 8) it = v.erase(it);        // erase renvoie l'itérateur suivant
+                else ++it;
+            }
+            for (int x : v) std::cout << x << ' ';
+            std::cout << '\n';
+
+            std::sort(v.begin(), v.end());
+            auto pos = std::lower_bound(v.begin(), v.end(), 4);   // dichotomie : O(log n)
+            v.insert(pos, 4);                                       // à la bonne place
+            for (int x : v) std::cout << x << ' ';
+            std::cout << '\n';
+
+            std::cout << "sizeof(vector) = " << sizeof(std::vector<int>) << " octets\n";
+            std::vector<int> w;
+            std::size_t cap = w.capacity();
+            int reallocations = 0;
+            for (int i = 0; i < 1000; ++i) {
+                w.push_back(i);
+                if (w.capacity() != cap) { cap = w.capacity(); ++reallocations; }
+            }
+            std::cout << reallocations << " réallocations pour 1000 push_back (capacité " << cap << ")\n";
+        }
+      out: |
+        3 1 5 
+        1 3 4 5 
+        sizeof(vector) = 24 octets
+        11 réallocations pour 1000 push_back (capacité 1024)
+    - level: 5
+      title: Sur le terrain
+      body: |
+        | Besoin | Conteneur |
+        |---|---|
+        | Par défaut, séquence de valeurs | `std::vector` (avec `reserve` si la taille est connue) |
+        | Taille fixe connue à la compilation, pas d'allocation | `std::array` |
+        | Recherche par clé, ordre inutile | `std::unordered_map` / `std::unordered_set` |
+        | Recherche par clé et parcours trié, plages de clés | `std::map` / `std::set` |
+        | File à deux bouts | `std::deque` |
+        | Paramètre « des données contiguës à lire » | `std::span<const T>` |
+
+        - Dernières N mesures d'une acquisition : un **tampon circulaire** sur un `std::array` (indice modulo N), sans aucune allocation.
+        - Ne garde jamais un pointeur, une référence ou un itérateur vers un élément de `vector` à travers un `push_back` ou un `insert`.
+        - Pour lire une map : `find`, `contains` ou `at` ; `[]` seulement pour écrire ou accumuler.
+        - `std::vector<bool>` est un cas à part (bits compactés, pas de vraies références) : pour des drapeaux, `std::bitset<N>` ou `std::vector<char>`.
+        - En embarqué, pas d'allocation après l'initialisation : `reserve` au démarrage, ou `std::array`, ou une bibliothèque dédiée comme l'ETL (*Embedded Template Library*).
+  recap:
+    - "`std::vector` par défaut ; `std::array` si la taille est fixe ; `std::span` pour passer des données contiguës."
+    - "`size` = éléments, `capacity` = place réservée ; `reserve` évite les réallocations."
+    - "Réallocation = tous les itérateurs, pointeurs et références invalidés."
+    - "`map` triée en O(log n), `unordered_map` en O(1) moyen ; `m[k]` insère si absent."
+    - "Effacer en parcourant : `it = v.erase(it)`, ou `std::erase_if`."
+  pieges: [cpp-vector-invalidation, cpp-map-operator-crochet, cpp-size-moins-un, cpp-tableau-hors-limites]
+exercises:
+- id: cpp06.1
+  type: bug
+  level: 3
+  concepts:
+  - invalidation
+  q: Ce code plante de façon intermittente. Clique sur la ligne responsable.
+  lang: cpp
+  code: |-
+    std::vector<double> v{1.0, 2.0, 3.0};
+    double& premier = v[0];
+    v.push_back(4.0);
+    premier = 99.0;
+    std::cout << v[0];
+  bad: 3
+  fix: |-
+    v.reserve(4);            // AVANT de prendre la référence
+    // ou : reprendre la référence après le push_back
+  e: |-
+    `push_back` peut **réallouer** : si la capacité est atteinte, le vector alloue un bloc plus grand, y déplace les éléments et libère l’ancien. Toutes les références, pointeurs et itérateurs vers les anciens éléments deviennent invalides.
+
+    Ligne 4, `premier` pointe sur de la mémoire libérée → UB.
+
+    Ce qui invalide, à connaître par cœur :
+
+    | Conteneur | Invalidé par |
+    | --- | --- |
+    | `vector` | toute réallocation (`push_back`, `insert`, `resize`) ; `erase` invalide à partir du point |
+    | `deque` | insertion au milieu ; les **références** survivent aux ajouts aux extrémités |
+    | `list`, `map`, `set` | seulement l’élément effacé |
+
+    `reserve()` avant une boucle de `push_back` évite le problème **et** les réallocations répétées.
+- id: cpp06.2
+  type: qcm
+  level: 2
+  concepts:
+  - vector
+  q: Différence entre `v.size()` et `v.capacity()` ?
+  choices:
+  - t: '`size` = éléments construits ; `capacity` = emplacements alloués'
+    ok: true
+    why: La capacité est toujours ≥ la taille ; elle croît géométriquement (×1,5 ou ×2).
+  - t: Ce sont des synonymes
+    ok: false
+    why: 'Non : `size()` peut valoir 0 alors que `capacity()` vaut déjà 1000 après un `reserve`.'
+  - t: '`capacity` est la taille en octets'
+    ok: false
+    why: C’est un nombre d’éléments.
+  - t: '`size` compte aussi la mémoire réservée'
+    ok: false
+    why: Inverse.
+  e: |-
+    ```cpp
+    std::vector<int> v;
+    v.reserve(1000);         // capacity ≥ 1000, size == 0
+    v.resize(10);            // size == 10, 10 éléments valant 0
+    v.clear();               // size == 0, capacity inchangée
+    v.shrink_to_fit();       // demande la libération (non contraignant)
+    ```
+
+    Erreur fréquente : `reserve(n)` puis `v[i] = x` → UB, car `size()` vaut toujours 0. Après `reserve`, on remplit avec `push_back`/`emplace_back`. Après `resize`, on peut indexer.
+
+    Sur une boucle d’acquisition, `reserve(nb_echantillons)` en amont supprime toutes les réallocations : c’est souvent le gain le plus simple.
+- id: cpp06.3
+  type: qcm
+  level: 2
+  concepts:
+  - map-set
+  q: '`std::map` vs `std::unordered_map` : quel critère décide ?'
+  choices:
+  - t: Besoin d’un parcours **trié** → `map` ; sinon `unordered_map`, plus rapide en accès
+    ok: true
+    why: map = arbre rouge-noir O(log n) trié ; unordered_map = table de hachage O(1) moyen, non trié.
+  - t: '`map` est toujours plus rapide'
+    ok: false
+    why: 'Non : `unordered_map` gagne nettement en accès pur. `map` ne l’emporte que si tu as besoin de l’ordre.'
+  - t: '`unordered_map` accepte plus de types de clés'
+    ok: false
+    why: 'Inverse : elle exige un `std::hash`, `map` exige seulement un `operator<`.'
+  - t: '`map` consomme moins de mémoire'
+    ok: false
+    why: Généralement le contraire (un nœud + 3 pointeurs par élément).
+  e: |-
+    | | `map` | `unordered_map` |
+    | --- | --- | --- |
+    | Structure | arbre équilibré | table de hachage |
+    | Accès | O(log n) | O(1) moyen, O(n) pire |
+    | Ordre | trié par clé | aucun |
+    | Itérateurs stables | oui | invalidés au rehash |
+
+    Sur de **petites** collections (< 30 éléments), un `std::vector<std::pair<K,V>>` parcouru linéairement bat souvent les deux : tout tient dans une ligne de cache. Mesure avant de choisir.
+
+    Pour une clé personnalisée dans `unordered_map`, il faut spécialiser `std::hash` — c’est plus de travail qu’un `operator<`.
+- id: cpp06.4
+  type: cloze
+  level: 2
+  concepts:
+  - array-span
+  q: Remplace un couple pointeur/taille par une vue moderne (C++20).
+  lang: cpp
+  tpl: |-
+    #include <span>
+    #include <array>
+
+    double moyenne(std::⟦0⟧<const double> v) {
+        double s = 0.0;
+        for (double x : v) s += x;
+        return v.⟦1⟧() ? 0.0 : s / v.size();
+    }
+
+    std::⟦2⟧<double, 4> tab{1, 2, 3, 4};
+    double m = moyenne(tab);      // conversion implicite
+  blanks:
+  - - span
+  - - empty
+  - - array
+  e: |-
+    `std::span<const double>` = pointeur + taille, sans propriété ni copie. Elle accepte un `vector`, un `array`, un tableau C, une sous-plage — une seule signature pour tout.
+
+    `std::array<T, N>` est un tableau C **avec la taille dans le type** : pas de decay, `size()`, itérateurs, copiable. En embarqué, c’est le remplaçant direct de `double tab[4]`.
+
+    Avant C++20, l’équivalent était `template <class It> double moyenne(It debut, It fin)` ou `gsl::span`.
+
+    Attention : une span ne **possède** rien. Ne renvoie jamais une span vers un local.
+- id: cpp06.5
+  type: code
+  level: 3
+  concepts:
+  - vector
+  - invalidation
+  q: 'Écris `void retirer_hors_bornes(std::vector<double>& v, double lo, double hi)` : supprime toutes les valeurs strictement hors de [lo, hi], en préservant l’ordre des autres.'
+  lang: cpp
+  start: |-
+    #include <vector>
+    #include <algorithm>
+
+    void retirer_hors_bornes(std::vector<double>& v, double lo, double hi) {
+        // ton code
+    }
+  sol: |-
+    #include <vector>
+    #include <algorithm>
+
+    void retirer_hors_bornes(std::vector<double>& v, double lo, double hi) {
+        v.erase(std::remove_if(v.begin(), v.end(),
+                               [lo, hi](double x) { return x < lo || x > hi; }),
+                v.end());
+    }
+  tests: |-
+    #include <cassert>
+    #include <iostream>
+    int main() {
+        std::vector<double> v{-1, 0, 5, 10, 11, 3};
+        retirer_hors_bornes(v, 0, 10);
+        std::vector<double> att{0, 5, 10, 3};
+        assert(v == att);
+        std::vector<double> vide;
+        retirer_hors_bornes(vide, 0, 1);
+        assert(vide.empty());
+        std::vector<double> tout{1, 2};
+        retirer_hors_bornes(tout, 5, 6);
+        assert(tout.empty());
+        std::cout << "OK\n";
+    }
+  e: |-
+    C’est **l’idiome erase-remove**, à connaître par cœur.
+
+    `std::remove_if` ne supprime rien : il **déplace** les éléments à garder vers le début et renvoie un itérateur sur la nouvelle fin logique. C’est `erase(it, end())` qui coupe réellement.
+
+    Pourquoi cette gymnastique ? Parce qu’un algorithme de la STL ne connaît que des itérateurs — il ne peut pas redimensionner le conteneur.
+
+    Piège : `v.erase(std::remove_if(...))` **sans** le second argument efface un seul élément. Le `, v.end()` n’est pas optionnel.
+
+    En C++20, une ligne suffit : `std::erase_if(v, [&](double x){ return x < lo || x > hi; });`
+- id: cpp06.6
+  type: predict
+  level: 2
+  concepts:
+  - vector
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    #include <vector>
+    int main() {
+        std::vector<int> v;
+        std::size_t caps = 0;
+        for (int i = 0; i < 20; ++i) {
+            v.push_back(i);
+            if (v.capacity() != caps) { caps = v.capacity(); std::cout << caps << " "; }
+        }
+        std::cout << "| " << v.size() << "\n";
+    }
+  answer: 1 2 4 8 16 32 | 20
+  e: |-
+    La capacité croît **géométriquement** (×2 sur libstdc++, ×1,5 sur MSVC). C'est ce qui rend `push_back` en O(1) **amorti** : sur n insertions, le nombre total de copies reste proportionnel à n.
+
+    Si la croissance était additive (+1 à chaque fois), tu aurais O(n²) copies.
+
+    Le prix : jusqu'à 2× la mémoire nécessaire, et une réallocation invalide tous les itérateurs et pointeurs.
+
+    `v.reserve(20)` avant la boucle : une seule allocation, zéro réallocation, zéro invalidation. **C'est le premier réflexe quand tu connais la taille finale** — typiquement une acquisition de n échantillons.
+
+    `shrink_to_fit()` rend la mémoire excédentaire, mais c'est une simple requête, non contraignante.
+- id: cpp06.7
+  type: predict
+  level: 2
+  concepts:
+  - map-set
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    #include <map>
+    int main() {
+        std::map<std::string, int> m{{"b", 2}, {"a", 1}};
+        for (const auto& [k, v] : m) std::cout << k << v << " ";
+        std::cout << "| " << m["z"] << " " << m.size() << "\n";
+    }
+  answer: a1 b2 | 0 3
+  e: |-
+    Deux points essentiels :
+
+    **1. `std::map` est trié par clé**, pas par ordre d'insertion : `a` avant `b`. C'est sa raison d'être ; sinon, `unordered_map` est plus rapide.
+
+    **2. `m["z"]` sur une clé absente la CRÉE**, avec une valeur initialisée à zéro. La taille passe de 2 à 3 — juste en lisant. C'est le piège n°1 de `std::map`.
+
+    Pour lire sans créer :
+    ```cpp
+    if (auto it = m.find("z"); it != m.end()) utiliser(it->second);
+    if (m.contains("z")) ...           // C++20
+    m.at("z");                          // lève std::out_of_range
+    ```
+
+    Corollaire : `operator[]` n'existe pas sur une `map` **const** — parce qu'il peut modifier.
+
+    Le `auto& [k, v]` est une **liaison structurée** (C++17) : bien plus lisible que `it->first` / `it->second`.
+- id: cpp06.8
+  type: bug
+  level: 3
+  concepts:
+  - invalidation
+  q: Cette boucle saute des éléments ou plante. Clique sur la ligne fautive.
+  lang: cpp
+  code: |-
+    #include <vector>
+    void nettoyer(std::vector<int>& v) {
+        for (auto it = v.begin(); it != v.end(); ++it) {
+            if (*it < 0) {
+                v.erase(it);
+            }
+        }
+    }
+  bad: 5
+  fix: |2-
+                it = v.erase(it);   // erase renvoie l'itérateur suivant
+            } else {
+                ++it;
+  e: |-
+    `erase(it)` invalide `it` **et tous les itérateurs suivants**. Le `++it` de la boucle avance alors un itérateur mort : UB, et en pratique un élément sauté à chaque suppression.
+
+    La correction classique :
+    ```cpp
+    for (auto it = v.begin(); it != v.end(); ) {
+        if (*it < 0) it = v.erase(it);   // erase renvoie le suivant valide
+        else         ++it;
+    }
+    ```
+    Note que le `++it` sort de l'en-tête de boucle : il ne doit avoir lieu **que** si on n'a pas effacé.
+
+    Mais la vraie réponse en C++ moderne est l'**erase-remove**, en une ligne et en O(n) au lieu de O(n²) :
+    ```cpp
+    v.erase(std::remove_if(v.begin(), v.end(),
+                           [](int x){ return x < 0; }), v.end());
+    std::erase_if(v, [](int x){ return x < 0; });   // C++20, encore mieux
+    ```
+    La version naïve est quadratique : chaque `erase` décale tous les éléments suivants.
+- id: cpp06.9
+  type: cloze
+  level: 2
+  concepts:
+  - array-span
+  q: Choisis le bon conteneur selon la contrainte.
+  lang: cpp
+  tpl: |-
+    #include <array>
+    #include <vector>
+    #include <deque>
+
+    std::⟦0⟧<double, 64> tampon_isr{};      // taille fixe, aucune allocation
+    std::⟦1⟧<double> mesures;                // taille variable, mémoire contiguë
+    std::⟦2⟧<double> file;                   // ajouts/retraits aux DEUX bouts en O(1)
+  blanks:
+  - - array
+  - - vector
+  - - deque
+  e: |-
+    | Besoin | Conteneur |
+    | --- | --- |
+    | taille connue à la compilation, zéro allocation | `std::array<T, N>` |
+    | taille variable, accès indexé, contiguïté | `std::vector<T>` |
+    | ajouts aux deux extrémités | `std::deque<T>` |
+    | insertions/suppressions au milieu, itérateurs stables | `std::list<T>` (rare) |
+    | recherche par clé, ordonnée | `std::map` |
+    | recherche par clé, la plus rapide | `std::unordered_map` |
+    | pile / file / file à priorité | `std::stack`, `queue`, `priority_queue` |
+
+    **Par défaut : `std::vector`.** Il gagne presque toujours grâce à la localité mémoire, même là où la théorie donne l'avantage à `list`.
+
+    En embarqué sans allocation dynamique : `std::array` statique, ou la bibliothèque ETL (`etl::vector<T, N>`).
+
+    `deque` n'est **pas** contigu : pas de `.data()` utilisable, et pas convertible en `span`.
+- id: cpp06.10
+  type: code
+  level: 3
+  concepts:
+  - vector
+  - invalidation
+  q: 'Écris `void inserer_trie(std::vector<int>& v, int x)` : insère `x` en gardant le vecteur trié (croissant). Le vecteur d’entrée est déjà trié.'
+  lang: cpp
+  start: |-
+    #include <vector>
+    #include <algorithm>
+
+    void inserer_trie(std::vector<int>& v, int x) {
+        // ton code
+    }
+  sol: |-
+    #include <vector>
+    #include <algorithm>
+
+    void inserer_trie(std::vector<int>& v, int x) {
+        v.insert(std::upper_bound(v.begin(), v.end(), x), x);
+    }
+  tests: |-
+    #include <cassert>
+    #include <iostream>
+    int main() {
+        std::vector<int> v;
+        inserer_trie(v, 5);
+        assert((v == std::vector<int>{5}));
+        inserer_trie(v, 1);
+        inserer_trie(v, 9);
+        inserer_trie(v, 5);
+        assert((v == std::vector<int>{1, 5, 5, 9}));
+        inserer_trie(v, 0);
+        inserer_trie(v, 10);
+        assert((v == std::vector<int>{0, 1, 5, 5, 9, 10}));
+        assert(std::is_sorted(v.begin(), v.end()));
+        std::cout << "OK\n";
+    }
+  e: |-
+    `std::upper_bound` trouve en **O(log n)** la première position où `x` peut aller sans casser l'ordre. L'insertion elle-même reste O(n) (décalage), mais la recherche est logarithmique.
+
+    `upper_bound` plutôt que `lower_bound` : sur des doublons, le nouvel élément est inséré **après** ses égaux, ce qui préserve l'ordre relatif d'insertion (stabilité). Les deux passent ce test, mais la distinction compte dès que les éléments portent des données associées.
+
+    Attention : `std::binary_search` et `upper_bound` supposent que la plage **est** triée. Sur une plage non triée, c'est un UB — pas un mauvais résultat, un UB.
+
+    Alternative pour de gros volumes : accumuler puis `std::sort` une fois à la fin (O(n log n) total) plutôt que n insertions à O(n) chacune (O(n²)).
+- id: cpp06.11
+  type: qcm
+  level: 3
+  concepts:
+  - map-set
+  q: Comment insérer dans une `std::map` **seulement si la clé est absente**, sans double recherche ?
+  choices:
+  - t: '`m.try_emplace(cle, args...)` (C++17)'
+    ok: true
+    why: Une seule recherche, et la valeur n’est construite que si l’insertion a lieu.
+  - t: '`if (!m.count(cle)) m[cle] = v;`'
+    ok: false
+    why: Deux recherches, et `operator[]` exige un constructeur par défaut.
+  - t: '`m[cle] = v;`'
+    ok: false
+    why: Écrase la valeur existante — l’inverse de ce qui est demandé.
+  - t: '`m.insert({cle, v})`'
+    ok: false
+    why: Correct, mais construit la paire (donc la valeur) même si la clé existe déjà.
+  e: |-
+    ```cpp
+    auto [it, insere] = m.try_emplace("T1", 20.5);
+    if (!insere) {
+        // la clé existait, it pointe dessus
+    }
+    ```
+
+    Toutes ces méthodes renvoient une paire `(itérateur, bool)` : l'itérateur pointe sur l'élément (nouveau ou existant), le booléen dit s'il y a eu insertion.
+
+    | Méthode | Si la clé existe |
+    | --- | --- |
+    | `operator[]` | écrase (et crée si absente) |
+    | `insert` | ne fait rien, mais a construit la valeur |
+    | `try_emplace` | ne fait rien, **et ne construit pas** |
+    | `insert_or_assign` | écrase, sans exiger de constructeur par défaut |
+
+    `try_emplace` est décisif quand la valeur est coûteuse à construire ou non copiable (`unique_ptr`).
+- id: cpp06.12
+  type: predict
+  level: 3
+  concepts:
+  - vector
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    #include <vector>
+    int main() {
+        std::vector<int> v{1, 2, 3};
+        std::cout << v[5];             // UB, mais souvent silencieux
+        try {
+            std::cout << v.at(5);
+        } catch (const std::out_of_range&) {
+            std::cout << "out_of_range";
+        }
+        std::cout << "\n";
+    }
+  answer: 0out_of_range
+  accept:
+  - 0out_of_range
+  - out_of_range
+  norun: true
+  e: |-
+    `v[5]` est un **comportement indéfini** : `operator[]` ne vérifie rien, par choix de conception (« tu ne payes pas ce que tu n'utilises pas »). En pratique il lit la mémoire adjacente et affiche souvent 0, mais il pourrait planter, ou pire, sembler marcher.
+
+    `v.at(5)` vérifie et lève `std::out_of_range`.
+
+    Quand utiliser quoi :
+    - `operator[]` quand l'index est **prouvé** valide (issu d'une boucle bornée par `size()`).
+    - `.at()` quand l'index vient de l'extérieur : fichier, réseau, utilisateur.
+
+    Filet de sécurité pendant le développement : `-D_GLIBCXX_ASSERTIONS` (GCC) transforme les `operator[]` hors bornes en abandon avec message. Coût quasi nul, à activer en debug systématiquement.
+
+    `-fsanitize=address` les attrape aussi, et donne la ligne exacte.
+- id: cpp06.13
+  type: flash
+  level: 3
+  concepts:
+  - map-set
+  - invalidation
+  q: Quelles opérations invalident quoi, conteneur par conteneur ?
+  back: |-
+    | Conteneur | Itérateurs invalidés | Références/pointeurs |
+    | --- | --- | --- |
+    | `vector` | toute réallocation ; `erase` à partir du point | idem |
+    | `deque` | insertion/suppression au milieu ; toute insertion invalide les itérateurs | les **références** survivent aux ajouts aux extrémités |
+    | `list`, `forward_list` | seulement l'élément effacé | idem |
+    | `map`, `set` | seulement l'élément effacé | idem |
+    | `unordered_map/set` | tous au **rehash** | seulement l'élément effacé |
+
+    Règle de survie : **ne conserve jamais un itérateur ou un pointeur au-delà d'une modification du conteneur**, sauf si tu connais la garantie par cœur.
+  e: |-
+    La stabilité des **références** dans les conteneurs nodaux (`list`, `map`, `unordered_map`) est parfois décisive : elle permet de garder un pointeur sur un élément pendant que la structure évolue.
+
+    Dans un `vector`, l'équivalent est de stocker un **index** plutôt qu'un pointeur : l'index survit aux réallocations.
+
+    Et si tu as vraiment besoin de pointeurs stables **et** de contiguïté : `std::deque` pour les ajouts aux extrémités, ou un `vector<unique_ptr<T>>` (les objets ne bougent pas, seuls les pointeurs sont déplacés).
+- id: cpp06.14
+  type: qcm
+  level: 2
+  concepts:
+  - vector
+  q: Pourquoi `std::vector<bool>` est-il un piège ?
+  choices:
+  - t: 'Ce n’est pas un vrai conteneur : il stocke des bits, et `operator[]` renvoie un objet proxy, pas un `bool&`'
+    ok: true
+    why: D’où `auto b = v[0];` qui donne un proxy, et l’impossibilité de faire `&v[0]`.
+  - t: Il est plus lent que `vector<char>`
+    ok: false
+    why: Parfois, mais ce n’est pas le problème de fond.
+  - t: Il n’existe pas
+    ok: false
+    why: 'Il existe : c’est une spécialisation du standard.'
+  - t: Il consomme trop de mémoire
+    ok: false
+    why: Au contraire, il est 8× plus compact — c’est justement la cause du problème.
+  e: |-
+    `std::vector<bool>` est une spécialisation qui empaquète 8 booléens par octet. Conséquences :
+    - `v[0]` renvoie un **proxy** (`std::vector<bool>::reference`), pas un `bool&`.
+    - `auto b = v[0];` capture le proxy : `b` reste lié au vecteur.
+    - `&v[0]` ne compile pas, `.data()` non plus.
+    - Il ne satisfait pas les exigences d'un conteneur standard : les algorithmes génériques peuvent échouer.
+
+    C'est unanimement considéré comme une erreur de conception du standard, conservée pour compatibilité.
+
+    Alternatives :
+    - `std::vector<char>` ou `std::vector<std::uint8_t>` — un vrai conteneur.
+    - `std::bitset<N>` — taille fixe, opérations bit à bit efficaces, idéal pour un registre de statut.
+    - `std::deque<bool>` — pas spécialisé, se comporte normalement.
+- id: cpp06.15
+  type: parsons
+  level: 3
+  concepts:
+  - array-span
+  - vector
+  q: Reconstitue une fonction qui remplit un tampon d’acquisition sans jamais réallouer.
+  lang: cpp
+  lines:
+  - '#include <vector>'
+  - '#include <cstddef>'
+  - ''
+  - std::vector<double> acquerir(Instrument& inst, std::size_t n) {
+  - '    std::vector<double> out;'
+  - '    out.reserve(n);'
+  - '    for (std::size_t i = 0; i < n; ++i) {'
+  - '        out.push_back(inst.lire());'
+  - '    }'
+  - '    return out;'
+  - '}'
+  extra:
+  - '    std::vector<double> out(n);'
+  - '    return std::move(out);'
+  e: |-
+    Trois décisions :
+    - `reserve(n)` + `push_back` : **une seule** allocation, et `size()` reflète le nombre réel d'échantillons acquis. Le premier intrus (`vector<double> out(n)`) construirait n zéros puis en ajouterait n autres — le vecteur ferait 2n éléments.
+    - `return out;` et **non** `return std::move(out);` (second intrus) : le `std::move` empêche l'optimisation de valeur de retour (NRVO) et force un déplacement inutile. C'est une erreur très répandue.
+    - Retour **par valeur** : grâce à NRVO, le vecteur est construit directement chez l'appelant. Aucune copie.
+
+    Si l'acquisition peut s'interrompre, `out.size()` te dit combien tu as vraiment — information perdue avec un tampon pré-dimensionné.
+
+    Variante zéro-allocation (embarqué) : l'appelant fournit un `std::span<double>` et la fonction renvoie le nombre d'échantillons écrits.
+  verify_prelude: |
+    struct Instrument { double lire() { return 0.0; } };
+- id: cpp06.16
+  type: code
+  level: 3
+  concepts:
+  - map-set
+  q: 'Écris `std::map<char, int> compter(const std::string& s)` : compte les occurrences de chaque caractère.'
+  lang: cpp
+  start: |-
+    #include <map>
+    #include <string>
+
+    std::map<char, int> compter(const std::string& s) {
+        // ton code
+    }
+  sol: |-
+    #include <map>
+    #include <string>
+
+    std::map<char, int> compter(const std::string& s) {
+        std::map<char, int> m;
+        for (char c : s) {
+            ++m[c];
+        }
+        return m;
+    }
+  tests: |-
+    #include <cassert>
+    #include <iostream>
+    int main() {
+        auto m = compter("abca");
+        assert(m.size() == 3);
+        assert(m['a'] == 2 && m['b'] == 1 && m['c'] == 1);
+        assert(compter("").empty());
+        auto m2 = compter("aaa");
+        assert(m2.size() == 1 && m2['a'] == 3);
+        auto m3 = compter("cba");   // garder la map en vie : un itérateur vers un temporaire pendouille
+        assert(m3.begin()->first == 'a' && "map triee par cle");
+        std::cout << "OK\n";
+    }
+  e: |-
+    `++m[c]` fonctionne parce que `operator[]` **crée** l'entrée si elle est absente, en initialisant la valeur à zéro (`int{}` vaut 0). C'est le seul cas où le comportement « créateur » de `operator[]` est exactement ce qu'on veut.
+
+    Le test `it->first == 'a'` sur `compter("cba")` vérifie le tri par clé : c'est ce qui distingue `map` d'`unordered_map`.
+
+    Si l'ordre est indifférent, `std::unordered_map` est plus rapide. Et pour des caractères ASCII, le plus rapide reste un simple `std::array<int, 256>` indexé par `static_cast<unsigned char>(c)` — pas de hachage, pas d'allocation.
+
+    Choisir la structure en fonction du domaine des clés est souvent plus rentable que d'optimiser le code.

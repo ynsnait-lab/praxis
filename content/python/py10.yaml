@@ -1,0 +1,708 @@
+id: py10
+track: python
+title: Tests avec pytest
+goal: Couvrir une fonction critique par des tests qui échouent pour la bonne raison.
+level: avance
+requires:
+- py07
+concepts:
+- pytest
+- fixtures
+- parametrize
+- mock
+lesson:
+  minutes: 18
+  intro: |
+    Tu modifies une fonction de conversion pour corriger un cas particulier. Comment être sûr de n'avoir rien cassé ailleurs ? En relançant, en une seconde, **tous** les cas qui marchaient avant. C'est ce que font les tests automatiques, et `pytest` est l'outil standard en Python. Ce module t'apprend à écrire des tests qui échouent **pour la bonne raison**, et seulement dans ce cas.
+  steps:
+    - level: 1
+      title: Le banc de recette
+      body: |
+        Quand une machine est livrée, on ne croit pas le fournisseur sur parole : on fait la **recette**. Des essais définis à l'avance, des valeurs attendues, des tolérances, et un procès-verbal « conforme » ou « non conforme ».
+
+        Un test automatique, c'est la recette de ta fonction : des entrées connues, la sortie attendue, et une vérification faite par la machine. Une fois écrit, il se rejoue gratuitement après chaque modification, comme un **calibre entre / n'entre pas** qu'on repasse sur chaque pièce. Et chaque bug corrigé mérite son test, pour qu'il ne revienne jamais.
+    - level: 2
+      title: Comment pytest fonctionne
+      body: |
+        - pytest cherche les fichiers `test_*.py` et, dedans, les fonctions `test_*`. Il les appelle une par une : un test **réussit** s'il se termine sans exception, il **échoue** si une exception s'échappe (le plus souvent un `assert` faux).
+        - Un test suit trois temps : **préparer** les données, **agir** (appeler la fonction), **vérifier** avec `assert`.
+        - Flottants : `assert resultat == pytest.approx(attendu)`, jamais `==` seul.
+        - Erreurs attendues : `with pytest.raises(ValueError, match="zéro absolu"):` échoue si l'exception n'est **pas** levée.
+        - Plusieurs cas d'un coup : `@pytest.mark.parametrize("entree, attendu", [...])`.
+        - **Fixtures** : une fonction décorée `@pytest.fixture` prépare un objet (instrument simulé, fichier temporaire) ; un test la reçoit simplement en la nommant dans ses paramètres. pytest en fournit plusieurs : `tmp_path` (dossier temporaire), `monkeypatch` (remplacer une fonction ou une variable d'environnement le temps d'un test), `capsys` (capturer ce qui est affiché).
+        - Lancement : `pytest -q` (résumé), `-x` (s'arrêter au premier échec), `-k conversion` (filtrer par nom), `--lf` (rejouer les derniers échecs).
+      check:
+        q: Laquelle de ces fonctions, placée dans `test_conversion.py`, pytest exécute-t-il ?
+        choices:
+          - t: "`def test_zero_absolu():`"
+            ok: true
+            why: Fichier `test_*.py` et fonction `test_*` : elle est collectée.
+          - t: "`def verifier_zero_absolu():`"
+            why: Le nom ne commence pas par `test` : pytest l'ignore, sans rien dire.
+          - t: "`def zero_absolu_test():`"
+            why: Le préfixe compte, pas le suffixe (pour les fonctions).
+    - level: 3
+      title: Un premier fichier de tests
+      body: |
+        Deux fichiers dans le même dossier : le code, et ses tests. Ce code ne tourne pas dans l'app (pytest n'y est pas installé) ; il se lance sur ton Mac, dans les labs.
+      code: |
+        # ---- conversion.py ----
+        def c_vers_k(t_c: float) -> float:
+            if t_c < -273.15:
+                raise ValueError(f"{t_c} °C est sous le zéro absolu")
+            return t_c + 273.15
+
+        # ---- test_conversion.py ----
+        import pytest
+        from conversion import c_vers_k
+
+        @pytest.mark.parametrize("t_c, attendu", [
+            (0.0, 273.15),
+            (-273.15, 0.0),
+            (26.85, 300.0),
+        ])
+        def test_c_vers_k(t_c, attendu):
+            assert c_vers_k(t_c) == pytest.approx(attendu)
+
+        def test_sous_zero_absolu():
+            with pytest.raises(ValueError, match="zéro absolu"):
+                c_vers_k(-300)
+      verify: false
+      after: |
+        Dans le terminal, depuis le dossier :
+
+        ```text
+        $ pytest -q
+        ....                                                                     [100%]
+        4 passed in 0.01s
+        ```
+
+        Un point par test réussi : `parametrize` a créé trois tests à partir d'une seule fonction.
+    - level: 4
+      title: Quand un test échoue
+      body: |
+        Introduisons un bug : `return t_c + 273` au lieu de `273.15`. pytest **réécrit** chaque `assert` avant l'exécution, pour afficher les valeurs des deux côtés au lieu d'un simple `AssertionError` :
+
+        ```text
+        $ pytest -q --tb=short
+        FFF.                                                                     [100%]
+        =================================== FAILURES ===================================
+        __________________________ test_c_vers_k[0.0-273.15] ___________________________
+        test_conversion.py:10: in test_c_vers_k
+            assert c_vers_k(t_c) == pytest.approx(attendu)
+        E   assert 273.0 == 273.15 ± 2.7e-04
+        E     comparison failed
+        E     Obtained: 273.0
+        E     Expected: 273.15 ± 2.7e-04
+        (… deux autres échecs du même genre …)
+        =========================== short test summary info ============================
+        FAILED test_conversion.py::test_c_vers_k[0.0-273.15] - assert 273.0 == 273.15...
+        FAILED test_conversion.py::test_c_vers_k[-273.15-0.0] - assert -0.14999999999...
+        FAILED test_conversion.py::test_c_vers_k[26.85-300.0] - assert 299.85 == 300....
+        3 failed, 1 passed in 0.02s
+        ```
+
+        Remarque la tolérance : `pytest.approx` accepte par défaut un écart relatif de 10⁻⁶ (d'où ± 2.7e-04 autour de 273.15), et un écart absolu de 10⁻¹² autour de zéro.
+
+        Sans pytest, le mécanisme se reproduit en quelques lignes : un test n'est qu'une fonction qui lève une exception quand quelque chose ne va pas.
+      code: |
+        import math
+
+        print(0.1 * 3 == 0.3, 0.1 * 3)
+        print(math.isclose(0.1 * 3, 0.3))              # tolérance relative 1e-9 par défaut
+        print(math.isclose(1e-12, 0.0))                # près de zéro, le relatif ne suffit pas…
+        print(math.isclose(1e-12, 0.0, abs_tol=1e-9))  # …il faut une tolérance absolue
+
+        def moyenne(v):
+            return sum(v) / len(v)
+
+        def test_moyenne():
+            assert moyenne([1.0, 2.0, 3.0]) == 2.0
+            assert moyenne([5.0]) == 5.0
+
+        test_moyenne()                  # ce que fait pytest : appeler, et laisser assert lever
+        print("test_moyenne : OK")
+        try:
+            assert moyenne([1.0, 2.0]) == 1.4, "moyenne de [1, 2]"
+        except AssertionError as e:
+            print("AssertionError:", e)
+      run: true
+      out: |
+        False 0.30000000000000004
+        True
+        False
+        True
+        test_moyenne : OK
+        AssertionError: moyenne de [1, 2]
+    - level: 5
+      title: Sur le terrain
+      body: |
+        Tester du code qui parle à un instrument **sans** l'instrument : on sépare la logique (pure, testable) des entrées-sorties, et on remplace l'instrument par un objet simulé fourni par une fixture.
+
+        ```python
+        import pytest
+
+        class ThermometreSimule:
+            def __init__(self, valeurs):
+                self.valeurs = iter(valeurs)
+
+            def lire(self):
+                return next(self.valeurs)
+
+        @pytest.fixture
+        def thermometre():
+            return ThermometreSimule([20.0, 20.5, 95.0])
+
+        def surchauffes(capteur, n, seuil):
+            return [v for v in (capteur.lire() for _ in range(n)) if v > seuil]
+
+        def test_alarme_surchauffe(thermometre):
+            assert surchauffes(thermometre, 3, seuil=90) == [95.0]
+
+        def test_rapport(tmp_path):
+            fichier = tmp_path / "rapport.txt"
+            fichier.write_text("T1;OK\n")
+            assert fichier.read_text().startswith("T1")
+        ```
+
+        - Cas limites à couvrir systématiquement : liste vide, un seul élément, bornes incluses ou exclues, valeurs négatives, `NaN`, très grandes valeurs.
+        - **Vois chaque test échouer une fois** : casse volontairement le code, ou écris le test avant de corriger le bug. Un test qui n'a jamais été rouge n'a rien prouvé.
+        - Un test qui passe « une fois sur trois » dépend de l'heure, du hasard, de l'ordre des tests ou d'un état partagé : fixe la graine aléatoire, injecte l'horloge, isole les données.
+        - `pytest --cov` (extension pytest-cov) montre les lignes jamais exécutées par les tests. 100 % de couverture ne garantit pas l'absence de bug, mais une ligne jamais exécutée n'est jamais testée.
+  recap:
+    - "pytest exécute les fonctions `test_*` des fichiers `test_*.py` ; un test échoue si une exception s'échappe."
+    - "`pytest.approx` pour les flottants, `pytest.raises` pour les erreurs, `parametrize` pour les cas."
+    - "Fixtures : un objet préparé, reçu en nommant un paramètre (`tmp_path`, `monkeypatch`, les tiennes)."
+    - "Sépare logique et entrées-sorties ; simule l'instrument."
+    - "Un test qui n'a jamais échoué n'a rien prouvé."
+  pieges: [py-test-flottant, py-test-qui-ne-teste-rien, py-flottants-exacts]
+exercises:
+- id: py10.1
+  type: qcm
+  level: 1
+  concepts:
+  - pytest
+  q: Un test pytest est reconnu si…
+  choices:
+  - t: le fichier s’appelle `test_*.py` (ou `*_test.py`) et la fonction `test_*`
+    ok: true
+    why: Convention par défaut, configurable dans pyproject.toml.
+  - t: il hérite de `unittest.TestCase`
+    ok: false
+    why: pytest sait les exécuter, mais ce n’est pas nécessaire.
+  - t: il est décoré `@pytest.test`
+    ok: false
+    why: Ce décorateur n’existe pas.
+  - t: il contient au moins un `assert`
+    ok: false
+    why: Utile mais pas un critère de collecte.
+  e: |-
+    Structure minimale d’un projet testé :
+    ```
+    projet/
+      src/monpkg/…
+      tests/test_calibration.py
+      pyproject.toml
+    ```
+    `pytest -q` à la racine. `pytest -x --lf` = stop au premier échec, puis rejoue seulement les derniers ratés — la boucle la plus rapide quand tu débogues.
+
+    pytest **réécrit** les assertions : `assert a == b` affiche le diff complet. Pas besoin de `assertEqual`.
+- id: py10.2
+  type: cloze
+  level: 2
+  concepts:
+  - parametrize
+  q: Teste une fonction de conversion sur plusieurs cas d’un coup.
+  tpl: |-
+    import pytest
+
+    @pytest.mark.⟦0⟧("brut, attendu", [
+        (0, -273.15),
+        (2731, 0.0),
+        (3731, 100.0),
+    ])
+    def test_kelvin_vers_celsius(brut, attendu):
+        assert kelvin_vers_celsius(brut) == pytest.⟦1⟧(attendu, abs=1e-9)
+  blanks:
+  - - parametrize
+  - - approx
+  e: |-
+    `@pytest.mark.parametrize` génère **un test par cas** : tu vois lequel échoue, pas juste « le test a raté ».
+
+    `pytest.approx(x, abs=…, rel=…)` est la façon correcte de comparer des flottants dans un test. Il marche aussi sur des listes et des dicts : `assert resultat == pytest.approx([1.0, 2.0])`.
+
+    Pour tester qu’une exception est levée :
+    ```python
+    with pytest.raises(ValueError, match="zéro absolu"):
+        Sonde(-300)
+    ```
+- id: py10.3
+  type: qcm
+  level: 2
+  concepts:
+  - fixtures
+  q: À quoi sert une fixture `@pytest.fixture` ?
+  choices:
+  - t: Fournir un objet prêt à l’emploi à tout test qui le demande par son nom en paramètre
+    ok: true
+    why: 'Injection de dépendances : le nom du paramètre = le nom de la fixture.'
+  - t: Marquer un test comme lent
+    ok: false
+    why: C’est `@pytest.mark.slow`.
+  - t: Remplacer `setUp`/`tearDown` uniquement
+    ok: false
+    why: Elle fait ça, mais elle est surtout composable et à portée réglable.
+  - t: Générer des données aléatoires
+    ok: false
+    why: Ça, c’est plutôt `hypothesis`.
+  e: |-
+    ```python
+    @pytest.fixture
+    def instrument(tmp_path):
+        inst = FauxInstrument(journal=tmp_path / "log.csv")
+        yield inst          # ce qui suit = nettoyage
+        inst.fermer()
+
+    def test_lecture(instrument):
+        assert instrument.lire() == 0.0
+    ```
+
+    Fixtures intégrées à connaître : `tmp_path` (dossier temporaire), `capsys` (capture stdout), `monkeypatch` (remplacer une fonction/variable d’env), `caplog`.
+
+    `scope="module"` ou `"session"` pour ne créer la ressource qu’une fois — utile quand elle est lente (connexion à un banc de test).
+- id: py10.4
+  type: code
+  level: 3
+  concepts:
+  - pytest
+  q: On te donne `crc8` ci-dessous. Écris `verifier(trame)` qui renvoie `True` si le dernier octet de la trame est le CRC8 des précédents. Trame vide ou d’un seul octet → `False`.
+  lang: python
+  start: |-
+    def crc8(data: bytes) -> int:
+        crc = 0
+        for octet in data:
+            crc ^= octet
+            for _ in range(8):
+                crc = ((crc << 1) ^ 0x07) & 0xFF if crc & 0x80 else (crc << 1) & 0xFF
+        return crc
+
+    def verifier(trame: bytes) -> bool:
+        ...
+  sol: |-
+    def crc8(data: bytes) -> int:
+        crc = 0
+        for octet in data:
+            crc ^= octet
+            for _ in range(8):
+                crc = ((crc << 1) ^ 0x07) & 0xFF if crc & 0x80 else (crc << 1) & 0xFF
+        return crc
+
+    def verifier(trame: bytes) -> bool:
+        if len(trame) < 2:
+            return False
+        return crc8(trame[:-1]) == trame[-1]
+  tests: |-
+    corps = bytes([0xAA, 0x01, 0x02])
+    bonne = corps + bytes([crc8(corps)])
+    assert verifier(bonne) is True
+    mauvaise = corps + bytes([(crc8(corps) ^ 0xFF) & 0xFF])
+    assert verifier(mauvaise) is False
+    assert verifier(b"") is False
+    assert verifier(b"\x01") is False
+    assert verifier(bytes([0x00, crc8(b"\x00")])) is True
+    print("OK")
+  e: |-
+    Trois choses à retenir :
+    - `trame[:-1]` → **bytes** (le corps) ; `trame[-1]` → **int** (le CRC). C’est le piège du slicing sur `bytes`.
+    - Les cas dégénérés (`b""`, un octet) doivent être traités **avant** l’indexation, sinon `IndexError`.
+    - Le CRC8 polynôme 0x07 est celui de SMBus/PEC — tu le croiseras sur des capteurs I²C.
+
+    Un contrôle d’intégrité qui renvoie `True` sur une trame vide est un bug de sécurité classique.
+- id: py10.5
+  type: qcm
+  level: 3
+  concepts:
+  - mock
+  q: Tu testes une fonction qui lit un port série. Quelle approche est la plus saine ?
+  choices:
+  - t: Injecter l’objet port en paramètre et passer un faux objet dans le test
+    ok: true
+    why: 'Injection de dépendance : pas de patch, code plus simple, test rapide et déterministe.'
+  - t: '`unittest.mock.patch("serial.Serial")`'
+    ok: false
+    why: Ça marche, mais le test devient couplé au chemin d’import — fragile au moindre refactor.
+  - t: Brancher le vrai capteur avant de lancer les tests
+    ok: false
+    why: 'Ce n’est plus un test unitaire : lent, non reproductible, impossible en CI.'
+  - t: Ne pas tester cette partie
+    ok: false
+    why: C’est justement le code qui casse en manip.
+  e: |-
+    Le vrai levier n’est pas l’outil de mock, c’est la **conception** : sépare le protocole (pur, testable) du transport (I/O).
+
+    ```python
+    def decoder(trame: bytes) -> float: ...          # testable sans matériel
+    def lire(port) -> float:                          # port injecté
+        return decoder(port.read(8))
+    ```
+
+    Dans le test : `class FauxPort: def read(self, n): return b"..."`.
+
+    Règle : **si tu as besoin de beaucoup de mocks, c’est le design qu’il faut changer.**
+- id: py10.6
+  type: predict
+  level: 2
+  concepts:
+  - pytest
+  - fixtures
+  q: Combien de fois `port` est-il construit, et qu’affiche la suite ?
+  code: |-
+    import pytest
+
+    @pytest.fixture
+    def port():
+        print("ouvre", end=" ")
+        yield "PORT"
+        print("ferme", end=" ")
+
+    def test_a(port): print("a", end=" ")
+    def test_b(port): print("b", end=" ")
+  answer: ouvre a ferme ouvre b ferme
+  norun: true
+  e: |-
+    Une fixture de portée `function` (le défaut) est **reconstruite pour chaque test**. C'est ce qui garantit l'isolation : un test ne peut pas polluer le suivant.
+
+    Ce qui suit le `yield` est le nettoyage, exécuté même si le test échoue.
+
+    Pour une ressource coûteuse (connexion à un banc, chargement d'un gros fichier) :
+    ```python
+    @pytest.fixture(scope="module")   # ou "session"
+    def banc(): ...
+    ```
+    Mais attention : une fixture partagée redevient un état global. Si un test la modifie, les suivants héritent de la modification. Ne partage que de l'immuable ou du strictement en lecture.
+- id: py10.7
+  type: cloze
+  level: 2
+  concepts:
+  - pytest
+  q: Vérifie qu’une exception est bien levée, avec le bon message.
+  tpl: |-
+    import pytest
+
+    def test_zero_absolu():
+        with pytest.⟦0⟧(ValueError, ⟦1⟧="zéro absolu"):
+            Sonde(-300)
+
+    def test_approx():
+        assert convertir(2731) == pytest.⟦2⟧(0.0, abs=1e-9)
+  blanks:
+  - - raises
+  - - match
+  - - approx
+  e: |-
+    `pytest.raises(Exc, match="motif")` : le test échoue si l'exception n'est **pas** levée, ou si son message ne correspond pas au motif (une **regex**, appliquée avec `re.search`).
+
+    Le `match` est important : sans lui, ton test passe même si l'exception vient d'une faute de frappe ailleurs dans le code.
+
+    Récupérer l'exception pour l'inspecter :
+    ```python
+    with pytest.raises(MesureInvalide) as info:
+        valider(-999)
+    assert info.value.capteur == "T1"
+    ```
+
+    ⚠️ Attention aux caractères spéciaux : `match="(erreur)"` est une regex. Utilise `re.escape()` si le message contient des parenthèses ou des points.
+- id: py10.8
+  type: qcm
+  level: 3
+  concepts:
+  - pytest
+  - mock
+  q: À quoi sert la fixture `tmp_path` de pytest ?
+  choices:
+  - t: Fournir un dossier temporaire unique par test, nettoyé automatiquement
+    ok: true
+    why: C’est un `pathlib.Path`. Les dernières exécutions sont conservées pour inspection.
+  - t: Mesurer le temps du test
+    ok: false
+    why: C’est `pytest-benchmark` ou `--durations`.
+  - t: Monter un système de fichiers en mémoire
+    ok: false
+    why: C’est un vrai dossier sur disque, dans le répertoire temporaire du système.
+  - t: Remplacer `monkeypatch`
+    ok: false
+    why: 'Rôles différents : l’un donne un dossier, l’autre remplace des objets.'
+  e: |-
+    ```python
+    def test_ecriture_csv(tmp_path):
+        fichier = tmp_path / "mesures.csv"
+        ecrire(fichier, donnees)
+        lignes = fichier.read_text(encoding="utf-8").splitlines()
+        assert lignes[0] == "t;valeur"
+    ```
+
+    Les autres fixtures intégrées à connaître :
+
+    | Fixture | Rôle |
+    | --- | --- |
+    | `tmp_path` | dossier temporaire (`Path`) |
+    | `capsys` | capture `stdout`/`stderr` : `capsys.readouterr().out` |
+    | `monkeypatch` | remplace attribut, variable d'env, `chdir` — annulé après le test |
+    | `caplog` | capture les enregistrements de `logging` |
+    | `request` | métadonnées du test en cours |
+
+    **N'écris jamais dans le dossier courant** depuis un test : les exécutions parallèles se marcheraient dessus.
+- id: py10.9
+  type: code
+  level: 3
+  concepts:
+  - pytest
+  q: 'On teste `valider(v, lo, hi)` qui renvoie `True` si `lo <= v <= hi`. Écris-la de sorte que ces cas limites passent : bornes incluses, `lo > hi` lève `ValueError`, `nan` renvoie `False`.'
+  lang: python
+  start: |-
+    import math
+
+    def valider(v, lo, hi):
+        ...
+  sol: |-
+    import math
+
+    def valider(v, lo, hi):
+        if lo > hi:
+            raise ValueError(f"bornes inversées : [{lo}, {hi}]")
+        if not math.isfinite(v):
+            return False
+        return lo <= v <= hi
+  tests: |-
+    assert valider(5, 0, 10) is True
+    assert valider(0, 0, 10) is True and valider(10, 0, 10) is True
+    assert valider(-1, 0, 10) is False
+    assert valider(float("nan"), 0, 10) is False
+    assert valider(float("inf"), 0, 10) is False
+    try:
+        valider(1, 10, 0); assert False, "bornes inversees doivent lever"
+    except ValueError:
+        pass
+    assert valider(5, 5, 5) is True
+    print("OK")
+  e: |-
+    Le cas `nan` est le piège de l'exercice : **toute** comparaison impliquant `nan` est fausse, donc `lo <= nan <= hi` renvoie déjà `False`. Le test explicite documente cette intention plutôt que de la laisser au hasard.
+
+    `inf` est différent : `0 <= inf <= 10` est bien `False`, mais si tes bornes étaient infinies il passerait. Le `isfinite` rend le contrat net.
+
+    Les bornes inversées **lèvent** au lieu de renvoyer `False` : c'est une erreur de programmation, pas une donnée invalide. La distinction compte.
+
+    Note le `is True` dans les tests : il vérifie que tu renvoies un vrai booléen, pas une valeur simplement vraie.
+- id: py10.10
+  type: bug
+  level: 3
+  concepts:
+  - mock
+  q: Ce test passe même quand le code est cassé. Clique sur la ligne qui le rend inutile.
+  code: |-
+    def test_lecture(monkeypatch):
+        faux = lambda n: b"\xaa\x01"
+        monkeypatch.setattr("mon_module.port.read", faux)
+        resultat = mon_module.lire()
+        assert resultat is not None
+  bad: 5
+  fix: '    assert resultat == Mesure(canal=1, valeur=0xAA), resultat'
+  e: |-
+    `assert resultat is not None` ne teste rien : n'importe quel retour non nul passe. Le décodeur peut inverser les octets, ignorer le CRC, renvoyer une valeur constante — le test reste vert.
+
+    Un bon test compare à une **valeur attendue précise et calculée à la main**, pas à une propriété vague.
+
+    Symptômes d'un test qui ne teste rien :
+    - `assert x is not None`, `assert len(x) > 0`, `assert isinstance(x, list)` **seuls** ;
+    - pas d'assertion du tout (le test « passe » s'il ne lève pas) ;
+    - l'assertion recalcule le résultat avec la même fonction que le code testé.
+
+    Le contre-test : **casse volontairement ton code.** Si le test reste vert, il ne sert à rien.
+- id: py10.11
+  type: parsons
+  level: 3
+  concepts:
+  - pytest
+  - parametrize
+  q: Reconstitue un test paramétré qui couvre les cas nominaux et les cas d’erreur d’un parseur.
+  lang: python
+  lines:
+  - import pytest
+  - ''
+  - '@pytest.mark.parametrize("brut, attendu", ['
+  - '    ("T1;20.5;C", ("T1", 20.5, "C")),'
+  - '    ("  T2;0;K  ", ("T2", 0.0, "K")),'
+  - '])'
+  - 'def test_parse_ok(brut, attendu):'
+  - '    assert parser(brut) == attendu'
+  - ''
+  - '@pytest.mark.parametrize("brut", ["", "#commentaire", "a;b", "T;xx;C"])'
+  - 'def test_parse_rejette(brut):'
+  - '    assert parser(brut) is None'
+  extra:
+  - 'def test_parse(brut):'
+  - '    assert parser(brut) != None'
+  e: |-
+    Deux tests séparés, un pour le chemin nominal, un pour les rejets : chacun a une seule raison d'échouer.
+
+    `parametrize` génère **un test par cas** — pytest affiche `test_parse_rejette[a;b]` : tu sais immédiatement lequel casse.
+
+    Le cas `"  T2;0;K  "` couvre deux choses à la fois : les espaces parasites **et** la valeur 0, qui est le piège de la vérité en Python.
+
+    Les intrus : une signature sans `parametrize` (le paramètre n'existerait pas) et `!= None` (à écrire `is not None` — ruff règle E711 le signale).
+
+    Un cas de test coûte une ligne. Il n'y a aucune raison d'en avoir moins de cinq.
+- id: py10.12
+  type: flash
+  level: 2
+  concepts:
+  - pytest
+  q: Les options de ligne de commande pytest à connaître par cœur.
+  back: |-
+    ```bash
+    pytest -q                 # sortie compacte
+    pytest -x                 # arrêt au premier échec
+    pytest --lf               # rejoue seulement les derniers échecs
+    pytest -k "crc and not lent"   # filtre par nom
+    pytest -m lent            # filtre par marqueur
+    pytest -s                 # laisse passer les print
+    pytest --durations=10     # les 10 tests les plus lents
+    pytest -vv                # diff complet des assertions
+    pytest -n auto            # en parallèle (pytest-xdist)
+    ```
+
+    La boucle de débogage la plus rapide : **`pytest -x --lf`**.
+  e: |-
+    `--lf` (last failed) s'appuie sur le cache `.pytest_cache` : après une correction, tu rejoues uniquement ce qui cassait, en une fraction de seconde. Puis un `pytest` complet avant de commiter.
+
+    Ajoute dans `pyproject.toml` :
+    ```toml
+    [tool.pytest.ini_options]
+    addopts = "-q --strict-markers"
+    testpaths = ["tests"]
+    ```
+    `--strict-markers` refuse un `@pytest.mark.lnet` mal orthographié au lieu de l'ignorer en silence.
+- id: py10.13
+  type: qcm
+  level: 3
+  concepts:
+  - pytest
+  q: Ton test d’acquisition est vert en local et rouge en intégration continue, une fois sur trois. Quelle cause chercher en premier ?
+  choices:
+  - t: 'Une dépendance à l’état : ordre des tests, horloge, dossier courant, aléa non fixé'
+    ok: true
+    why: Un test qui dépend d’un état extérieur est « floconneux » (flaky) par construction.
+  - t: La machine de CI est trop lente
+    ok: false
+    why: Ça peut aggraver un problème de timing, mais c’est rarement la cause racine.
+  - t: Une mauvaise version de pytest
+    ok: false
+    why: Verrouille les versions, mais ce n’est presque jamais ça.
+  - t: Trop de tests
+    ok: false
+    why: Le nombre n’a pas d’effet sur la stabilité.
+  e: |-
+    Les cinq sources de tests instables, par fréquence :
+    1. **Ordre** : un test laisse un fichier, une variable globale, une entrée de cache. Diagnostic : `pytest -p no:randomly` vs `pytest-randomly`.
+    2. **Temps** : `time.sleep` calibré sur ta machine, comparaison d'horodatages. Remède : injecter l'horloge.
+    3. **Aléa** : `random` sans graine. Remède : `random.seed(0)` ou la fixture `seed`.
+    4. **Chemins relatifs** : le dossier courant diffère. Remède : `tmp_path` et chemins absolus.
+    5. **Parallélisme** : deux tests écrivent le même fichier.
+
+    Un test instable est **pire qu'aucun test** : l'équipe s'habitue à relancer, et un vrai échec passe inaperçu. Répare-le ou supprime-le.
+- id: py10.14
+  type: predict
+  level: 3
+  concepts:
+  - pytest
+  - fixtures
+  q: Sortie ? (ordre d’exécution des fixtures imbriquées)
+  code: |-
+    import pytest
+
+    @pytest.fixture
+    def a():
+        print("a+", end="")
+        yield
+        print("a-", end="")
+
+    @pytest.fixture
+    def b(a):
+        print("b+", end="")
+        yield
+        print("b-", end="")
+
+    def test_x(b): print("T", end="")
+  answer: a+b+Tb-a-
+  norun: true
+  e: |-
+    Les fixtures se composent par **dépendance** : `b` demande `a`, donc `a` est construite d'abord et détruite en dernier.
+
+    C'est exactement la sémantique d'une pile RAII en C++, ou de `with` imbriqués. L'ordre de démolition est l'inverse de la construction — la seule façon correcte de libérer des ressources qui dépendent l'une de l'autre.
+
+    En pratique :
+    ```python
+    @pytest.fixture
+    def instrument(port):        # port ouvert d'abord
+        inst = Instrument(port)
+        yield inst
+        inst.arreter()           # arrêté avant fermeture du port
+    ```
+    Sans cette garantie, tu fermerais le port pendant que l'instrument mesure encore.
+- id: py10.15
+  type: cloze
+  level: 3
+  concepts:
+  - pytest
+  - mock
+  q: Remplace temporairement une variable d’environnement et une fonction, sans effet de bord entre les tests.
+  tpl: |-
+    def test_config(⟦0⟧):
+        ⟦0⟧.setenv("PRAXIS_PORT", "/dev/null")
+        ⟦0⟧.⟦1⟧("mon_module.temps_actuel", lambda: 1_700_000_000)
+        ⟦0⟧.chdir(tmp_path)
+        assert charger_config().port == "/dev/null"
+  blanks:
+  - - monkeypatch
+  - - setattr
+  e: |-
+    `monkeypatch` **annule automatiquement** toutes ses modifications à la fin du test. C'est ce qui le rend supérieur à un `os.environ[...] = ...` manuel, qui fuiterait sur les tests suivants.
+
+    Son API :
+    - `setattr(cible, nom, valeur)` / `delattr`
+    - `setenv(nom, valeur)` / `delenv`
+    - `setitem(dico, cle, valeur)` / `delitem`
+    - `chdir(chemin)`
+    - `syspath_prepend(chemin)`
+
+    Injecter l'horloge (`temps_actuel`) rend testable tout ce qui dépend du temps — timeouts, horodatages, expiration de cache — sans le moindre `sleep`.
+- id: py10.16
+  type: qcm
+  level: 2
+  concepts:
+  - pytest
+  q: Que vise-t-on quand on parle de « couverture de tests » à 100 % ?
+  choices:
+  - t: 'Un objectif trompeur : la couverture mesure les lignes exécutées, pas les comportements vérifiés'
+    ok: true
+    why: Un test sans assertion donne 100 % de couverture et zéro garantie.
+  - t: La preuve que le code est correct
+    ok: false
+    why: Aucune ligne de code n’est prouvée correcte par le fait d’être exécutée.
+  - t: Le nombre de tests par fonction
+    ok: false
+    why: C’est une autre métrique, tout aussi peu informative seule.
+  - t: Le pourcentage de fonctions annotées
+    ok: false
+    why: Aucun rapport.
+  e: |-
+    `pytest --cov=src --cov-report=term-missing` te dit quelles **lignes** n'ont jamais été exécutées. C'est utile dans un seul sens : **une ligne non couverte est certainement non testée.** L'inverse est faux.
+
+    Ce qui compte vraiment :
+    - les **cas limites** : vide, un élément, valeur maximale, zéro, négatif, `nan` ;
+    - les **chemins d'erreur** : que se passe-t-il quand le port se ferme au milieu ?
+    - les **invariants** : la sortie est-elle toujours triée ? la somme est-elle conservée ?
+
+    Vise ~80 % de couverture sur le code métier, 100 % sur les fonctions critiques (CRC, calibration, saturation), et arrête de compter.
+
+    Pour aller plus loin : `--cov-branch` mesure les branches, pas seulement les lignes. Et `mutmut` teste tes tests en cassant volontairement ton code.

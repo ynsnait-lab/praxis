@@ -1,0 +1,305 @@
+id: pf09
+track: python
+title: Dictionnaires et tuples
+goal: Associer des clés à des valeurs, regrouper des données qui vont ensemble, et savoir quand choisir liste, tuple ou dictionnaire.
+level: fondations
+requires: [pf08]
+concepts: [dict, tuple, unpacking, json]
+lesson:
+  minutes: 15
+  intro: |
+    Une liste range des valeurs **par position**. Mais souvent, on veut les retrouver **par nom** : la mesure du capteur `"PT100-A"`, le paramètre `"gain"` d'une configuration, le nombre d'erreurs par type. C'est le rôle du **dictionnaire**, la deuxième structure la plus utilisée de Python — et le format naturel du JSON que parlent les API.
+  steps:
+    - level: 1
+      title: Un annuaire
+      body: |
+        Un dictionnaire (`dict`) est un **annuaire** : à chaque **clé** (le nom) correspond une **valeur** (le numéro). On ne cherche pas « la 3ᵉ entrée », on cherche « l'entrée de Dupont ».
+
+        ```python
+        derniere_mesure = {"PT100-A": 21.5, "PT100-B": 22.1, "TC-K1": 350.0}
+        derniere_mesure["PT100-B"]       # 22.1
+        ```
+
+        - Les accolades `{}` contiennent des paires `clé: valeur` séparées par des virgules.
+        - Les **clés sont uniques** : une même clé ne peut apparaître qu'une fois.
+        - La recherche par clé est **quasi instantanée**, même avec un million d'entrées (on verra pourquoi dans le module avancé sur le hachage).
+    - level: 2
+      title: Lire, écrire, parcourir
+      code: |
+        conf = {"gain": 2.0, "offset": -0.1}
+        conf["unite"] = "°C"            # ajoute une clé
+        conf["gain"] = 2.5              # remplace la valeur
+        print(conf)
+        print("offset" in conf, "seuil" in conf)
+        print(conf.get("seuil", 30.0))  # valeur par défaut si la clé manque
+        for cle, valeur in conf.items():
+            print(f"{cle} = {valeur}")
+        del conf["offset"]
+        print(list(conf.keys()), len(conf))
+      run: true
+      out: |
+        {'gain': 2.5, 'offset': -0.1, 'unite': '°C'}
+        True False
+        30.0
+        gain = 2.5
+        offset = -0.1
+        unite = °C
+        ['gain', 'unite'] 2
+      body: |
+        Les opérations de base : `d[cle]` lit (erreur si absente), `d[cle] = v` écrit, `cle in d` teste, `d.get(cle, defaut)` lit sans risque, `del d[cle]` supprime. Pour parcourir, `d.items()` donne les couples (clé, valeur).
+    - level: 3
+      title: Compter et regrouper
+      body: |
+        Deux usages que tu écriras souvent : **compter** des occurrences et **regrouper** des mesures par capteur.
+      code: |
+        journal = ["OK", "TIMEOUT", "OK", "CRC", "TIMEOUT", "OK"]
+        compte = {}
+        for evt in journal:
+            compte[evt] = compte.get(evt, 0) + 1
+        print(compte)
+
+        lignes = [("A", 21.5), ("B", 22.0), ("A", 21.7), ("B", 22.4), ("A", 21.6)]
+        par_capteur = {}
+        for capteur, valeur in lignes:
+            par_capteur.setdefault(capteur, []).append(valeur)
+        for capteur, valeurs in par_capteur.items():
+            print(capteur, valeurs, round(sum(valeurs) / len(valeurs), 2))
+      run: true
+      out: |
+        {'OK': 3, 'TIMEOUT': 2, 'CRC': 1}
+        A [21.5, 21.7, 21.6] 21.6
+        B [22.0, 22.4] 22.2
+      after: |
+        `compte.get(evt, 0) + 1` : « le compte actuel, ou 0 si c'est la première fois, plus un ». `setdefault(cle, [])` renvoie la liste de la clé en la créant si besoin. (Le module `collections` fournit `Counter` et `defaultdict`, qui font la même chose en plus court.)
+    - level: 4
+      title: Tuples, déballage et clés valides
+      body: |
+        Un **tuple** est une séquence **non modifiable**, écrite avec des parenthèses : `point = (1.5, -2.0)`. On l'utilise pour un petit groupe de valeurs qui vont ensemble et ne changent pas : des coordonnées, une paire (capteur, valeur), le retour multiple d'une fonction.
+
+        Le **déballage** (*unpacking*) répartit un tuple dans des variables : `x, y = point`. C'est ce qui se passe dans `for cle, valeur in d.items()`. Et `a, b = b, a` échange deux variables.
+
+        Deux détails qui piègent :
+        - C'est la **virgule** qui fait le tuple, pas les parenthèses : `(5)` est l'entier 5, `(5,)` est un tuple d'un élément.
+        - Une clé de dictionnaire doit être **immuable** (on dit *hashable*) : texte, nombre, tuple. Une **liste** ne peut pas être une clé (`TypeError: unhashable type: 'list'`) ; un tuple si.
+      code: |
+        print(type((5)), type((5,)))
+        positions = {(0, 0): "origine", (10, 5): "capteur A"}
+        print(positions[(10, 5)])
+        a, b = 1, 2
+        a, b = b, a
+        print(a, b)
+        d = {"x": 1}
+        try:
+            print(d["y"])
+        except KeyError as e:
+            print("KeyError :", e)
+      run: true
+      out: |
+        <class 'int'> <class 'tuple'>
+        capteur A
+        2 1
+        KeyError : 'y'
+    - level: 5
+      title: Modéliser des données, et le JSON
+      body: |
+        Une **liste de dictionnaires** est la façon la plus simple de représenter un tableau de données : chaque dict est une ligne, chaque clé une colonne.
+
+        ```python
+        essais = [
+            {"id": 1, "temp_c": 21.5, "pression_bar": 1.01, "ok": True},
+            {"id": 2, "temp_c": 80.2, "pression_bar": 1.35, "ok": False},
+        ]
+        echecs = [e["id"] for e in essais if not e["ok"]]
+        ```
+
+        C'est aussi exactement la structure du **JSON**, le format d'échange des API web et de beaucoup de fichiers de configuration. Le module `json` convertit dans les deux sens : `json.dumps(obj)` → texte, `json.loads(texte)` → objet Python (et `json.dump`/`json.load` avec un fichier).
+
+        **Liste, tuple ou dict ?**
+        - Des éléments du même genre, dans un ordre, en nombre variable → **liste**.
+        - Un petit groupe fixe de valeurs de nature différente → **tuple** (ou une `dataclass`, module avancé).
+        - Des valeurs retrouvées par un nom ou un identifiant → **dict**.
+  recap:
+    - "`d = {cle: valeur}` ; `d[cle]` lit (KeyError si absente), `d.get(cle, defaut)` lit sans risque."
+    - "`for cle, valeur in d.items():` parcourt les paires ; `cle in d` teste la présence."
+    - "Compter : `d[k] = d.get(k, 0) + 1`. Regrouper : `d.setdefault(k, []).append(v)`."
+    - "Tuple = séquence non modifiable. C'est la virgule qui le fait : `(5,)`. Déballage : `a, b = b, a`."
+    - "Clés immuables seulement (texte, nombre, tuple) ; liste de dicts = tableau de données = JSON."
+  pieges: [py-keyerror, py-tuple-virgule]
+exercises:
+  - id: pf09.1
+    type: predict
+    level: 1
+    q: Qu'affiche ce script ?
+    code: |
+      stock = {"vis M3": 120, "écrou M3": 80}
+      stock["vis M3"] -= 20
+      stock["rondelle"] = 50
+      print(stock["vis M3"], len(stock))
+    answer: 100 3
+    e: "`stock[\"vis M3\"] -= 20` lit, soustrait et réécrit. Affecter une clé nouvelle l'ajoute : 3 entrées."
+  - id: pf09.2
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ? (s'il plante, écris le type d'erreur)
+    code: |
+      unites = {"T": "°C", "P": "bar"}
+      print(unites["H"])
+    answer: KeyError
+    norun: true
+    piege: py-keyerror
+    e: "Lire une clé absente avec `[]` lève `KeyError: 'H'`. Si l'absence est normale, utilise `unites.get(\"H\")` (renvoie `None`) ou `unites.get(\"H\", \"?\")`."
+  - id: pf09.3
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      d = {"a": 1, "b": 2}
+      for x in d:
+          print(x)
+    answer: |
+      a
+      b
+    trap_answers:
+      - |
+        1
+        2
+    e: "Parcourir un dict donne ses **clés**. Pour les valeurs : `d.values()` ; pour les deux : `d.items()`."
+  - id: pf09.4
+    type: qcm
+    level: 2
+    q: "Laquelle de ces valeurs **ne peut pas** être une clé de dictionnaire ?"
+    choices:
+      - t: "`[1, 2]`"
+        ok: true
+        why: "Une liste est modifiable, donc non hashable : `TypeError: unhashable type: 'list'`."
+      - t: "`(1, 2)`"
+        why: "Un tuple de valeurs immuables est une clé parfaitement valide."
+      - t: "`\"1,2\"`"
+      - t: "`12`"
+    e: "Une clé doit garder la même valeur de hachage toute sa vie. Une liste pouvant changer, Python l'interdit. Utilise un tuple pour une clé composée, comme des coordonnées."
+  - id: pf09.5
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      t = (42)
+      u = (42,)
+      print(type(t).__name__, type(u).__name__, len(u))
+    answer: int tuple 1
+    trap_answers: ["tuple tuple 1"]
+    piege: py-tuple-virgule
+    e: "Les parenthèses seules ne servent qu'à grouper un calcul. C'est la **virgule** qui crée un tuple : `42,` (même sans parenthèses) est un tuple d'un élément."
+  - id: pf09.6
+    type: code
+    level: 1
+    q: |
+      Écris `compter(mots)` qui renvoie un dictionnaire {mot: nombre d'apparitions}. Exemple : `["a", "b", "a"]` → `{"a": 2, "b": 1}`.
+    start: |
+      def compter(mots):
+          compte = {}
+          ...
+          return compte
+    sol: |
+      def compter(mots):
+          compte = {}
+          for m in mots:
+              compte[m] = compte.get(m, 0) + 1
+          return compte
+    tests: |
+      assert compter(["a", "b", "a"]) == {"a": 2, "b": 1}
+      assert compter([]) == {}
+      assert compter(["x"] * 5) == {"x": 5}
+      print("OK")
+    e: "Le motif `d[k] = d.get(k, 0) + 1` est à connaître par cœur. Équivalent en une ligne : `collections.Counter(mots)`."
+  - id: pf09.7
+    type: code
+    level: 2
+    q: |
+      Écris `moyennes_par_capteur(lignes)` : `lignes` est une liste de tuples `(capteur, valeur)`. Renvoie un dict {capteur: moyenne}.
+    start: |
+      def moyennes_par_capteur(lignes):
+          ...
+    sol: |
+      def moyennes_par_capteur(lignes):
+          groupes = {}
+          for capteur, valeur in lignes:
+              groupes.setdefault(capteur, []).append(valeur)
+          return {c: sum(v) / len(v) for c, v in groupes.items()}
+    tests: |
+      import math
+      r = moyennes_par_capteur([("A", 1.0), ("B", 10.0), ("A", 3.0)])
+      assert set(r) == {"A", "B"}
+      assert math.isclose(r["A"], 2.0) and math.isclose(r["B"], 10.0)
+      assert moyennes_par_capteur([]) == {}
+      print("OK")
+    hint: "Regroupe d'abord dans un dict {capteur: [valeurs]}, puis calcule la moyenne de chaque liste."
+    e: "Deux passes : regrouper, puis réduire. La dernière ligne est une **compréhension de dictionnaire** `{clé: valeur for ...}`, cousine de la compréhension de liste."
+  - id: pf09.8
+    type: cloze
+    level: 1
+    q: Complète pour afficher chaque paramètre sous la forme `nom → valeur`.
+    tpl: |
+      params = {"kp": 1.2, "ki": 0.4}
+      for nom, val in params.⟦0⟧():
+          print(f"{nom} → {val}")
+    blanks:
+      - [items]
+    run: true
+    out: |
+      kp → 1.2
+      ki → 0.4
+    e: "`items()` donne les couples (clé, valeur), déballés dans `nom, val`."
+  - id: pf09.9
+    type: bug
+    level: 2
+    q: "Ce code doit afficher la tension de chaque carte, avec `?` si elle est inconnue. Il plante sur la carte `C`. Quelle ligne corriger ?"
+    code: |
+      tensions = {"A": 3.3, "B": 5.0}
+      for carte in ["A", "B", "C"]:
+          v = tensions[carte]
+          print(carte, v)
+    bad: 3
+    fix: '    v = tensions.get(carte, "?")'
+    piege: py-keyerror
+    e: "`tensions[\"C\"]` lève `KeyError`. `get(carte, \"?\")` renvoie la valeur par défaut quand la clé manque."
+  - id: pf09.10
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      import json
+      essai = {"id": 7, "ok": True, "mesures": [1.5, 2.0], "note": None}
+      texte = json.dumps(essai)
+      print(texte)
+      retour = json.loads(texte)
+      print(retour["mesures"][1], retour == essai)
+    answer: |
+      {"id": 7, "ok": true, "mesures": [1.5, 2.0], "note": null}
+      2.0 True
+    e: "Le JSON ressemble au Python, avec deux différences visibles : `true`/`false`/`null` au lieu de `True`/`False`/`None`, et des guillemets **doubles** obligatoires. `json.loads(json.dumps(x))` redonne un objet égal (pour les types que JSON connaît)."
+  - id: pf09.11
+    type: flash
+    level: 1
+    q: "Liste, tuple ou dictionnaire : lequel pour (a) les 500 mesures d'un essai, (b) une coordonnée (x, y, z), (c) les paramètres d'un PID par nom ?"
+    back: |
+      (a) une **liste** (même nature, ordonnées, nombre variable) ;
+      (b) un **tuple** (petit groupe fixe) ;
+      (c) un **dict** (accès par nom : `pid["kp"]`).
+    e: "Le choix de la structure rend le code évident… ou tordu. Si tu écris `params[3]` pour obtenir « le gain intégral », c'était un dict."
+  - id: pf09.12
+    type: predict
+    level: 3
+    q: Qu'affiche ce script ?
+    code: |
+      d = {"b": 2, "a": 1}
+      d["c"] = 3
+      d["b"] = 20
+      print(list(d))
+      print({1: "x", 1.0: "y", True: "z"})
+    answer: |
+      ['b', 'a', 'c']
+      {1: 'z'}
+    e: |
+      Un dict conserve l'**ordre d'insertion** (depuis Python 3.7) ; modifier une valeur ne change pas la place de la clé.
+
+      Deuxième ligne : `1`, `1.0` et `True` sont égaux et ont le même hachage, donc c'est **la même clé**. La première écriture fixe la clé (`1`), les suivantes remplacent la valeur. Curiosité, mais elle explique pourquoi on évite les `float` comme clés.

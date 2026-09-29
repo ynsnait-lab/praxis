@@ -1,0 +1,11 @@
+{
+  "id": "cpp-01",
+  "ordre": 11,
+  "lang": "cpp",
+  "genre": "lab",
+  "niveau": "avancé",
+  "minutes": 45,
+  "titre": "Registres, bits et virgule fixe",
+  "modules": ["cpp01", "cpp12"],
+  "resume": "Assembler des octets, lire et écrire des champs de registre, saturer, multiplier en Q8.8 : sans débordement, sans avertissement, sous sanitizers."
+}

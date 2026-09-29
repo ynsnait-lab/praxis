@@ -1,0 +1,488 @@
+id: py01
+track: python
+title: Modèle mental de l’exécution
+goal: 'Prédire ce que fait un bout de code sans le lancer : noms, objets, types, vérité.'
+level: avance
+requires:
+- pf12
+concepts:
+- noms-objets
+- types
+- truthiness
+- operateurs
+lesson:
+  minutes: 16
+  intro: |
+    Les Fondations t'ont appris à écrire du Python qui marche. Ce module t'apprend à **prévoir** ce qu'un code va faire avant de le lancer : c'est ce qui sépare « ça marche, je ne sais pas pourquoi » de « je sais exactement ce qui se passe ». Tout repose sur une idée simple et souvent mal comprise : en Python, une variable n'est pas une boîte, c'est une **étiquette**.
+  steps:
+    - level: 1
+      title: Des étiquettes, pas des boîtes
+      body: |
+        Imagine un atelier où les objets (une clé, une pièce, une caisse) sont posés sur l'établi, et où tu colles des **étiquettes** dessus pour les retrouver. Tu peux coller deux étiquettes sur la même pièce, décoller une étiquette pour la recoller ailleurs, mais une étiquette ne **contient** jamais rien : elle **désigne**.
+
+        En Python, c'est exactement ça :
+        - un **objet** (une liste, un nombre, un texte) existe en mémoire ;
+        - un **nom** (`mesures`, `a`, `b`) est une étiquette collée dessus ;
+        - `b = a` colle une deuxième étiquette sur **le même objet**. Rien n'est copié.
+    - level: 2
+      title: Identité, type, valeur, et vérité
+      body: |
+        Chaque objet a trois caractéristiques :
+        - une **identité** (où il est, donnée par `id(x)`) ;
+        - un **type** (`int`, `float`, `str`, `list`…), qui décide de ce qu'on peut faire avec ;
+        - une **valeur**.
+
+        Deux opérateurs à ne jamais confondre :
+        - `a == b` compare les **valeurs** (« ont-ils le même contenu ? ») ;
+        - `a is b` compare les **identités** (« est-ce le même objet ? »). On ne l'utilise que pour `None` (`if x is None`), `True`/`False` et les objets uniques.
+
+        **La vérité** : dans un `if` ou un `while`, tout objet est vrai sauf les valeurs « vides » : `None`, `False`, `0`, `0.0`, `""`, `[]`, `{}`, `set()`, `range(0)`. Attention, une mesure qui vaut 0 est donc « fausse ».
+
+        Et `and` / `or` ne renvoient pas `True` ou `False` : ils renvoient **l'un des deux opérandes**, en s'arrêtant dès que le résultat est connu (court-circuit).
+      check:
+        q: "Après `a = [1, 2]` et `c = [1, 2]`, que valent `a == c` et `a is c` ?"
+        choices:
+          - t: "`True` et `False`"
+            ok: true
+            why: Même contenu, mais deux listes distinctes créées séparément.
+          - t: "`True` et `True`"
+            why: Deux littéraux `[1, 2]` créent deux objets différents.
+          - t: "`False` et `False`"
+            why: Leurs valeurs sont bien égales.
+    - level: 3
+      title: Vérifier par l'expérience
+      body: |
+        Lance ce code et, avant de regarder la sortie, essaie de prédire chaque ligne. C'est l'exercice qui construit le modèle mental.
+      code: |
+        a = [1, 2]
+        b = a
+        c = [1, 2]
+        print(a == c, a is c, a is b)
+        print(type(3), type(3.0), type("3"), type(None))
+        print(isinstance(True, int))             # bool est une sorte d'int
+        for v in (0, 0.0, "", [], None, "0", [0], -1):
+            print(repr(v), "→", bool(v))
+        print(0 or "défaut", 5 or "défaut", [] and 1, 3 and 4)
+        x = 7
+        print(0 < x < 10, -7 // 2, -7 % 2, -2 ** 2)
+      run: true
+      out: |
+        True False True
+        <class 'int'> <class 'float'> <class 'str'> <class 'NoneType'>
+        True
+        0 → False
+        0.0 → False
+        '' → False
+        [] → False
+        None → False
+        '0' → True
+        [0] → True
+        -1 → True
+        défaut 5 [] 4
+        True -4 1 -4
+      after: |
+        Les surprises habituelles : `"0"` et `[0]` sont vrais (non vides), `-7 // 2` vaut −4 (la division entière arrondit vers le bas, pas vers zéro), et `-2 ** 2` vaut −4 car la puissance passe avant le signe moins.
+    - level: 4
+      title: Sous le capot
+      body: |
+        **CPython garde en mémoire les petits entiers** (de −5 à 256) et beaucoup de petites chaînes : deux variables qui valent `100` désignent souvent le même objet, et `is` semble marcher. Avec 300, ou avec des valeurs lues dans un fichier, ce n'est plus le cas. C'est un détail d'implémentation : ne t'y fie jamais.
+
+        **L'affectation augmentée dépend du type** : sur une liste, `a += [3]` **modifie l'objet** (comme `extend`), donc toutes les étiquettes le voient. Sur un tuple ou un nombre, qui ne peuvent pas changer, `a += …` crée un **nouvel objet** et recolle l'étiquette `a` dessus.
+      code: |
+        a = [1, 2]
+        b = a
+        a += [3]                 # liste : modification sur place
+        print(b)
+
+        t = (1, 2)
+        u = t
+        t += (3,)                # tuple : nouvel objet, u ne bouge pas
+        print(u, t)
+
+        x = 300
+        y = int("300")           # même valeur, obtenue autrement
+        print(x == y, x is y)
+      run: true
+      out: |
+        [1, 2, 3]
+        (1, 2) (1, 2, 3)
+        True False
+    - level: 5
+      title: Sur le terrain
+      body: |
+        - Pour comprendre un comportement étrange, affiche `repr(x)` et `type(x)` plutôt que `x` : `print(repr(v), type(v))` révèle un `"21.5"` (texte) qui aurait dû être un `21.5` (nombre).
+        - Teste les valeurs manquantes avec `is None`, jamais avec `if not x` : une mesure à 0 ou une liste vide ne sont pas des valeurs manquantes.
+        - Pour visualiser les étiquettes et les objets pas à pas, le site **Python Tutor** (pythontutor.com) dessine exactement ce modèle.
+        - Quand un collègue dit « Python passe les arguments par référence » ou « par valeur », la réponse exacte est : **par affectation**. La fonction reçoit une étiquette de plus sur le même objet (module suivant).
+  recap:
+    - "Un nom est une étiquette sur un objet ; `b = a` ne copie rien."
+    - "`==` compare les valeurs, `is` l'identité : `is` seulement pour `None`, `True`, `False`."
+    - "Faux : `None`, `False`, 0, 0.0, chaînes et conteneurs vides. Tout le reste est vrai."
+    - "`and`/`or` renvoient un des opérandes et s'arrêtent dès que le résultat est connu."
+    - "`//` arrondit vers le bas (−7 // 2 = −4) ; `**` passe avant le signe moins."
+  pieges: [py-is-egal, py-zero-faux, py-aliasing-liste]
+exercises:
+- id: py01.1
+  type: predict
+  level: 1
+  concepts:
+  - noms-objets
+  q: Que va afficher ce script ?
+  code: |-
+    a = [1, 2, 3]
+    b = a
+    b.append(4)
+    print(a)
+  answer: '[1, 2, 3, 4]'
+  e: |-
+    En Python, `b = a` ne copie **rien**. Un nom est une étiquette collée sur un objet ; ici deux étiquettes sur la **même** liste.
+
+    `append` modifie l'objet en place → les deux noms voient le changement.
+
+    Pour une vraie copie : `b = a.copy()`, `b = list(a)` ou `b = a[:]`.
+- id: py01.2
+  type: qcm
+  level: 2
+  concepts:
+  - noms-objets
+  - types
+  q: Quelle expression est **vraie** après `x = 300` puis `y = 300` ?
+  choices:
+  - t: '`x == y`'
+    ok: true
+    why: 'Oui : même valeur, l''égalité porte sur la valeur.'
+  - t: '`x is y`'
+    ok: false
+    why: 'Non garanti. CPython pré-alloue les petits entiers (−5 à 256) mais pas 300 : `is` compare l''identité, pas la valeur.'
+  - t: '`id(x) == id(y)` est toujours vrai'
+    ok: false
+    why: 'Même problème : c''est exactement ce que teste `is`.'
+  - t: '`x is not y` est garanti par le langage'
+    ok: false
+    why: Rien n'est garanti dans un sens ou dans l'autre — c'est un détail d'implémentation.
+  e: |-
+    Règle simple et définitive : **`is` pour `None`, les singletons et l'identité ; `==` pour tout le reste.**
+
+    Le piège classique : ça marche en console (les littéraux d'un même bloc de code sont mis en commun) et ça casse quand les valeurs viennent d'un fichier ou d'un capteur.
+- id: py01.3
+  type: qcm
+  level: 1
+  concepts:
+  - truthiness
+  q: 'Coche **toutes** les valeurs considérées comme fausses par `if` :'
+  multi: true
+  choices:
+  - t: '`0.0`'
+    ok: true
+    why: Zéro flottant est faux.
+  - t: '`[]`'
+    ok: true
+    why: Toute séquence vide est fausse.
+  - t: '`"0"`'
+    ok: false
+    why: Chaîne non vide → vraie. Piège classique en lisant un fichier de config.
+  - t: '`{}`'
+    ok: true
+    why: Dict vide → faux.
+  - t: '`" "`'
+    ok: false
+    why: 'Une espace est un caractère : chaîne non vide → vraie.'
+  - t: '`None`'
+    ok: true
+    why: None est faux.
+  e: |-
+    Sont faux : `None`, `False`, les zéros numériques, et tous les conteneurs vides.
+
+    **Le piège qui coûte cher en instrumentation :** une mesure valide à 0.0 est fausse.
+
+    Écris `if valeur is not None:` et pas `if valeur:` dès qu'un zéro est une valeur légitime.
+- id: py01.4
+  type: predict
+  level: 2
+  concepts:
+  - operateurs
+  - types
+  q: Sortie de ce `print` ? (attention aux valeurs négatives)
+  code: print(7 / 2, 7 // 2, -7 // 2, 7 % 3, -7 % 3)
+  answer: 3.5 3 -4 1 2
+  accept:
+  - 3.5 3 -4 1 2
+  e: |-
+    - `/` renvoie **toujours** un `float` (même `4 / 2` → `2.0`).
+    - `//` est la division entière **par le bas** (floor), pas la troncature : `-7 // 2 == -4`, pas −3.
+    - `%` suit le même signe que le **diviseur** en Python : `-7 % 3 == 2`.
+
+    C'est l'inverse du C/C++ où `-7 / 2 == -3` et `-7 % 3 == -1`. Retiens la différence, tu vas jongler entre les deux.
+- id: py01.5
+  type: qcm
+  level: 2
+  concepts:
+  - types
+  q: '`0.1 + 0.2 == 0.3` renvoie `False`. Quelle est la bonne façon de comparer deux mesures flottantes ?'
+  choices:
+  - t: '`math.isclose(a, b, rel_tol=1e-9)`'
+    ok: true
+    why: La fonction standard, depuis Python 3.5. Gère tolérance relative et absolue.
+  - t: '`round(a, 10) == round(b, 10)`'
+    ok: false
+    why: Fonctionne parfois, mais arbitraire et cassé près de zéro.
+  - t: '`abs(a - b) < 1e-9`'
+    ok: false
+    why: 'Correct **seulement** près de zéro : à 1e6 cette tolérance est plus fine que l''epsilon machine.'
+  - t: '`str(a) == str(b)`'
+    ok: false
+    why: Comparaison de la représentation, pas de la valeur. À bannir.
+  e: |-
+    Un `float` est un binaire IEEE-754 : 0,1 n'est pas représentable exactement, comme 1/3 en décimal.
+
+    `math.isclose(a, b, rel_tol=1e-9, abs_tol=0.0)` teste `|a-b| <= max(rel_tol*max(|a|,|b|), abs_tol)`.
+
+    Pense à passer `abs_tol` quand tes valeurs peuvent valoir zéro (offset capteur, dérive).
+- id: py01.6
+  type: bug
+  level: 2
+  concepts:
+  - noms-objets
+  q: Ce code doit incrémenter un compteur global. Clique sur la ligne qui provoque une `UnboundLocalError`.
+  code: |-
+    compteur = 0
+
+    def mesurer():
+        compteur = compteur + 1
+        return compteur
+
+    mesurer()
+  bad: 4
+  fix: '    global compteur  # (ou mieux : renvoyer la nouvelle valeur)'
+  e: |-
+    Dès qu'un nom est **affecté** quelque part dans une fonction, Python le considère **local pour tout le corps** de la fonction — y compris avant l'affectation.
+
+    Ligne 4, `compteur` à droite du `=` est donc une variable locale pas encore initialisée.
+
+    Trois sorties, par ordre de préférence :
+    1. Renvoyer la nouvelle valeur (fonction pure, testable).
+    2. Encapsuler l'état dans une classe.
+    3. `global compteur` — ça marche, mais ça rend le code difficile à tester.
+- id: py01.7
+  type: predict
+  level: 2
+  concepts:
+  - types
+  - operateurs
+  q: Sortie ?
+  code: |-
+    print(bool("False"), int("0b1010", 2) if False else int("1010", 2))
+    print(2 ** 10, 10 ** -2, type(10 ** -2).__name__)
+  answer: |-
+    True 10
+    1024 0.01 float
+  e: |-
+    - `bool("False")` → chaîne non vide → `True`. Ne parse **jamais** un booléen avec `bool(chaine)`.
+    - `int("1010", 2)` → 10, la base est le 2ᵉ argument.
+    - `**` avec exposant négatif donne un `float`, même sur des entiers.
+
+    Pour parser un booléen de config : `s.strip().lower() in {"1", "true", "yes", "on"}`.
+- id: py01.8
+  type: qcm
+  level: 3
+  concepts:
+  - operateurs
+  q: '`a = 5; b = 10`. Que vaut `1 < a < b < 20` et pourquoi est-ce spécifique à Python ?'
+  choices:
+  - t: '`True` — Python chaîne les comparaisons : `1<a and a<b and b<20`'
+    ok: true
+    why: Exact, et chaque terme n'est évalué qu'une fois.
+  - t: '`True` — mais par le hasard de la conversion booléenne'
+    ok: false
+    why: Non, c'est une règle explicite de la grammaire.
+  - t: '`False` — `(1 < a) < b` vaut `True < 10`'
+    ok: false
+    why: C'est ce que ferait le C. Python, lui, chaîne.
+  - t: '`SyntaxError`'
+    ok: false
+    why: C'est une syntaxe valide et idiomatique.
+  e: |-
+    Le chaînage est une vraie règle de grammaire : `x < y <= z` ≡ `x < y and y <= z`, avec `y` évalué **une seule fois**.
+
+    En C++, `1 < a < b` compile aussi mais vaut `(1 < a) < b` → `true < b` → `1 < b`. Bug silencieux garanti. C'est un des rares endroits où Python est plus sûr par construction.
+- id: py01.9
+  type: cloze
+  level: 1
+  concepts:
+  - noms-objets
+  - types
+  q: Complète pour tester proprement le type d’une valeur lue depuis un fichier de config.
+  tpl: |-
+    def en_float(v):
+        if ⟦0⟧(v, (int, float)) and not ⟦1⟧(v, bool):
+            return float(v)
+        raise TypeError(f"attendu un nombre, reçu {type(v).⟦2⟧}")
+  blanks:
+  - - isinstance
+  - - isinstance
+  - - __name__
+    - '__name__ '
+  e: |-
+    - `isinstance(v, (int, float))` accepte un tuple de types.
+    - `bool` **hérite** de `int` : `isinstance(True, int)` est `True`. Si un booléen n'est pas une mesure valide, il faut l'exclure explicitement.
+    - `type(v).__name__` donne un nom lisible pour le message d'erreur.
+- id: py01.10
+  type: flash
+  level: 3
+  concepts:
+  - types
+  q: Cite les 4 nombres flottants « spéciaux » d’IEEE-754 que tu peux rencontrer en traitant des données capteur, et comment les détecter en Python.
+  back: |-
+    `+inf`, `-inf`, `nan`, et `-0.0`.
+
+    - `math.isinf(x)`, `math.isnan(x)`, `math.isfinite(x)`
+    - `nan != nan` → **toujours** `False`. Ne teste jamais `x == float("nan")`.
+    - `-0.0 == 0.0` est `True`, mais `math.copysign(1, x)` les distingue.
+    - Un `nan` dans une liste casse `sorted()` silencieusement (ordre incohérent).
+  e: 'En acquisition, un `nan` marque souvent une mesure manquante. Filtre-les **avant** toute statistique : `[x for x in xs if math.isfinite(x)]`, ou `numpy.nanmean`.'
+- id: py01.11
+  type: predict
+  level: 2
+  concepts:
+  - types
+  q: Sortie ?
+  code: |-
+    print(type(5 / 1), 5 == 5.0, hash(5) == hash(5.0))
+    print(int(-2.7), round(-2.5), round(2.5), round(0.5))
+  answer: |-
+    <class 'float'> True True
+    -2 -2 2 0
+  e: |-
+    Deux pièges distincts :
+
+    **1. int et float sont comparables et co-hashables.** `5 == 5.0` est vrai, et `{5: "a", 5.0: "b"}` ne contient **qu'une** clé. Ça surprend quand des identifiants de canal viennent d'un JSON.
+
+    **2. `round` fait un arrondi « au pair le plus proche »** (banker's rounding, IEEE-754) : 2.5 → 2, 3.5 → 4, 0.5 → 0. C'est voulu : ça évite le biais statistique de l'arrondi « toujours vers le haut » sur de grandes séries de mesures.
+
+    `int()` tronque vers zéro, `math.floor` vers le bas : `int(-2.7) == -2` mais `math.floor(-2.7) == -3`.
+- id: py01.12
+  type: predict
+  level: 2
+  concepts:
+  - operateurs
+  q: Sortie ?
+  code: |-
+    def cher():
+        print("appelée")
+        return True
+
+    print(False and cher())
+    print(True or cher())
+    print(None or 0 or "defaut")
+  answer: |-
+    False
+    True
+    defaut
+  e: |-
+    `and` et `or` **court-circuitent** : dès que le résultat est connu, le reste n'est pas évalué. `cher()` n'est jamais appelée.
+
+    Et surtout : ils ne renvoient **pas un booléen** mais l'un des opérandes.
+    - `a or b` → `a` si `a` est vrai, sinon `b`
+    - `a and b` → `a` si `a` est faux, sinon `b`
+
+    D'où l'idiome `valeur = config.get("seuil") or 20` — pratique, mais **piégeux si 0 est légitime** : `0 or 20` donne 20. Dans ce cas, écris `config.get("seuil", 20)`.
+- id: py01.13
+  type: bug
+  level: 2
+  concepts:
+  - types
+  - noms-objets
+  q: Cette fonction doit convertir une lecture brute en volts. Clique sur la ligne qui la casse dès que `brut` vaut `"0"`.
+  code: |-
+    def en_volts(brut, pleine_echelle=3.3):
+        if not brut:
+            raise ValueError("lecture vide")
+        return int(brut) / 4095 * pleine_echelle
+
+    print(en_volts("2048"))
+    print(en_volts("0"))
+  bad: 2
+  fix: |2-
+        if brut is None or brut == "":
+            raise ValueError("lecture vide")
+  e: |-
+    `not "0"` est **faux** en Python — une chaîne non vide est vraie, quel que soit son contenu. Mais dès que la lecture arrive sous forme numérique (`en_volts(0)`), `not 0` devient **vrai** et la fonction rejette une mesure parfaitement valide.
+
+    C'est le piège n°1 de l'acquisition : **0 est une valeur, pas une absence de valeur**.
+
+    Écris toujours un test explicite : `if brut is None`, `if brut == ""`, `if len(x) == 0`. Réserve `if x:` aux cas où « vide » et « zéro » veulent vraiment dire la même chose.
+- id: py01.14
+  type: qcm
+  level: 3
+  concepts:
+  - types
+  q: Tu additionnes 10 000 mesures flottantes. Quelle méthode limite le mieux l’accumulation d’erreur ?
+  choices:
+  - t: '`math.fsum(mesures)`'
+    ok: true
+    why: 'Somme exacte (algorithme de Shewchuk) : le résultat est le flottant le plus proche de la somme réelle.'
+  - t: '`sum(mesures)`'
+    ok: false
+    why: 'Accumulation naïve : l’erreur croît avec le nombre de termes, surtout si les ordres de grandeur diffèrent.'
+  - t: '`sum(sorted(mesures))`'
+    ok: false
+    why: Trier du plus petit au plus grand réduit l’erreur, mais ne la supprime pas — et coûte un O(n log n).
+  - t: '`np.sum(mesures)`'
+    ok: false
+    why: Meilleur que `sum` (sommation par paires), mais pas exact. Bon compromis quand la vitesse compte.
+  e: |-
+    L'erreur d'arrondi s'accumule : additionner 1e-8 à 1e8 dix mille fois de suite perd des chiffres à chaque étape.
+
+    | Méthode | Erreur | Coût |
+    | --- | --- | --- |
+    | `sum` | O(n·ε) | le plus rapide |
+    | `np.sum` | O(log n·ε) | rapide, vectorisé |
+    | `math.fsum` | exacte | ~5× plus lent |
+
+    En pratique : `np.sum` pour un flux de mesures, `math.fsum` quand tu calcules une référence ou une somme de contrôle sur des flottants.
+- id: py01.15
+  type: cloze
+  level: 2
+  concepts:
+  - operateurs
+  - types
+  q: Complète cette conversion sûre d’une chaîne de configuration.
+  tpl: |-
+    def en_bool(s: str) -> bool:
+        v = s.strip().⟦0⟧()
+        if v in {"1", "true", "vrai", "oui", "on"}:
+            return True
+        if v in {"0", "false", "faux", "non", "off"}:
+            return False
+        ⟦1⟧ ValueError(f"booléen illisible : {s!r}")
+  blanks:
+  - - lower
+  - - raise
+  e: |-
+    Ne parse **jamais** un booléen avec `bool(chaine)` : `bool("False")` vaut `True`.
+
+    Trois qualités de cette fonction :
+    - `strip().lower()` : tolérant aux espaces et à la casse d'un fichier écrit à la main.
+    - Deux ensembles explicites : ce qui n'est pas reconnu **échoue**, il n'y a pas de valeur par défaut silencieuse.
+    - `{s!r}` dans le message : le `repr` montre les espaces invisibles, qui sont souvent la vraie cause.
+
+    Un `set` littéral plutôt qu'une liste : appartenance en O(1) et intention plus claire.
+- id: py01.16
+  type: flash
+  level: 3
+  concepts:
+  - noms-objets
+  - types
+  q: Dans quel ordre Python évalue-t-il `a[i] = f(x)` ? Et pourquoi ça compte ?
+  back: |-
+    Depuis Python 3.7, l'ordre est garanti :
+
+    1. **la partie droite** : `f(x)` est évaluée d'abord
+    2. puis `a`, puis `i`
+    3. puis l'affectation
+
+    Corollaires utiles :
+    - `a, b = b, a` échange sans variable temporaire : la droite est construite en tuple **avant** toute affectation.
+    - `v[i], v[j] = v[j], v[i]` échange correctement, même si `i == j`.
+    - `x = x + [1]` crée une liste puis rebinde ; `x += [1]` mute en place.
+  e: Ce détail devient critique dès que tu manipules des index calculés (tri, permutation, buffer circulaire). En C++, l'ordre d'évaluation des arguments de fonction n'est **pas** garanti — c'est une des différences à connaître entre les deux langages.

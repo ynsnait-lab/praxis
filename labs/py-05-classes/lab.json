@@ -1,0 +1,11 @@
+{
+  "id": "py-05",
+  "ordre": 5,
+  "lang": "python",
+  "genre": "lab",
+  "niveau": "avancé",
+  "minutes": 45,
+  "titre": "Une série de mesures qui parle Python",
+  "modules": ["py08"],
+  "resume": "Dataclass immuable et validée, classe conteneur avec len, for, in et une propriété calculée, constructeur alternatif et pilote simulé."
+}

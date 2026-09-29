@@ -1,0 +1,702 @@
+id: dynamique
+title: Dynamique et vibrations
+en: Dynamics and vibrations
+desc: Faire bouger des masses, les faire tourner, estimer énergies et puissances, et éviter la résonance.
+intro: |
+  La statique s'occupe de ce qui ne bouge pas. La dynamique s'occupe de ce qui **accélère** : un chariot qui démarre, un plateau qui tourne, une charge qu'on lève, une structure qui vibre.
+
+  C'est elle qui dimensionne les moteurs (il faut de la force pour accélérer, pas seulement pour vaincre les frottements) et qui explique pourquoi certaines machines se mettent à trembler à une vitesse précise.
+notions:
+  # ------------------------------------------------------------------ PFD
+  - id: dyn-newton
+    title: Masse, force et accélération
+    en: Newton's second law
+    goal: Utiliser F = m·a pour dimensionner un effort d'accélération ou de levage.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: Le caddie vide et le caddie plein
+          body: |
+            Pousse un caddie vide : il démarre au quart de tour. Plein, il faut pousser fort pour le lancer… et tout aussi fort pour l'arrêter. La masse **résiste aux changements de vitesse** : c'est l'**inertie**.
+
+            Une fois lancé à vitesse constante sur un sol parfait, le caddie n'aurait besoin d'aucune force pour continuer. La force ne sert pas à maintenir la vitesse, elle sert à la **changer**.
+        - level: 2
+          title: La deuxième loi de Newton
+          body: |
+            La force nécessaire pour accélérer un objet est proportionnelle à sa masse et à l'accélération voulue. Deux fois plus lourd : deux fois plus de force pour la même accélération. Deux fois plus vite en deux fois moins de temps : quatre fois plus d'accélération.
+
+            Le poids n'est qu'une force parmi d'autres : celle que la Terre exerce, $m \cdot g$. Quand on lève une charge en l'accélérant vers le haut, il faut vaincre le poids **et** fournir l'accélération.
+          check:
+            q: Un chariot roule à vitesse constante sur des rails sans frottement. Quelle force faut-il pour qu'il continue ?
+            choices:
+              - t: Aucune
+                ok: true
+                why: Sans frottement ni pente, rien ne le ralentit. Une force ne servirait qu'à le faire accélérer.
+              - t: Une force égale à son poids
+                why: Le poids est vertical et compensé par les rails.
+              - t: Une force proportionnelle à sa vitesse
+                why: Il faudrait une force seulement pour compenser un frottement visqueux, absent ici.
+        - level: 3
+          title: La formule
+          body: |
+            $$\sum \vec{F} = m\,\vec{a}$$
+
+            $F$ en newtons, $m$ en kg, $a$ en m/s². Pour une accélération constante depuis l'arrêt : $a = \Delta v / \Delta t$.
+
+            **Exemple 1, un axe linéaire.** Un chariot de 20 kg doit passer de 0 à 1 m/s en 0,1 s : $a = 10$ m/s², donc $F = 20 \times 10 = 200$ N, en plus des frottements.
+
+            **Exemple 2, un levage.** Lever 50 kg en accélérant à 2 m/s² vers le haut : $T - m g = m a$, donc $T = m (g + a) = 50 \times 11{,}81 \approx 590$ N. À vitesse constante, 490 N suffiraient.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Forces d'inertie.** Dans le repère d'un objet qui accélère, tout se passe comme si une force $-m\,\vec{a}$ s'appliquait à chaque masse : c'est ce qui te plaque contre ton siège au démarrage, ou ce qui fait glisser une pièce mal bridée sur un chariot qui freine. Les accélérations se comptent souvent en **g** (1 g = 9,81 m/s²).
+
+            **Quantité de mouvement et choc.** $\vec{p} = m\,\vec{v}$, et $\vec{F}\,\Delta t = \Delta \vec{p}$. Un choc, c'est une variation de vitesse sur un temps très court, donc une force énorme. Une caisse de 50 kg qui tombe de 5 cm sur un sol rigide arrive à environ 1 m/s ; si elle s'arrête en 2 ms, la force moyenne dépasse 25 000 N, soit plus de 50 fois son poids.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Pour un axe motorisé, ce sont souvent les **phases d'accélération** qui dimensionnent le moteur, pas la vitesse. Réduire l'accélération demandée divise d'autant la force (et le courant).
+            - Un **arrêt d'urgence** freine très fort : les pièces embarquées, les câbles et les butées doivent le supporter.
+            - **Transport d'équipements** sensibles (optiques, détecteurs, cryostats) : les chocs de manutention sont souvent la pire sollicitation de leur vie. Caisses avec amortisseurs, enregistreurs de chocs, et jamais de dépose brutale.
+      recap:
+        - "ΣF = m·a : la force change la vitesse, elle ne sert pas à la maintenir."
+        - "Levage accéléré vers le haut : T = m·(g + a)."
+        - "Axe linéaire : les phases d'accélération dimensionnent le moteur."
+        - "Choc : F·Δt = Δ(m·v) ; un arrêt très bref donne une force énorme."
+      pieges: [ing-poids-masse]
+    vocab:
+      - accélération = acceleration
+      - inertie = inertia
+      - principe fondamental de la dynamique = Newton's second law
+      - quantité de mouvement = momentum
+      - choc = shock (impact)
+      - force d'inertie = inertial force
+    exercises:
+      - id: dyn-newton.1
+        type: numeric
+        level: 1
+        q: Un chariot de 20 kg doit passer de 0 à 1 m/s en 0,1 s. Quelle force faut-il (sans compter les frottements) ?
+        answer: 200
+        tol: 0.01
+        unit: N
+        calc: 20 * (1 / 0.1)
+        trap_values:
+          - v: 2
+            why: "Tu as multiplié par la durée au lieu de diviser : a = Δv/Δt = 10 m/s²."
+          - v: 196.2
+            why: C'est le poids du chariot. Ici on veut l'accélérer horizontalement.
+        e: $a = 1 / 0{,}1 = 10$ m/s², puis $F = m\,a = 20 \times 10 = 200$ N.
+      - id: dyn-newton.2
+        type: numeric
+        level: 2
+        q: Un palan lève une charge de 50 kg avec une accélération de 2 m/s² vers le haut. Quelle est la tension dans le câble ?
+        answer: 590.5
+        tol: 0.01
+        unit: N
+        calc: 50 * (9.81 + 2)
+        trap_values:
+          - v: 100
+            why: C'est seulement la force d'accélération. Il faut aussi porter le poids.
+          - v: 490.5
+            why: C'est le poids. En accélérant vers le haut, il faut plus.
+          - v: 390.5
+            why: Signe inversé. Vers le haut, l'accélération s'ajoute au poids.
+        piege: ing-poids-masse
+        e: $T = m\,(g + a) = 50 \times (9{,}81 + 2) \approx 590$ N.
+      - id: dyn-newton.3
+        type: qcm
+        level: 2
+        q: Dans un ascenseur qui monte et **ralentit** avant l'étage, une balance sous tes pieds indique…
+        choices:
+          - t: moins que ton poids
+            ok: true
+            why: "L'accélération est dirigée vers le bas (ralentissement d'une montée) : N = m·(g − a)."
+          - t: plus que ton poids
+            why: C'est le cas au démarrage de la montée, quand l'accélération est vers le haut.
+          - t: exactement ton poids
+            why: Seulement à vitesse constante.
+        e: Ce n'est pas le sens du mouvement qui compte, mais le sens de l'accélération. Une montée qui ralentit accélère vers le bas.
+      - id: dyn-newton.4
+        type: flash
+        level: 1
+        q: Que valent 1 N et 1 g ?
+        back: |
+          - **1 N** est la force qui donne une accélération de 1 m/s² à une masse de 1 kg (1 N = 1 kg·m/s²). C'est à peu près le poids d'une pomme de 100 g.
+          - **1 g** vaut 9,81 m/s², l'accélération de la pesanteur, qu'on utilise comme unité d'accélération.
+        e: Un axe qui accélère à 1 g applique à sa charge une force horizontale égale à son poids.
+  # ------------------------------------------------------------------ rotation
+  - id: dyn-rotation
+    title: Rotation, couple et moment d'inertie
+    en: Rotation, torque and moment of inertia
+    goal: Calculer un moment d'inertie, le couple nécessaire pour accélérer un plateau, et l'inertie vue par un moteur à travers un réducteur.
+    minutes: 13
+    lesson:
+      steps:
+        - level: 1
+          title: Le manège et la patineuse
+          body: |
+            Un manège chargé d'enfants est dur à lancer, et dur à arrêter. Une roue de vélo lancée continue de tourner longtemps.
+
+            La patineuse qui tourne sur elle-même bras écartés accélère d'un coup en ramenant les bras contre elle. En rotation, ce n'est pas seulement la masse qui compte : c'est **à quelle distance de l'axe** elle se trouve.
+        - level: 2
+          title: L'équivalent de F = m·a
+          body: |
+            En rotation, les grandeurs changent de nom mais la loi est la même :
+            - la force devient un **couple** $C$ (N·m) ;
+            - la masse devient le **moment d'inertie** $J$ (kg·m²) ;
+            - l'accélération devient l'**accélération angulaire** $\alpha$ (rad/s²).
+
+            Le moment d'inertie dépend de la masse **et du carré de sa distance à l'axe** : une masse deux fois plus loin compte quatre fois plus. Un volant d'inertie met sa masse sur la jante ; une pièce qui doit accélérer vite garde sa masse près de l'axe.
+          check:
+            q: Un disque plein et un anneau mince ont la même masse et le même rayon. Lequel est le plus difficile à mettre en rotation ?
+            choices:
+              - t: L'anneau
+                ok: true
+                why: "Toute sa masse est au rayon maximal : J = m·r², contre m·r²/2 pour le disque."
+              - t: Le disque
+                why: Le disque a une partie de sa masse près de l'axe, qui compte peu.
+              - t: Les deux pareil, même masse
+                why: En rotation, la répartition de la masse compte autant que la masse.
+        - level: 3
+          title: Les formules
+          body: |
+            $$\sum C = J\,\alpha$$
+
+            | Forme | Moment d'inertie autour de l'axe |
+            | --- | --- |
+            | masse ponctuelle à la distance $d$ | $m\,d^2$ |
+            | disque ou cylindre plein | $\tfrac{1}{2} m r^2$ |
+            | anneau ou tube mince | $m r^2$ |
+            | barre de longueur $L$, axe au milieu | $\tfrac{1}{12} m L^2$ |
+            | barre de longueur $L$, axe au bout | $\tfrac{1}{3} m L^2$ |
+
+            **Exemple.** Un plateau (disque plein) de 5 kg et 100 mm de rayon : $J = 0{,}5 \times 5 \times 0{,}1^2 = 0{,}025$ kg·m². Pour l'amener à 3000 tr/min (314 rad/s) en 1 s : $\alpha = 314$ rad/s², donc $C = 0{,}025 \times 314 \approx 7{,}9$ N·m.
+        - level: 4
+          title: Inertie ramenée à travers un réducteur
+          body: |
+            Entre un moteur et sa charge, on met souvent un réducteur de rapport $k$ (le moteur tourne $k$ fois plus vite que la charge). Vue depuis le moteur, l'inertie de la charge est **divisée par $k^2$** :
+
+            $$J_{vue\ moteur} = J_{moteur} + \frac{J_{charge}}{k^2}$$
+
+            Pourquoi le carré ? Le couple est multiplié par $k$ en passant le réducteur, **et** l'accélération de la charge est divisée par $k$. Les deux effets se cumulent.
+
+            Et le théorème de Huygens s'applique comme en statique : autour d'un axe décalé de $d$ par rapport au centre de gravité, $J = J_G + m\,d^2$.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            **Choisir un moteur pour un axe rotatif :**
+            1. calcule l'inertie de tout ce qui tourne (plateau, pièces, accouplement) ;
+            2. ramène-la au moteur en divisant par $k^2$ ;
+            3. couple d'accélération $= J_{total} \times \alpha$, plus les couples résistants (frottements, balourd, gravité) ;
+            4. vérifie le **rapport d'inertie** charge / rotor : au-delà d'environ 10 pour un servomoteur, l'asservissement devient difficile à régler et instable.
+
+            Les propriétés de masse de la CAO donnent directement les moments d'inertie des pièces, à condition d'avoir mis les bons matériaux.
+      recap:
+        - "ΣC = J·α : couple (N·m), inertie (kg·m²), accélération angulaire (rad/s²)."
+        - "Disque plein : ½·m·r² ; anneau : m·r² ; masse ponctuelle : m·d²."
+        - "La masse loin de l'axe compte au carré de la distance."
+        - "À travers un réducteur de rapport k, l'inertie de la charge est divisée par k²."
+        - "Rapport d'inertie charge/rotor raisonnable (≲ 10) pour un servomoteur."
+      pieges: [ing-inertie-ramenee, ing-tr-min-rad-s]
+    vocab:
+      - moment d'inertie = moment of inertia
+      - couple = torque
+      - accélération angulaire = angular acceleration
+      - vitesse angulaire = angular velocity
+      - réducteur = gearbox (reducer)
+      - rapport de réduction = gear ratio
+      - inertie ramenée = reflected inertia
+      - volant d'inertie = flywheel
+    exercises:
+      - id: dyn-rotation.1
+        type: numeric
+        level: 1
+        q: Moment d'inertie d'un disque plein de 5 kg et de 100 mm de rayon, autour de son axe ?
+        answer: 0.025
+        tol: 0.01
+        unit: kg·m²
+        calc: 0.5 * 5 * 0.1**2
+        trap_values:
+          - v: 0.05
+            why: C'est m·r², l'inertie d'un anneau. Pour un disque plein, il y a un facteur ½.
+          - v: 25000
+            why: "Tu as mis le rayon en mm. Les kg·m² exigent des mètres : r = 0,1 m."
+        e: $J = \tfrac{1}{2} m r^2 = 0{,}5 \times 5 \times 0{,}1^2 = 0{,}025$ kg·m².
+      - id: dyn-rotation.2
+        type: numeric
+        level: 2
+        q: Ce plateau (J = 0,025 kg·m²) doit atteindre 3000 tr/min en 1 s. Quel couple d'accélération faut-il ?
+        answer: 7.854
+        tol: 0.02
+        unit: N·m
+        calc: 0.025 * (3000 * 2 * pi / 60) / 1
+        trap_values:
+          - v: 75
+            why: Tu as gardé les tr/min. Il faut des rad/s, soit 3000 × 2π/60 ≈ 314 rad/s.
+          - v: 1.25
+            why: Tu as pris des tours par seconde (50) sans le facteur 2π.
+        piege: ing-tr-min-rad-s
+        e: $\omega = 3000 \times 2\pi / 60 \approx 314$ rad/s, $\alpha = 314$ rad/s², $C = J\,\alpha \approx 7{,}85$ N·m.
+      - id: dyn-rotation.3
+        type: numeric
+        level: 2
+        q: Une charge d'inertie 0,5 kg·m² est entraînée par un moteur à travers un réducteur de rapport 10. Quelle inertie de charge le moteur « voit »-il ?
+        answer: 0.005
+        tol: 0.01
+        unit: kg·m²
+        calc: 0.5 / 10**2
+        trap_values:
+          - v: 0.05
+            why: Tu as divisé par k. L'inertie ramenée se divise par k².
+          - v: 50
+            why: Tu as multiplié au lieu de diviser. Le réducteur allège la charge vue par le moteur.
+        piege: ing-inertie-ramenee
+        e: $J_{vue} = J_{charge} / k^2 = 0{,}5 / 100 = 0{,}005$ kg·m². C'est tout l'intérêt d'un réducteur pour accélérer une grosse charge avec un petit moteur.
+      - id: dyn-rotation.4
+        type: qcm
+        level: 2
+        q: Pour qu'un bras de robot accélère plus vite avec le même moteur, que faut-il faire en priorité ?
+        choices:
+          - t: Alléger ce qui est au bout du bras, loin de l'axe
+            ok: true
+            why: La masse au bout compte au carré de sa distance à l'axe.
+          - t: Alléger la base du bras, près de l'axe
+            why: Près de l'axe, la masse contribue très peu à l'inertie.
+          - t: Rallonger le bras
+            why: Cela augmente fortement l'inertie.
+        e: C'est pour ça que les moteurs des axes de robot sont placés près de la base, et que les préhenseurs sont allégés au maximum.
+      - id: dyn-rotation.5
+        type: flash
+        level: 2
+        q: Pourquoi l'inertie de la charge est-elle divisée par k² (et pas par k) à travers un réducteur ?
+        back: |
+          Deux effets se cumulent :
+          1. le réducteur **multiplie le couple** par $k$ : pour un couple moteur donné, la charge reçoit $k$ fois plus ;
+          2. la charge **accélère $k$ fois moins** que le moteur.
+
+          Couple ramené au moteur : $C_{charge}/k = J_{charge}\,\alpha_{charge}/k = J_{charge}\,\alpha_{moteur}/k^2$.
+        e: Même raisonnement pour une vis ou une courroie, avec un rapport de transmission équivalent.
+  # ------------------------------------------------------------------ énergie
+  - id: dyn-energie
+    title: Énergie, travail et puissance
+    en: Energy, work and power
+    goal: Calculer énergies cinétique et potentielle, travail et puissance, et penser aux énergies stockées.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: Monter l'escalier vite ou lentement
+          body: |
+            Monter un sac de 10 kg au premier étage demande le même effort total que tu montes vite ou lentement : c'est la même **énergie**. En revanche, le monter en courant demande plus de **puissance** : la même énergie fournie en moins de temps.
+
+            Et ce sac, une fois en haut, garde cette énergie en réserve : s'il tombe, elle se transforme en vitesse, puis en choc.
+        - level: 2
+          title: Les formes d'énergie mécanique
+          body: |
+            - L'énergie **cinétique** : celle du mouvement. Elle croît avec la masse et avec le **carré** de la vitesse.
+            - L'énergie **potentielle** : celle de la hauteur (ou d'un ressort comprimé).
+            - Le **travail** : l'énergie transférée par une force qui se déplace.
+            - La **puissance** : l'énergie par seconde, en watts.
+
+            L'énergie se **conserve** : un objet qui tombe transforme son énergie potentielle en énergie cinétique ; un frein transforme l'énergie cinétique en chaleur.
+          check:
+            q: Une voiture passe de 50 à 100 km/h. Son énergie cinétique est…
+            choices:
+              - t: multipliée par 4
+                ok: true
+                why: "Ec = ½ m v² : doubler la vitesse multiplie l'énergie par 4. Il faut 4 fois plus de distance de freinage."
+              - t: multipliée par 2
+                why: L'énergie cinétique suit le carré de la vitesse.
+              - t: inchangée
+                why: La masse est la même, mais pas la vitesse.
+        - level: 3
+          title: Les formules
+          body: |
+            $$E_c = \tfrac{1}{2} m v^2 \qquad E_p = m g h \qquad W = F \cdot d \qquad P = \frac{W}{t} = F \cdot v = C \cdot \omega$$
+
+            Énergies en joules (J), puissance en watts (W = J/s).
+
+            **Exemples.**
+            - Lever 100 kg de 2 m : $E_p = 100 \times 9{,}81 \times 2 \approx 1962$ J. En 4 s : $P \approx 490$ W.
+            - Un objet qui tombe de 1 m arrive à $v = \sqrt{2 g h} \approx 4{,}4$ m/s.
+            - Un moteur qui fournit 2 N·m à 1500 tr/min (157 rad/s) délivre $P = 2 \times 157 \approx 314$ W.
+        - level: 4
+          title: Sous le capot
+          body: |
+            En rotation, l'énergie cinétique vaut $\tfrac{1}{2} J \omega^2$. Un volant de 0,025 kg·m² à 3000 tr/min (314 rad/s) stocke environ 1230 J : de quoi projeter un fragment très loin s'il éclatait.
+
+            **Unités d'énergie à connaître.** $1\ \text{kWh} = 3{,}6 \times 10^6$ J. Une calorie vaut 4,18 J. L'électronvolt (1,6 × 10⁻¹⁹ J) sert pour les photons et les particules, par exemple l'énergie des rayons X d'un synchrotron, qui se compte en keV.
+
+            **Rendement** : chaque transformation perd une partie de l'énergie, presque toujours en chaleur. La puissance perdue $P_{entrée} (1 - \eta)$ doit être évacuée.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            **Énergies stockées et sécurité.** Avant d'intervenir sur une machine, la **consignation** ne se limite pas à couper l'électricité. Il faut aussi libérer ou bloquer :
+            - l'énergie potentielle (charge suspendue, axe vertical qui peut descendre) ;
+            - l'énergie des ressorts comprimés ;
+            - l'énergie pneumatique ou hydraulique (réservoirs, vérins sous pression) ;
+            - l'énergie cinétique (pièces encore en rotation) ;
+            - l'énergie électrique résiduelle (condensateurs des variateurs, qui peuvent rester chargés plusieurs minutes).
+
+            **Freinage d'un moteur** : l'énergie cinétique de la charge revient vers le variateur, qui doit la dissiper (résistance de freinage) ou la renvoyer au réseau.
+      recap:
+        - "Ec = ½·m·v² (le carré de la vitesse) ; Ep = m·g·h ; W = F·d."
+        - "P = W/t = F·v = C·ω, en watts."
+        - "Rotation : Ec = ½·J·ω² ; 1 kWh = 3,6 MJ."
+        - "L'énergie se conserve : elle change de forme, les pertes finissent en chaleur."
+        - "Consignation : libérer toutes les énergies stockées, pas seulement l'électricité."
+      pieges: [ing-tr-min-rad-s]
+    vocab:
+      - énergie cinétique = kinetic energy
+      - énergie potentielle = potential energy
+      - travail = work
+      - puissance = power
+      - rendement = efficiency
+      - consignation = lockout/tagout (LOTO)
+      - résistance de freinage = braking resistor
+    exercises:
+      - id: dyn-energie.1
+        type: numeric
+        level: 1
+        q: Quelle énergie faut-il pour lever une charge de 100 kg de 2 m ?
+        answer: 1962
+        tol: 0.01
+        unit: J
+        calc: 100 * 9.81 * 2
+        trap_values:
+          - v: 200
+            why: Tu as oublié g. L'énergie potentielle vaut m·g·h.
+        e: $E_p = m g h = 100 \times 9{,}81 \times 2 \approx 1962$ J.
+      - id: dyn-energie.2
+        type: numeric
+        level: 1
+        q: Cette levée (1962 J) se fait en 4 s. Quelle puissance mécanique faut-il, au minimum ?
+        answer: 490.5
+        tol: 0.01
+        unit: W
+        calc: 1962 / 4
+        e: $P = W / t = 1962 / 4 \approx 490$ W, sans compter les pertes du treuil.
+      - id: dyn-energie.3
+        type: numeric
+        level: 2
+        q: Une pièce tombe d'une hauteur de 1 m. À quelle vitesse touche-t-elle le sol (frottements de l'air négligés) ?
+        answer: 4.43
+        tol: 0.01
+        unit: m/s
+        calc: sqrt(2 * 9.81 * 1)
+        trap_values:
+          - v: 9.81
+            why: C'est l'accélération de la pesanteur, pas une vitesse.
+          - v: 19.62
+            why: Tu as oublié la racine carrée. v² = 2·g·h.
+        e: Conservation de l'énergie, $m g h = \tfrac{1}{2} m v^2$, donc $v = \sqrt{2 g h} \approx 4{,}4$ m/s (environ 16 km/h). La masse n'intervient pas.
+      - id: dyn-energie.4
+        type: numeric
+        level: 2
+        q: Un moteur fournit 2 N·m à 1500 tr/min. Quelle puissance mécanique délivre-t-il ?
+        answer: 314.2
+        tol: 0.01
+        unit: W
+        calc: 2 * 1500 * 2 * pi / 60
+        trap_values:
+          - v: 3000
+            why: Tu as multiplié le couple par des tr/min. Il faut ω en rad/s.
+        piege: ing-tr-min-rad-s
+        e: $P = C\,\omega = 2 \times (1500 \times 2\pi / 60) \approx 314$ W.
+      - id: dyn-energie.5
+        type: qcm
+        level: 2
+        q: Avant d'intervenir sous un axe vertical motorisé, tu as coupé et cadenassé l'alimentation électrique. Qu'est-ce qui peut encore te blesser ?
+        choices:
+          - t: La descente de l'axe sous son propre poids si le frein ou la vis ne le retiennent pas
+            ok: true
+          - t: Rien, l'énergie est coupée
+            why: L'électricité est coupée, mais l'énergie potentielle de l'axe est toujours là.
+          - t: Uniquement les condensateurs du variateur
+            why: Ils sont un risque réel, mais pas le seul.
+        e: Une consignation complète traite toutes les énergies stockées, potentielle, ressorts, pression, rotation, électricité résiduelle. On cale mécaniquement un axe vertical avant d'intervenir dessous.
+  # ------------------------------------------------------------------ vibrations
+  - id: dyn-vibrations
+    title: Vibrations et résonance
+    en: Vibrations and resonance
+    goal: Calculer une fréquence propre, comprendre la résonance et savoir quand une isolation vibratoire fonctionne.
+    minutes: 13
+    lesson:
+      steps:
+        - level: 1
+          title: La balançoire
+          body: |
+            Pour faire monter une balançoire, inutile de pousser fort : il suffit de pousser **au bon rythme**, à chaque aller-retour. Chaque petite poussée ajoute à la précédente, et l'amplitude grandit.
+
+            Toute structure a ainsi un ou plusieurs rythmes préférés. Une machine à laver qui tremble à une vitesse précise d'essorage, un rétroviseur qui vibre à un certain régime moteur, un verre qui chante : c'est la **résonance**.
+        - level: 2
+          title: Masse, ressort, fréquence propre
+          body: |
+            Le modèle le plus simple : une masse accrochée à un ressort. Écartée puis lâchée, elle oscille à une fréquence bien précise, sa **fréquence propre**.
+            - Plus le ressort est **raide**, plus elle oscille vite.
+            - Plus la masse est **lourde**, plus elle oscille lentement.
+
+            Si on l'excite à cette fréquence, l'amplitude grandit jusqu'à ce que l'**amortissement** (frottements, matériaux qui dissipent) l'équilibre. Avec peu d'amortissement, l'amplitude à la résonance peut être des dizaines de fois celle de l'excitation.
+        - level: 3
+          title: La formule
+          body: |
+            $$f_0 = \frac{1}{2\pi}\sqrt{\frac{k}{m}}$$
+
+            $f_0$ en Hz, $k$ en N/m, $m$ en kg. **Exemple** : $k = 10\,000$ N/m et $m = 1$ kg donnent $f_0 \approx 15{,}9$ Hz.
+
+            **L'astuce de la flèche statique.** Si une masse posée sur son support l'enfonce de $\delta$ sous son propre poids, alors $k = m g / \delta$, et :
+
+            $$f_0 = \frac{1}{2\pi}\sqrt{\frac{g}{\delta}} \approx \frac{15{,}8}{\sqrt{\delta\ (\text{mm})}}\ \text{Hz}$$
+
+            Un support qui s'enfonce de 1 mm résonne vers 16 Hz, de 1 µm vers 500 Hz. Pour monter la fréquence propre, il faut de la **raideur**, ou moins de **masse**.
+          check:
+            q: On double la masse portée par un même support. Sa fréquence propre est…
+            choices:
+              - t: divisée par environ 1,41 (racine de 2)
+                ok: true
+                why: "f₀ ∝ √(k/m) : doubler m divise f₀ par √2."
+              - t: divisée par 2
+                why: La fréquence suit la racine carrée de k/m.
+              - t: inchangée
+                why: La masse fait partie de la formule.
+        - level: 4
+          title: Isoler des vibrations
+          body: |
+            Poser une machine sur des plots souples ne l'isole pas toujours. La **transmissibilité** (rapport entre la vibration transmise et la vibration d'origine) dépend du rapport $r = f / f_0$ entre la fréquence de la vibration et la fréquence propre de la suspension :
+
+            ```svg caption="Transmissibilité d'une suspension peu amortie : amplification autour de f₀, isolation seulement au-delà de √2 × f₀."
+            <svg viewBox="0 0 440 240" width="440" role="img" aria-label="Courbe de transmissibilité en fonction de f sur f0">
+              <line class="s" x1="50" y1="210" x2="420" y2="210"/>
+              <line class="s" x1="50" y1="210" x2="50" y2="20"/>
+              <line class="s2 dash" x1="50" y1="176" x2="420" y2="176"/>
+              <text class="tm" x="376" y="170">T = 1</text>
+              <line class="s2 dash" x1="177.3" y1="30" x2="177.3" y2="210"/>
+              <text class="tm" x="160" y="228">√2</text>
+              <text class="tm" x="134" y="228">1</text>
+              <text class="tm" x="317" y="228">3</text>
+              <text class="t" x="395" y="228">f/f₀</text>
+              <text class="t" x="16" y="30">T</text>
+              <polyline class="as" points="50,176 95,164.8 113,145.1 122,122.6 131,78.1 135.5,47.9 140,36.6 144.5,61.3 149,95.4 158,140.3 167,162.4 177.3,176 194,187.6 230,197.9 320,205.1 410,207.1"/>
+              <text class="tw" x="150" y="32">résonance</text>
+              <text class="tm" x="62" y="120">amplification</text>
+              <text class="ta" x="240" y="160">isolation (T &lt; 1)</text>
+            </svg>
+            ```
+
+            - $r < \sqrt{2}$ : la suspension **amplifie** ou transmet tout, et au pire elle résonne.
+            - $r > \sqrt{2}$ : elle **isole**, d'autant mieux que la suspension est souple (fréquence propre basse).
+
+            Le facteur d'amplification à la résonance vaut environ $Q \approx 1/(2\zeta)$, où $\zeta$ est le taux d'amortissement : 5 % d'amortissement donnent une amplification d'environ 10.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - **Éloigne les fréquences propres des excitations** : moteurs et pompes (leur vitesse de rotation), 50 Hz et 100 Hz électriques, pompes turbomoléculaires (plusieurs centaines de Hz), vibrations du sol d'un bâtiment (quelques Hz à quelques dizaines de Hz).
+            - Sur une expérience sensible (optique, faisceau, microscopie), on vise des supports **raides et légers**, avec des fréquences propres élevées, souvent au-dessus de 50 à 100 Hz.
+            - Les **tables optiques** isolées reposent sur des suspensions pneumatiques de fréquence propre de l'ordre de 1 à 2 Hz : elles isolent tout ce qui est au-dessus de quelques Hz.
+            - Une mesure au marteau de choc ou à l'accéléromètre donne les fréquences propres réelles ; la CAO permet de les calculer (analyse modale).
+      recap:
+        - "f₀ = (1/2π)·√(k/m) : plus raide → plus haut, plus lourd → plus bas."
+        - "Flèche statique δ : f₀ ≈ 15,8/√δ(mm) Hz."
+        - "Résonance : excitation à f₀, amplification ≈ 1/(2ζ)."
+        - "Isolation seulement si f > √2·f₀ ; en dessous, la suspension amplifie."
+        - "Supports d'expérience : raides et légers, fréquences propres loin des excitations."
+      pieges: [ing-isolation-resonance]
+    vocab:
+      - fréquence propre = natural frequency
+      - résonance = resonance
+      - amortissement = damping
+      - raideur = stiffness
+      - transmissibilité = transmissibility
+      - analyse modale = modal analysis
+      - plot antivibratoire = vibration isolator
+      - accéléromètre = accelerometer
+    exercises:
+      - id: dyn-vibrations.1
+        type: numeric
+        level: 1
+        q: Une masse de 1 kg est suspendue à un ressort de raideur 10 000 N/m. Quelle est sa fréquence propre ?
+        answer: 15.92
+        tol: 0.01
+        unit: Hz
+        calc: sqrt(10000 / 1) / (2 * pi)
+        trap_values:
+          - v: 100
+            why: C'est la pulsation propre ω₀ en rad/s. Pour avoir des Hz, divise par 2π.
+        e: $f_0 = \dfrac{1}{2\pi}\sqrt{\dfrac{10\,000}{1}} = \dfrac{100}{2\pi} \approx 15{,}9$ Hz.
+      - id: dyn-vibrations.2
+        type: numeric
+        level: 2
+        q: Un détecteur posé sur ses supports élastiques les enfonce de 2 mm sous son propre poids. Estime la fréquence propre de l'ensemble.
+        answer: 11.15
+        tol: 0.02
+        unit: Hz
+        calc: sqrt(9.81 / 0.002) / (2 * pi)
+        trap_values:
+          - v: 70.04
+            why: C'est la pulsation en rad/s. Divise par 2π pour avoir des Hz.
+          - v: 0.352
+            why: "Tu as mis δ en mm dans la formule SI : δ = 0,002 m."
+        e: $f_0 = \dfrac{1}{2\pi}\sqrt{\dfrac{g}{\delta}} = \dfrac{1}{2\pi}\sqrt{\dfrac{9{,}81}{0{,}002}} \approx 11$ Hz, soit $15{,}8/\sqrt{2}$.
+      - id: dyn-vibrations.3
+        type: qcm
+        level: 2
+        q: Une pompe tourne à 25 Hz. Tu la poses sur des plots dont la fréquence propre avec la pompe est de 20 Hz. Que se passe-t-il ?
+        piege: ing-isolation-resonance
+        choices:
+          - t: Les plots amplifient les vibrations transmises, on est proche de la résonance
+            ok: true
+            why: "r = 25/20 = 1,25 < √2 : pas d'isolation, forte amplification."
+          - t: Les vibrations sont bien isolées, puisque les plots sont souples
+            piege: true
+            why: La souplesse ne suffit pas. L'isolation n'existe que pour f > √2·f₀, ici il faudrait f₀ < 17,7 Hz, et en pratique bien moins.
+          - t: Rien ne change
+            why: Au contraire, c'est presque le pire réglage possible.
+        e: Pour isoler une excitation à 25 Hz, on vise une fréquence propre de suspension d'environ 25/3 ≈ 8 Hz ou moins, donc des plots bien plus souples.
+      - id: dyn-vibrations.4
+        type: qcm
+        level: 2
+        q: Un support de miroir résonne à 30 Hz et capte les vibrations du bâtiment. Quelle modification remonte sa fréquence propre ?
+        choices:
+          - t: Le rendre plus raide ou plus léger
+            ok: true
+          - t: Ajouter une masse sur le support
+            why: Ajouter de la masse abaisse la fréquence propre.
+          - t: Le rendre plus haut et plus fin
+            why: Plus haut et plus fin, il devient plus souple, sa fréquence propre baisse.
+        e: "f₀ ∝ √(k/m) : on gagne en raideur (section, triangulation, hauteur réduite) ou en légèreté."
+      - id: dyn-vibrations.5
+        type: flash
+        level: 2
+        q: À partir de quelle fréquence une suspension élastique isole-t-elle, et que se passe-t-il en dessous ?
+        back: |
+          Elle isole seulement pour des fréquences d'excitation supérieures à $\sqrt{2} \times f_0$ (fréquence propre de la suspension).
+
+          En dessous, elle transmet toute la vibration, voire l'**amplifie** autour de $f_0$ (résonance). On vise en pratique $f_{excitation} \geq 3 \times f_0$.
+        e: D'où les suspensions très souples (1 à 2 Hz) des tables optiques.
+  # ------------------------------------------------------------------ cinématique
+  - id: dyn-profils
+    title: Mouvements et profils de vitesse
+    en: Motion profiles
+    goal: Calculer un temps de déplacement avec un profil trapézoïdal et régler vitesse, accélération et jerk.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: Démarrer, rouler, freiner
+          body: |
+            Une voiture qui va d'un feu rouge au suivant accélère, roule à vitesse stable, puis freine. Un axe motorisé qui déplace un échantillon de A à B fait exactement la même chose, sauf qu'on règle ces trois phases dans un contrôleur de mouvement.
+        - level: 2
+          title: Position, vitesse, accélération, jerk
+          body: |
+            - La **vitesse** est la variation de la position au cours du temps.
+            - L'**accélération** est la variation de la vitesse.
+            - Le **jerk** (ou à-coup) est la variation de l'accélération : c'est lui qu'on ressent comme un choc quand un bus démarre brutalement.
+
+            Le profil le plus courant est **trapézoïdal** : accélération constante jusqu'à la vitesse maximale, palier à vitesse constante, décélération constante. Si la distance est trop courte pour atteindre la vitesse maximale, le palier disparaît : le profil devient **triangulaire**.
+
+            ```svg caption="Profil de vitesse trapézoïdal : l'aire sous la courbe est la distance parcourue."
+            <svg viewBox="0 0 440 220" width="440" role="img" aria-label="Profil de vitesse trapézoïdal">
+              <line class="s" x1="50" y1="190" x2="425" y2="190"/>
+              <line class="s" x1="50" y1="190" x2="50" y2="25"/>
+              <polygon class="soft" points="50,190 83,60 377,60 410,190"/>
+              <text class="t" x="18" y="34">v</text>
+              <text class="t" x="415" y="208">t</text>
+              <text class="tm" x="20" y="64">vmax</text>
+              <text class="tm" x="56" y="44">accél.</text>
+              <text class="tm" x="190" y="50">vitesse constante</text>
+              <text class="tm" x="352" y="44">décél.</text>
+              <text class="ta" x="180" y="140">aire = distance</text>
+            </svg>
+            ```
+        - level: 3
+          title: Les formules
+          body: |
+            À accélération constante $a$, depuis l'arrêt :
+
+            $$v = a\,t \qquad x = \tfrac{1}{2} a t^2 \qquad v^2 = 2\,a\,x$$
+
+            **Durée d'un profil trapézoïdal** (distance $d$, vitesse max $v$, accélération et décélération $a$) :
+
+            $$t = \frac{d}{v} + \frac{v}{a} \qquad \text{valable si} \quad d \geq \frac{v^2}{a}$$
+
+            **Exemple.** $d = 200$ mm, $v = 100$ mm/s, $a = 500$ mm/s² : chaque rampe dure 0,2 s et couvre 10 mm ; il reste 180 mm à 100 mm/s (1,8 s). Total : $2 + 0{,}2 = 2{,}2$ s.
+
+            **Distance d'arrêt** depuis la vitesse $v$ avec une décélération $a$ : $x = v^2 / (2a)$.
+        - level: 4
+          title: Sous le capot
+          body: |
+            Avec un profil trapézoïdal, l'accélération saute d'un coup de 0 à $a$ : le jerk est théoriquement infini. Ces sauts excitent les vibrations de la mécanique (la charge « rebondit » en fin de mouvement).
+
+            Les **profils en S** limitent le jerk : l'accélération monte progressivement. Le mouvement dure un peu plus longtemps, mais la charge arrive **stable** plus tôt, ce qui réduit le temps de stabilisation.
+
+            **Condition du triangle** : si $d < v^2 / a$, on n'atteint jamais $v$. La vitesse maximale réellement atteinte vaut alors $\sqrt{a\,d}$, et la durée $2\sqrt{d/a}$.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Les contrôleurs de mouvement demandent vitesse, accélération et parfois jerk, souvent en **pas/s** ou en **unités utilisateur/s** : vérifie la conversion (pas moteur, micro-pas, pas de vis, rapport de réduction).
+            - Un moteur pas à pas qui **perd des pas** en démarrant a souvent une accélération trop forte, pas une vitesse trop grande.
+            - Pour un déplacement court, augmenter la vitesse maximale ne sert à rien si le profil est triangulaire : c'est l'accélération qui fixe la durée.
+            - Le **temps de stabilisation** (settling time) après l'arrivée compte autant que le temps de déplacement pour une mesure.
+      recap:
+        - "v = a·t ; x = ½·a·t² ; v² = 2·a·x."
+        - "Trapèze : t = d/v + v/a, si d ≥ v²/a ; sinon profil triangulaire."
+        - "Distance d'arrêt : v²/(2a)."
+        - "Jerk = variation de l'accélération ; profils en S : moins de vibrations en fin de mouvement."
+        - "Perte de pas au démarrage : accélération trop forte."
+    vocab:
+      - profil trapézoïdal = trapezoidal profile
+      - profil en S = S-curve profile
+      - jerk (à-coup) = jerk
+      - temps de stabilisation = settling time
+      - contrôleur de mouvement = motion controller
+      - distance d'arrêt = stopping distance
+    exercises:
+      - id: dyn-profils.1
+        type: numeric
+        level: 2
+        q: "Un axe parcourt 200 mm avec vmax = 100 mm/s et une accélération (et décélération) de 500 mm/s². Durée du mouvement ?"
+        answer: 2.2
+        tol: 0.01
+        unit: s
+        calc: 200 / 100 + 100 / 500
+        trap_values:
+          - v: 2
+            why: C'est la durée à vitesse constante tout du long. Les rampes ajoutent v/a = 0,2 s.
+          - v: 2.4
+            why: Tu as ajouté deux rampes complètes sans retirer la distance qu'elles parcourent. La formule d/v + v/a en tient compte.
+        e: Rampes de 0,2 s couvrant 10 mm chacune, 180 mm à vitesse constante (1,8 s), total 2,2 s. Formule directe, $d/v + v/a$.
+      - id: dyn-profils.2
+        type: numeric
+        level: 1
+        q: Un chariot roule à 1 m/s et freine avec une décélération de 2 m/s². Quelle distance parcourt-il avant de s'arrêter ?
+        answer: 0.25
+        tol: 0.01
+        unit: m
+        calc: 1**2 / (2 * 2)
+        trap_values:
+          - v: 0.5
+            why: C'est v/a, une durée (en s), pas une distance.
+        e: $x = v^2 / (2a) = 1 / 4 = 0{,}25$ m.
+      - id: dyn-profils.3
+        type: qcm
+        level: 2
+        q: "Pour un déplacement court (d = 5 mm, a = 500 mm/s²), tu doubles la vitesse maximale de 100 à 200 mm/s. Le mouvement devient…"
+        choices:
+          - t: aussi long, le profil était déjà triangulaire
+            ok: true
+            why: "d = 5 mm < v²/a = 20 mm : on n'atteint jamais 100 mm/s. La durée ne dépend que de a : 2√(d/a) = 0,2 s."
+          - t: deux fois plus court
+            why: Il faudrait que la vitesse maximale soit atteinte, ce qui n'est pas le cas.
+          - t: plus long
+            why: Augmenter la vitesse maximale ne peut pas rallonger le mouvement.
+        e: Pour les petits déplacements, c'est l'accélération qui fixe la durée.
+      - id: dyn-profils.4
+        type: flash
+        level: 1
+        q: Qu'est-ce que le jerk, et pourquoi le limiter ?
+        back: |
+          Le jerk est la dérivée de l'accélération (en m/s³) : la vitesse à laquelle l'accélération change.
+
+          Un profil trapézoïdal a des sauts d'accélération (jerk infini) qui excitent les vibrations de la mécanique. Un profil en S limite le jerk et réduit le temps de stabilisation, au prix d'un mouvement un peu plus long.
+        e: C'est aussi ce qui rend un démarrage de tramway agréable ou désagréable.

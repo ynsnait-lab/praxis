@@ -1,0 +1,13 @@
+{
+  "id": "d5",
+  "ordre": 23,
+  "lang": "python",
+  "genre": "defi",
+  "niveau": "avancé",
+  "minutes": 180,
+  "titre": "Pilote d'instrument testable",
+  "modules": ["py07", "py08", "py09", "py10", "py13"],
+  "resume": "Piloter un instrument SCPI et le tester sans aucun matériel : transport abstrait, faux transport, exceptions nommées, mypy --strict.",
+  "outils": ["ruff", "mypy"],
+  "fichiers": ["pilote.py"]
+}

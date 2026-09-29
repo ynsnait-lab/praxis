@@ -1,0 +1,7 @@
+# Outils Python des labs (installés dans .venv par ./praxis setup)
+pytest>=8
+ruff>=0.6
+mypy>=1.11
+numpy>=1.26
+# pour assembler l'app en local (./praxis app) et valider le contenu
+pyyaml>=6

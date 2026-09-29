@@ -1,0 +1,287 @@
+domain: rdm
+exercises:
+- id: ig.rdm01
+  type: qcm
+  level: 1
+  q: Quelle est l'unité du module d'Young E ?
+  choices:
+  - t: N
+    ok: false
+  - t: N·m
+    ok: false
+  - t: Pa
+    ok: true
+  - t: Sans unité
+    ok: false
+  e: 'E = σ/ε. La déformation ε est un rapport de longueurs, donc sans dimension : E a l''unité d''une contrainte, le pascal. En pratique on l''exprime en GPa (acier 210 GPa, alu 70 GPa, titane 110 GPa).'
+  src: calibre
+- id: ig.rdm02
+  type: qcm
+  level: 1
+  q: 'Une barre de section 10 mm² subit une traction de 2 kN. Contrainte normale :'
+  choices:
+  - t: 2 GPa
+    ok: false
+  - t: 20 MPa
+    ok: false
+  - t: 200 kPa
+    ok: false
+  - t: 200 MPa
+    ok: true
+  e: 'σ = F/S = 2000 N / 10×10⁻⁶ m² = 2×10⁸ Pa = 200 MPa. Le réflexe à avoir : 1 N/mm² = 1 MPa exactement, donc 2000 N / 10 mm² = 200 MPa se lit directement sans conversion.'
+  src: calibre
+- id: ig.rdm03
+  type: qcm
+  level: 1
+  q: 'Barre en traction. Tu doubles la section en gardant le même effort. L''allongement est :'
+  choices:
+  - t: Divisé par 4
+    ok: false
+  - t: Inchangé
+    ok: false
+  - t: Multiplié par 2
+    ok: false
+  - t: Divisé par 2
+    ok: true
+  e: 'ΔL = FL/(ES) : l''allongement est inversement proportionnel à la section, donc divisé par 2. Attention à ne pas confondre avec la flexion, où c''est le moment quadratique (en h³) qui intervient — d''où des effets en puissance 3.'
+  src: calibre
+- id: ig.rdm04
+  type: qcm
+  level: 2
+  q: 'Moment quadratique d''une section rectangulaire (largeur b, hauteur h) autour de l''axe horizontal passant par son centre :'
+  choices:
+  - t: bh³/12
+    ok: true
+  - t: bh³/3
+    ok: false
+  - t: bh²/6
+    ok: false
+  - t: hb³/12
+    ok: false
+  e: 'I = bh³/12. La hauteur est au cube : c''est LE réflexe de la flexion — doubler h multiplie I par 8. bh²/6 est le module de flexion I/v, pas le moment quadratique. hb³/12 est le moment autour de l''axe vertical.'
+  src: calibre
+- id: ig.rdm05
+  type: qcm
+  level: 2
+  q: 'Poutre sur deux appuis simples, portée L, charge uniformément répartie q. Moment fléchissant maximal :'
+  choices:
+  - t: qL²/4
+    ok: false
+  - t: qL²/12
+    ok: false
+  - t: qL²/2
+    ok: false
+  - t: qL²/8
+    ok: true
+  e: M_max = qL²/8, au milieu de la portée. qL²/2 est le moment à l'encastrement d'une console chargée de la même façon — quatre fois plus, ce qui illustre le prix d'un porte-à-faux. qL²/12 est le moment aux encastrements d'une poutre bi-encastrée.
+  src: calibre
+- id: ig.rdm06
+  type: qcm
+  level: 2
+  q: 'Poutre console (encastrée-libre), longueur L, charge uniformément répartie q. Flèche maximale :'
+  choices:
+  - t: qL⁴/(3EI)
+    ok: false
+  - t: qL⁴/(48EI)
+    ok: false
+  - t: 5qL⁴/(384EI)
+    ok: false
+  - t: qL⁴/(8EI)
+    ok: true
+  e: 'f = qL⁴/(8EI) au bout libre. 5qL⁴/(384EI) est la flèche d''une poutre sur deux appuis avec la même charge : environ 7,7 fois plus faible. Retiens surtout la puissance 4 sur L — doubler la portée multiplie la flèche par 16.'
+  src: calibre
+- id: ig.rdm07
+  type: qcm
+  level: 2
+  q: 'Colonne bi-articulée en flambement (Euler). Tu doubles sa longueur. La charge critique est :'
+  choices:
+  - t: Inchangée
+    ok: false
+  - t: Divisée par 8
+    ok: false
+  - t: Divisée par 4
+    ok: true
+  - t: Divisée par 2
+    ok: false
+  e: 'F_c = π²EI/L² : en 1/L², donc divisée par 4. Le flambement ne dépend que de E, I et de la longueur libre — pas de la limite élastique du matériau. C''est pourquoi un acier à haute résistance ne sert à rien contre le flambement.'
+  src: calibre
+- id: ig.rdm08
+  type: qcm
+  level: 2
+  q: 'Selon le critère de Tresca, la contrainte de cisaillement admissible vaut :'
+  choices:
+  - t: Re
+    ok: false
+  - t: Re/√3
+    ok: false
+  - t: 2·Re
+    ok: false
+  - t: Re/2
+    ok: true
+  e: Tresca (cisaillement maximal) donne τ_lim = Re/2. Von Mises donne Re/√3 ≈ 0,577·Re, donc moins conservatif. Tresca est plus sévère et souvent retenu en bureau d'études pour rester du côté sûr.
+  src: calibre
+- id: ig.rdm09
+  type: qcm
+  level: 2
+  q: 'Plaque large en traction percée d''un trou circulaire. Coefficient de concentration de contrainte Kt au bord du trou :'
+  choices:
+  - t: ≈ 1
+    ok: false
+  - t: ≈ 6
+    ok: false
+  - t: ≈ 3
+    ok: true
+  - t: ≈ 2
+    ok: false
+  e: 'Kt ≈ 3 pour un trou circulaire dans une plaque infinie : la contrainte locale triple. Ce chiffre est à connaître par cœur — il explique pourquoi les amorces de fissure de fatigue se trouvent presque toujours sur un trou, un congé ou un angle vif.'
+  src: calibre
+- id: ig.rdm10
+  type: qcm
+  level: 2
+  q: 'Dans une poutre en flexion simple, la contrainte normale est maximale :'
+  choices:
+  - t: Au point d'application de la charge
+    ok: false
+  - t: Sur les fibres les plus éloignées de la fibre neutre
+    ok: true
+  - t: Sur la fibre neutre
+    ok: false
+  - t: Uniformément répartie dans la section
+    ok: false
+  e: 'σ = M·y/I : la contrainte croît linéairement avec la distance y à la fibre neutre, donc maximale en peau. Sur la fibre neutre, σ = 0 — mais c''est là que le cisaillement transverse est maximal. Les deux maxima sont à des endroits opposés de la section.'
+  src: calibre
+- id: ig.rdm11
+  type: qcm
+  level: 3
+  q: 'Arbre cylindrique plein en torsion. Tu doubles le diamètre à couple constant. La contrainte de cisaillement maximale est :'
+  choices:
+  - t: Divisée par 8
+    ok: true
+  - t: Divisée par 2
+    ok: false
+  - t: Divisée par 4
+    ok: false
+  - t: Divisée par 16
+    ok: false
+  e: 'τ_max = 16T/(πd³) : en 1/d³, donc divisée par 8. À retenir : en torsion la contrainte va en d³ et la rigidité en d⁴ (I₀ = πd⁴/32). Un petit gain de diamètre paie énormément.'
+  src: calibre
+- id: ig.rdm12
+  type: qcm
+  level: 3
+  q: 'À masse égale et même matériau, un arbre creux comparé à un arbre plein, en torsion :'
+  choices:
+  - t: L'arbre plein est plus rigide
+    ok: false
+  - t: Les deux sont équivalents
+    ok: false
+  - t: Cela dépend uniquement du matériau
+    ok: false
+  - t: L'arbre creux est plus rigide
+    ok: true
+  e: 'En torsion la contribution à I₀ varie en r³ : la matière proche de l''axe ne travaille presque pas. En la déplaçant vers l''extérieur (tube), on obtient un I₀ bien plus grand pour la même masse. C''est pour ça que les cadres de vélo, les arbres de transmission et les mâts sont tubulaires.'
+  src: calibre
+- id: ig.rdm13
+  type: qcm
+  level: 2
+  q: Pourquoi un profilé en I est-il efficace en flexion ?
+  choices:
+  - t: L'acier y est plus résistant
+    ok: false
+  - t: Sa masse est plus faible qu'un profilé plein
+    ok: false
+  - t: La matière est concentrée loin de la fibre neutre, ce qui maximise I
+    ok: true
+  - t: Il résiste mieux au flambement local
+    ok: false
+  e: 'Les semelles (ailes) portent la flexion parce qu''elles sont loin de la fibre neutre, là où σ = M·y/I est grand ; l''âme ne sert qu''à les relier et à reprendre le cisaillement. Même logique que l''arbre creux en torsion : on paie la matière là où elle travaille.'
+  src: calibre
+- id: ig.rdm14
+  type: qcm
+  level: 3
+  q: Entre les critères de Tresca et de Von Mises, lequel est le moins conservatif ?
+  choices:
+  - t: Ils sont équivalents
+    ok: false
+  - t: Von Mises
+    ok: true
+  - t: Tresca
+    ok: false
+  - t: Von Mises ne s'applique qu'aux matériaux fragiles
+    ok: false
+  e: 'Von Mises autorise τ jusqu''à Re/√3 ≈ 0,577·Re contre Re/2 = 0,5·Re pour Tresca : il permet donc des contraintes plus élevées avant de déclarer la ruine. Von Mises colle mieux aux essais sur métaux ductiles ; Tresca garde une marge. Pour les matériaux fragiles (fontes, céramiques), aucun des deux ne convient — on utilise Rankine ou Mohr.'
+  src: calibre
+- id: ig.rdm15
+  type: qcm
+  level: 1
+  q: 'Coefficient de Poisson d''un acier courant :'
+  choices:
+  - t: ≈ 0,8
+    ok: false
+  - t: ≈ 0,1
+    ok: false
+  - t: ≈ 0,3
+    ok: true
+  - t: ≈ 0,5
+    ok: false
+  e: ν ≈ 0,3 pour les aciers (0,33 pour l'alu, ≈ 0,5 pour un élastomère quasi incompressible). Le coefficient de Poisson relie la contraction transversale à l'allongement longitudinal ; il ne peut théoriquement pas dépasser 0,5 pour un matériau isotrope.
+  src: calibre
+- id: ig.rdm16
+  type: qcm
+  level: 2
+  q: 'Barre d''acier de 2 m chauffée de 50 K (α ≈ 12×10⁻⁶ /K), libre de se dilater. Allongement :'
+  choices:
+  - t: 0,12 mm
+    ok: false
+  - t: 12 mm
+    ok: false
+  - t: 1,2 mm
+    ok: true
+  - t: 0,012 mm
+    ok: false
+  e: 'ΔL = α·L·ΔT = 12×10⁻⁶ × 2000 mm × 50 = 1,2 mm. Ordre de grandeur à avoir en tête : environ 1 mm par mètre pour 80 K sur de l''acier. C''est énorme à l''échelle d''une machine de précision — d''où les jeux de dilatation et les montages à point fixe unique.'
+  src: calibre
+- id: ig.rdm17
+  type: qcm
+  level: 3
+  q: 'Même barre d''acier, mais bridée aux deux extrémités et chauffée de 50 K. Contrainte engendrée :'
+  choices:
+  - t: ≈ 126 MPa
+    ok: true
+  - t: Nulle, la barre se dilate librement
+    ok: false
+  - t: 126 MPa, mais seulement si la barre mesure 1 m
+    ok: false
+  - t: ≈ 12,6 MPa
+    ok: false
+  e: 'σ = E·α·ΔT = 210 000 × 12×10⁻⁶ × 50 ≈ 126 MPa — et la longueur n''intervient pas du tout. C''est un résultat contre-intuitif mais central : une contrainte thermique d''encastrement ne dépend que du matériau et de ΔT. 50 K suffisent à consommer un quart de la limite élastique d''un S235.'
+  src: calibre
+- id: ig.rdm18
+  type: qcm
+  level: 2
+  q: 'En fatigue, une fissure s''amorce le plus souvent :'
+  choices:
+  - t: Au cœur de la pièce
+    ok: false
+  - t: Dans la zone où la contrainte moyenne est nulle
+    ok: false
+  - t: En surface, sur un défaut géométrique ou une rayure
+    ok: true
+  - t: Aléatoirement dans le volume
+    ok: false
+  e: 'L''amorçage est un phénomène de surface : c''est là que la contrainte de flexion/torsion est maximale et que se trouvent rayures d''usinage, congés vifs et corrosion. D''où l''efficacité du polissage, du galetage et de la grenaillage de précontrainte, qui gagnent facilement un facteur 2 sur la durée de vie.'
+  src: calibre
+- id: ig.rdm19
+  type: qcm
+  level: 3
+  q: 'Poutre bi-encastrée, charge F au milieu, portée L. Flèche maximale :'
+  choices:
+  - t: FL³/(3EI)
+    ok: false
+  - t: FL³/(384EI)
+    ok: false
+  - t: FL³/(192EI)
+    ok: true
+  - t: FL³/(48EI)
+    ok: false
+  e: 'f = FL³/(192EI). La même poutre sur deux appuis simples donne FL³/(48EI) : l''encastrement la rend 4 fois plus rigide. FL³/(3EI) est la console. C''est l''argument massue de l''hyperstatisme — au prix d''une sensibilité aux défauts de montage et aux contraintes thermiques.'
+  src: calibre

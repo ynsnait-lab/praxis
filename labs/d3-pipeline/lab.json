@@ -1,0 +1,11 @@
+{
+  "id": "d3",
+  "ordre": 22,
+  "lang": "python",
+  "genre": "defi",
+  "niveau": "intermédiaire",
+  "minutes": 180,
+  "titre": "Pipeline d'analyse de mesures",
+  "modules": ["py06", "py13"],
+  "resume": "Des centaines de fichiers CSV, des lignes corrompues, un rapport par capteur : en générateurs de bout en bout, en mémoire constante."
+}

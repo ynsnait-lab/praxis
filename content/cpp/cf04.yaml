@@ -1,0 +1,350 @@
+id: cf04
+track: cpp
+title: Conditions et boucles
+goal: Écrire if, switch, while et for en C++ — et éviter les trois pièges de syntaxe qui compilent sans rien dire.
+level: fondations
+requires: [cf03]
+concepts: [if, switch, for, while]
+lesson:
+  minutes: 15
+  intro: |
+    La logique est exactement celle de Python : décider, répéter. La syntaxe change (parenthèses, accolades), et avec elle apparaissent des pièges qui n'existent pas en Python : une affectation qui se déguise en comparaison, un `switch` qui « tombe » dans le cas suivant, un point-virgule qui vide une boucle de son contenu. Tous compilent. Les avertissements du compilateur sont là pour toi.
+  steps:
+    - level: 1
+      title: Même logique, autre écriture
+      body: |
+        | Python | C++ |
+        | --- | --- |
+        | `if t > 30:` | `if (t > 30) {` … `}` |
+        | `elif` | `else if` |
+        | `and`, `or`, `not` | `&&`, `\|\|`, `!` (les mots `and`, `or`, `not` existent aussi, mais on les voit rarement) |
+        | `True`, `False` | `true`, `false` |
+        | `while n > 0:` | `while (n > 0) {` … `}` |
+        | `for i in range(10):` | `for (int i = 0; i < 10; ++i) {` … `}` |
+        | `for m in mesures:` | `for (double m : mesures) {` … `}` |
+
+        La condition est **toujours entre parenthèses**, et le bloc **entre accolades**.
+    - level: 2
+      title: La boucle for classique
+      body: |
+        La boucle `for` du C++ a trois parties, séparées par des points-virgules :
+
+        ```cpp
+        for (int i = 0; i < 10; ++i) { ... }
+        //   départ     condition  pas
+        ```
+
+        1. **départ** : exécuté une fois, avant tout (ici on crée `i`, qui n'existe que dans la boucle) ;
+        2. **condition** : testée avant chaque tour ; si elle est fausse, on sort ;
+        3. **pas** : exécuté à la fin de chaque tour.
+
+        C'est exactement `range(0, 10)` : 0 inclus, 10 exclu. Et `break` / `continue` fonctionnent comme en Python.
+      code: |
+        #include <iostream>
+
+        int main() {
+            for (int i = 0; i < 5; ++i) {
+                std::cout << i << " ";
+            }
+            std::cout << '\n';
+            for (int i = 10; i > 0; i -= 3) {
+                std::cout << i << " ";
+            }
+            std::cout << '\n';
+            int n = 1;
+            while (n < 100) {
+                n *= 3;
+            }
+            std::cout << n << '\n';
+        }
+      out: |
+        0 1 2 3 4
+        10 7 4 1
+        243
+    - level: 3
+      title: switch pour les cas discrets
+      body: |
+        Pour aiguiller sur des **valeurs entières ou des caractères** précis (un code de commande, un état), `switch` est plus lisible qu'une série de `else if`. Attention : chaque `case` doit finir par un **`break`**, sinon l'exécution continue dans le cas suivant.
+      code: |
+        #include <iostream>
+
+        void executer(char commande) {
+            switch (commande) {
+                case 'M':
+                    std::cout << "mesure\n";
+                    break;
+                case 'R':
+                case 'r':                  // plusieurs valeurs pour le même code
+                    std::cout << "reset\n";
+                    break;
+                default:
+                    std::cout << "commande inconnue : " << commande << '\n';
+            }
+        }
+
+        int main() {
+            executer('M');
+            executer('r');
+            executer('X');
+        }
+      out: |
+        mesure
+        reset
+        commande inconnue : X
+    - level: 4
+      title: Trois pièges qui compilent
+      body: |
+        **1. `=` au lieu de `==`.** `if (mode = 3)` n'est pas une comparaison : c'est une **affectation**, qui vaut 3, donc « vrai ». La condition est toujours vraie, et en prime `mode` est écrasé. Python refuse cette syntaxe ; C++ l'accepte (avec un avertissement `-Wparentheses` que tu dois lire).
+
+        **2. Le `break` oublié.** Sans `break`, un `case` « tombe » (*fall through*) dans le suivant : les deux blocs s'exécutent.
+
+        **3. Le point-virgule de trop.** `for (int i = 0; i < 10; ++i);` avec un `;` juste après la parenthèse : la boucle a pour corps une **instruction vide**. Le bloc `{ }` qui suit n'est exécuté qu'une fois. Même chose avec `if (erreur); { alarme(); }` : l'alarme se déclenche toujours.
+
+        Et un réflexe : **mets toujours des accolades**, même pour une seule ligne. `if (x) a(); b();` n'exécute conditionnellement que `a()`, quelle que soit l'indentation.
+      code: |
+        #include <iostream>
+
+        int main() {
+            int mode = 1;
+            if (mode = 3) {                    // piège : affectation !
+                std::cout << "mode 3 ?! mode vaut " << mode << '\n';
+            }
+            int compte = 0;
+            for (int i = 0; i < 5; ++i);       // piège : corps vide
+            {
+                compte++;
+            }
+            std::cout << "compte = " << compte << '\n';
+        }
+      out: |
+        mode 3 ?! mode vaut 3
+        compte = 1
+      flags: [-Wno-parentheses, -Wno-empty-body]
+    - level: 5
+      title: Parcourir une collection proprement
+      body: |
+        Pour parcourir tous les éléments d'un conteneur (qu'on verra en détail avec `std::vector`), la boucle **for sur intervalle** (*range-based for*) est la plus sûre : pas d'index, donc pas d'erreur à un près.
+
+        ```cpp
+        for (double m : mesures) { ... }         // m est une COPIE de chaque élément
+        for (double& m : mesures) { m *= 2; }    // m est une référence : on modifie l'original
+        for (const auto& m : capteurs) { ... }   // lecture sans copie (objets lourds)
+        ```
+
+        Sur microcontrôleur, souviens-toi que `loop()` est **déjà** une boucle infinie : on n'y écrit pas de `while (true)`, et on évite les longues boucles bloquantes (on verra la technique `millis()` au dernier cours des Fondations).
+  recap:
+    - "Conditions entre parenthèses, blocs entre accolades ; `&&`, `||`, `!`."
+    - "`for (int i = 0; i < n; ++i)` = `range(n)` ; `for (double m : v)` parcourt les éléments."
+    - "`switch` sur des entiers ou caractères : un `break` à la fin de chaque `case`."
+    - "`if (x = 3)` affecte au lieu de comparer ; un `;` après `for (...)` ou `if (...)` vide le bloc."
+    - "Toujours des accolades, et lire les avertissements `-Wall`."
+  pieges: [cpp-egal-affectation, cpp-switch-break, cpp-point-virgule-vide]
+exercises:
+  - id: cf04.1
+    type: predict
+    level: 1
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+
+      int main() {
+          for (int i = 1; i <= 3; ++i) {
+              std::cout << i * i << " ";
+          }
+          std::cout << '\n';
+      }
+    answer: 1 4 9
+    e: "Avec `<=`, la borne 3 est incluse. Le `for` classique rend les bornes visibles : lis toujours la condition avec attention."
+  - id: cf04.2
+    type: predict
+    level: 2
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+
+      int main() {
+          int erreurs = 0;
+          if (erreurs = 0) {
+              std::cout << "aucune erreur\n";
+          } else {
+              std::cout << "erreurs : " << erreurs << '\n';
+          }
+      }
+    answer: "erreurs : 0"
+    trap_answers: ["aucune erreur"]
+    flags: [-Wno-parentheses]
+    piege: cpp-egal-affectation
+    e: |
+      `erreurs = 0` **affecte** 0, et l'expression vaut 0, c'est-à-dire « faux ». On passe donc dans le `else`, qui affiche… 0 erreur. Le message est incohérent, et c'est exactement le genre de bug qu'on met des heures à trouver.
+
+      `-Wall` avertit : `using the result of an assignment as a condition without parentheses`. Certains écrivent `if (0 == erreurs)` (« condition Yoda ») pour qu'une faute de frappe `0 = erreurs` ne compile pas.
+  - id: cf04.3
+    type: predict
+    level: 2
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+
+      int main() {
+          int etat = 1;
+          switch (etat) {
+              case 0: std::cout << "arret ";
+              case 1: std::cout << "chauffe ";
+              case 2: std::cout << "regulation ";
+              default: std::cout << "defaut";
+          }
+          std::cout << '\n';
+      }
+    answer: chauffe regulation defaut
+    trap_answers: ["chauffe"]
+    flags: [-Wno-implicit-fallthrough]
+    piege: cpp-switch-break
+    e: "Sans `break`, l'exécution entre dans `case 1` puis **continue** dans tous les cas suivants. Chaque `case` doit se terminer par `break` (ou `return`). Si tu veux vraiment enchaîner, écris `[[fallthrough]];` pour le dire."
+  - id: cf04.4
+    type: bug
+    level: 2
+    q: "Ce code doit additionner les entiers de 1 à 10 (résultat 55). Il affiche 11. Quelle ligne est fautive ?"
+    code: |
+      #include <iostream>
+
+      int main() {
+          int total = 0;
+          int i = 1;
+          for (; i <= 10; ++i);
+          {
+              total += i;
+          }
+          std::cout << total << '\n';
+      }
+    bad: 6
+    fix: "    for (; i <= 10; ++i)"
+    piege: cpp-point-virgule-vide
+    e: "Le `;` après la parenthèse donne à la boucle un corps **vide** : elle tourne à vide jusqu'à `i = 11`, puis le bloc s'exécute une seule fois avec `i = 11`. D'où 11."
+  - id: cf04.5
+    type: cloze
+    level: 1
+    q: "Complète la boucle pour afficher 0 2 4 6 8."
+    lang: cpp
+    tpl: |
+      #include <iostream>
+
+      int main() {
+          for (int i = 0; i ⟦0⟧ 10; i ⟦1⟧ 2) {
+              std::cout << i << " ";
+          }
+      }
+    blanks:
+      - ["<", "<="]
+      - ["+="]
+    verify: compile
+    e: "`i < 10` (ou `<= 8`) avec un pas `i += 2`. `<= 10` ajouterait 10."
+  - id: cf04.6
+    type: qcm
+    level: 1
+    q: "Quelle est la traduction C++ de `if a > 0 and not b:` ?"
+    choices:
+      - t: "`if (a > 0 && !b) {`"
+        ok: true
+      - t: "`if a > 0 && !b {`"
+        why: "Les parenthèses autour de la condition sont obligatoires."
+      - t: "`if (a > 0 & ~b) {`"
+        why: "`&` et `~` sont les opérateurs **bit à bit**. Ils ne font pas la même chose que `&&` et `!`, et n'arrêtent pas l'évaluation au premier faux."
+    e: "`&&` (et), `||` (ou), `!` (non) sont les opérateurs logiques ; ils s'arrêtent dès que le résultat est connu, comme `and`/`or` en Python."
+  - id: cf04.7
+    type: predict
+    level: 2
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+
+      int main() {
+          int n = 0;
+          do {
+              n += 5;
+          } while (n < 0);
+          std::cout << n << '\n';
+      }
+    answer: "5"
+    trap_answers: ["0"]
+    e: "`do { ... } while (cond);` teste la condition **après** le bloc : il s'exécute toujours au moins une fois. Utile pour « lire jusqu'à obtenir une valeur valide »."
+  - id: cf04.8
+    type: predict
+    level: 2
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+
+      int main() {
+          int x = 5;
+          if (x > 10)
+              std::cout << "A ";
+              std::cout << "B ";
+          std::cout << "C\n";
+      }
+    answer: B C
+    trap_answers: ["C"]
+    flags: [-Wno-misleading-indentation]
+    e: "Sans accolades, le `if` ne contrôle que **la première** instruction. `\"B \"` s'exécute toujours, malgré son indentation trompeuse (GCC avertit avec `-Wmisleading-indentation`). Toujours des accolades."
+  - id: cf04.9
+    type: code
+    level: 2
+    lang: cpp
+    q: |
+      Écris `int nb_depassements(const std::vector<double>& v, double seuil)` qui compte les valeurs strictement supérieures à `seuil`. (On détaille `std::vector` et le `const ...&` plus loin : pour l'instant, parcours `v` avec une boucle `for (double x : v)`.)
+    start: |
+      #include <vector>
+
+      int nb_depassements(const std::vector<double>& v, double seuil) {
+          int n = 0;
+          // ta boucle
+          return n;
+      }
+    sol: |
+      #include <vector>
+
+      int nb_depassements(const std::vector<double>& v, double seuil) {
+          int n = 0;
+          for (double x : v) {
+              if (x > seuil) {
+                  ++n;
+              }
+          }
+          return n;
+      }
+    tests: |
+      #include <cassert>
+      #include <iostream>
+      int main() {
+          assert(nb_depassements({1.0, 5.0, 3.0, 7.5}, 3.0) == 2);
+          assert(nb_depassements({}, 0.0) == 0);
+          assert(nb_depassements({2.0, 2.0}, 2.0) == 0);
+          std::cout << "OK\n";
+      }
+    e: "La boucle sur intervalle évite tout index, donc toute erreur de borne. `{1.0, 5.0, 3.0, 7.5}` construit un vecteur directement dans l'appel."
+  - id: cf04.10
+    type: flash
+    level: 1
+    q: Quels sont les trois pièges de syntaxe des conditions et boucles C++ qui compilent sans erreur ?
+    back: |
+      1. `if (x = 3)` : affectation au lieu de comparaison (toujours vrai si ≠ 0).
+      2. `switch` sans `break` : l'exécution tombe dans les `case` suivants.
+      3. `for (...);` ou `if (...);` : le point-virgule vide le corps.
+    e: "Les trois sont signalés par `-Wall -Wextra`. Un warning n'est jamais « juste un warning »."
+  - id: cf04.11
+    type: parsons
+    level: 2
+    q: "Reconstruis une fonction qui renvoie le libellé d'un code d'erreur : 1 → \"TIMEOUT\", 2 → \"CRC\", autre → \"INCONNU\"."
+    lang: cpp
+    lines:
+      - "const char* libelle(int code) {"
+      - "    switch (code) {"
+      - "        case 1: return \"TIMEOUT\";"
+      - "        case 2: return \"CRC\";"
+      - "        default: return \"INCONNU\";"
+      - "    }"
+      - "}"
+    extra:
+      - "        case 1: \"TIMEOUT\";"
+      - "    switch code {"
+    verify: compile
+    e: "Ici, `return` sort de la fonction, donc pas besoin de `break` : c'est un usage idiomatique. Les intrus : un `case` sans `return` (l'expression est calculée puis jetée), et un `switch` sans parenthèses."

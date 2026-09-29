@@ -1,0 +1,287 @@
+domain: statique
+exercises:
+- id: ig.sta01
+  type: qcm
+  level: 1
+  q: Combien de degrés de liberté possède un solide libre dans l'espace ?
+  choices:
+  - t: '4'
+    ok: false
+  - t: '6'
+    ok: true
+  - t: '12'
+    ok: false
+  - t: '3'
+    ok: false
+  e: '6 : trois translations et trois rotations. Dans le plan, c''est 3 (deux translations, une rotation). Ce chiffre est la base de tout le raisonnement sur les liaisons et l''hyperstatisme.'
+  src: calibre
+- id: ig.sta02
+  type: qcm
+  level: 1
+  q: 'Une liaison pivot laisse subsister :'
+  choices:
+  - t: 1 translation
+    ok: false
+  - t: 1 rotation et 1 translation
+    ok: false
+  - t: 1 rotation
+    ok: true
+  - t: 3 rotations
+    ok: false
+  e: 'Le pivot ne laisse qu''une rotation autour de son axe : il supprime 5 ddl sur 6. Celle qui laisse une rotation ET une translation sur le même axe est le pivot glissant (2 ddl). La glissière ne laisse que la translation.'
+  src: calibre
+- id: ig.sta03
+  type: qcm
+  level: 2
+  q: Combien de degrés de liberté laisse une liaison rotule (sphérique) ?
+  choices:
+  - t: '2'
+    ok: false
+  - t: '3'
+    ok: true
+  - t: '5'
+    ok: false
+  - t: '1'
+    ok: false
+  e: 3 rotations, aucune translation. La liaison à 5 ddl est la ponctuelle (contact sphère-plan). Savoir compter les ddl de chaque liaison normalisée est ce qui permet de calculer un degré d'hyperstatisme sans hésiter.
+  src: calibre
+- id: ig.sta04
+  type: qcm
+  level: 2
+  q: 'Une liaison glissière autorise :'
+  choices:
+  - t: 1 translation et 1 rotation
+    ok: false
+  - t: 2 translations
+    ok: false
+  - t: 1 rotation
+    ok: false
+  - t: 1 translation
+    ok: true
+  e: 'Une seule translation le long de son axe : 1 ddl. C''est le complément du pivot. Si le guidage autorise en plus la rotation autour du même axe, c''est un pivot glissant.'
+  src: calibre
+- id: ig.sta05
+  type: qcm
+  level: 1
+  q: Combien d'équations d'équilibre indépendantes peut-on écrire pour un solide dans l'espace ?
+  choices:
+  - t: '4'
+    ok: false
+  - t: '12'
+    ok: false
+  - t: '6'
+    ok: true
+  - t: '3'
+    ok: false
+  e: '6 : la résultante nulle (3 équations) et le moment résultant nul (3 équations). Dans le plan, seulement 3. C''est ce nombre qu''on compare au nombre d''inconnues de liaison pour savoir si un système est isostatique ou hyperstatique.'
+  src: calibre
+- id: ig.sta06
+  type: qcm
+  level: 1
+  q: Et pour un problème plan ?
+  choices:
+  - t: '2'
+    ok: false
+  - t: '4'
+    ok: false
+  - t: '6'
+    ok: false
+  - t: '3'
+    ok: true
+  e: '3 équations : ΣFx = 0, ΣFy = 0, ΣMz = 0. Si un problème plan présente 4 inconnues de liaison, il est hyperstatique de degré 1 — c''était exactement le piège de la poutre sur articulation + deux appuis simples.'
+  src: calibre
+- id: ig.sta07
+  type: qcm
+  level: 2
+  q: 'Un torseur glisseur se caractérise par :'
+  choices:
+  - t: Une résultante et un moment tous deux nuls
+    ok: false
+  - t: Une résultante non nulle et un moment nul en tout point de son axe
+    ok: true
+  - t: Une résultante nulle et un moment non nul
+    ok: false
+  - t: Un moment identique en tout point de l'espace
+    ok: false
+  e: 'Un glisseur possède un axe central sur lequel le moment s''annule : c''est le cas d''une force isolée. Le torseur à résultante nulle et moment partout identique est le couple. Le torseur nul est l''équilibre.'
+  src: calibre
+- id: ig.sta08
+  type: qcm
+  level: 2
+  q: 'Un torseur couple :'
+  choices:
+  - t: A une résultante non nulle
+    ok: false
+  - t: Dépend du point de réduction choisi
+    ok: false
+  - t: A un moment identique en tout point de l'espace
+    ok: true
+  - t: A un moment nul
+    ok: false
+  e: 'Résultante nulle, moment invariant : un couple ne dépend pas du point où on le réduit. C''est ce qui permet de parler du « couple moteur » sans préciser où on le mesure, à la différence d''un moment de force qui, lui, change avec le point.'
+  src: calibre
+- id: ig.sta09
+  type: qcm
+  level: 2
+  q: 'Pour mettre en position de façon isostatique une pièce prismatique sur un montage d''usinage, on utilise :'
+  choices:
+  - t: 9 points d'appui
+    ok: false
+  - t: 6 points d'appui répartis 3-2-1
+    ok: true
+  - t: 2 points et un serrage énergique
+    ok: false
+  - t: 3 points d'appui
+    ok: false
+  e: 'La règle 3-2-1 : 3 points définissent le plan d''appui (3 ddl bloqués), 2 points la ligne d''orientation (2 ddl), 1 point la butée (1 ddl) = 6. Ajouter un septième point rend le montage hyperstatique : la pièce se déforme au serrage et l''usinage devient imprécis. Le serrage maintient, il ne positionne pas.'
+  src: calibre
+- id: ig.sta10
+  type: qcm
+  level: 2
+  q: 'Un bloc posé sur un plan incliné d''angle α, coefficient de frottement f. Il commence à glisser quand :'
+  choices:
+  - t: tan α > f
+    ok: true
+  - t: tan α < f
+    ok: false
+  - t: sin α > f
+    ok: false
+  - t: α > f
+    ok: false
+  e: 'Le glissement démarre quand tan α dépasse f : l''angle limite φ = arctan(f) s''appelle l''angle de frottement. Fait remarquable — la masse du bloc n''intervient pas, elle apparaît des deux côtés de l''inéquation et se simplifie.'
+  src: calibre
+- id: ig.sta11
+  type: qcm
+  level: 2
+  q: 'Condition d''isostaticité d''un treillis plan (b barres, n nœuds) :'
+  choices:
+  - t: b = 2n
+    ok: false
+  - t: b = 2n − 3
+    ok: true
+  - t: b = 3n − 2
+    ok: false
+  - t: b = n − 3
+    ok: false
+  e: 'b = 2n − 3 : chaque nœud fournit 2 équations d''équilibre (2n), dont on retire les 3 mouvements d''ensemble du treillis. Si b > 2n − 3 le treillis est hyperstatique, si b < 2n − 3 c''est un mécanisme — il s''effondre.'
+  src: calibre
+- id: ig.sta12
+  type: qcm
+  level: 3
+  q: 'Dans un treillis, un nœud relie exactement deux barres non colinéaires et ne reçoit aucune charge extérieure. Alors :'
+  choices:
+  - t: Les deux efforts sont égaux et opposés
+    ok: false
+  - t: L'un est nul, l'autre non
+    ok: false
+  - t: Le problème est indéterminé
+    ok: false
+  - t: Les deux efforts sont nuls
+    ok: true
+  e: 'Les deux directions étant indépendantes, la projection de l''équilibre sur chacune impose séparément un effort nul : ce sont des barres nulles. Les repérer d''emblée simplifie énormément la résolution — elles ne servent qu''à empêcher le flambement des autres.'
+  src: calibre
+- id: ig.sta13
+  type: qcm
+  level: 2
+  q: 'Le phénomène d''arc-boutement (coincement d''un coulisseau dans son guidage) dépend :'
+  choices:
+  - t: De la vitesse de déplacement
+    ok: false
+  - t: De la masse du coulisseau
+    ok: false
+  - t: De l'intensité de l'effort appliqué
+    ok: false
+  - t: Uniquement de la géométrie du guidage et du coefficient de frottement
+    ok: true
+  e: 'L''arc-boutement est une condition purement géométrique : si le rapport entre le porte-à-faux de l''effort et la longueur de guidage dépasse un seuil lié à f, le coulisseau se bloque quelle que soit la force appliquée — forcer davantage ne fait qu''aggraver le serrage. Remède : allonger le guidage ou rapprocher le point d''application.'
+  src: calibre
+- id: ig.sta14
+  type: qcm
+  level: 2
+  q: 'Un système vis-écrou est irréversible (la charge ne le fait pas se dévisser tout seul) si :'
+  choices:
+  - t: Le filet est trapézoïdal
+    ok: false
+  - t: Le pas est grand
+    ok: false
+  - t: L'angle d'hélice est supérieur à l'angle de frottement
+    ok: false
+  - t: L'angle d'hélice est inférieur à l'angle de frottement
+    ok: true
+  e: 'Condition d''irréversibilité : tan(angle d''hélice) < f, donc hélice < angle de frottement. C''est pourquoi un vérin à vis trapézoïdale à pas fin tient sa charge sans frein, alors qu''une vis à billes (rendement ≈ 0,9, hélice raide) redescend seule et exige un frein — un piège classique en conception d''axe vertical.'
+  src: calibre
+- id: ig.sta15
+  type: qcm
+  level: 1
+  q: 'Unité d''un moment de force :'
+  choices:
+  - t: N·m²
+    ok: false
+  - t: N·m
+    ok: true
+  - t: N
+    ok: false
+  - t: N/m
+    ok: false
+  e: 'N·m (newton-mètre). Attention : N/m est une raideur, N·m² apparaît dans le produit EI (rigidité de flexion, en N·m²). Le joule vaut aussi 1 N·m dimensionnellement, mais on ne l''utilise jamais pour un couple, pour éviter la confusion avec une énergie.'
+  src: calibre
+- id: ig.sta16
+  type: qcm
+  level: 2
+  q: 'Le centre de gravité d''une plaque triangulaire homogène se trouve :'
+  choices:
+  - t: Sur une médiane, à 1/3 de la base
+    ok: true
+  - t: Au sommet opposé à la base
+    ok: false
+  - t: Au milieu de chaque médiane
+    ok: false
+  - t: À mi-hauteur du triangle
+    ok: false
+  e: 'Le centroïde est à l''intersection des médianes, située à 1/3 de la base (2/3 du sommet). À connaître avec le demi-disque (4R/3π de l''axe) : ce sont les deux barycentres qui reviennent sans arrêt dans les calculs de section composée.'
+  src: calibre
+- id: ig.sta17
+  type: qcm
+  level: 3
+  q: 'Un arbre guidé par deux roulements à billes à contact radial, les deux bagues bloquées axialement, constitue un montage :'
+  choices:
+  - t: Mécaniquement impossible
+    ok: false
+  - t: Isostatique
+    ok: false
+  - t: À jeu axial libre
+    ok: false
+  - t: Hyperstatique, sensible aux défauts d'alignement
+    ok: true
+  e: 'Les deux roulements bloquent chacun la position axiale et ne tolèrent presque pas de rotulage : on surcontraint l''arbre. Le moindre défaut de coaxialité ou une dilatation thermique génère des efforts internes qui détruisent les roulements. La solution classique : un palier fixe et un palier libre axialement (bague extérieure glissante).'
+  src: calibre
+- id: ig.sta18
+  type: qcm
+  level: 1
+  q: Combien de degrés de liberté laisse une liaison encastrement ?
+  choices:
+  - t: '6'
+    ok: false
+  - t: '0'
+    ok: true
+  - t: '3'
+    ok: false
+  - t: '1'
+    ok: false
+  e: 'Zéro : l''encastrement supprime les 6 ddl et transmet 6 inconnues de liaison (3 forces, 3 moments). C''est la liaison la plus contraignante — et celle qui rend le plus vite un système hyperstatique.'
+  src: calibre
+- id: ig.sta19
+  type: qcm
+  level: 3
+  q: 'Comparé à un montage isostatique équivalent, un montage hyperstatique :'
+  choices:
+  - t: Ne transmet aucun effort parasite
+    ok: false
+  - t: Est moins rigide
+    ok: false
+  - t: Est toujours à éviter
+    ok: false
+  - t: Est plus rigide, mais exige une précision de fabrication plus élevée
+    ok: true
+  e: 'L''hyperstatisme augmente la rigidité et répartit mieux les charges, mais les défauts géométriques et les dilatations ne peuvent plus se relâcher librement : ils se transforment en contraintes internes. C''est un arbitrage de conception, pas une faute — un bâti de machine-outil est volontairement hyperstatique, un guidage de précision volontairement isostatique.'
+  src: calibre

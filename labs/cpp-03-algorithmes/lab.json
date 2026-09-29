@@ -1,0 +1,14 @@
+{
+  "id": "cpp-03",
+  "ordre": 13,
+  "lang": "cpp",
+  "genre": "lab",
+  "niveau": "avancé",
+  "minutes": 50,
+  "titre": "Zéro boucle écrite à la main",
+  "modules": ["cpp06", "cpp07"],
+  "resume": "Sept traitements de mesures réécrits avec les algorithmes de la STL, des lambdas et std::span. Aucun for ni while autorisé.",
+  "interdits": [
+    {"fichier": "analyse.cpp", "motif": "\\b(for|while)\\s*\\(", "message": "boucle écrite à la main : utilise un algorithme de la STL"}
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "id": "py-01",
+  "ordre": 1,
+  "lang": "python",
+  "genre": "lab",
+  "niveau": "avancé",
+  "minutes": 30,
+  "titre": "Cinq pièges d'aliasing",
+  "modules": ["py01", "py02"],
+  "resume": "Un module qui « marche » dans les cas simples cache cinq pièges de mutabilité. Les tests les révèlent : corrige-les."
+}

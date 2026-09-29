@@ -1,0 +1,811 @@
+id: embarque
+title: Systèmes embarqués et communication
+en: Embedded systems and communication
+desc: Microcontrôleurs, bus série (UART, I²C, SPI), interruptions, timers et PWM, temps réel, et bus de terrain industriels.
+intro: |
+  Un système embarqué, c'est un calculateur dédié à une tâche, enfoui dans une machine : un contrôleur de moteur, un capteur intelligent, une carte d'acquisition. Il doit réagir à temps, communiquer avec ses voisins et ne jamais se bloquer.
+
+  Ces notions font le pont entre l'électronique et le code C++ de la piste C++.
+notions:
+  # ------------------------------------------------------------------ MCU
+  - id: emb-mcu
+    title: Le microcontrôleur et sa boucle
+    en: The microcontroller and its main loop
+    goal: Savoir ce que contient un microcontrôleur, estimer ses ressources et écrire une boucle principale non bloquante.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Un ordinateur sur une puce
+          body: |
+            Une machine à laver, une télécommande, une imprimante 3D, une voiture (qui en contient des dizaines) : toutes ont un **microcontrôleur**, un petit ordinateur complet tenant sur une seule puce. La carte Arduino en est l'exemple le plus connu.
+        - level: 2
+          title: Seul maître à bord
+          body: |
+            Un microcontrôleur réunit :
+            - un **processeur** qui exécute le programme ;
+            - de la mémoire **flash** (le programme, conservé hors tension) et de la **RAM** (les variables, perdues hors tension) ;
+            - des **périphériques** : entrées-sorties (GPIO), timers, convertisseurs analogique-numérique, liaisons série, PWM.
+
+            En général, pas de système d'exploitation : ton programme démarre au reset, fait ses initialisations, puis tourne dans une **boucle infinie**. Tout ce qui s'y trouve doit être **rapide** : un `delay(1000)` fige tout pendant une seconde, sans lire les boutons ni répondre aux messages.
+          check:
+            q: "La boucle contient `delay(500)` pour faire clignoter une LED. Un bouton, lu dans la même boucle, est parfois ignoré. Pourquoi ?"
+            choices:
+              - t: Pendant le delay, le programme ne fait rien d'autre ; un appui bref tombe dans cette fenêtre
+                ok: true
+              - t: Le bouton est défectueux
+                why: Le symptôme (appuis brefs ignorés) pointe vers le programme.
+              - t: Le microcontrôleur est trop lent
+                why: Il exécute des millions d'instructions par seconde ; il est simplement bloqué à attendre.
+        - level: 3
+          title: Ordres de grandeur et boucle non bloquante
+          body: |
+            | Microcontrôleur | Horloge | Flash | RAM |
+            | --- | --- | --- | --- |
+            | ATmega328P (Arduino Uno) | 16 MHz | 32 Ko | 2 Ko |
+            | STM32 courant | 72 à 480 MHz | 64 Ko à 2 Mo | 20 Ko à 1 Mo |
+            | ESP32 | 240 MHz | 4 Mo (externe) | ≈ 520 Ko |
+
+            À 16 MHz, un cycle d'horloge dure 62,5 ns. Sur un Uno, 500 nombres `float` (4 octets chacun) occupent 2000 octets : presque toute la RAM.
+
+            **La boucle non bloquante** : au lieu d'attendre, on regarde l'heure (`millis()`) et on n'agit que quand c'est le moment.
+          code: |
+            const uint8_t LED = 13, BOUTON = 2;
+            uint32_t t0 = 0;
+            bool etat = false;
+
+            void setup() {
+              pinMode(LED, OUTPUT);
+              pinMode(BOUTON, INPUT_PULLUP);
+            }
+
+            void loop() {
+              // Clignotement sans bloquer : on regarde l'heure, on n'attend pas.
+              if (millis() - t0 >= 500) {
+                t0 += 500;
+                etat = !etat;
+                digitalWrite(LED, etat);
+              }
+              // Le bouton est lu à chaque tour, des milliers de fois par seconde.
+              if (digitalRead(BOUTON) == LOW) {
+                // réagir tout de suite
+              }
+            }
+          lang: cpp
+          verify: false
+        - level: 4
+          title: Sous le capot
+          body: |
+            Au reset, le processeur lit les instructions de la flash une à une. Les périphériques se commandent en écrivant dans des **registres** placés à des adresses mémoire précises : `digitalWrite` n'est qu'une fonction qui modifie un bit d'un registre (en plusieurs microsecondes sur Arduino, là où l'écriture directe dans le registre prend un cycle).
+
+            La RAM contient les variables globales, la **pile** (variables locales, appels de fonctions) et le **tas** (allocations dynamiques). Quand la pile rejoint le tas, le programme se corrompt sans message d'erreur. Sur les petits microcontrôleurs, on évite l'allocation dynamique (et la classe `String` d'Arduino).
+
+            **Microcontrôleur ou microprocesseur ?** Un Raspberry Pi a un microprocesseur puissant et Linux, mais son timing n'est pas garanti : pour générer des impulsions précises à la microseconde, un microcontrôleur fait mieux.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Cycle de développement : écrire, compiler, **flasher** (par USB avec un bootloader, ou avec une sonde SWD/JTAG), déboguer (messages série, débogueur avec points d'arrêt, analyseur logique).
+            - Choisir un microcontrôleur : nombre d'entrées-sorties, périphériques nécessaires, tension (3,3 V ou 5 V), mémoire, outils. Arduino pour prototyper, ESP32 pour le Wi-Fi, STM32 pour les applications industrielles.
+            - Les réglages qui doivent survivre à une coupure (étalonnage, adresse) vont en **EEPROM** ou en flash, jamais en RAM.
+      recap:
+        - "MCU = processeur + flash (programme) + RAM (variables) + périphériques."
+        - "Pas d'OS : init puis boucle infinie ; rien de bloquant dedans."
+        - "Temporiser avec millis() − t0, pas avec delay()."
+        - "RAM très limitée sur les petits MCU : pas d'allocation dynamique."
+        - "Réglages permanents en EEPROM ou flash."
+      pieges: [ing-delay-bloquant]
+    vocab:
+      - microcontrôleur = microcontroller (MCU)
+      - entrées-sorties = general-purpose I/O (GPIO)
+      - mémoire flash = flash memory
+      - mémoire vive = RAM
+      - périphérique = peripheral
+      - boucle principale = main loop (superloop)
+      - téléverser, flasher = to upload, to flash
+      - code bloquant = blocking code
+    exercises:
+      - id: emb-mcu.1
+        type: numeric
+        level: 1
+        q: Durée d'un cycle d'horloge d'un microcontrôleur à 16 MHz, en ns ?
+        answer: 62.5
+        tol: 0.01
+        unit: ns
+        calc: 1 / 16e6 * 1e9
+        e: $1/16 \times 10^6 = 62{,}5$ ns.
+      - id: emb-mcu.2
+        type: numeric
+        level: 1
+        q: Combien d'octets occupe un tableau de 500 `float` (4 octets chacun) ?
+        answer: 2000
+        tol: 0.001
+        unit: octets
+        calc: 500 * 4
+        e: 2000 octets, soit toute la RAM (2048 octets) d'un Arduino Uno. Le programme planterait.
+      - id: emb-mcu.3
+        type: qcm
+        level: 1
+        q: Dans la boucle d'un microcontrôleur, comment faire clignoter une LED toutes les 500 ms sans empêcher la lecture d'un bouton ?
+        piege: ing-delay-bloquant
+        choices:
+          - t: Comparer millis() − t0 à 500 à chaque tour, et n'agir que quand c'est le moment
+            ok: true
+          - t: delay(500) puis lire le bouton
+            piege: true
+            why: Le bouton n'est lu qu'une fois toutes les 500 ms ; les appuis brefs sont perdus.
+          - t: Lire le bouton dans une boucle while pendant 500 ms
+            why: Ça marche pour ce bouton, mais tout le reste est bloqué.
+        e: C'est le patron « sans blocage » à utiliser pour toutes les temporisations.
+      - id: emb-mcu.4
+        type: qcm
+        level: 1
+        q: Un coefficient d'étalonnage mesuré une fois doit survivre aux coupures de courant. Où le stocker ?
+        choices:
+          - t: En EEPROM (ou dans une zone de flash réservée)
+            ok: true
+          - t: Dans une variable globale
+            why: Les variables sont en RAM, effacée à chaque coupure.
+          - t: Dans la pile
+            why: La pile est en RAM et ne vit que le temps d'un appel de fonction.
+        e: Attention, l'EEPROM supporte un nombre limité d'écritures (de l'ordre de 100 000) ; on n'y écrit pas à chaque tour de boucle.
+      - id: emb-mcu.5
+        type: qcm
+        level: 2
+        q: Tu dois générer des impulsions de 10 µs avec une gigue inférieure à 1 µs. Raspberry Pi sous Linux ou microcontrôleur ?
+        choices:
+          - t: Un microcontrôleur (timer matériel), dont le timing est déterministe
+            ok: true
+          - t: Le Raspberry Pi, plus puissant
+            why: La puissance ne garantit pas le timing ; Linux peut interrompre le programme pendant des millisecondes.
+          - t: Indifférent
+            why: Le déterminisme fait toute la différence ici.
+        e: Le couple classique, Raspberry Pi ou PC pour l'interface et le calcul, microcontrôleur (ou FPGA) pour le temps réel.
+      - id: emb-mcu.6
+        type: flash
+        level: 1
+        q: Que contient un microcontrôleur ?
+        back: |
+          Un processeur, de la mémoire flash (programme, non volatile), de la RAM (variables, volatile), souvent de l'EEPROM, et des périphériques : entrées-sorties numériques, timers, PWM, convertisseurs analogique-numérique, liaisons série (UART, I²C, SPI, CAN, USB).
+        e: Tout est intégré sur une puce, d'où son faible coût et sa faible consommation.
+  # ------------------------------------------------------------------ bus série
+  - id: emb-bus
+    title: Liaisons série UART, I²C et SPI
+    en: Serial links UART, I²C and SPI
+    goal: Choisir et câbler une liaison série, calculer un débit utile et diagnostiquer les erreurs classiques.
+    minutes: 13
+    lesson:
+      steps:
+        - level: 1
+          title: Trois façons de se parler
+          body: |
+            - Deux personnes au téléphone : chacune parle dans son micro et écoute dans son écouteur (**UART**).
+            - Une réunion avec un président qui appelle chacun par son nom avant qu'il réponde (**I²C**).
+            - Un chef qui tape sur l'épaule de la personne qui doit écouter, et qui donne le rythme (**SPI**).
+        - level: 2
+          title: Des bits les uns après les autres
+          body: |
+            Une liaison **série** envoie les bits un par un sur un fil. Trois standards dominent sur les cartes :
+            - **UART** : deux fils de données (TX, RX) **croisés** entre les deux appareils, plus la masse. Pas d'horloge commune : les deux côtés doivent être réglés à la **même vitesse** (en bauds). Point à point.
+            - **I²C** : deux fils (SDA pour les données, SCL pour l'horloge) partagés par plusieurs composants, chacun ayant une **adresse**. Résistances de pull-up obligatoires. Pour les liaisons courtes, sur une même carte.
+            - **SPI** : horloge (SCK), deux lignes de données (MOSI, MISO) et une ligne de sélection (**CS**) par composant. Rapide (plusieurs MHz), simple, mais un fil de plus par esclave.
+          check:
+            q: Tu relies une carte à un module GPS en UART. Comment câbler TX et RX ?
+            choices:
+              - t: TX de la carte vers RX du module, RX de la carte vers TX du module, et les masses ensemble
+                ok: true
+              - t: TX avec TX, RX avec RX
+                why: Deux émetteurs reliés entre eux ne se parlent pas ; il faut croiser.
+              - t: Seulement TX vers RX, la masse est inutile
+                why: Sans masse commune, les niveaux n'ont pas de référence.
+        - level: 3
+          title: Les chiffres
+          body: |
+            | | UART | I²C | SPI |
+            | --- | --- | --- | --- |
+            | Fils | TX, RX (+ masse) | SDA, SCL (+ masse) | SCK, MOSI, MISO, 1 CS par esclave |
+            | Topologie | point à point | bus, adresses 7 bits | bus, sélection par CS |
+            | Vitesse typique | 9600 à 115 200 bauds (et plus) | 100 kHz, 400 kHz, 1 MHz | 1 à 50 MHz |
+            | Distance | quelques mètres (niveaux logiques) | quelques dizaines de cm | quelques dizaines de cm |
+
+            **Débit utile d'un UART** : en format **8N1** (1 bit de start, 8 bits de données, pas de parité, 1 bit de stop), chaque octet coûte **10 bits**. À 9600 bauds : 960 octets par seconde. Envoyer 100 octets à 115 200 bauds prend $100 \times 10/115\,200 \approx 8{,}7$ ms.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Trame UART** : la ligne est au repos à l'état haut ; un bit de start (bas) annonce l'octet ; le récepteur échantillonne ensuite chaque bit au milieu de sa durée, grâce à la vitesse convenue. Un écart de vitesse de quelques pourcents suffit à lire des octets faux : d'où l'importance d'une horloge précise (quartz).
+
+            **RS-232 n'est pas un UART de microcontrôleur** : c'est le même format de trame, mais avec des tensions de ±3 à ±15 V, et inversées (un 1 logique est une tension négative). Brancher un port RS-232 directement sur une broche 3,3 V la détruit : il faut un convertisseur de niveaux (type MAX232) ou un adaptateur USB-série.
+
+            **I²C** : les lignes sont en **drain ouvert** ; chaque octet est acquitté (ACK) par le récepteur. Deux composants de même adresse sur un bus entrent en conflit.
+
+            **SPI** : quatre **modes** (polarité et phase de l'horloge). Le maître et l'esclave doivent utiliser le même, sinon les données sont décalées d'un bit.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Un **analyseur logique** avec décodeurs de protocoles montre exactement ce qui passe sur les fils : l'outil numéro un pour déboguer une liaison.
+            - Liaison UART muette : vérifie le croisement TX/RX, la vitesse, la parité et les bits de stop des deux côtés, et la masse commune.
+            - I²C : un programme « scanner » liste les adresses qui répondent. Pas de réponse du tout : pull-up absentes ou lignes inversées.
+            - Pour des distances de plusieurs mètres dans un environnement perturbé : RS-485 ou CAN (notion suivante).
+      recap:
+        - "UART : TX↔RX croisés + masse, même vitesse des deux côtés ; 8N1 = 10 bits par octet."
+        - "I²C : SDA/SCL partagés, adresses, pull-up obligatoires, courtes distances."
+        - "SPI : SCK/MOSI/MISO + un CS par esclave, rapide ; même mode des deux côtés."
+        - "RS-232 = ±12 V inversés : jamais directement sur une broche."
+        - "Déboguer avec un analyseur logique."
+      pieges: [ing-tx-rx, ing-rs232-ttl, ing-masse-commune]
+    vocab:
+      - liaison série = serial link
+      - débit en bauds = baud rate
+      - émission / réception = transmit (TX) / receive (RX)
+      - trame = frame
+      - maître / esclave = master / slave (controller / peripheral)
+      - sélection de circuit = chip select (CS)
+      - acquittement = acknowledge (ACK)
+      - analyseur logique = logic analyzer
+    exercises:
+      - id: emb-bus.1
+        type: numeric
+        level: 1
+        q: UART à 9600 bauds, format 8N1. Combien d'octets de données par seconde au maximum ?
+        answer: 960
+        tol: 0.001
+        unit: octets/s
+        calc: 9600 / 10
+        trap_values:
+          - v: 1200
+            why: Chaque octet est encadré d'un bit de start et d'un bit de stop, soit 10 bits par octet.
+        e: 9600 / 10 = 960 octets par seconde.
+      - id: emb-bus.2
+        type: numeric
+        level: 2
+        q: Durée d'envoi de 100 octets à 115 200 bauds (8N1), en ms ?
+        answer: 8.681
+        tol: 0.01
+        unit: ms
+        calc: 100 * 10 / 115200 * 1000
+        trap_values:
+          - v: 6.944
+            why: Tu as compté 8 bits par octet. En 8N1, il y en a 10 sur la ligne.
+        e: $100 \times 10/115\,200 \approx 8{,}7$ ms. Pendant ce temps, un programme qui attend la fin de l'envoi est bloqué.
+      - id: emb-bus.3
+        type: qcm
+        level: 1
+        q: Une liaison UART entre deux cartes ne transmet rien. Les deux sont à 115 200 bauds. Première chose à vérifier ?
+        piege: ing-tx-rx
+        choices:
+          - t: Que TX de chaque carte arrive sur RX de l'autre, et que les masses sont reliées
+            ok: true
+          - t: Qu'il y a des résistances de pull-up
+            why: C'est le réflexe I²C ; un UART n'en a en général pas besoin.
+          - t: L'adresse de la carte
+            why: L'UART est point à point, sans adresse.
+        e: Le croisement TX/RX et la masse commune sont les deux erreurs les plus fréquentes.
+      - id: emb-bus.4
+        type: qcm
+        level: 2
+        q: Un vieil instrument a un port série RS-232 (DB9). Peux-tu le relier directement aux broches TX/RX 3,3 V d'un microcontrôleur ?
+        piege: ing-rs232-ttl
+        choices:
+          - t: Non, il faut un convertisseur de niveaux (MAX232 ou équivalent) ou un adaptateur USB-série
+            ok: true
+          - t: Oui, c'est le même protocole
+            piege: true
+            why: Même format de trame, mais des tensions de ±3 à ±15 V inversées. La broche serait détruite.
+          - t: Oui, avec un simple diviseur de tension
+            why: Un diviseur ne crée pas de tension négative et n'inverse pas la logique.
+        e: Le RS-232 utilise des tensions symétriques et une logique inversée ; le convertisseur fait les deux adaptations.
+      - id: emb-bus.5
+        type: qcm
+        level: 2
+        q: Un capteur I²C ne répond pas, et le scanner ne trouve aucune adresse. Les lignes SDA et SCL restent à 0 V. Cause probable ?
+        choices:
+          - t: Il manque les résistances de pull-up sur SDA et SCL
+            ok: true
+          - t: Mauvaise vitesse en bauds
+            why: L'I²C est synchrone (horloge SCL), il n'a pas de vitesse en bauds à accorder.
+          - t: Adresse en conflit
+            why: Un conflit donnerait des réponses erronées, pas des lignes bloquées à 0 V.
+        e: Les sorties I²C sont à drain ouvert, elles ne savent que tirer vers 0. Sans pull-up (souvent 4,7 kΩ), les lignes ne remontent jamais.
+      - id: emb-bus.6
+        type: numeric
+        level: 1
+        q: Un microcontrôleur pilote 3 composants en SPI. Combien de lignes de signal (sans compter la masse) ?
+        answer: 6
+        tol: 0.001
+        calc: 3 + 3
+        e: SCK, MOSI, MISO partagés, plus une ligne CS par composant, soit 3 + 3 = 6.
+      - id: emb-bus.7
+        type: flash
+        level: 1
+        q: Compare UART, I²C et SPI en une ligne chacun.
+        back: |
+          **UART** : point à point, 2 fils croisés, asynchrone (même vitesse des deux côtés).
+          **I²C** : bus 2 fils avec adresses et pull-up, lent (100-400 kHz), courtes distances.
+          **SPI** : bus rapide (MHz), 3 fils partagés + 1 CS par esclave, full duplex.
+        e: Pour des distances plus longues ou un environnement perturbé, RS-485 ou CAN.
+  # ------------------------------------------------------------------ interruptions, timers, PWM
+  - id: emb-timers
+    title: Interruptions, timers et PWM
+    en: Interrupts, timers and PWM
+    goal: Écrire une routine d'interruption correcte et calculer une fréquence et une résolution de PWM.
+    minutes: 13
+    lesson:
+      steps:
+        - level: 1
+          title: Guetter ou être appelé
+          body: |
+            Tu attends un colis en cuisinant. Soit tu vas regarder par la fenêtre toutes les deux minutes (**scrutation**), soit le livreur sonne et tu vas ouvrir (**interruption**). Et pour la cuisson, tu règles un **minuteur** qui sonne tout seul au bon moment (**timer**).
+        - level: 2
+          title: Réagir sans surveiller
+          body: |
+            Une **interruption** suspend le programme principal pour exécuter une courte fonction (la **routine d'interruption**, ISR), puis le programme reprend où il en était. Idéal pour ne rater aucun événement bref : une impulsion de capteur, un octet reçu, un front de codeur.
+
+            Un **timer** est un compteur matériel qui avance tout seul, au rythme de l'horloge, pendant que le programme fait autre chose. Il sert à générer des interruptions périodiques, à mesurer des durées, et à produire de la **PWM** sans occuper le processeur.
+
+            La **PWM** (modulation de largeur d'impulsion) : un signal carré de fréquence fixe dont on règle la proportion de temps à l'état haut (le **rapport cyclique**). Pour un moteur, une LED ou un chauffage, c'est la valeur moyenne qui compte.
+          check:
+            q: Pourquoi une routine d'interruption doit-elle être très courte ?
+            choices:
+              - t: Pendant qu'elle s'exécute, le programme principal (et souvent les autres interruptions) est suspendu
+                ok: true
+              - t: Parce qu'elle a moins de mémoire
+                why: Elle partage la même mémoire ; c'est le temps qui est critique.
+              - t: Ce n'est pas nécessaire
+                why: Une ISR longue fait rater d'autres événements et dérègle le timing de tout le programme.
+        - level: 3
+          title: Les formules et le code
+          body: |
+            **Fréquence et résolution d'une PWM matérielle** :
+            $$f_{PWM} = \frac{f_{horloge}}{\text{prédiviseur} \times (TOP + 1)} \qquad \text{nombre de pas} = TOP + 1$$
+
+            16 MHz, prédiviseur 8, TOP = 1999 : 1 kHz et 2000 pas. Plus la fréquence est haute, moins il y a de pas : c'est un compromis.
+
+            **Servomoteur de modélisme** : période de 20 ms (50 Hz), impulsion de 1 à 2 ms (1,5 ms au centre), soit un rapport cyclique de 5 à 10 %. **Moteur à courant continu** : souvent 20 kHz ou plus, pour ne pas entendre de sifflement.
+
+            **Une interruption bien écrite** (Arduino) :
+          code: |
+            volatile uint32_t impulsions = 0;   // partagée avec l'ISR : volatile
+
+            void compter() {                    // ISR : courte, ni delay ni Serial
+              impulsions++;
+            }
+
+            void setup() {
+              Serial.begin(115200);
+              attachInterrupt(digitalPinToInterrupt(2), compter, RISING);
+            }
+
+            uint32_t t0 = 0;
+            void loop() {
+              if (millis() - t0 >= 1000) {
+                t0 += 1000;
+                noInterrupts();                 // copie atomique d'une variable 32 bits
+                uint32_t n = impulsions;
+                interrupts();
+                Serial.println(n);              // impulsions cumulées
+              }
+            }
+          lang: cpp
+          verify: false
+        - level: 4
+          title: Sous le capot
+          body: |
+            **`volatile`** dit au compilateur que la variable peut changer en dehors du déroulement normal du programme. Sans lui, le compilateur peut garder une copie dans un registre et ne jamais voir les modifications faites par l'ISR.
+
+            **Atomicité** : sur un processeur 8 bits, lire une variable de 32 bits prend plusieurs instructions. Si l'interruption la modifie au milieu de la lecture, on obtient un mélange d'ancienne et de nouvelle valeur. D'où la copie avec les interruptions coupées, le plus brièvement possible.
+
+            **Capture d'entrée** : un timer peut mémoriser sa valeur exacte à l'instant d'un front, pour mesurer une période ou une largeur d'impulsion sans dépendre de la latence du logiciel. Beaucoup de microcontrôleurs ont aussi un mode **codeur** qui compte les fronts en quadrature entièrement en matériel.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Seules certaines broches ont une PWM matérielle ; sur un Arduino Uno, `analogWrite` produit environ 490 ou 980 Hz, audible sur un moteur.
+            - À haute fréquence d'impulsions (codeur rapide), une interruption par front sature le processeur : utilise le compteur matériel.
+            - Un bouton mécanique sur une interruption produit plusieurs fronts à chaque appui (rebonds) : filtre-le (notion suivante).
+      recap:
+        - "Interruption : réagir à un événement sans le guetter ; ISR courte, sans delay ni affichage."
+        - "Variables partagées avec une ISR : volatile + copie atomique."
+        - "f_PWM = f_horloge / (prédiviseur × (TOP + 1)) ; pas = TOP + 1."
+        - "Servo : 50 Hz, 1 à 2 ms ; moteur CC : ≥ 20 kHz pour le silence."
+        - "Compteurs et captures matériels pour les signaux rapides."
+      pieges: [ing-isr-longue, ing-volatile-atomique]
+    vocab:
+      - interruption = interrupt
+      - routine d'interruption = interrupt service routine (ISR)
+      - scrutation = polling
+      - timer, compteur = timer, counter
+      - prédiviseur = prescaler
+      - rapport cyclique = duty cycle
+      - capture d'entrée = input capture
+      - opération atomique = atomic operation
+    exercises:
+      - id: emb-timers.1
+        type: numeric
+        level: 2
+        q: Horloge 16 MHz, prédiviseur 8, TOP = 1999. Fréquence de la PWM ?
+        answer: 1000
+        tol: 0.001
+        unit: Hz
+        calc: 16e6 / (8 * (1999 + 1))
+        trap_values:
+          - v: 1000.5
+            why: Le compteur va de 0 à TOP inclus, soit TOP + 1 = 2000 pas.
+        e: $16 \times 10^6/(8 \times 2000) = 1000$ Hz.
+      - id: emb-timers.2
+        type: numeric
+        level: 1
+        q: Un servomoteur reçoit une impulsion de 1,5 ms toutes les 20 ms. Rapport cyclique, en % ?
+        answer: 7.5
+        tol: 0.01
+        unit: "%"
+        calc: 1.5 / 20 * 100
+        e: 1,5/20 = 7,5 %. La position dépend de la largeur de l'impulsion (1 à 2 ms), pas de la fréquence.
+      - id: emb-timers.3
+        type: numeric
+        level: 2
+        q: Un timer 8 bits (TOP = 255) tourne sans prédiviseur à 16 MHz. Fréquence de la PWM, en Hz ?
+        answer: 62500
+        tol: 0.001
+        unit: Hz
+        calc: 16e6 / (1 * 256)
+        trap_values:
+          - v: 62745
+            why: Le compteur a 256 pas (0 à 255), pas 255.
+        e: 16 MHz / 256 = 62,5 kHz, avec 256 niveaux (8 bits) de rapport cyclique.
+      - id: emb-timers.4
+        type: qcm
+        level: 1
+        q: Que ne faut-il PAS mettre dans une routine d'interruption ?
+        piege: ing-isr-longue
+        choices:
+          - t: Un delay() ou un Serial.print()
+            ok: true
+          - t: L'incrémentation d'un compteur
+            why: C'est le travail idéal d'une ISR, court et simple.
+          - t: La mise à 1 d'un drapeau (flag)
+            why: Excellent usage, le programme principal fera le travail long ensuite.
+        e: Principe, l'ISR note l'événement (compteur, drapeau, horodatage), la boucle principale le traite.
+      - id: emb-timers.5
+        type: qcm
+        level: 2
+        q: Pourquoi déclarer `volatile` une variable modifiée dans une ISR et lue dans la boucle ?
+        piege: ing-volatile-atomique
+        choices:
+          - t: Pour que le compilateur relise vraiment la mémoire à chaque accès au lieu d'utiliser une copie en registre
+            ok: true
+          - t: Pour que l'accès soit atomique
+            piege: true
+            why: volatile n'apporte aucune atomicité ; il faut en plus couper les interruptions pendant la copie des variables de plus d'un mot.
+          - t: Pour la rendre plus rapide
+            why: C'est plutôt l'inverse, elle empêche certaines optimisations.
+        e: volatile et atomicité sont deux problèmes distincts, il faut traiter les deux.
+      - id: emb-timers.6
+        type: qcm
+        level: 2
+        q: Un capteur envoie des impulsions de 5 µs, jusqu'à 2000 par seconde. Le programme fait aussi des calculs et des affichages. Comment les compter ?
+        choices:
+          - t: Avec une interruption sur front (ou mieux, un compteur matériel), pas par scrutation
+            ok: true
+          - t: En lisant l'entrée dans la boucle principale
+            why: Une impulsion de 5 µs sera ratée dès que la boucle fait autre chose.
+          - t: Avec delay(1) entre deux lectures
+            why: C'est la garantie de tout rater.
+        e: Les impulsions brèves exigent une détection matérielle ; la boucle principale lit ensuite le compteur.
+      - id: emb-timers.7
+        type: flash
+        level: 1
+        q: Qu'est-ce qu'une PWM et à quoi sert-elle ?
+        back: |
+          Un signal carré de fréquence fixe dont on fait varier le **rapport cyclique** (la fraction de la période à l'état haut). Sa valeur moyenne vaut rapport cyclique × tension.
+
+          Usages : variation de vitesse d'un moteur (via un pont en H), gradation de LED, commande de chauffage, positionnement de servomoteurs (largeur d'impulsion), et CNA économique après filtrage.
+        e: Le transistor qui commute la PWM est soit bloqué soit saturé, donc il dissipe peu.
+  # ------------------------------------------------------------------ temps réel
+  - id: emb-temps-reel
+    title: Temps réel, watchdog et anti-rebond
+    en: Real time, watchdog and debouncing
+    goal: Comprendre ce que « temps réel » garantit, gérer le temps sans erreur de débordement, un watchdog et les rebonds.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: L'airbag
+          body: |
+            Un airbag doit se gonfler dans les quelques dizaines de millisecondes qui suivent le choc. « En général vite » ne suffit pas : il doit être prêt **à chaque fois** avant la limite. Une réponse juste mais trop tardive est une réponse fausse.
+        - level: 2
+          title: Déterministe plutôt que rapide
+          body: |
+            **Temps réel** ne veut pas dire « rapide » mais « **à temps, de façon garantie** ». Un système est temps réel si l'on peut garantir qu'il respecte ses échéances :
+            - **temps réel dur** : rater une échéance est une défaillance (commande d'axe, sécurité) ;
+            - **temps réel souple** : un retard dégrade le service sans catastrophe (affichage, vidéo).
+
+            Ce qui ruine le déterminisme : un système d'exploitation généraliste qui interrompt ton programme, des attentes bloquantes, des routines d'interruption longues.
+
+            Deux outils indispensables :
+            - le **watchdog** : un minuteur matériel qui redémarre le microcontrôleur si le programme cesse de le « nourrir ». Un plantage devient un redémarrage ;
+            - l'**anti-rebond** : un contact mécanique rebondit plusieurs fois pendant quelques millisecondes avant de se stabiliser. Sans filtrage, un appui compte pour plusieurs.
+          check:
+            q: Un système qui répond en 1 ms en moyenne mais parfois en 200 ms est-il temps réel pour une échéance de 10 ms ?
+            choices:
+              - t: Non, car l'échéance n'est pas garantie
+                ok: true
+              - t: Oui, sa moyenne est excellente
+                why: La moyenne ne compte pas ; c'est le pire cas qui décide.
+              - t: Oui, s'il est assez puissant
+                why: La puissance ne garantit pas le pire cas.
+        - level: 3
+          title: Gérer le temps sans piège
+          body: |
+            - Les rebonds d'un contact durent typiquement **1 à 10 ms** (parfois plus). Anti-rebond logiciel : n'accepter un changement que s'il reste **stable** 10 à 20 ms.
+            - `millis()` est un compteur 32 bits non signé de millisecondes : il **déborde** et repasse à 0 au bout de $2^{32}$ ms, soit **49,7 jours**.
+            - La comparaison `maintenant - t0 >= durée` reste correcte même à travers le débordement ; `maintenant >= t0 + durée` se trompe près du débordement. Démonstration (C++ standard) :
+          code: |
+            #include <cstdint>
+            #include <cstdio>
+
+            int main() {
+                // Compteur 32 bits non signé, comme millis() : il repasse à 0 après 2^32 ms.
+                uint32_t t0  = 4294967000u;   // départ, 296 ms avant le débordement
+                uint32_t now = t0 + 100u;     // 100 ms plus tard
+
+                bool addition     = now >= t0 + 1000u;     // t0 + 1000 déborde et vaut 704
+                bool soustraction = (now - t0) >= 1000u;   // différence : 100 ms
+
+                std::printf("t0 + 1000     = %u\n", t0 + 1000u);
+                std::printf("temps écoulé  = %u ms\n", now - t0);
+                std::printf("addition      : %s\n", addition ? "déclenche (trop tôt !)" : "attend");
+                std::printf("soustraction  : %s\n", soustraction ? "déclenche" : "attend");
+            }
+          lang: cpp
+          out: |
+            t0 + 1000     = 704
+            temps écoulé  = 100 ms
+            addition      : déclenche (trop tôt !)
+            soustraction  : attend
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Pourquoi la soustraction marche** : l'arithmétique des entiers non signés se fait modulo $2^{32}$. La différence `now - t0` donne donc toujours le temps écoulé, tant qu'il est inférieur à 49,7 jours, même si le compteur a débordé entre-temps.
+
+            **Où nourrir le watchdog** : dans la boucle principale, seulement si toutes les tâches ont progressé. Le nourrir dans une interruption de timer le ferait continuer même si la boucle principale est bloquée : il ne servirait plus à rien.
+
+            **RTOS** (système d'exploitation temps réel, comme FreeRTOS) : plusieurs tâches avec des **priorités**, l'ordonnanceur exécutant toujours la tâche prête la plus prioritaire. Piège classique : l'**inversion de priorité**, quand une tâche prioritaire attend une ressource détenue par une tâche de faible priorité.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Les automates programmables exécutent un **cycle** (lecture des entrées, calcul, écriture des sorties) de quelques millisecondes, surveillé par un watchdog.
+            - Les contrôleurs d'axes et variateurs ferment leurs boucles d'asservissement en matériel dédié, avec des périodes de l'ordre de 100 µs ou moins.
+            - Dans les grandes installations, la synchronisation fine (déclenchement de détecteurs, horodatage) passe par des systèmes de timing matériels dédiés ; les PC et le système de contrôle (Tango à l'ESRF, EPICS ailleurs) pilotent et supervisent à une échelle de temps plus lente.
+      recap:
+        - "Temps réel = échéances garanties (pire cas), pas vitesse moyenne."
+        - "Watchdog : redémarrage automatique si le programme ne le nourrit plus ; le nourrir dans la boucle principale."
+        - "Rebonds 1 à 10 ms : accepter un changement stable 10 à 20 ms."
+        - "millis() déborde après 49,7 jours : toujours maintenant − t0 >= durée."
+        - "RTOS : priorités, attention à l'inversion de priorité."
+      pieges: [ing-millis-overflow, ing-rebond]
+    vocab:
+      - temps réel dur / souple = hard / soft real-time
+      - échéance = deadline
+      - déterminisme = determinism
+      - gigue = jitter
+      - chien de garde = watchdog timer
+      - rebond = contact bounce
+      - anti-rebond = debouncing
+      - système d'exploitation temps réel = real-time operating system (RTOS)
+    exercises:
+      - id: emb-temps-reel.1
+        type: qcm
+        level: 1
+        q: Que garantit un système temps réel ?
+        choices:
+          - t: Qu'il répond toujours avant une échéance donnée, même dans le pire cas
+            ok: true
+          - t: Qu'il est le plus rapide possible
+            why: Un système rapide en moyenne peut rater des échéances.
+          - t: Qu'il donne l'heure exacte
+            why: Rien à voir avec une horloge calendaire.
+        e: Le mot-clé est « garanti » ; c'est le pire cas qui compte.
+      - id: emb-temps-reel.2
+        type: numeric
+        level: 2
+        q: Un compteur 32 bits de millisecondes déborde au bout de combien de jours ?
+        answer: 49.71
+        tol: 0.01
+        unit: jours
+        calc: 2**32 / 1000 / 86400
+        e: $2^{32}$ ms ≈ 4,29 × 10⁹ ms ≈ 49,7 jours. Un bug de débordement n'apparaît donc qu'après sept semaines de fonctionnement continu.
+      - id: emb-temps-reel.3
+        type: qcm
+        level: 2
+        q: Quelle comparaison reste correcte quand millis() déborde ?
+        piege: ing-millis-overflow
+        choices:
+          - t: "if (millis() - t0 >= 1000)"
+            ok: true
+          - t: "if (millis() >= t0 + 1000)"
+            piege: true
+            why: t0 + 1000 peut déborder et devenir petit, la condition devient vraie trop tôt.
+          - t: "if (millis() > t0 && millis() - t0 > 1000)"
+            why: Après débordement, millis() est plus petit que t0 et la condition reste fausse jusqu'à ce que millis() rattrape t0, soit environ 49 jours.
+        e: La soustraction non signée donne le temps écoulé modulo 2³², ce qui absorbe le débordement.
+      - id: emb-temps-reel.4
+        type: qcm
+        level: 2
+        q: Où faut-il « nourrir » (réarmer) le watchdog ?
+        choices:
+          - t: Dans la boucle principale, après avoir vérifié que les tâches progressent
+            ok: true
+          - t: Dans une interruption de timer périodique
+            why: Le timer continuerait de le nourrir même si la boucle principale est bloquée.
+          - t: Au démarrage seulement
+            why: Il redémarrerait alors le système en permanence.
+        e: Le watchdog doit prouver que le programme utile tourne, pas seulement que le processeur est alimenté.
+      - id: emb-temps-reel.5
+        type: qcm
+        level: 1
+        q: Un compteur d'appuis augmente de 3 ou 4 à chaque appui sur un bouton mécanique. Cause ?
+        piege: ing-rebond
+        choices:
+          - t: Les rebonds du contact, qui produisent plusieurs fronts en quelques millisecondes
+            ok: true
+          - t: Un bug de l'incrémentation
+            why: Le code compte fidèlement les fronts ; c'est le signal qui en contient plusieurs.
+          - t: Un bouton défectueux
+            why: Tous les contacts mécaniques rebondissent, même neufs.
+        e: Anti-rebond logiciel (état stable pendant 10 à 20 ms) ou matériel (RC + trigger de Schmitt).
+      - id: emb-temps-reel.6
+        type: flash
+        level: 2
+        q: Quelle différence entre temps réel dur et temps réel souple ? Donne un exemple de chaque.
+        back: |
+          **Dur** : rater une échéance est une défaillance (boucle d'asservissement d'un axe, arrêt de sécurité, airbag).
+          **Souple** : un retard dégrade la qualité sans défaillance (affichage d'une IHM, streaming vidéo, journalisation).
+        e: Un même système mélange souvent les deux, avec des priorités différentes.
+  # ------------------------------------------------------------------ bus de terrain
+  - id: emb-terrain
+    title: Bus de terrain, RS-485, Modbus et CAN
+    en: Fieldbuses, RS-485, Modbus and CAN
+    goal: Câbler et diagnostiquer un bus RS-485 ou CAN, et lire une table de registres Modbus.
+    minutes: 13
+    lesson:
+      steps:
+        - level: 1
+          title: Loin et dans le bruit
+          body: |
+            Dans une usine ou dans un hall d'expérience, les appareils sont à des dizaines de mètres les uns des autres, au milieu des moteurs, des variateurs et des câbles de puissance. Un simple fil de signal y capterait toutes sortes de parasites. Les **bus de terrain** sont conçus pour ça : longues distances, beaucoup d'appareils, environnement électrique hostile.
+        - level: 2
+          title: Différentiel, bus et protocole
+          body: |
+            **Transmission différentielle** : le signal voyage sur deux fils, l'un en opposition de l'autre. Le récepteur regarde la **différence** entre les deux. Un parasite touche les deux fils de la même façon (paire torsadée), et disparaît dans la différence.
+
+            Trois briques à connaître :
+            - **RS-485** : une couche physique différentielle, jusqu'à 32 appareils (ou plus) sur une paire, jusqu'à environ 1200 m à faible débit. Câblage en **ligne** (de proche en proche), avec une **résistance de terminaison** à chaque extrémité.
+            - **Modbus** : un protocole maître/esclave très répandu, sur RS-485 (**Modbus RTU**) ou sur Ethernet (**Modbus TCP**). Les données sont rangées dans des **registres** de 16 bits.
+            - **CAN** : un bus multi-maître robuste, né dans l'automobile, avec des priorités intégrées ; utilisé en industrie avec **CANopen**.
+
+            Pour les mouvements rapides et synchronisés, on trouve aussi les **Ethernet industriels** (EtherCAT, Profinet, EtherNet/IP).
+          check:
+            q: Pourquoi une paire différentielle torsadée résiste-t-elle bien aux parasites ?
+            choices:
+              - t: Le parasite s'ajoute presque pareil sur les deux fils, et le récepteur ne lit que leur différence
+                ok: true
+              - t: Parce que le câble est plus épais
+                why: L'épaisseur n'y est pour rien.
+              - t: Parce que le signal est plus fort
+                why: Les tensions sont modestes (quelques volts) ; c'est le principe différentiel qui fait la robustesse.
+        - level: 3
+          title: Les chiffres
+          body: |
+            - **Terminaisons** : 120 Ω à **chaque extrémité** du bus (RS-485 et CAN), et nulle part ailleurs. Sur un bus CAN hors tension, on mesure donc **60 Ω** entre CAN_H et CAN_L (deux 120 Ω en parallèle).
+            - **CAN** : 1 Mbit/s jusqu'à environ 40 m, 125 kbit/s jusqu'à environ 500 m.
+            - **Modbus RTU** : trame = adresse de l'esclave, code fonction, données, contrôle d'erreur (CRC). Fonctions courantes : **03** lire des registres de maintien, **06** écrire un registre, **16** écrire plusieurs registres.
+            - **Numérotation Modbus** : dans beaucoup de documentations, « registre 40001 » désigne le **premier** registre de maintien, qui a l'**adresse 0** dans la trame. Décalage d'une unité garanti si on l'oublie.
+
+            | Type Modbus | Contenu | Accès |
+            | --- | --- | --- |
+            | coils (bobines) | bits | lecture/écriture |
+            | discrete inputs | bits | lecture |
+            | input registers | mots de 16 bits | lecture |
+            | holding registers | mots de 16 bits | lecture/écriture |
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Pourquoi des terminaisons** : à haute fréquence, un câble se comporte comme une ligne de transmission d'impédance caractéristique (environ 120 Ω pour ces paires). Un signal qui arrive au bout d'une ligne non adaptée s'y **réfléchit** et revient perturber les bits suivants. La résistance de terminaison absorbe l'onde. Deux terminaisons exactement : trop peu, les réflexions ; trop, le signal s'effondre.
+
+            **Arbitrage CAN** : chaque message commence par un identifiant. Un bit à 0 (dominant) écrase un bit à 1 (récessif) sur le bus. Pendant l'envoi de l'identifiant, chaque émetteur relit le bus : celui qui a envoyé un 1 mais lit un 0 se retire. L'identifiant le plus **petit** gagne, sans qu'aucun message soit détruit : la priorité est intégrée au protocole.
+
+            **Nombres sur plusieurs registres** : un flottant 32 bits occupe deux registres de 16 bits, et l'ordre des deux mots varie selon les fabricants. Une valeur absurde (1,2 × 10⁻³⁸ au lieu de 23,5) signale souvent des mots inversés.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - **Diagnostic CAN** : bus hors tension, mesure entre CAN_H et CAN_L. 60 Ω : correct ; 120 Ω : une terminaison manque ; 40 Ω : une de trop.
+            - **RS-485** : les fabricants ne s'accordent pas sur le nommage A/B des fils ; si rien ne passe, essaie d'inverser la paire. Relie aussi les masses (ou le 0 V de référence) entre appareils.
+            - Outils : un maître Modbus logiciel (ModbusPoll, ou `pymodbus` en Python) pour lire les registres d'un appareil avant de coder quoi que ce soit.
+            - Les appareils d'une installation sont ensuite intégrés au **système de contrôle** (à l'ESRF, Tango, né sur place), qui les expose de façon uniforme aux logiciels et aux utilisateurs.
+      recap:
+        - "Différentiel + paire torsadée = robustesse aux parasites."
+        - "RS-485 et CAN : 120 Ω à chaque extrémité, pas ailleurs ; CAN hors tension = 60 Ω."
+        - "Modbus : maître/esclave, registres de 16 bits ; 40001 = adresse 0."
+        - "CAN : l'identifiant le plus petit est le plus prioritaire."
+        - "Flottant sur 2 registres : attention à l'ordre des mots."
+      pieges: [ing-terminaison, ing-modbus-offset]
+    vocab:
+      - bus de terrain = fieldbus
+      - transmission différentielle = differential signaling
+      - paire torsadée = twisted pair
+      - résistance de terminaison = termination resistor
+      - registre de maintien = holding register
+      - code fonction = function code
+      - arbitrage = arbitration
+      - réflexion = signal reflection
+    exercises:
+      - id: emb-terrain.1
+        type: numeric
+        level: 1
+        q: Bus CAN hors tension, deux terminaisons de 120 Ω. Quelle résistance mesures-tu entre CAN_H et CAN_L ?
+        answer: 60
+        tol: 0.01
+        unit: Ω
+        calc: 120 * 120 / (120 + 120)
+        trap_values:
+          - v: 240
+            why: Les deux résistances sont aux deux bouts du même bus, donc en parallèle entre les deux fils.
+        piege: ing-terminaison
+        e: Deux 120 Ω en parallèle, 60 Ω. C'est le premier test de diagnostic d'un bus CAN.
+      - id: emb-terrain.2
+        type: numeric
+        level: 2
+        q: Sur un bus CAN hors tension, tu mesures 40 Ω. Combien de terminaisons de 120 Ω sont branchées ?
+        answer: 3
+        tol: 0.001
+        calc: 120 / 40
+        e: 120/n = 40 donne n = 3, une de trop. Cherche l'appareil dont la terminaison interne est activée alors qu'il n'est pas en bout de ligne.
+      - id: emb-terrain.3
+        type: qcm
+        level: 1
+        q: Où placer les résistances de terminaison d'un bus RS-485 qui relie 6 appareils en ligne ?
+        piege: ing-terminaison
+        choices:
+          - t: Aux deux extrémités du bus seulement
+            ok: true
+          - t: Sur chaque appareil
+            piege: true
+            why: Six résistances de 120 Ω en parallèle font 20 Ω, le signal s'effondre.
+          - t: Au milieu du bus
+            why: Les réflexions naissent aux extrémités ; c'est là qu'il faut adapter la ligne.
+        e: Beaucoup d'appareils ont une terminaison interne activable par un interrupteur ; on ne l'active qu'aux deux bouts.
+      - id: emb-terrain.4
+        type: qcm
+        level: 2
+        q: La documentation d'un appareil indique la température dans le « registre 40001 ». Quelle adresse mettre dans la requête Modbus (fonction 03) ?
+        piege: ing-modbus-offset
+        choices:
+          - t: "0"
+            ok: true
+          - t: "40001"
+            piege: true
+            why: 4xxxx indique le type (registres de maintien) ; la numérotation commence à 1, l'adresse à 0.
+          - t: "1"
+            piege: true
+            why: C'est le deuxième registre. Le premier a l'adresse 0.
+        e: Beaucoup de bibliothèques attendent l'adresse (base 0). Vérifie avec un outil comme ModbusPoll.
+      - id: emb-terrain.5
+        type: qcm
+        level: 2
+        q: Deux nœuds CAN commencent à émettre en même temps, avec les identifiants 0x120 et 0x0A5. Lequel passe ?
+        choices:
+          - t: 0x0A5, le plus petit identifiant est le plus prioritaire
+            ok: true
+          - t: 0x120, le plus grand
+            why: Les bits à 0 sont dominants ; le plus petit identifiant gagne l'arbitrage.
+          - t: Aucun, il y a collision
+            why: L'arbitrage CAN est non destructif, un des deux messages passe intact.
+        e: L'autre nœud se retire dès qu'il lit un bit dominant là où il avait envoyé un bit récessif, et réessaie ensuite.
+      - id: emb-terrain.6
+        type: flash
+        level: 2
+        q: Quels sont les quatre types de données Modbus ?
+        back: |
+          **Coils** (bobines) : bits en lecture/écriture.
+          **Discrete inputs** : bits en lecture seule.
+          **Input registers** : mots de 16 bits en lecture seule.
+          **Holding registers** (registres de maintien) : mots de 16 bits en lecture/écriture.
+        e: Les numérotations « historiques » les préfixent par 0, 1, 3 et 4 (00001, 10001, 30001, 40001).

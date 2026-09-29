@@ -1,0 +1,695 @@
+id: py07
+track: python
+title: Erreurs & robustesse
+goal: Écrire du code d’acquisition qui ne meurt pas et qui dit pourquoi il a raté.
+level: avance
+requires:
+- py05
+concepts:
+- exceptions
+- eafp
+- context-manager
+- assertions
+lesson:
+  minutes: 17
+  intro: |
+    Un script d'acquisition qui plante à 3 h du matin au bout de 6 heures de mesures, sans rien dire de la cause, c'est une nuit de faisceau perdue. Ce module t'apprend à laisser remonter les erreurs utiles, à rattraper **seulement** celles que tu sais traiter, à écrire des messages qui disent quoi réparer, et à garantir qu'une ressource (fichier, port, vanne) est remise en état quoi qu'il arrive.
+  steps:
+    - level: 1
+      title: L'alarme qui remonte la hiérarchie
+      body: |
+        Une **exception**, c'est une alarme. Elle part de l'endroit où le problème survient ; si la fonction ne sait pas la traiter, l'alarme remonte à la fonction qui l'a appelée, puis à celle d'au-dessus, jusqu'à quelqu'un qui sait quoi faire (un `try/except`). Si personne ne la prend en charge, le programme s'arrête et affiche le **traceback** : le rapport d'incident, avec le chemin exact parcouru par l'alarme.
+
+        Le bon réflexe n'est donc pas d'étouffer l'alarme au plus tôt, mais de la laisser monter jusqu'au niveau qui a les moyens d'agir.
+
+        Et pour les ressources, la règle d'atelier : **qui ouvre une vanne la referme, quoi qu'il arrive**. En Python, c'est le rôle de `with`.
+    - level: 2
+      title: try, except, else, finally
+      body: |
+        ```python
+        try:
+            v = convertir(brut)          # le code qui peut échouer, et lui seul
+        except MesureInvalide as e:      # du plus précis…
+            ...
+        except ValueError as e:          # …au plus général
+            ...
+        else:
+            enregistrer(v)               # seulement si rien n'a échoué
+        finally:
+            liberer()                    # dans tous les cas, même après un return
+        ```
+
+        - Python teste les `except` **dans l'ordre** : le premier qui correspond gagne. Mets les plus précis en premier.
+        - `raise ValueError("message")` lève une exception ; une classe `class MesureInvalide(ValueError)` crée ta propre catégorie, qui peut porter des données (capteur, valeur).
+        - La hiérarchie compte : `except ValueError` attrape aussi `MesureInvalide`. `except Exception` attrape presque tout **sauf** Ctrl+C (`KeyboardInterrupt`) ; un `except:` nu attrape absolument tout.
+        - **EAFP** (*easier to ask forgiveness than permission*) : en Python, on tente l'opération et on rattrape l'échec (`try: float(x)`), plutôt que de tout vérifier avant (**LBYL**, *look before you leap*).
+        - `with ressource as r:` appelle une méthode d'entrée, puis une méthode de sortie **même si le bloc lève une exception**.
+        - `assert condition` vérifie un invariant de **ton** code pendant le développement ; Python les supprime avec l'option `-O`. Jamais pour valider une entrée.
+      check:
+        q: "On écrit `except ValueError:` puis `except MesureInvalide:` (qui hérite de ValueError). Que se passe-t-il pour une MesureInvalide ?"
+        choices:
+          - t: Elle est attrapée par le premier bloc ; le second ne sert jamais
+            ok: true
+            why: Une MesureInvalide est une ValueError, et le premier except qui correspond gagne. Il faut inverser l'ordre.
+          - t: Elle est attrapée par le second bloc, plus précis
+            why: Python ne cherche pas le plus précis, il prend le premier qui correspond, dans l'ordre d'écriture.
+          - t: Python refuse d'exécuter le code
+            why: Ce code est valide ; certains outils d'analyse le signalent, mais Python l'exécute.
+    - level: 3
+      title: Un lot de mesures qui ne tue pas le script
+      body: |
+        Chaque mesure mal formée est écartée **avec sa raison**, les bonnes sont gardées, et le script va au bout.
+      code: |
+        class MesureInvalide(ValueError):
+            def __init__(self, capteur, valeur):
+                super().__init__(f"capteur {capteur} : {valeur} hors bornes [-200, 1500]")
+                self.capteur, self.valeur = capteur, valeur
+
+        def convertir(capteur, brut):
+            v = float(brut)                     # peut lever ValueError
+            if not -200 <= v <= 1500:
+                raise MesureInvalide(capteur, v)
+            return v
+
+        lot = [("T1", "21.5"), ("T2", "abc"), ("T3", "-999"), ("T4", "22.0")]
+        bonnes, rejets = [], []
+        for capteur, brut in lot:
+            try:
+                v = convertir(capteur, brut)
+            except MesureInvalide as e:         # la plus précise d'abord
+                rejets.append(str(e))
+            except ValueError as e:
+                rejets.append(f"capteur {capteur} : illisible ({e})")
+            else:
+                bonnes.append(v)                # seulement si aucune erreur
+            finally:
+                print("traité :", capteur)      # toujours
+        print(bonnes)
+        print(*rejets, sep="\n")
+      run: true
+      out: |
+        traité : T1
+        traité : T2
+        traité : T3
+        traité : T4
+        [21.5, 22.0]
+        capteur T2 : illisible (could not convert string to float: 'abc')
+        capteur T3 : -999.0 hors bornes [-200, 1500]
+    - level: 4
+      title: Context managers et chaînage sous le capot
+      body: |
+        `with obj as x:` appelle `obj.__enter__()` (sa valeur de retour devient `x`), exécute le bloc, puis appelle **toujours** `obj.__exit__(type, valeur, traceback)`, avec `None` partout si tout s'est bien passé. Si `__exit__` renvoie `True`, l'exception est étouffée : c'est presque toujours une mauvaise idée.
+
+        `contextlib.contextmanager` permet d'écrire un context manager avec un générateur : ce qui précède le `yield` est l'entrée, le `finally` qui l'entoure est la sortie.
+
+        Enfin, `raise NouvelleErreur(...) from e` **chaîne** les exceptions : le traceback montre les deux, et la cause reste accessible dans `__cause__`. On traduit ainsi une erreur technique en erreur métier sans perdre l'origine.
+      code: |
+        from contextlib import contextmanager
+        import time
+
+        class Vanne:
+            def __init__(self, nom):
+                self.nom = nom
+            def __enter__(self):
+                print(f"ouverture {self.nom}")
+                return self
+            def __exit__(self, type_exc, exc, tb):
+                print(f"fermeture {self.nom} (erreur : {type_exc.__name__ if type_exc else 'aucune'})")
+                return False                    # on ne masque pas l'erreur
+
+        try:
+            with Vanne("V1") as v:
+                print("remplissage via", v.nom)
+                raise TimeoutError("capteur de niveau muet")
+        except TimeoutError as e:
+            print("rattrapé :", e)
+
+        @contextmanager
+        def chrono(resultat):
+            t0 = time.perf_counter()
+            try:
+                yield
+            finally:
+                resultat["s"] = time.perf_counter() - t0
+
+        r = {}
+        with chrono(r):
+            sum(range(100_000))
+        print("durée mesurée :", "s" in r)
+
+        def lire_config(texte):
+            try:
+                return int(texte)
+            except ValueError as e:
+                raise RuntimeError("configuration illisible") from e
+
+        try:
+            lire_config("douze")
+        except RuntimeError as e:
+            print(e, "| cause :", repr(e.__cause__))
+      run: true
+      out: |
+        ouverture V1
+        remplissage via V1
+        fermeture V1 (erreur : TimeoutError)
+        rattrapé : capteur de niveau muet
+        durée mesurée : True
+        configuration illisible | cause : ValueError("invalid literal for int() with base 10: 'douze'")
+    - level: 5
+      title: Sur le terrain
+      body: |
+        - Rattrape une erreur **là où tu peux faire quelque chose d'utile** (réessayer, écarter la mesure, utiliser une valeur par défaut) ; sinon, laisse-la remonter.
+        - Tout en haut du script d'acquisition : un seul `except Exception` qui journalise avec `logging.exception(...)` (traceback complet dans le log), et un `finally` qui met le matériel en **état sûr** (chauffage coupé, vanne fermée, moteur arrêté).
+        - Un bon message dit **quoi**, **quelle valeur** et **ce qui était attendu** : « capteur T3 : -999.0 hors bornes [-200, 1500] ».
+        - Réessaie (avec une attente croissante) sur les erreurs de communication (`TimeoutError`, `OSError`), jamais sur les bugs (`TypeError`, `NameError`).
+        - Pour ignorer volontairement une erreur précise : `with contextlib.suppress(FileNotFoundError):` plutôt que `try/except/pass`, et un commentaire qui dit pourquoi.
+  recap:
+    - "Rattrape seulement ce que tu sais traiter, du plus précis au plus général."
+    - "`else` : si tout a réussi ; `finally` : toujours, pour libérer et remettre en sécurité."
+    - "`with` garantit la sortie (`__exit__`) même en cas d'exception."
+    - "`raise … from e` traduit une erreur sans perdre sa cause."
+    - "`assert` pour tes invariants ; `raise ValueError` pour les entrées externes."
+  pieges: [py-except-nu, py-with-oublie, py-assert-validation]
+exercises:
+- id: py07.1
+  type: qcm
+  level: 2
+  concepts:
+  - exceptions
+  q: Quel bloc `except` est le pire choix dans un script d’acquisition ?
+  choices:
+  - t: '`except:` nu'
+    ok: true
+    why: 'Il attrape aussi `KeyboardInterrupt` et `SystemExit` : ton Ctrl-C ne tue plus le script.'
+  - t: '`except Exception as exc:` + log + `raise`'
+    ok: false
+    why: Acceptable au niveau le plus haut, si tu re-lèves ou logges vraiment.
+  - t: '`except (OSError, ValueError) as exc:`'
+    ok: false
+    why: 'Idéal : tu nommes ce que tu sais gérer.'
+  - t: '`except serial.SerialException:`'
+    ok: false
+    why: 'Le plus précis possible : parfait.'
+  e: |-
+    Hiérarchie : `BaseException` → `Exception` → tout le reste. `KeyboardInterrupt`, `SystemExit` et `GeneratorExit` héritent de `BaseException` **mais pas** de `Exception` — précisément pour que `except Exception` ne les avale pas.
+
+    `except:` nu attrape `BaseException`. Résultat vécu : une manip qui refuse de s’arrêter au Ctrl-C.
+
+    Règle : attrape le type le plus précis que tu sais **traiter**. Sinon laisse remonter.
+- id: py07.2
+  type: predict
+  level: 3
+  concepts:
+  - exceptions
+  q: Sortie ?
+  code: |-
+    def f():
+        try:
+            return "try"
+        finally:
+            print("finally")
+
+    print(f())
+  answer: |-
+    finally
+    try
+  e: |-
+    `finally` s’exécute **avant** que la valeur ne soit rendue à l’appelant, mais après que l’expression du `return` a été évaluée.
+
+    Corollaire dangereux : un `return` **dans** le `finally` écrase la valeur (et avale l’exception en cours). À ne jamais faire.
+
+    `finally` est le seul endroit garanti pour libérer une ressource — c’est exactement ce que `with` automatise.
+- id: py07.3
+  type: cloze
+  level: 2
+  concepts:
+  - context-manager
+  q: Écris un context manager qui chronomètre un bloc, même si le bloc lève.
+  tpl: |-
+    import time
+    from contextlib import ⟦0⟧
+
+    @⟦0⟧
+    def chrono(nom):
+        t0 = time.perf_counter()
+        try:
+            ⟦1⟧
+        finally:
+            print(f"{nom}: {time.perf_counter() - t0:.3f} s")
+  blanks:
+  - - contextmanager
+  - - yield
+  e: |-
+    `@contextlib.contextmanager` transforme un générateur à **un seul `yield`** en context manager. Ce qui précède le `yield` = `__enter__`, ce qui suit = `__exit__`.
+
+    Le `try/finally` est indispensable : sans lui, une exception dans le bloc `with` saute la mesure.
+
+    `time.perf_counter()` et pas `time.time()` : horloge monotone haute résolution, insensible aux ajustements NTP.
+- id: py07.4
+  type: bug
+  level: 3
+  concepts:
+  - exceptions
+  q: Ce code masque la cause réelle des pannes. Clique sur la ligne fautive.
+  code: |-
+    def lire_config(chemin):
+        try:
+            with open(chemin) as f:
+                return json.load(f)
+        except Exception:
+            raise RuntimeError("config illisible")
+  bad: 6
+  fix: '        raise RuntimeError(f"config illisible : {chemin}") from exc'
+  e: |-
+    Deux défauts sur la même ligne :
+    1. Pas de `from exc` → la traceback affiche « During handling of the above exception, another exception occurred », ce qui est bruyant et perd le lien de causalité. `raise ... from exc` produit un propre « The above exception was the direct cause ».
+    2. Le message ne dit pas **quel** fichier ni **pourquoi**.
+
+    Version correcte :
+    ```python
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"config illisible : {chemin}") from exc
+    ```
+    Une bonne exception répond à : quoi, où, pourquoi.
+- id: py07.5
+  type: qcm
+  level: 2
+  concepts:
+  - eafp
+  q: EAFP (« demande pardon plutôt que la permission ») vs LBYL (« regarde avant de sauter »). Où EAFP est-il clairement supérieur ?
+  choices:
+  - t: Ouvrir un fichier qui peut disparaître entre le test et l’ouverture
+    ok: true
+    why: Le test `os.path.exists` puis `open` est une vraie condition de concurrence (TOCTOU).
+  - t: Vérifier qu’un entier est positif
+    ok: false
+    why: Un `if` est plus clair et plus rapide.
+  - t: Valider une saisie utilisateur avant traitement
+    ok: false
+    why: La validation explicite donne de meilleurs messages.
+  - t: Tester si une liste est vide
+    ok: false
+    why: '`if not v:` — inutile de lever quoi que ce soit.'
+  e: |-
+    EAFP gagne quand l’état peut **changer entre la vérification et l’usage** (fichiers, sockets, ports série, matériel) ou quand la vérification coûte autant que l’opération.
+
+    ```python
+    try:
+        with open(chemin) as f: ...
+    except FileNotFoundError:
+        ...
+    ```
+
+    LBYL reste meilleur pour la validation de données pures. Les deux sont idiomatiques : le critère est la concurrence, pas la mode.
+- id: py07.6
+  type: code
+  level: 3
+  concepts:
+  - context-manager
+  q: 'Écris une classe `Ressource` utilisable comme context manager : elle met `self.ouvert = True` à l’entrée, `False` à la sortie (même en cas d’exception), et **ne masque pas** l’exception.'
+  lang: python
+  start: |-
+    class Ressource:
+        def __init__(self):
+            self.ouvert = False
+  sol: |-
+    class Ressource:
+        def __init__(self):
+            self.ouvert = False
+
+        def __enter__(self):
+            self.ouvert = True
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            self.ouvert = False
+            return False   # ne pas avaler l'exception
+  tests: |-
+    r = Ressource()
+    with r as ctx:
+        assert ctx is r, "__enter__ doit renvoyer self"
+        assert r.ouvert is True
+    assert r.ouvert is False
+
+    r2 = Ressource()
+    leve = False
+    try:
+        with r2:
+            raise ValueError("boom")
+    except ValueError:
+        leve = True
+    assert leve, "l'exception doit remonter (__exit__ ne doit pas renvoyer True)"
+    assert r2.ouvert is False, "fermeture meme en cas d'exception"
+    print("OK")
+  e: |-
+    Trois règles du protocole :
+    1. `__enter__` renvoie ce que reçoit le `as` — presque toujours `self`.
+    2. `__exit__(exc_type, exc, tb)` est appelé **quoi qu’il arrive**.
+    3. Une valeur **vraie** renvoyée par `__exit__` **avale** l’exception. Renvoie `False` (ou rien) sauf si tu veux vraiment la supprimer.
+
+    C’est le mécanisme derrière `open`, `Lock`, `serial.Serial`, les transactions. Le connaître te permet d’en écrire pour tes propres instruments (allumer/éteindre une alimentation, par exemple).
+- id: py07.7
+  type: predict
+  level: 2
+  concepts:
+  - exceptions
+  q: Sortie ?
+  code: |-
+    for i in range(3):
+        try:
+            if i == 1:
+                raise ValueError("un")
+            print("ok", i)
+        except ValueError as exc:
+            print("attrapé", exc)
+            continue
+        finally:
+            print("finally", i)
+        print("fin de boucle", i)
+  answer: |-
+    ok 0
+    finally 0
+    fin de boucle 0
+    attrapé un
+    finally 1
+    ok 2
+    finally 2
+    fin de boucle 2
+  e: |-
+    `finally` s'exécute **toujours** : après un `return`, un `break`, un `continue` ou une exception.
+
+    Ici le `continue` du `except` saute la dernière ligne du corps de boucle, mais **pas** le `finally` — celui-ci passe d'abord.
+
+    C'est la garantie qui rend `finally` (et donc `with`) utilisable pour libérer une ressource : aucun chemin de sortie ne peut l'éviter.
+
+    Seules exceptions : `os._exit()`, un crash de l'interpréteur, ou une coupure de courant.
+- id: py07.8
+  type: code
+  level: 3
+  concepts:
+  - exceptions
+  q: 'Écris une exception `MesureInvalide(ValueError)` qui porte la valeur fautive et le capteur, et dont le message est `"capteur T1 : -999.0 hors bornes"`.'
+  lang: python
+  start: |-
+    class MesureInvalide(ValueError):
+        ...
+  sol: |-
+    class MesureInvalide(ValueError):
+        def __init__(self, capteur, valeur):
+            super().__init__(f"capteur {capteur} : {valeur} hors bornes")
+            self.capteur = capteur
+            self.valeur = valeur
+  tests: |-
+    e = MesureInvalide("T1", -999.0)
+    assert str(e) == "capteur T1 : -999.0 hors bornes", str(e)
+    assert e.capteur == "T1" and e.valeur == -999.0
+    assert isinstance(e, ValueError), "doit heriter de ValueError"
+    try:
+        raise MesureInvalide("P2", 1e9)
+    except ValueError as exc:
+        assert exc.capteur == "P2"
+        assert "P2" in str(exc)
+    print("OK")
+  e: |-
+    Trois qualités d'une bonne exception métier :
+    1. **Elle hérite d'un type standard pertinent** (`ValueError` ici) : l'appelant qui ne connaît pas ta classe l'attrape quand même.
+    2. **Elle porte les données**, pas seulement un message. `exc.valeur` permet de logger, de compter, de décider — parser une chaîne d'erreur est un anti-motif.
+    3. **Le message est complet** : quoi, où, pourquoi. `super().__init__(msg)` alimente `str(exc)`.
+
+    Définis tes exceptions dans un module `erreurs.py`, avec une base commune :
+    ```python
+    class ErreurAcquisition(Exception): ...
+    class MesureInvalide(ErreurAcquisition, ValueError): ...
+    class TimeoutInstrument(ErreurAcquisition, TimeoutError): ...
+    ```
+    L'appelant peut alors attraper large (`ErreurAcquisition`) ou fin.
+- id: py07.9
+  type: cloze
+  level: 2
+  concepts:
+  - context-manager
+  q: Ouvre deux fichiers et garantis la fermeture des deux, même si le second échoue.
+  tpl: |-
+    from contextlib import ⟦0⟧, suppress
+
+    with open("in.csv") as src, open("out.csv", "w") as dst:
+        dst.write(src.read())
+
+    # Ignorer proprement une erreur attendue :
+    with ⟦1⟧(FileNotFoundError):
+        Path("temporaire.lock").unlink()
+  blanks:
+  - - ExitStack
+    - closing
+    - contextmanager
+  - - suppress
+  e: |-
+    `with a() as x, b() as y:` gère les deux : si `b()` lève, `a` est quand même fermé.
+
+    Pour un **nombre variable** de ressources (n instruments), `contextlib.ExitStack` :
+    ```python
+    with ExitStack() as pile:
+        ports = [pile.enter_context(serial.Serial(p)) for p in liste]
+    ```
+    Tous sont fermés en sortie, dans l'ordre inverse.
+
+    `suppress(Exc)` remplace le `try/except Exc: pass`. Il est **explicite** : on voit qu'on ignore volontairement, ce qui n'est pas le cas d'un `except` vide.
+
+    ⚠️ N'ignore que ce que tu attends vraiment. `suppress(Exception)` est aussi mauvais qu'un `except:` nu.
+- id: py07.10
+  type: qcm
+  level: 2
+  concepts:
+  - assertions
+  q: Pourquoi ne faut-il jamais valider une entrée utilisateur avec `assert` ?
+  choices:
+  - t: '`python -O` supprime toutes les assertions : ta validation disparaît en production'
+    ok: true
+    why: Les `assert` sont un outil de développement, pas de contrôle de flux.
+  - t: Les assertions sont lentes
+    ok: false
+    why: Leur coût est négligeable.
+  - t: '`assert` ne peut pas porter de message'
+    ok: false
+    why: '`assert cond, "message"` fonctionne très bien.'
+  - t: Elles lèvent `ValueError`
+    ok: false
+    why: Elles lèvent `AssertionError`.
+  e: |-
+    ```bash
+    python -O script.py       # tous les assert sont retirés du bytecode
+    ```
+
+    Répartition des rôles :
+    - **`assert`** : invariant interne, « ceci ne peut pas arriver ». Documente une hypothèse du code. `assert len(trame) == 6, trame`.
+    - **`raise ValueError`** : donnée externe invalide. Fichier, réseau, capteur, utilisateur.
+
+    Piège bonus : `assert (cond, "msg")` avec des parenthèses teste un **tuple non vide** — toujours vrai. Le linter (ruff, règle F631) l'attrape.
+
+    Dans les tests pytest, `assert` est en revanche l'outil normal : les tests ne tournent jamais avec `-O`.
+- id: py07.11
+  type: bug
+  level: 3
+  concepts:
+  - exceptions
+  q: Cette boucle d’acquisition perd des mesures sans qu’on sache pourquoi. Clique sur la ligne responsable.
+  code: |-
+    resultats = []
+    for capteur in capteurs:
+        try:
+            resultats.append(lire(capteur))
+        except Exception:
+            pass
+    print(f"{len(resultats)} mesures")
+  bad: 6
+  fix: |2-
+        except (OSError, TimeoutError) as exc:
+            log.warning("capteur %s ignoré : %s", capteur, exc)
+            echecs += 1
+  e: |-
+    `except Exception: pass` est le **bug silencieux parfait** : une faute de frappe dans `lire`, un `KeyError` de configuration, une erreur de programmation — tout disparaît. Tu obtiens « 3 mesures » au lieu de 20, sans le moindre indice.
+
+    Une gestion d'erreur honnête fait trois choses :
+    1. **Nomme** les exceptions qu'elle sait traiter.
+    2. **Trace** ce qu'elle ignore (`log.warning`, ou `log.exception` pour la traceback).
+    3. **Compte** les échecs, pour que l'appelant puisse décider (« 18/20 capteurs OK » vs « 2/20, on arrête »).
+
+    Si vraiment tu dois tout attraper au niveau le plus haut : `except Exception:` + `log.exception(...)` + re-lever ou code de retour non nul.
+  fixed: |
+    resultats = []
+    echecs = 0
+    for capteur in capteurs:
+        try:
+            resultats.append(lire(capteur))
+        except (OSError, TimeoutError) as exc:
+            log.warning("capteur %s ignoré : %s", capteur, exc)
+            echecs += 1
+    print(f"{len(resultats)} mesures")
+- id: py07.12
+  type: predict
+  level: 3
+  concepts:
+  - exceptions
+  q: Sortie ?
+  code: |-
+    def f():
+        try:
+            return "try"
+        finally:
+            return "finally"
+
+    def g():
+        try:
+            raise ValueError("boum")
+        finally:
+            return "avalée"
+
+    print(f(), g())
+  answer: finally avalée
+  e: |-
+    Un `return` dans un `finally` **écrase** la valeur de retour du `try` **et avale toute exception en cours**. `g()` ne lève rien du tout.
+
+    C'est du code légal, et c'est un piège à bugs si sévère que `ruff` (règle B012) et `pylint` le signalent par défaut. Depuis Python 3.14 (PEP 765), l'interpréteur lui-même affiche `SyntaxWarning: 'return' in a 'finally' block`.
+
+    Même règle pour `break` et `continue` dans un `finally`.
+
+    À retenir : **un `finally` ne fait que nettoyer.** Il ne renvoie rien, ne saute nulle part.
+- id: py07.13
+  type: code
+  level: 3
+  concepts:
+  - context-manager
+  q: Écris un context manager `chrono` (via `contextlib`) qui remplit `resultat["ms"]` avec la durée écoulée, même si le bloc lève.
+  lang: python
+  start: |-
+    import time
+    from contextlib import contextmanager
+
+    @contextmanager
+    def chrono():
+        ...
+  sol: |-
+    import time
+    from contextlib import contextmanager
+
+    @contextmanager
+    def chrono():
+        resultat = {}
+        t0 = time.perf_counter()
+        try:
+            yield resultat
+        finally:
+            resultat["ms"] = (time.perf_counter() - t0) * 1000
+  tests: |-
+    with chrono() as r:
+        sum(range(100000))
+    assert "ms" in r and r["ms"] >= 0, r
+
+    leve = False
+    try:
+        with chrono() as r2:
+            raise RuntimeError("boum")
+    except RuntimeError:
+        leve = True
+    assert leve, "l'exception doit remonter"
+    assert "ms" in r2, "la mesure doit etre faite meme en cas d'exception"
+    print("OK")
+  e: |-
+    Deux exigences que le test attrape :
+    1. Le `try/finally` autour du `yield`. Sans lui, une exception dans le bloc `with` saute la mesure — et c'est justement le cas où tu veux savoir combien de temps ça a duré avant de casser.
+    2. Ne pas avaler l'exception. Avec `@contextmanager`, elle est **relancée dans le générateur** au point du `yield` ; ne pas l'attraper la laisse remonter. Un `except: pass` autour du `yield` la supprimerait.
+
+    Le dict renvoyé par `yield` est le canal de sortie : on ne peut pas « renvoyer » depuis un context manager autrement.
+
+    `time.perf_counter()` : horloge monotone de plus haute résolution disponible.
+- id: py07.14
+  type: flash
+  level: 2
+  concepts:
+  - exceptions
+  q: Cite les exceptions standard que tu dois connaître par cœur, et le cas où chacune est le bon choix.
+  back: |-
+    | Exception | Quand la lever |
+    | --- | --- |
+    | `ValueError` | bonne type, mauvaise valeur (`int("abc")`) |
+    | `TypeError` | mauvais type (`len(3)`) |
+    | `KeyError` / `IndexError` | clé ou index absent |
+    | `OSError` | tout ce qui touche au système : fichier, réseau, port série |
+    | `TimeoutError` | délai dépassé (sous-classe d'`OSError`) |
+    | `NotImplementedError` | méthode abstraite non implémentée |
+    | `RuntimeError` | quand rien d'autre ne colle |
+    | `StopIteration` | fin d'itérateur — **jamais à la main** |
+
+    `FileNotFoundError`, `PermissionError`, `ConnectionError` sont des sous-classes d'`OSError` : `except OSError` les couvre toutes.
+  e: |-
+    Deux règles : **ne lève jamais `Exception` nue** (l'appelant ne peut rien en faire de fin), et **hérite du type standard le plus proche** quand tu définis la tienne.
+
+    `NotImplementedError` (une exception) ne doit pas être confondu avec `NotImplemented` (une valeur, renvoyée par les opérateurs de comparaison quand ils ne savent pas répondre).
+- id: py07.15
+  type: parsons
+  level: 3
+  concepts:
+  - eafp
+  - exceptions
+  q: 'Reconstitue une lecture d’instrument robuste : plusieurs tentatives, attente croissante, message d’erreur exploitable.'
+  lang: python
+  lines:
+  - 'def lire_fiable(port, tentatives: int = 3):'
+  - '    dernier = None'
+  - '    for essai in range(tentatives):'
+  - '        try:'
+  - '            return decoder(port.read(8))'
+  - '        except (TimeoutError, ValueError) as exc:'
+  - '            dernier = exc'
+  - '            log.warning("essai %d/%d échoué : %s", essai + 1, tentatives, exc)'
+  - '            time.sleep(0.05 * 2 ** essai)'
+  - '    raise TimeoutError(f"lecture impossible après {tentatives} essais") from dernier'
+  extra:
+  - '        except Exception:'
+  - '            pass'
+  e: |-
+    Les cinq éléments d'un réessai correct :
+    1. **Types nommés** : `TimeoutError` et `ValueError` (trame corrompue). Pas `Exception` — un bug de `decoder` doit remonter tout de suite.
+    2. **Attente exponentielle** `0.05 × 2^essai` : 50 ms, 100 ms, 200 ms. Réessayer immédiatement sur un port occupé échoue trois fois en 3 µs.
+    3. **Trace de chaque échec**, pas seulement du dernier.
+    4. **Échec final explicite**, avec le nombre d'essais.
+    5. `from dernier` : la traceback garde la cause réelle.
+
+    Les deux intrus (`except Exception: pass`) transforment ça en boucle qui masque tout.
+
+    Pour aller plus loin : ajoute un jitter aléatoire si plusieurs clients réessaient en même temps.
+- id: py07.16
+  type: qcm
+  level: 3
+  concepts:
+  - exceptions
+  q: À quoi sert la clause `else` d’un bloc `try` ?
+  choices:
+  - t: Exécuter du code seulement si aucune exception n’a été levée, hors de la zone surveillée
+    ok: true
+    why: Ça évite d’attraper accidentellement une exception venant du code de succès.
+  - t: Exécuter du code si une exception a été levée
+    ok: false
+    why: C’est `except`.
+  - t: Remplacer `finally`
+    ok: false
+    why: '`finally` s’exécute dans tous les cas, `else` seulement en l’absence d’exception.'
+  - t: C’est une erreur de syntaxe
+    ok: false
+    why: C’est valide depuis toujours, et sous-utilisé.
+  e: |-
+    ```python
+    try:
+        f = open(chemin)
+    except OSError:
+        log.error("fichier illisible")
+    else:
+        with f:
+            traiter(f)      # si traiter() lève OSError, elle n'est PAS attrapée
+    ```
+
+    Sans le `else`, mettre `traiter(f)` dans le `try` ferait attraper les `OSError` du traitement par le `except` prévu pour l'ouverture — et tu logguerais « fichier illisible » pour une erreur totalement différente.
+
+    **Règle : garde le `try` aussi court que possible.** `else` est ce qui te le permet.
+
+    Le même `else` existe sur `for` et `while` (exécuté si la boucle finit sans `break`), mais là, il est tellement peu lisible que beaucoup d'équipes l'interdisent.

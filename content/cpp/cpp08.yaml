@@ -1,0 +1,710 @@
+id: cpp08
+track: cpp
+title: Templates & constexpr
+goal: Écrire du générique lisible et déplacer du calcul à la compilation.
+level: avance
+requires:
+- cpp05
+concepts:
+- templates
+- deduction
+- constexpr
+- concepts
+lesson:
+  minutes: 18
+  intro: |
+    Tu as écrit `borner` pour des `int`, puis tu en as besoin pour des `double`, puis pour des `float` : trois copies de la même fonction, trois endroits où corriger un bug. Les **templates** écrivent le code une fois, et le compilateur fabrique la version adaptée à chaque type. `constexpr`, de son côté, fait calculer une valeur **par le compilateur** : une table de CRC ou une constante de conversion ne coûtent alors plus rien à l'exécution. Deux outils au cœur de la bibliothèque standard et de l'embarqué moderne.
+  steps:
+    - level: 1
+      title: Le moule et le bureau d'études
+      body: |
+        Un **template**, c'est un moule de fonderie avec un trou pour la matière : « une équerre, en acier ou en aluminium ». Le moule n'est pas une pièce. C'est le compilateur qui coule une pièce **pour chaque matière réellement demandée** : si ton programme utilise `borner` avec des `int` et des `double`, il existe deux fonctions dans l'exécutable.
+
+        `constexpr`, c'est faire un calcul **au bureau d'études** plutôt qu'à l'atelier : le résultat est gravé dans le programme, et la machine n'a plus qu'à le lire.
+    - level: 2
+      title: Templates, concepts, constexpr
+      body: |
+        - **Template de fonction** : `template <typename T> T borner(T x, T lo, T hi)`. Le type `T` est **déduit** des arguments. Chaque type utilisé produit une **instanciation** distincte.
+        - **Template de classe** : `template <typename T, std::size_t N> class TamponCirculaire`. Un paramètre peut aussi être une **valeur** connue à la compilation (`N`), comme dans `std::array<double, 8>`.
+        - La **définition** d'un template doit être visible là où il est utilisé : les templates vivent entièrement dans les en-têtes.
+        - **Concepts** (C++20) : ils exigent des propriétés du type. `template <std::integral T>`, ou plus court, `void f(std::floating_point auto x)`. Un mauvais type donne alors une erreur courte et lisible au lieu de trois pages.
+        - `constexpr` sur une variable : valeur calculée à la compilation. Sur une fonction : elle **peut** être exécutée à la compilation si ses arguments sont connus. `consteval` : elle **doit** l'être. `static_assert(condition)` vérifie à la compilation.
+        - `if constexpr (condition)` choisit une branche **à la compilation** : l'autre n'est même pas compilée pour ce type.
+      check:
+        q: Pourquoi la définition d'un template doit-elle se trouver dans l'en-tête ?
+        choices:
+          - t: Le compilateur a besoin du corps pour fabriquer la version de chaque type, là où elle est utilisée
+            ok: true
+            why: "Un template n'est qu'un modèle : sans sa définition sous les yeux, le compilateur ne peut pas générer `borner<double>`."
+          - t: Parce que les templates sont plus rapides dans un en-tête
+            why: La vitesse n'a rien à voir : c'est une question de visibilité au moment de l'instanciation.
+          - t: C'est une convention de style, un `.cpp` marcherait aussi
+            why: Avec la définition dans un `.cpp`, les autres fichiers obtiennent `undefined reference` au link.
+    - level: 3
+      title: Un code, plusieurs types
+      code: |
+        #include <array>
+        #include <cstddef>
+        #include <iostream>
+        #include <string>
+        #include <vector>
+
+        template <typename T>
+        T borner(T x, T lo, T hi) {                     // un moule : une version par type utilisé
+            return x < lo ? lo : (hi < x ? hi : x);
+        }
+
+        template <typename Conteneur>
+        double moyenne(const Conteneur& c) {            // n'importe quel conteneur de nombres
+            double s = 0.0;
+            for (const auto& x : c) s += x;
+            return c.empty() ? 0.0 : s / static_cast<double>(c.size());
+        }
+
+        template <typename T, std::size_t N>
+        class TamponCirculaire {                        // taille fixée à la compilation
+        public:
+            void pousser(const T& v) {
+                donnees_[tete_] = v;
+                tete_ = (tete_ + 1) % N;
+                if (n_ < N) ++n_;
+            }
+            std::size_t taille() const { return n_; }
+            T dernier() const { return donnees_[(tete_ + N - 1) % N]; }
+        private:
+            std::array<T, N> donnees_{};
+            std::size_t tete_ = 0, n_ = 0;
+        };
+
+        int main() {
+            std::cout << borner(12, 0, 10) << " " << borner(-0.5, 0.0, 1.0) << " "
+                      << borner(std::string("m"), std::string("a"), std::string("k")) << '\n';
+            std::cout << moyenne(std::vector<int>{1, 2, 3, 4}) << " "
+                      << moyenne(std::array<double, 2>{0.5, 1.0}) << '\n';
+
+            TamponCirculaire<double, 3> t;
+            for (double v : {20.1, 20.4, 20.9, 21.3}) t.pousser(v);
+            std::cout << t.taille() << " valeurs, dernière " << t.dernier() << '\n';
+            // borner(12, 0.0, 10.0);   ← refusé : T déduit à la fois int et double
+        }
+      out: |
+        10 0 k
+        2.5 0.75
+        3 valeurs, dernière 21.3
+      after: |
+        Le même `borner` compare des entiers, des flottants et même des chaînes (ordre alphabétique) : il suffit que le type sache faire `<`. Le tampon circulaire, lui, n'alloue rien : sa taille fait partie de son type.
+    - level: 4
+      title: Calculer à la compilation
+      body: |
+        Une table de CRC-8 (256 octets) est classiquement calculée au démarrage du programme, ou recopiée à la main depuis une documentation. Avec `constexpr`, le compilateur la calcule lui-même, et `static_assert` vérifie une valeur connue : si quelqu'un modifie l'algorithme par erreur, **le programme ne compile plus**.
+
+        Les concepts limitent un template aux types qui ont un sens : `bit<double>(3)` est refusé avec un message qui cite le concept non satisfait. Et `if constexpr` permet à un seul template de traiter différemment entiers et flottants.
+      code: |
+        #include <array>
+        #include <concepts>
+        #include <cstddef>
+        #include <cstdint>
+        #include <iostream>
+        #include <type_traits>
+
+        constexpr std::array<std::uint8_t, 256> table_crc8() {     // exécutée par le compilateur
+            std::array<std::uint8_t, 256> t{};
+            for (std::size_t i = 0; i < 256; ++i) {
+                auto c = static_cast<std::uint8_t>(i);
+                for (int b = 0; b < 8; ++b)
+                    c = static_cast<std::uint8_t>((c & 0x80) ? (c << 1) ^ 0x07 : (c << 1));
+                t[i] = c;
+            }
+            return t;
+        }
+        constexpr auto TABLE = table_crc8();
+        static_assert(TABLE[1] == 0x07, "polynôme 0x07 attendu");   // vérifié à la compilation
+
+        constexpr std::uint8_t crc8(const std::uint8_t* d, std::size_t n) {
+            std::uint8_t c = 0;
+            for (std::size_t i = 0; i < n; ++i) c = TABLE[c ^ d[i]];
+            return c;
+        }
+
+        template <std::integral T>                                  // entiers seulement
+        constexpr T bit(unsigned n) { return static_cast<T>(T{1} << n); }
+
+        template <typename T>
+        void decrire(T x) {
+            if constexpr (std::is_floating_point_v<T>)
+                std::cout << "flottant " << x << '\n';
+            else
+                std::cout << "entier " << x << " sur " << sizeof(T) * 8 << " bits\n";
+        }
+
+        int main() {
+            constexpr std::uint8_t trame[] = {0x31, 0x32, 0x33};    // les caractères "123"
+            constexpr auto c = crc8(trame, 3);                      // calculé à la compilation
+            std::cout << std::hex << "crc8 = 0x" << +c << std::dec << '\n';
+            std::cout << bit<std::uint16_t>(15) << '\n';
+            decrire(3.5);
+            decrire(std::int16_t{-2});
+            // bit<double>(3);   ← refusé : les contraintes du concept « integral » ne sont pas satisfaites
+        }
+      out: |
+        crc8 = 0xc0
+        32768
+        flottant 3.5
+        entier -2 sur 16 bits
+      after: |
+        Pour valider une implémentation de CRC, on calcule sa **valeur de contrôle** publiée : ce CRC-8 (polynôme 0x07, valeur initiale 0, variante appelée CRC-8/SMBUS) donne 0xF4 sur les neuf caractères « 123456789 ». Un `static_assert` sur cette valeur, et l'algorithme est revérifié à chaque compilation.
+    - level: 5
+      title: Sur le terrain
+      body: |
+        - Écris un template quand tu t'apprêtes à copier-coller une fonction pour un autre type. Contrains-le avec un concept (`std::integral`, `std::floating_point`, `std::ranges::range`…) : les erreurs deviennent lisibles et l'intention est documentée.
+        - Pour les cas simples, la syntaxe abrégée suffit : `double moyenne(const std::ranges::range auto& r)`.
+        - `constexpr` pour toutes les constantes et tous les calculs purs (tables, conversions d'unités, masques de registres) : zéro coût à l'exécution, et en embarqué ces tables finissent en mémoire flash plutôt qu'en RAM.
+        - Chaque instanciation génère du code : sur un microcontrôleur, surveille la taille du binaire si un template est utilisé avec beaucoup de types différents.
+        - Face à une erreur de template sans concept, lis la **première** erreur et la ligne `required from here` : elle pointe l'appel fautif dans **ton** code.
+  recap:
+    - "Template = moule ; le compilateur génère une version par type (ou valeur) utilisé."
+    - "Définitions de templates dans les en-têtes."
+    - "Concepts (C++20) : contraindre les types, et obtenir des erreurs lisibles."
+    - "`constexpr` : calcul à la compilation possible ; `consteval` : obligatoire ; `static_assert` : vérification."
+    - "`if constexpr` : branche choisie à la compilation selon le type."
+  pieges: [cpp-template-header, cpp-undefined-reference]
+exercises:
+- id: cpp08.1
+  type: qcm
+  level: 2
+  concepts:
+  - templates
+  q: Pourquoi la définition d’un template doit-elle être dans le `.h` et non dans un `.cpp` ?
+  choices:
+  - t: Le compilateur doit voir la définition pour instancier le template avec chaque type utilisé
+    ok: true
+    why: L’instanciation a lieu à l’usage, dans une autre unité de traduction.
+  - t: Par convention de style
+    ok: false
+    why: C’est une contrainte du modèle de compilation.
+  - t: Parce que les templates sont plus rapides ainsi
+    ok: false
+    why: Aucun rapport.
+  - t: C’est faux, on peut les mettre dans un .cpp
+    ok: false
+    why: Seulement avec une **instanciation explicite** pour chaque type — rarement pratique.
+  e: |-
+    Un template n’est pas du code : c’est une **recette**. Le compilateur ne génère `maxi<double>` que quand il rencontre un appel avec `double`, et il lui faut la recette sous les yeux.
+
+    Symptôme si tu te trompes : `undefined reference to 'maxi<int>(int, int)'` au **link**.
+
+    Deux échappatoires :
+    - `template class MaClasse<int>;` dans le .cpp (instanciation explicite), si tu ne veux exposer qu’un jeu fermé de types.
+    - Un fichier `.tpp`/`.ipp` inclus en fin de `.h` — purement cosmétique, mais ça garde le .h lisible.
+- id: cpp08.2
+  type: predict
+  level: 2
+  concepts:
+  - constexpr
+  q: Ce programme compile-t-il, et qu’affiche-t-il ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    #include <array>
+
+    constexpr int factorielle(int n) {
+        return n <= 1 ? 1 : n * factorielle(n - 1);
+    }
+
+    int main() {
+        std::array<int, factorielle(4)> t{};
+        std::cout << t.size() << " " << factorielle(5) << "\n";
+    }
+  answer: 24 120
+  e: |-
+    `constexpr` = **peut** être évalué à la compilation. Ici `factorielle(4)` sert de taille de `std::array` : c’est une expression constante, donc obligatoirement calculée par le compilateur.
+
+    `factorielle(5)` à l’intérieur d’un `cout` peut être évalué à la compilation ou à l’exécution — le compilateur choisit.
+
+    Nuances utiles :
+    - `consteval` (C++20) : **obligatoirement** à la compilation, sinon erreur.
+    - `constinit` : initialisation statique garantie, sans coût au démarrage.
+    - `if constexpr` : branche éliminée à la compilation — remplace avantageusement le SFINAE.
+
+    En embarqué, `constexpr` sur des tables de calibration ou de linéarisation les met en Flash au lieu de les calculer au boot.
+- id: cpp08.3
+  type: cloze
+  level: 3
+  concepts:
+  - deduction
+  - templates
+  q: Écris une fonction générique qui accepte n’importe quel conteneur et renvoie sa moyenne.
+  lang: cpp
+  tpl: |-
+    #include <numeric>
+
+    template <typename C>
+    auto moyenne(const C& c) -> ⟦0⟧ {
+        if (c.empty()) return {};
+        using T = typename C::value_type;
+        return std::accumulate(c.begin(), c.end(), ⟦1⟧{}) / static_cast<T>(c.⟦2⟧());
+    }
+  blanks:
+  - - typename C::value_type
+    - 'typename C::value_type '
+  - - T
+  - - size
+  e: |-
+    `typename C::value_type` : le `typename` est obligatoire pour dire au compilateur que `C::value_type` est un **type** et non un membre statique — il ne peut pas le savoir avant l’instanciation.
+
+    `T{}` construit un zéro du bon type : `0.0` pour double, `0` pour int. Un `0` codé en dur casserait la précision sur un conteneur de doubles.
+
+    En C++20, tout ça se réduit à :
+    ```cpp
+    auto moyenne(const std::ranges::range auto& c) { ... }
+    ```
+- id: cpp08.4
+  type: qcm
+  level: 3
+  concepts:
+  - concepts
+  q: À quoi servent les *concepts* (C++20) ?
+  choices:
+  - t: Contraindre les templates, et surtout produire des messages d’erreur lisibles
+    ok: true
+    why: Le compilateur dit « T ne satisfait pas std::integral » au lieu de 200 lignes de trace d’instanciation.
+  - t: Accélérer la compilation des templates
+    ok: false
+    why: Effet secondaire parfois, pas le but.
+  - t: Remplacer l’héritage
+    ok: false
+    why: Ce sont des contraintes statiques, pas du polymorphisme dynamique.
+  - t: Permettre la surcharge sur la valeur de retour
+    ok: false
+    why: Toujours impossible.
+  e: |-
+    ```cpp
+    template <std::floating_point T>
+    T celsius_vers_kelvin(T c) { return c + T{273.15}; }
+    ```
+
+    Appeler avec un `int` donne : *constraints not satisfied*. Sans concept, tu aurais eu une erreur incompréhensible au fond de l’instanciation.
+
+    Concepts standards utiles : `std::integral`, `std::floating_point`, `std::same_as`, `std::convertible_to`, `std::ranges::range`.
+
+    Le gain principal est **le diagnostic**. Quiconque a lu une erreur de template en C++03 comprend pourquoi c’est la fonctionnalité la plus attendue du langage.
+- id: cpp08.5
+  type: predict
+  level: 2
+  concepts:
+  - templates
+  - deduction
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    template <typename T>
+    T maxi(T a, T b) { return a > b ? a : b; }
+
+    int main() {
+        std::cout << maxi(3, 5) << " " << maxi(2.5, 1.5) << " ";
+        std::cout << maxi<double>(3, 1.5) << "\n";
+    }
+  answer: 5 2.5 3
+  e: |-
+    `maxi(3, 5)` déduit `T = int`. `maxi(2.5, 1.5)` déduit `T = double`.
+
+    `maxi(3, 1.5)` **ne compilerait pas** : la déduction donnerait `int` d'un côté et `double` de l'autre, sans arbitrage possible. D'où le `maxi<double>(...)` explicite, qui force la conversion de `3` en `3.0`.
+
+    Deux façons d'éviter le problème :
+    ```cpp
+    template <typename A, typename B>
+    auto maxi(A a, B b) { return a > b ? a : b; }   // type commun déduit
+    ```
+    ou simplement `std::max<double>(3, 1.5)`.
+
+    À noter : `std::max` prend et renvoie des `const T&`, ce qui évite la copie mais crée un piège avec les temporaires : `const auto& m = std::max(f(), g());` est pendouillant.
+- id: cpp08.6
+  type: predict
+  level: 2
+  concepts:
+  - constexpr
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    #include <array>
+    constexpr int somme_jusqua(int n) {
+        int t = 0;
+        for (int i = 1; i <= n; ++i) t += i;
+        return t;
+    }
+    int main() {
+        constexpr int s = somme_jusqua(10);
+        std::array<int, somme_jusqua(3)> t{};
+        static_assert(s == 55);
+        std::cout << s << " " << t.size() << "\n";
+    }
+  answer: 55 6
+  e: |-
+    Depuis C++14, une fonction `constexpr` peut contenir des boucles, des variables locales, des `if` — presque tout le langage. Le résultat est calculé **à la compilation** dès qu'il est utilisé dans un contexte qui l'exige (taille de tableau, `static_assert`, `constexpr` variable).
+
+    L'intérêt en embarqué : une table de linéarisation ou de CRC calculée à la compilation part en **Flash**, sans une instruction au démarrage ni un octet de RAM.
+
+    ```cpp
+    constexpr auto table = calculer_crc_table();   // en Flash, gratuit
+    ```
+
+    Les variantes :
+    - `consteval` (C++20) : **obligatoirement** à la compilation, erreur sinon.
+    - `constinit` : garantit une initialisation statique (pas de code au démarrage).
+    - `if constexpr` : la branche non prise est **supprimée** avant l'analyse — remplace le SFINAE.
+- id: cpp08.7
+  type: qcm
+  level: 3
+  concepts:
+  - templates
+  q: Que fait `if constexpr` que `if` ne fait pas ?
+  choices:
+  - t: 'La branche non prise n’est **pas compilée** : elle peut contenir du code invalide pour ce type'
+    ok: true
+    why: C’est ce qui permet d’écrire une fonction générique qui traite différemment les pointeurs et les valeurs.
+  - t: Il est plus rapide à l’exécution
+    ok: false
+    why: Un `if` sur une constante est de toute façon éliminé par l’optimiseur.
+  - t: Il fonctionne avec des variables
+    ok: false
+    why: La condition doit être une expression constante.
+  - t: Il remplace `switch`
+    ok: false
+    why: Aucun rapport.
+  e: |-
+    ```cpp
+    template <typename T>
+    void afficher(const T& x) {
+        if constexpr (std::is_pointer_v<T>) {
+            std::cout << *x;          // invalide si T n'est pas un pointeur
+        } else {
+            std::cout << x;
+        }
+    }
+    ```
+
+    Avec un `if` ordinaire, les **deux** branches doivent compiler pour tout `T` → `*x` sur un `int` ferait échouer la compilation.
+
+    `if constexpr` remplace avantageusement le SFINAE et les surcharges de dispatch par tag : le code est linéaire et lisible.
+
+    Attention : la condition doit être une constante **connue à la compilation**. `if constexpr (v.size() > 3)` ne compile pas.
+
+    Combiné avec les concepts (C++20), c'est ce qui rend le C++ générique moderne enfin lisible.
+- id: cpp08.8
+  type: cloze
+  level: 3
+  concepts:
+  - templates
+  - deduction
+  q: Écris une fonction générique qui borne une valeur, quelle que soit sa nature.
+  lang: cpp
+  tpl: |-
+    #include <type_traits>
+
+    template <⟦0⟧ T>
+    constexpr T borner(T x, T lo, T hi) {
+        static_⟦1⟧(std::is_arithmetic_v<T>, "borner() attend un type numérique");
+        return x < lo ? lo : (x > hi ? hi : x);
+    }
+  blanks:
+  - - typename
+    - class
+  - - assert
+  e: |-
+    `typename` et `class` sont **strictement interchangeables** dans une liste de paramètres de template. La convention moderne est `typename`.
+
+    `static_assert(condition, "message")` produit une erreur de compilation **lisible** au lieu d'une cascade d'erreurs d'instanciation. C'est le moyen le plus simple de contraindre un template avant C++20.
+
+    En C++20, les concepts font mieux :
+    ```cpp
+    template <std::floating_point T>
+    constexpr T borner(T x, T lo, T hi) { ... }
+    ```
+    Le message devient *constraints not satisfied* au lieu de 200 lignes de trace.
+
+    Note le `constexpr` : la fonction est utilisable à la compilation **et** à l'exécution. C'est gratuit, ajoute-le systématiquement sur les petites fonctions pures.
+
+    `std::clamp` fait la même chose, mais renvoie une **référence** — attention aux temporaires.
+- id: cpp08.9
+  type: bug
+  level: 3
+  concepts:
+  - templates
+  q: Ce template ne compile pas quand on l’instancie. Clique sur la ligne à corriger.
+  lang: cpp
+  code: |-
+    template <typename C>
+    void afficher(const C& c) {
+        C::value_type total = 0;
+        for (const auto& x : c) total += x;
+        std::cout << total;
+    }
+  bad: 3
+  fix: '    typename C::value_type total = 0;   // ou : auto total = typename C::value_type{};'
+  e: |-
+    Le compilateur ne sait pas, avant l'instanciation, si `C::value_type` est un **type** ou un membre statique. Par défaut il suppose que c'est une **valeur** — d'où l'erreur de syntaxe.
+
+    Le mot-clé `typename` lève l'ambiguïté : « c'est un type ».
+
+    Règle : **`typename` devant tout nom dépendant qui désigne un type.** Et `template` devant tout membre template dépendant :
+    ```cpp
+    typename C::value_type x;
+    c.template methode<int>();
+    ```
+
+    En C++20, beaucoup de ces `typename` sont devenus optionnels dans les contextes non ambigus, mais l'écrire reste plus portable.
+
+    Le plus simple, ici : `auto total = typename C::value_type{};` — ou même mieux, `std::accumulate(c.begin(), c.end(), typename C::value_type{})`.
+- id: cpp08.10
+  type: code
+  level: 3
+  concepts:
+  - templates
+  - constexpr
+  q: Écris `template <typename T, std::size_t N> constexpr T somme(const std::array<T, N>& a)` — somme des éléments, utilisable à la compilation.
+  lang: cpp
+  start: |-
+    #include <array>
+    #include <cstddef>
+
+    template <typename T, std::size_t N>
+    constexpr T somme(const std::array<T, N>& a) {
+        // ton code
+    }
+  sol: |-
+    #include <array>
+    #include <cstddef>
+
+    template <typename T, std::size_t N>
+    constexpr T somme(const std::array<T, N>& a) {
+        T t{};
+        for (std::size_t i = 0; i < N; ++i) t += a[i];
+        return t;
+    }
+  tests: |-
+    #include <cassert>
+    #include <iostream>
+    int main() {
+        constexpr std::array<int, 4> a{1, 2, 3, 4};
+        static_assert(somme(a) == 10, "doit etre calculable a la compilation");
+        constexpr std::array<double, 3> b{0.5, 0.25, 0.25};
+        static_assert(somme(b) == 1.0);
+        constexpr std::array<int, 0> vide{};
+        static_assert(somme(vide) == 0);
+        std::array<int, 2> c{7, 8};
+        assert(somme(c) == 15);
+        std::cout << "OK\n";
+    }
+  e: |-
+    Trois détails qui font que ça compile **et** que c'est correct :
+    - `T t{}` : initialisation de valeur → 0 pour un numérique, quel que soit `T`. Écrire `T t = 0;` casserait pour un type sans conversion depuis `int`.
+    - `N` est un **paramètre de template non-type** : la taille est connue à la compilation, la boucle peut être entièrement déroulée par l'optimiseur.
+    - `constexpr` sur la fonction : le `static_assert` du test l'oblige à être évaluable à la compilation. Une seule instruction non-constexpr dans le corps ferait échouer le test.
+
+    Le cas `array<int, 0>` vérifie qu'on ne suppose pas au moins un élément.
+
+    C'est le motif exact d'une table de calibration figée : `constexpr auto total = somme(COEFFS);` ne coûte pas une instruction à l'exécution.
+- id: cpp08.11
+  type: predict
+  level: 3
+  concepts:
+  - concepts
+  q: Ce code compile-t-il, et qu’affiche-t-il ? (C++20)
+  lang: cpp
+  code: |-
+    #include <iostream>
+    #include <concepts>
+
+    template <std::integral T>
+    T doubler(T x) { return x * 2; }
+
+    int main() {
+        std::cout << doubler(21) << " ";
+        std::cout << doubler<long>(5) << "\n";
+    }
+  answer: 42 10
+  e: |-
+    `std::integral` contraint `T` aux types entiers. `doubler(21)` déduit `int`, `doubler<long>(5)` force `long`.
+
+    `doubler(2.5)` **ne compilerait pas**, avec un message clair :
+    ```
+    error: no matching function ... constraints not satisfied
+    note: the expression is_integral_v<double> evaluated to false
+    ```
+    C'est tout l'intérêt : sans concept, l'erreur surgirait au fond de l'instanciation, sur 200 lignes.
+
+    Concepts standards utiles : `std::integral`, `std::floating_point`, `std::same_as`, `std::convertible_to`, `std::invocable`, `std::ranges::range`.
+
+    Syntaxes équivalentes :
+    ```cpp
+    template <std::integral T> T f(T x);
+    template <typename T> requires std::integral<T> T f(T x);
+    auto f(std::integral auto x);          // la plus concise
+    ```
+
+    Disponible depuis GCC 10 / Clang 13.
+- id: cpp08.12
+  type: qcm
+  level: 2
+  concepts:
+  - templates
+  q: Ton template compilé pour 5 types différents produit combien de code machine ?
+  choices:
+  - t: Cinq versions distinctes — c’est le coût des templates
+    ok: true
+    why: 'C’est le « code bloat » : chaque instanciation génère du code, d’où des binaires plus gros.'
+  - t: Une seule version générique
+    ok: false
+    why: Ce serait le modèle de Java (effacement de type) ou du polymorphisme dynamique.
+  - t: Aucune, tout est résolu à l’exécution
+    ok: false
+    why: Les templates sont entièrement statiques.
+  - t: Cela dépend du niveau d’optimisation
+    ok: false
+    why: Le compilateur peut fusionner du code identique, mais le modèle reste une instanciation par type.
+  e: |-
+    Le compromis fondamental des templates : **performance maximale, taille du binaire en contrepartie**. Chaque instanciation est spécialisée et inlinable, donc aussi rapide que du code écrit à la main.
+
+    En embarqué, où la Flash est comptée, ça compte :
+    - Limite le nombre de types instanciés.
+    - Sors la logique **non dépendante du type** dans une fonction non-template :
+    ```cpp
+    void trier_impl(void* d, std::size_t n, std::size_t taille, Comparateur c);
+    template <typename T> void trier(std::vector<T>& v) { trier_impl(...); }
+    ```
+    - Ou utilise `std::span` / le polymorphisme dynamique quand la performance n'est pas critique.
+
+    À l'inverse, sur PC, le code bloat est rarement un problème et l'inlining rapporte gros. Comme toujours : **mesure avant de choisir.**
+- id: cpp08.13
+  type: flash
+  level: 3
+  concepts:
+  - constexpr
+  q: '`const`, `constexpr`, `consteval`, `constinit` : lequel pour quoi ?'
+  back: |-
+    | Mot-clé | Signification |
+    | --- | --- |
+    | `const` | ne peut pas être modifié — la valeur peut venir de l'exécution |
+    | `constexpr` | **peut** être évalué à la compilation (variable ou fonction) |
+    | `consteval` (C++20) | fonction **obligatoirement** évaluée à la compilation |
+    | `constinit` (C++20) | variable statique initialisée à la compilation, mais modifiable ensuite |
+
+    ```cpp
+    const int a = lire();          // ok, valeur d'exécution
+    constexpr int b = 5 * 2;       // calculé à la compilation
+    consteval int f(int x) { … }   // f(3) ok, f(variable) → erreur
+    constinit int compteur = 0;    // pas de code au démarrage, modifiable
+    ```
+  e: |-
+    En embarqué, `constinit` résout le « static initialization order fiasco » : la variable est prête avant l'exécution de la moindre instruction, donc aucun ordre à garantir.
+
+    `constexpr` sur une **variable** implique `const`. Sur une **fonction**, il n'impose rien : elle reste utilisable à l'exécution.
+
+    Depuis C++20, presque toute la bibliothèque standard est `constexpr` — y compris `std::vector` et `std::string` dans un contexte constant.
+- id: cpp08.14
+  type: predict
+  level: 3
+  concepts:
+  - deduction
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    #include <vector>
+    #include <type_traits>
+    int main() {
+        std::vector v{1, 2, 3};                   // CTAD
+        auto x = v[0];
+        decltype(v[0]) y = v[1];
+        std::cout << std::is_same_v<decltype(v), std::vector<int>>;
+        std::cout << std::is_same_v<decltype(x), int>;
+        std::cout << std::is_same_v<decltype(y), int&> << "\n";
+    }
+  answer: '111'
+  e: |-
+    Trois mécanismes de déduction :
+    - **CTAD** (Class Template Argument Deduction, C++17) : `std::vector v{1,2,3}` déduit `std::vector<int>` sans écrire les chevrons.
+    - `auto x = v[0]` **enlève** la référence : `x` est un `int` indépendant.
+    - `decltype(v[0])` **conserve** exactement le type de l'expression : `operator[]` renvoie `int&`, donc `y` est une référence.
+
+    Règle mnémotechnique : **`auto` déduit comme un paramètre par valeur** (copie, sans références ni const de haut niveau), **`decltype` déduit le type exact de l'expression**.
+
+    `decltype(auto)` combine les deux : il déduit comme `decltype`, ce qui est indispensable pour écrire une fonction de transfert parfait :
+    ```cpp
+    template <class C, class I>
+    decltype(auto) acces(C&& c, I i) { return std::forward<C>(c)[i]; }
+    ```
+- id: cpp08.15
+  type: parsons
+  level: 3
+  concepts:
+  - templates
+  - concepts
+  q: Reconstitue un tampon circulaire générique à capacité fixe, sans allocation.
+  lang: cpp
+  lines:
+  - '#include <array>'
+  - '#include <cstddef>'
+  - ''
+  - template <typename T, std::size_t N>
+  - class Ring {
+  - '    static_assert(N > 0 && (N & (N - 1)) == 0, "N doit etre une puissance de 2");'
+  - '    std::array<T, N> buf_{};'
+  - '    std::size_t tete_ = 0, taille_ = 0;'
+  - 'public:'
+  - '    bool push(const T& v) {'
+  - '        if (taille_ == N) return false;'
+  - '        buf_[tete_] = v;'
+  - '        tete_ = (tete_ + 1) & (N - 1);'
+  - '        ++taille_;'
+  - '        return true;'
+  - '    }'
+  - '    constexpr std::size_t capacite() const noexcept { return N; }'
+  - '};'
+  extra:
+  - '    std::vector<T> buf_;'
+  - '        tete_ = (tete_ + 1) % N;'
+  e: |-
+    Trois décisions propres à l'embarqué :
+    - `std::array<T, N>` membre : **zéro allocation**, tout est dans l'objet. Le premier intrus (`std::vector`) réintroduit le tas.
+    - `static_assert` sur la puissance de 2 : contrat vérifié **à la compilation**, message clair.
+    - `& (N - 1)` au lieu de `% N` (second intrus) : une instruction AND au lieu d'une division. Sur un Cortex-M0 sans diviseur matériel, la division coûte ~20 cycles ; le AND en coûte 1. Le `static_assert` garantit que la substitution est valide.
+
+    `capacite()` est `constexpr` : `std::array<int, r.capacite()>` compile.
+
+    `buf_{}` initialise les éléments à zéro — sans les accolades, un tableau de types triviaux contiendrait des ordures.
+- id: cpp08.16
+  type: qcm
+  level: 3
+  concepts:
+  - templates
+  q: Où doit se trouver la définition d’une fonction template, et pourquoi ?
+  choices:
+  - t: 'Dans l’en-tête : le compilateur doit voir le corps pour instancier le template avec chaque type'
+    ok: true
+    why: L’instanciation a lieu au point d’utilisation, dans une autre unité de traduction.
+  - t: Dans le .cpp, comme toute fonction
+    ok: false
+    why: Tu obtiendrais `undefined reference` au link.
+  - t: Peu importe
+    ok: false
+    why: Le modèle de compilation impose le .h, sauf instanciation explicite.
+  - t: Dans un module
+    ok: false
+    why: Les modules C++20 changent la donne, mais le support reste partiel.
+  e: |-
+    Un template n'est pas du code : c'est une **recette**. Le compilateur ne génère `somme<double>` que quand il rencontre un appel avec `double`, et il lui faut la recette sous les yeux.
+
+    Symptôme si tu te trompes : `undefined reference to 'somme<double>(...)'` au **link**, pas à la compilation.
+
+    Deux échappatoires :
+    1. **Instanciation explicite** dans le .cpp, si tu ne veux exposer qu'un jeu fermé de types :
+    ```cpp
+    template int somme<int>(const std::vector<int>&);
+    template double somme<double>(const std::vector<double>&);
+    ```
+    2. Un fichier `.tpp`/`.ipp` inclus en fin de `.h` — purement cosmétique, mais ça garde l'en-tête lisible.
+
+    Conséquence pratique : les templates alourdissent les temps de compilation, puisque leur corps est recompilé dans chaque unité qui les utilise.

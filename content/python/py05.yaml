@@ -1,0 +1,649 @@
+id: py05
+track: python
+title: Fonctions, portée, closures
+goal: Écrire des fonctions à signature nette et comprendre ce que capture une closure.
+level: avance
+requires:
+- py02
+concepts:
+- signature
+- legb
+- closure
+- first-class
+lesson:
+  minutes: 18
+  intro: |
+    Tu sais écrire une fonction. Ce module t'apprend à écrire des fonctions **qu'on ne peut pas mal appeler**, à savoir exactement quelles variables elles voient, et à te servir du fait qu'en Python une fonction est un objet comme un autre : on peut la ranger dans un dict, la passer en argument, en fabriquer avec une autre fonction. C'est la base des callbacks, des décorateurs et du cache.
+  steps:
+    - level: 1
+      title: La machine et son établi
+      body: |
+        Une fonction, c'est une **machine** de l'atelier : une trémie d'entrée (les paramètres), une goulotte de sortie (`return`). `def` construit la machine et lui colle une étiquette (son nom) ; l'appel `f(...)` la fait tourner.
+
+        À chaque appel, la machine reçoit un **établi neuf** (ses variables locales), débarrassé à la fin de l'appel. Elle peut lire le tableau d'affichage commun de l'atelier (les variables globales), mais écrire dessus est une mauvaise habitude.
+
+        Une **closure**, c'est une machine fabriquée par une autre machine, qui emporte avec elle une petite boîte à outils : les variables de la fonction qui l'a créée.
+    - level: 2
+      title: Signature, portée, fonctions-objets
+      body: |
+        **Signature** : `def mesurer(canal, *, moyenne=10, timeout=1.0)`. Tout ce qui suit l'étoile seule `*` doit être passé **par nom** : `mesurer(3, moyenne=5)` est lisible, `mesurer(3, 5)` est refusé. À l'inverse, ce qui précède un `/` ne peut être passé que par position. `*args` ramasse les arguments positionnels en trop (un tuple), `**kwargs` les arguments nommés en trop (un dict).
+
+        **Portée (LEGB)** : pour lire un nom, Python cherche dans l'ordre Local, Englobant (*Enclosing*, la fonction qui contient la fonction), Global (le module), puis *Builtins* (`len`, `print`…). Mais si une fonction **affecte** un nom n'importe où dans son corps, ce nom est local **dans tout le corps** : le lire avant l'affectation donne `UnboundLocalError`. Pour modifier une variable englobante, il faut `nonlocal` (ou `global` pour le module).
+
+        **Fonctions-objets** : `sorted(v, key=abs)` reçoit une fonction ; `{"C": c_vers_k}` en range une dans un dict ; une fonction peut en renvoyer une autre. Une fonction interne qui utilise une variable de sa fonction englobante la garde vivante : c'est une **closure**. Attention, elle capture **la variable**, pas sa valeur du moment.
+
+        **Décorateur** : écrire `@deco` au-dessus d'un `def f` revient à écrire `f = deco(f)`. C'est une fonction qui prend une fonction et en renvoie une version enrichie (journalisation, chronométrage, cache, nouvelles tentatives).
+      check:
+        q: "Avec `def f(a, *, b=2)`, quel appel lève TypeError ?"
+        choices:
+          - t: "`f(1, 3)`"
+            ok: true
+            why: "`b` est après l'étoile seule : il ne peut être passé que par nom, `f(1, b=3)`."
+          - t: "`f(1)`"
+            why: "`b` a une valeur par défaut, l'appel est valide."
+          - t: "`f(a=1, b=3)`"
+            why: "`a` peut être passé par nom ou par position, `b` par nom : valide."
+    - level: 3
+      title: Signature stricte, table de fonctions, compteur
+      body: |
+        Quatre usages concrets : une signature qui force la lisibilité, un dict de fonctions de conversion, une closure qui garde un état, et le piège des lambdas créées dans une boucle.
+      code: |
+        def mesurer(canal, *, moyenne=10, timeout=1.0):
+            return f"canal {canal} : {moyenne} échantillons, timeout {timeout} s"
+
+        print(mesurer(3, moyenne=5))
+        try:
+            mesurer(3, 5)
+        except TypeError as e:
+            print("TypeError:", e)
+
+        def c_vers_k(t):
+            return t + 273.15
+
+        def f_vers_k(t):
+            return (t - 32) * 5 / 9 + 273.15
+
+        conversions = {"C": c_vers_k, "F": f_vers_k}   # des fonctions rangées dans un dict
+        print(round(conversions["F"](212), 2))
+
+        def compteur():
+            n = 0
+            def suivant():
+                nonlocal n          # modifie la variable de la fonction englobante
+                n += 1
+                return n
+            return suivant
+
+        a, b = compteur(), compteur()
+        print(a(), a(), a(), b())
+
+        fns = [lambda: i for i in range(3)]
+        print([f() for f in fns])                     # capture la variable, pas la valeur
+        fns = [lambda i=i: i for i in range(3)]
+        print([f() for f in fns])                     # valeur figée à la création
+      run: true
+      out: |
+        canal 3 : 5 échantillons, timeout 1.0 s
+        TypeError: mesurer() takes 1 positional argument but 2 were given
+        373.15
+        1 2 3 1
+        [2, 2, 2]
+        [0, 1, 2]
+      after: |
+        Chaque appel de `compteur()` crée un nouvel établi avec son propre `n` : les compteurs `a` et `b` sont indépendants. Et les trois premières lambdas renvoient 2 parce qu'elles lisent `i` **au moment de l'appel**, quand la boucle est terminée.
+    - level: 4
+      title: Décorateurs, closures et cache sous le capot
+      body: |
+        Un décorateur bien écrit accepte n'importe quelle signature (`*args, **kwargs`) et utilise `functools.wraps` pour que la fonction décorée garde son nom et sa documentation (sinon elle s'appelle `enveloppe` dans les messages d'erreur et les outils de test).
+
+        Une closure garde ses variables dans des « cellules » visibles avec `f.__closure__`. Et `functools.lru_cache` est un décorateur de la bibliothèque standard qui mémorise les résultats : un second appel avec les mêmes arguments ne recalcule rien.
+      code: |
+        import functools
+        import time
+
+        def chronometre(fn):
+            @functools.wraps(fn)                  # garde le nom et la doc de fn
+            def enveloppe(*args, **kwargs):
+                t0 = time.perf_counter()
+                resultat = fn(*args, **kwargs)
+                enveloppe.durees.append(time.perf_counter() - t0)
+                return resultat
+            enveloppe.durees = []
+            return enveloppe
+
+        @chronometre                              # équivaut à : lisser = chronometre(lisser)
+        def lisser(v, n=3):
+            """Moyenne glissante sur n points."""
+            return [sum(v[i:i + n]) / n for i in range(len(v) - n + 1)]
+
+        print(lisser([1, 2, 3, 4, 5]))
+        print(lisser.__name__, "|", lisser.__doc__, "|", len(lisser.durees), "appel mesuré")
+
+        def puissance(exposant):
+            def f(x):
+                return x ** exposant
+            return f
+
+        carre = puissance(2)
+        print(carre(7), carre.__closure__[0].cell_contents)
+
+        @functools.lru_cache(maxsize=None)
+        def fib(n):
+            return n if n < 2 else fib(n - 1) + fib(n - 2)
+
+        print(fib(80), fib.cache_info().hits)
+      run: true
+      out: |
+        [2.0, 3.0, 4.0]
+        lisser | Moyenne glissante sur n points. | 1 appel mesuré
+        49 2
+        23416728348467685 78
+      after: |
+        Sans cache, `fib(80)` ferait des milliards de milliards d'appels ; avec, 81 calculs (de `fib(0)` à `fib(80)`) et 78 réponses tirées du cache. C'est l'idée de la **mémoïsation**.
+    - level: 5
+      title: Sur le terrain
+      body: |
+        - Toute option booléenne ou réglage passe **par nom** : `lire(canal, *, brut=False)`. Un appel `lire(3, True)` est illisible six mois plus tard.
+        - Préfère les fonctions **pures** (résultat qui ne dépend que des arguments, aucun effet de bord) : elles se testent en une ligne. Garde les entrées-sorties (fichiers, instruments) aux extrémités du programme.
+        - Callbacks créés dans une boucle (boutons d'interface, événements d'instrument) : fige la valeur avec `functools.partial(lire, canal)`.
+        - Décorateurs utiles au labo : `@functools.lru_cache` pour une conversion coûteuse (tables de thermocouple), un décorateur « réessayer 3 fois » pour une communication capricieuse, un chronomètre. Toujours avec `@functools.wraps`.
+        - `global` est presque toujours un aveu : renvoie une valeur, ou range l'état dans un objet (module Classes).
+  recap:
+    - "Après `*` : arguments par nom uniquement ; avant `/` : par position uniquement."
+    - "LEGB : Local, Englobant, Global, Builtins ; une affectation rend le nom local dans tout le corps."
+    - "Une fonction est un objet : dans un dict, en argument, en valeur de retour."
+    - "Une closure capture la variable, pas sa valeur : `partial` ou `x=x` pour figer."
+    - "`@deco` = `f = deco(f)` ; toujours `functools.wraps` ; `lru_cache` mémorise."
+  pieges: [py-portee-locale, py-closure-tardive, py-print-return]
+exercises:
+- id: py05.1
+  type: predict
+  level: 2
+  concepts:
+  - legb
+  q: Sortie ?
+  code: |-
+    x = "global"
+
+    def externe():
+        x = "externe"
+        def interne():
+            return x
+        return interne()
+
+    print(externe(), x)
+  answer: externe global
+  e: |-
+    Règle **LEGB** : Python cherche un nom dans l'ordre Local → Enclosing (fonction englobante) → Global → Builtins.
+
+    `interne` ne définit pas `x` → il remonte à la portée englobante et trouve `"externe"`.
+
+    Pour **écrire** dans une portée englobante : `nonlocal x`. Pour écrire au niveau module : `global x`. Les deux sont des odeurs de code — préfère renvoyer des valeurs.
+- id: py05.2
+  type: predict
+  level: 3
+  concepts:
+  - closure
+  q: Sortie ? (piège classique)
+  code: |-
+    fns = [lambda: i for i in range(3)]
+    print([f() for f in fns])
+    fns2 = [lambda i=i: i for i in range(3)]
+    print([f() for f in fns2])
+  answer: |-
+    [2, 2, 2]
+    [0, 1, 2]
+  e: |-
+    Une closure capture la **variable**, pas sa valeur. Quand les lambdas sont appelées, la boucle est finie et `i` vaut 2.
+
+    Deux remèdes :
+    1. `lambda i=i: i` — l'argument par défaut est évalué **à la définition**, donc il fige la valeur.
+    2. `functools.partial(f, i)`.
+
+    Ça mord dès que tu connectes des callbacks dans une boucle (`for canal in canaux: bouton.on_click(lambda: lire(canal))`).
+- id: py05.3
+  type: qcm
+  level: 2
+  concepts:
+  - signature
+  q: Que signifie la signature `def f(a, b, /, c, *, d)` ?
+  choices:
+  - t: '`a`,`b` positionnels uniquement ; `c` au choix ; `d` par mot-clé uniquement'
+    ok: true
+    why: 'Exact : `/` ferme le positionnel-seul, `*` ouvre le mot-clé-seul.'
+  - t: '`a`,`b` par mot-clé uniquement ; `d` positionnel'
+    ok: false
+    why: Inversé.
+  - t: '`/` est une division — erreur de syntaxe'
+    ok: false
+    why: Non, c’est valide depuis Python 3.8 (PEP 570).
+  - t: Tous les paramètres sont optionnels
+    ok: false
+    why: 'Aucun n’a de valeur par défaut ici : tous sont requis.'
+  e: |-
+    ```python
+    def f(a, b, /, c, *, d): ...
+    f(1, 2, 3, d=4)      # ok
+    f(1, 2, c=3, d=4)    # ok
+    f(a=1, b=2, c=3, d=4)  # TypeError : a et b sont positionnels-seuls
+    ```
+
+    À quoi ça sert :
+    - `/` te laisse **renommer** `a` plus tard sans casser les appelants.
+    - `*` force les options à être nommées : `mesurer(canal, moyenne=True)` se lit, `mesurer(3, True, False, 2)` non.
+
+    Règle pratique : dès qu’un paramètre est un booléen ou un réglage, mets-le après `*`.
+- id: py05.4
+  type: cloze
+  level: 2
+  concepts:
+  - signature
+  q: Écris un décorateur de journalisation qui accepte n’importe quelle signature.
+  tpl: |-
+    import functools, logging
+
+    def journalise(fn):
+        @functools.⟦0⟧(fn)
+        def enveloppe(⟦1⟧, ⟦2⟧):
+            logging.debug("appel %s", fn.__name__)
+            return fn(*args, **kwargs)
+        return enveloppe
+  blanks:
+  - - wraps
+  - - '*args'
+  - - '**kwargs'
+  e: |-
+    `*args` capture les positionnels dans un **tuple**, `**kwargs` les nommés dans un **dict**.
+
+    `functools.wraps(fn)` recopie `__name__`, `__doc__`, `__module__` et `__wrapped__` sur l’enveloppe. Sans lui, ton décorateur casse l’introspection, les docstrings, et le repérage des tests par pytest.
+
+    **Ne l’oublie jamais** : c’est le défaut n°1 des décorateurs faits maison.
+- id: py05.5
+  type: qcm
+  level: 2
+  concepts:
+  - first-class
+  q: '`sorted(mesures, key=lambda m: m.valeur, reverse=True)` — que fait `key` exactement ?'
+  choices:
+  - t: Elle est appelée **une fois par élément**, et le tri porte sur les valeurs renvoyées
+    ok: true
+    why: 'C’est la « décoration » : n appels, puis tri sur les clés. Stable.'
+  - t: Elle est appelée à chaque comparaison, comme un comparateur
+    ok: false
+    why: C’était `cmp` en Python 2. `key` est en O(n) appels, pas O(n log n).
+  - t: Elle filtre les éléments
+    ok: false
+    why: Non, `key` ne retire rien.
+  - t: Elle doit renvoyer un booléen
+    ok: false
+    why: Elle doit renvoyer quelque chose de comparable.
+  e: |-
+    `key` est appelée **n fois** puis le tri se fait sur les clés : c’est pour ça qu’elle doit être bon marché.
+
+    Le tri Python (Timsort) est **stable** : à clé égale, l’ordre d’origine est conservé. D’où le motif du tri multi-critères :
+
+    ```python
+    m.sort(key=lambda x: x.canal)          # critère secondaire d'abord
+    m.sort(key=lambda x: x.horodatage)     # puis primaire
+    # ou en une fois :
+    m.sort(key=lambda x: (x.horodatage, x.canal))
+    ```
+
+    `operator.attrgetter("valeur")` est plus rapide qu’une lambda si le tri est chaud.
+- id: py05.6
+  type: code
+  level: 3
+  concepts:
+  - closure
+  - first-class
+  q: 'Écris `compteur_appels(fn)` : un décorateur qui préserve la signature **et** expose `enveloppe.appels` (nombre d’appels effectués).'
+  lang: python
+  start: |-
+    import functools
+
+    def compteur_appels(fn):
+        ...
+  sol: |-
+    import functools
+
+    def compteur_appels(fn):
+        @functools.wraps(fn)
+        def enveloppe(*args, **kwargs):
+            enveloppe.appels += 1
+            return fn(*args, **kwargs)
+        enveloppe.appels = 0
+        return enveloppe
+  tests: |-
+    @compteur_appels
+    def carre(x):
+        "doc de carre"
+        return x * x
+
+    assert carre(3) == 9
+    assert carre(4) == 16
+    assert carre.appels == 2, carre.appels
+    assert carre.__name__ == "carre", "utilise functools.wraps"
+    assert carre.__doc__ == "doc de carre"
+
+    @compteur_appels
+    def autre(): return None
+    autre()
+    assert autre.appels == 1 and carre.appels == 2, "les compteurs doivent etre independants"
+    print("OK")
+  e: |-
+    Deux subtilités que le test attrape :
+    1. Sans `functools.wraps`, `carre.__name__` vaudrait `"enveloppe"`.
+    2. Le compteur est un **attribut de la fonction enveloppe**, créée à chaque décoration → indépendant par fonction décorée. Une variable de module serait partagée.
+
+    Alternative sans attribut : `nonlocal n` dans la closure, mais alors il faut l’exposer autrement.
+- id: py05.7
+  type: bug
+  level: 3
+  concepts:
+  - signature
+  q: Clique sur la ligne qui rend cet appel impossible à écrire.
+  code: |-
+    def acquerir(canal, *echantillons, moyenne=False, canal=0):
+        total = sum(echantillons)
+        return total / len(echantillons) if moyenne else total
+  bad: 1
+  fix: 'def acquerir(canal, *echantillons, moyenne=False):'
+  e: |-
+    `canal` est déclaré **deux fois** : `SyntaxError: duplicate argument`. Le second, après `*echantillons`, écrase le premier nom.
+
+    Rappel de l’ordre autorisé dans une signature :
+    ```
+    positionnels, /, standards, *args, mot-clé-seuls, **kwargs
+    ```
+    Tout ce qui suit `*args` est obligatoirement nommé à l’appel.
+  syntax_bug: true
+- id: py05.8
+  type: predict
+  level: 2
+  concepts:
+  - legb
+  q: Sortie ?
+  code: |-
+    x = 1
+    def f():
+        print(x)
+    def g():
+        print(x)
+        x = 2
+    f()
+    try:
+        g()
+    except UnboundLocalError:
+        print("UnboundLocalError")
+  answer: |-
+    1
+    UnboundLocalError
+  e: |-
+    `f` lit le global : aucun problème. `g` **affecte** `x` quelque part dans son corps → Python le classe **local pour tout le corps**, y compris ligne 5, avant l'affectation.
+
+    La décision est prise à la **compilation** de la fonction, pas à l'exécution. C'est pour ça que l'erreur ne dépend pas du chemin pris.
+
+    Vérifie-le toi-même : `g.__code__.co_varnames` contient `'x'`, `f.__code__.co_names` aussi mais pas `co_varnames`.
+- id: py05.9
+  type: code
+  level: 3
+  concepts:
+  - closure
+  q: 'Écris `compteur()` qui renvoie une fonction : chaque appel de cette fonction renvoie 1, 2, 3… Deux compteurs doivent être indépendants.'
+  lang: python
+  start: |-
+    def compteur():
+        ...
+  sol: |-
+    def compteur():
+        n = 0
+        def suivant():
+            nonlocal n
+            n += 1
+            return n
+        return suivant
+  tests: |-
+    a = compteur()
+    b = compteur()
+    assert a() == 1 and a() == 2 and a() == 3
+    assert b() == 1, "les compteurs doivent etre independants"
+    assert a() == 4
+    c = compteur()
+    assert c() == 1
+    print("OK")
+  e: |-
+    `nonlocal n` dit : « `n` n'est ni local ni global, c'est celui de la fonction englobante ». Sans lui, `n += 1` ferait de `n` une variable locale non initialisée → `UnboundLocalError`.
+
+    Chaque appel à `compteur()` crée une **nouvelle** cellule pour `n` : c'est ce qui rend les compteurs indépendants. Tu peux l'inspecter : `a.__closure__[0].cell_contents`.
+
+    Alternative sans `nonlocal` : une liste mutable (`n = [0]` puis `n[0] += 1`) — ça marche parce qu'on **mute** au lieu de rebinder. C'était l'astuce avant Python 3. `nonlocal` est plus clair.
+- id: py05.10
+  type: cloze
+  level: 2
+  concepts:
+  - first-class
+  q: Pré-remplis les premiers arguments d’une fonction de calibration.
+  tpl: |-
+    from functools import ⟦0⟧
+
+    def calibrer(gain, offset, brut):
+        return gain * brut + offset
+
+    calibrer_t1 = ⟦0⟧(calibrer, 0.125, -3.2)
+    print(calibrer_t1(2048))       # il ne reste que la valeur brute à passer
+  blanks:
+  - - partial
+  e: |-
+    `functools.partial(f, *args, **kwargs)` fige les premiers arguments et renvoie un appelable.
+
+    Trois avantages sur une lambda :
+    - Plus rapide (pas de nouvelle frame Python à l'appel).
+    - Introspectable : `calibrer_t1.func`, `.args`, `.keywords`.
+    - **Picklable** — donc utilisable avec `multiprocessing`, contrairement à une lambda.
+
+    Le motif exact pour enregistrer un callback avec un contexte :
+    ```python
+    for canal in canaux:
+        bouton.on_click(partial(lire, canal))   # pas lambda: lire(canal) !
+    ```
+- id: py05.11
+  type: predict
+  level: 3
+  concepts:
+  - signature
+  q: Sortie ?
+  code: |-
+    def f(a, b=2, *args, c=3, **kw):
+        print(a, b, args, c, kw)
+
+    f(1)
+    f(1, 9, 8, 7, c=0, d=5)
+    f(*[1, 2], **{"c": 4})
+  answer: |-
+    1 2 () 3 {}
+    1 9 (8, 7) 0 {'d': 5}
+    1 2 () 4 {}
+  e: |-
+    L'ordre de remplissage :
+    1. les positionnels nommés (`a`, `b`) dans l'ordre ;
+    2. le surplus positionnel va dans `*args` (un **tuple**) ;
+    3. `c` ne peut être passé que **par mot-clé** (il est après `*args`) ;
+    4. le surplus nommé va dans `**kw` (un **dict**).
+
+    `f(*liste, **dico)` déballe à l'appel — c'est l'opération inverse.
+
+    Astuce de relais : `def enveloppe(*args, **kw): return f(*args, **kw)` transmet **n'importe quelle** signature. C'est la base de tout décorateur.
+- id: py05.12
+  type: qcm
+  level: 3
+  concepts:
+  - first-class
+  q: À quoi sert `functools.lru_cache` sur une fonction de conversion capteur ?
+  choices:
+  - t: Mémoriser les résultats pour des arguments déjà vus — utile si la fonction est pure et coûteuse
+    ok: true
+    why: Cache borné (LRU). Les arguments doivent être hashables.
+  - t: Accélérer toutes les fonctions automatiquement
+    ok: false
+    why: Sur une fonction rapide ou à arguments toujours différents, le cache coûte plus qu’il ne rapporte.
+  - t: Rendre la fonction thread-safe
+    ok: false
+    why: Le cache lui-même est protégé, mais ça ne rend pas ta fonction sûre.
+  - t: Persister les résultats sur disque
+    ok: false
+    why: Le cache vit en mémoire et meurt avec le processus.
+  e: |-
+    ```python
+    @functools.lru_cache(maxsize=1024)
+    def linearisation(code_brut: int) -> float:
+        return interpolation_couteuse(code_brut)
+    ```
+
+    Trois conditions **impératives** :
+    1. La fonction est **pure** : mêmes entrées → mêmes sorties, aucun effet de bord. Cacher une lecture de capteur te renverrait une mesure périmée.
+    2. Les arguments sont **hashables** (pas de liste, pas de dict).
+    3. L'espace des entrées est borné, sinon fuite mémoire (`maxsize=None` = illimité).
+
+    `@functools.cache` (3.9+) est `lru_cache(maxsize=None)`. `fn.cache_info()` donne les taux de succès, `fn.cache_clear()` vide.
+- id: py05.13
+  type: bug
+  level: 3
+  concepts:
+  - signature
+  - closure
+  q: Ce décorateur paramétré ne marche pas. Clique sur la ligne à corriger.
+  code: |-
+    import functools
+
+    def reessayer(n):
+        def deco(fn):
+            @functools.wraps(fn)
+            def enveloppe(*a, **k):
+                for _ in range(n):
+                    try:
+                        return fn(*a, **k)
+                    except OSError:
+                        pass
+                raise
+            return enveloppe
+        return deco
+  bad: 11
+  fix: |2-
+                    except OSError as exc:
+                        dernier = exc
+                raise dernier
+  e: |-
+    `raise` sans argument **re-lève l'exception en cours de traitement**. Ici, on est sorti du bloc `except`, donc il n'y en a plus : Python lève `RuntimeError: No active exception to reraise`.
+
+    Il faut mémoriser la dernière exception et la relever explicitement.
+
+    Version correcte et complète :
+    ```python
+    def enveloppe(*a, **k):
+        dernier = None
+        for tentative in range(n):
+            try:
+                return fn(*a, **k)
+            except OSError as exc:
+                dernier = exc
+                time.sleep(0.1 * 2 ** tentative)   # backoff
+        raise dernier
+    ```
+    Sans le `sleep`, un réessai immédiat sur un port série occupé échoue trois fois en 3 µs. **Un réessai sans attente n'est pas un réessai.**
+  fixed: |
+    import functools
+
+    def reessayer(n):
+        def deco(fn):
+            @functools.wraps(fn)
+            def enveloppe(*a, **k):
+                dernier = None
+                for _ in range(n):
+                    try:
+                        return fn(*a, **k)
+                    except OSError as exc:
+                        dernier = exc
+                raise dernier
+            return enveloppe
+        return deco
+- id: py05.14
+  type: predict
+  level: 2
+  concepts:
+  - first-class
+  q: Sortie ?
+  code: |-
+    ops = {"somme": sum, "max": max, "n": len}
+    v = [3, 1, 4]
+    for nom, f in ops.items():
+        print(nom, f(v), end=" | ")
+  answer: 'somme 8 | max 4 | n 3 | '
+  e: |-
+    Les fonctions sont des **objets de première classe** : on les stocke dans un dict, on les passe, on les renvoie.
+
+    C'est le remplaçant idiomatique du `switch` :
+    ```python
+    TRAITEMENTS = {"brut": lambda v: v, "moyenne": moyenne, "fft": fft}
+    resultat = TRAITEMENTS[mode](donnees)
+    ```
+    Plus lisible qu'une cascade de `elif`, et extensible sans toucher au code appelant — c'est un mini système de plugins.
+
+    Depuis 3.10, `match`/`case` est une alternative quand les branches ne sont pas des appels uniformes.
+- id: py05.15
+  type: flash
+  level: 2
+  concepts:
+  - signature
+  q: Que fait `inspect.signature(f)` et à quoi ça sert concrètement ?
+  back: |-
+    Elle renvoie la signature de `f` : noms, valeurs par défaut, annotations, genre de chaque paramètre.
+
+    ```python
+    >>> inspect.signature(lambda a, b=1, *, c: None)
+    <Signature (a, b=1, *, c)>
+    ```
+
+    Usages concrets :
+    - vérifier qu'un callback fourni par l'utilisateur accepte les bons arguments, **avant** de l'appeler ;
+    - générer automatiquement une CLI ou une doc à partir d'une fonction ;
+    - `sig.bind(*args, **kw)` valide un appel sans l'exécuter.
+  e: Si un décorateur oublie `functools.wraps`, `inspect.signature` renvoie `(*args, **kwargs)` au lieu de la vraie signature — et ton éditeur perd l'autocomplétion. C'est la raison technique derrière la règle « toujours `@wraps` ».
+- id: py05.16
+  type: parsons
+  level: 3
+  concepts:
+  - closure
+  - first-class
+  q: Reconstitue un décorateur qui limite la fréquence d’appel d’une fonction (au plus un appel toutes les `periode` secondes).
+  lang: python
+  lines:
+  - import functools, time
+  - ''
+  - 'def limiter(periode: float):'
+  - '    def deco(fn):'
+  - '        dernier = 0.0'
+  - '        @functools.wraps(fn)'
+  - '        def enveloppe(*a, **k):'
+  - '            nonlocal dernier'
+  - '            attente = periode - (time.monotonic() - dernier)'
+  - '            if attente > 0:'
+  - '                time.sleep(attente)'
+  - '            dernier = time.monotonic()'
+  - '            return fn(*a, **k)'
+  - '        return enveloppe'
+  - '    return deco'
+  extra:
+  - '            dernier = time.time()'
+  - '        dernier = None'
+  e: |-
+    Trois niveaux de fonctions : `limiter(periode)` → `deco(fn)` → `enveloppe(*a)`. C'est la structure obligatoire d'un décorateur **paramétré**.
+
+    `nonlocal dernier` : sans lui, `dernier = ...` créerait une locale et la limite ne tiendrait jamais.
+
+    `time.monotonic()` et non `time.time()` : l'horloge murale peut reculer (NTP, changement d'heure) et bloquerait ton programme pendant une heure.
+
+    Usage typique : un instrument qui refuse plus d'une commande toutes les 100 ms.
+    ```python
+    @limiter(0.1)
+    def envoyer(cmd): ...
+    ```

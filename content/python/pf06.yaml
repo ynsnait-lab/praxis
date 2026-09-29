@@ -1,0 +1,308 @@
+id: pf06
+track: python
+title: Listes
+goal: Stocker une série de valeurs, y accéder, la modifier et la trier sans casser les autres variables qui la partagent.
+level: fondations
+requires: [pf05]
+concepts: [listes, index, slicing, aliasing]
+lesson:
+  minutes: 16
+  intro: |
+    Une série de mesures, les broches d'une carte, les étapes d'un essai : dès qu'il y a « plusieurs », il y a une liste. C'est la structure la plus utilisée en Python. Elle est simple à prendre en main, avec un piège de taille : une liste n'est **pas copiée** quand on la donne à une autre variable.
+  steps:
+    - level: 1
+      title: Une rangée de casiers numérotés
+      body: |
+        Imagine une rangée de casiers. Chaque casier contient une valeur et porte un **numéro**, l'**index**, qui commence à **0** : le premier casier est le n°0, le deuxième le n°1…
+
+        ```python
+        mesures = [21.5, 22.0, 21.8, 23.1]
+        #  index :   0     1     2     3
+        #  depuis la fin : -4 -3   -2    -1
+        ```
+
+        - `mesures[0]` → 21.5 (le premier) ; `mesures[3]` → 23.1.
+        - Les index **négatifs** comptent depuis la fin : `mesures[-1]` → 23.1 (le dernier).
+        - `len(mesures)` → 4 (le nombre de casiers). Le dernier index est donc `len - 1`.
+        - `mesures[4]` → `IndexError` : il n'y a pas de 5ᵉ casier.
+    - level: 2
+      title: Modifier une liste
+      body: |
+        Une liste est **modifiable** (on dit *mutable*) : on peut changer un casier, en ajouter, en enlever.
+      code: |
+        mesures = [21.5, 22.0]
+        mesures.append(21.8)        # ajoute à la fin
+        mesures.insert(0, 20.9)     # insère à l'index 0
+        mesures[1] = 21.6           # remplace
+        print(mesures, len(mesures))
+        dernier = mesures.pop()     # retire et renvoie le dernier
+        mesures.remove(21.6)        # retire la première valeur égale à 21.6
+        print(mesures, dernier)
+        print(22.0 in mesures, 99 in mesures)
+      run: true
+      out: |
+        [20.9, 21.6, 22.0, 21.8] 4
+        [20.9, 22.0] 21.8
+        True False
+    - level: 3
+      title: Tranches, tri et fonctions utiles
+      body: |
+        Une **tranche** (*slice*) `liste[a:b]` donne une **nouvelle** liste avec les éléments de l'index `a` inclus à `b` exclu — même règle que `range`. On peut omettre un bout : `liste[:3]` (les 3 premiers), `liste[-2:]` (les 2 derniers), `liste[::2]` (un sur deux).
+
+        Pour les statistiques simples, Python fournit `sum`, `min`, `max`, `len`, `sorted`.
+      code: |
+        m = [23.1, 21.5, 22.0, 21.8, 24.4, 22.3]
+        print(m[1:4])      # index 1, 2, 3
+        print(m[-2:])      # les deux derniers
+        print(m[::2])      # un sur deux
+        print(min(m), max(m), round(sum(m) / len(m), 2))
+        print(sorted(m))   # nouvelle liste triée, m inchangée
+        print(m)
+        carres = [x ** 2 for x in [1, 2, 3, 4]]     # liste en compréhension
+        grandes = [x for x in m if x > 22.5]
+        print(carres, grandes)
+      run: true
+      out: |
+        [21.5, 22.0, 21.8]
+        [24.4, 22.3]
+        [23.1, 22.0, 24.4]
+        21.5 24.4 22.52
+        [21.5, 21.8, 22.0, 22.3, 23.1, 24.4]
+        [23.1, 21.5, 22.0, 21.8, 24.4, 22.3]
+        [1, 4, 9, 16] [23.1, 24.4]
+      after: |
+        La dernière écriture, `[x ** 2 for x in liste]`, est une **liste en compréhension** : une boucle `for` + `append` condensée en une ligne. On peut y ajouter un filtre `if`. C'est l'idiome Python par excellence pour transformer ou filtrer.
+    - level: 4
+      title: "Le piège : b = a ne copie pas"
+      body: |
+        Souviens-toi de l'image des étiquettes : `b = a` colle une deuxième étiquette sur **la même liste**. Il n'y a qu'une liste, avec deux noms. Si tu la modifies par l'un des noms, l'autre « voit » la modification.
+
+        Avec les nombres et les textes, on ne s'en rend pas compte, car on ne peut pas les modifier (on ne fait que recoller des étiquettes). Avec une liste, qui se modifie **sur place**, ça saute aux yeux.
+      code: |
+        reference = [1.0, 2.0, 3.0]
+        travail = reference          # même liste, deuxième nom
+        travail.append(4.0)
+        print(reference)             # modifiée aussi !
+
+        copie = reference.copy()     # vraie copie (ou list(reference), ou reference[:])
+        copie.append(5.0)
+        print(reference, copie)
+        print(travail is reference, copie is reference)
+      run: true
+      out: |
+        [1.0, 2.0, 3.0, 4.0]
+        [1.0, 2.0, 3.0, 4.0] [1.0, 2.0, 3.0, 4.0, 5.0]
+        True False
+      after: |
+        Deuxième piège de la même famille : `liste.sort()` trie **sur place** et renvoie `None`. Écrire `m = m.sort()` remplace donc ta liste par `None`. Pour obtenir une nouvelle liste triée, utilise `sorted(m)`.
+      check:
+        q: "`a = [3, 1, 2]`, puis `b = a`, puis `b.sort()`. Que vaut `a` ?"
+        choices:
+          - t: "`[1, 2, 3]`"
+            ok: true
+            why: "`a` et `b` désignent la même liste, triée sur place par `b.sort()`."
+          - t: "`[3, 1, 2]`"
+            why: "Ce serait le cas avec `b = a.copy()` ou `b = sorted(a)`."
+          - t: "`None`"
+            why: "`sort()` renvoie `None`, mais ici on ne range pas ce retour dans `a`."
+    - level: 5
+      title: Bonnes pratiques
+      body: |
+        - **Ne modifie jamais une liste pendant que tu la parcours** avec `for` : supprimer des éléments décale les index, et la boucle en saute. Construis plutôt une nouvelle liste filtrée : `propres = [m for m in mesures if m is not None]`.
+        - **Copie avant de modifier** une liste reçue d'ailleurs, si l'appelant ne s'y attend pas.
+        - Une liste de listes (un tableau 2D) se copie avec `copy.deepcopy` : `.copy()` ne copie que le premier niveau.
+        - Pour des milliers de valeurs numériques et des calculs vectoriels, la bibliothèque **NumPy** (module avancé) est 10 à 100 fois plus rapide qu'une liste.
+  recap:
+    - "Index de 0 à `len - 1` ; `liste[-1]` est le dernier ; au-delà : `IndexError`."
+    - "`append`, `insert`, `pop`, `remove`, `in`, `len`, `sum`, `min`, `max`."
+    - "Tranche `liste[a:b]` : a inclus, b exclu, **nouvelle** liste. Compréhension : `[f(x) for x in l if cond]`."
+    - "`b = a` ne copie pas : deux noms pour la même liste. Copie : `a.copy()`."
+    - "`l.sort()` trie sur place et renvoie `None` ; `sorted(l)` renvoie une nouvelle liste."
+  pieges: [py-aliasing-liste, py-sort-none, py-modifier-en-iterant]
+exercises:
+  - id: pf06.1
+    type: predict
+    level: 1
+    q: Qu'affiche ce script ?
+    code: |
+      v = [10, 20, 30, 40, 50]
+      print(v[1], v[-1], len(v))
+      print(v[1:3])
+    answer: |
+      20 50 5
+      [20, 30]
+    trap_answers:
+      - |
+        10 50 5
+        [10, 20, 30]
+    e: "Index 1 = deuxième élément (on compte depuis 0). `v[-1]` = dernier. La tranche `[1:3]` prend les index 1 et 2 (3 exclu)."
+  - id: pf06.2
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      a = [1, 2, 3]
+      b = a
+      b.append(4)
+      print(a)
+      print(len(b))
+    answer: |
+      [1, 2, 3, 4]
+      4
+    trap_answers:
+      - |
+        [1, 2, 3]
+        4
+    piege: py-aliasing-liste
+    e: "`b = a` ne crée pas de nouvelle liste : `a` et `b` sont deux noms pour **la même**. `append` modifie cette liste unique."
+  - id: pf06.3
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      m = [3, 1, 2]
+      m = m.sort()
+      print(m)
+    answer: None
+    trap_answers: ["[1, 2, 3]"]
+    piege: py-sort-none
+    e: "`sort()` trie **sur place** et renvoie `None`. En écrivant `m = m.sort()`, tu remplaces ta liste par ce `None`. Écris `m.sort()` seul, ou `m = sorted(m)`."
+  - id: pf06.4
+    type: qcm
+    level: 1
+    q: "`capteurs = [\"A\", \"B\", \"C\"]`. Que fait `capteurs[3]` ?"
+    choices:
+      - t: "`IndexError`"
+        ok: true
+        why: "Trois éléments → index 0, 1, 2. L'index 3 n'existe pas."
+      - t: "Renvoie `\"C\"`"
+        why: "`\"C\"` est à l'index 2 (ou −1)."
+      - t: "Renvoie `None`"
+        why: "Python ne renvoie pas `None` pour un index absent : il lève une erreur."
+    e: "Le dernier index valide est `len(liste) - 1`. C'est l'erreur « à un près » la plus classique."
+  - id: pf06.5
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      m = [5, 8, -1, 7, -3, -2, 4]
+      for x in m:
+          if x < 0:
+              m.remove(x)
+      print(m)
+    answer: "[5, 8, 7, -2, 4]"
+    trap_answers: ["[5, 8, 7, 4]"]
+    piege: py-modifier-en-iterant
+    e: |
+      Supprimer pendant qu'on parcourt décale les éléments. Après la suppression de `-1`, la liste a rétréci ; quand `-3` est supprimé (il est alors à l'index 3), `-2` glisse à l'index 3… que la boucle vient de visiter. Elle passe à l'index 4 et ne voit jamais `-2`.
+
+      La bonne méthode : construire une nouvelle liste. `m = [x for x in m if x >= 0]`.
+  - id: pf06.6
+    type: cloze
+    level: 1
+    q: Complète pour garder seulement les mesures positives, et les mettre au carré.
+    tpl: |
+      m = [3, -1, 4, -5, 2]
+      res = [x ⟦0⟧ 2 for x ⟦1⟧ m ⟦2⟧ x > 0]
+      print(res)
+    blanks:
+      - ["**"]
+      - [in]
+      - [if]
+    run: true
+    out: "[9, 16, 4]"
+    e: "Forme générale : `[expression for variable in collection if condition]`. On lit : « x² pour chaque x de m, si x > 0 »."
+  - id: pf06.7
+    type: code
+    level: 1
+    q: |
+      Écris `amplitude(mesures)` qui renvoie `max - min` d'une liste de nombres, ou `0` si la liste est vide.
+    start: |
+      def amplitude(mesures):
+          ...
+    sol: |
+      def amplitude(mesures):
+          if not mesures:
+              return 0
+          return max(mesures) - min(mesures)
+    tests: |
+      assert amplitude([3, 9, 4]) == 6
+      assert amplitude([5]) == 0
+      assert amplitude([]) == 0, "max([]) lève une erreur : traite la liste vide à part"
+      assert amplitude([-2, 2]) == 4
+      print("OK")
+    e: "`max([])` lève `ValueError: max() iterable argument is empty`. Ici, `if not mesures` est le bon test : une liste vide est « fausse »."
+  - id: pf06.8
+    type: code
+    level: 2
+    q: |
+      Écris `moyenne_glissante_3(v)` qui renvoie la liste des moyennes de 3 valeurs consécutives. Exemple : `[1, 2, 3, 4]` → `[2.0, 3.0]`. Si `v` a moins de 3 éléments, renvoie `[]`. Ne modifie pas `v`.
+    start: |
+      def moyenne_glissante_3(v):
+          ...
+    sol: |
+      def moyenne_glissante_3(v):
+          return [(v[i] + v[i + 1] + v[i + 2]) / 3 for i in range(len(v) - 2)]
+    tests: |
+      assert moyenne_glissante_3([1, 2, 3, 4]) == [2.0, 3.0]
+      assert moyenne_glissante_3([3, 3, 3]) == [3.0]
+      assert moyenne_glissante_3([1, 2]) == []
+      assert moyenne_glissante_3([]) == []
+      src = [6, 0, 3, 9]
+      moyenne_glissante_3(src)
+      assert src == [6, 0, 3, 9], "ne modifie pas la liste reçue"
+      print("OK")
+    hint: "Pour une liste de longueur n, il y a n − 2 fenêtres de 3. La fenêtre qui commence à i contient v[i], v[i+1], v[i+2]."
+    e: "Nombre de fenêtres : `len(v) - 2`. Pour `len(v) < 3`, `range` d'un nombre ≤ 0 est vide : la liste résultat aussi, sans cas particulier. Autre écriture : `sum(v[i:i+3]) / 3`."
+  - id: pf06.9
+    type: bug
+    level: 2
+    q: "Cette fonction doit renvoyer une version normalisée (entre 0 et 1) de la liste, sans toucher à l'originale. Or après l'appel, la liste d'origine est modifiée. Quelle ligne corriger ?"
+    code: |
+      def normaliser(v):
+          res = v
+          mx = max(v)
+          for i in range(len(res)):
+              res[i] = res[i] / mx
+          return res
+    bad: 2
+    fix: "    res = v.copy()"
+    piege: py-aliasing-liste
+    e: "`res = v` ne copie rien : on modifie la liste de l'appelant. Avec `v.copy()`, on travaille sur une copie. Encore mieux : `return [x / mx for x in v]`."
+  - id: pf06.10
+    type: predict
+    level: 3
+    q: Qu'affiche ce script ?
+    code: |
+      grille = [[0] * 2] * 2
+      grille[0][0] = 7
+      print(grille)
+    answer: "[[7, 0], [7, 0]]"
+    trap_answers: ["[[7, 0], [0, 0]]"]
+    piege: py-aliasing-liste
+    e: |
+      `[[0] * 2] * 2` crée **une** ligne `[0, 0]`, puis une liste contenant **deux fois la même** ligne. Modifier l'une modifie « l'autre », puisque c'est la même.
+
+      Pour un vrai tableau 2D : `grille = [[0] * 2 for _ in range(2)]` (une nouvelle ligne à chaque tour).
+  - id: pf06.11
+    type: flash
+    level: 1
+    q: "Trois façons de copier une liste `a` ? Et quand faut-il `copy.deepcopy` ?"
+    back: |
+      `a.copy()`, `list(a)`, `a[:]` : copies **superficielles** (un nouveau conteneur, mêmes éléments).
+
+      `copy.deepcopy(a)` quand la liste contient elle-même des listes (ou dicts) que tu vas modifier.
+    e: "Pour une liste de nombres ou de textes, la copie superficielle suffit : ces éléments ne se modifient pas."
+  - id: pf06.12
+    type: qcm
+    level: 2
+    q: "Que renvoie `[1, 2, 3, 4, 5, 6][::-2]` ?"
+    choices:
+      - t: "`[6, 4, 2]`"
+        ok: true
+        why: "Un pas négatif parcourt depuis la fin : 6, puis 4, puis 2."
+      - t: "`[5, 3, 1]`"
+        why: "Avec un pas de −2, on part du dernier élément (6), pas de l'avant-dernier."
+      - t: "`[1, 3, 5]`"
+        why: "Ce serait `[::2]`."
+    e: "`liste[::-1]` renvoie la liste à l'envers ; `[::-2]` un élément sur deux en partant de la fin."

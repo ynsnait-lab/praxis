@@ -1,0 +1,747 @@
+id: cpp14
+track: cpp
+title: Performance & structure mémoire
+goal: Raisonner cache, allocation et coût réel avant d’optimiser au pif.
+level: avance
+requires:
+- cpp06
+- cpp09
+concepts:
+- cache
+- alignement
+- cout-abstraction
+- mesure
+lesson:
+  minutes: 20
+  intro: |
+    Deux boucles qui font exactement le même calcul peuvent avoir cinq fois d'écart de vitesse, uniquement à cause de l'**ordre** dans lequel elles lisent la mémoire. Sur un processeur moderne, ce qui coûte, ce ne sont presque jamais les calculs : ce sont les allers-retours vers la mémoire. Ce module te donne le modèle mental (caches, lignes de cache, disposition des données), la façon de mesurer sans se mentir, et la méthode pour optimiser ce qui compte vraiment.
+  steps:
+    - level: 1
+      title: Le plan de travail et la cave
+      body: |
+        Imagine un cuisinier : le **plan de travail** est à portée de main, la **cave** est au sous-sol. Aller à la cave prend cent fois plus de temps que prendre un ingrédient sur le plan de travail. Heureusement, à chaque descente, il remonte **une caisse entière** d'ingrédients voisins, et s'il voit que tu prends les caisses dans l'ordre, il anticipe et remonte la suivante avant que tu la demandes.
+
+        Pour le processeur, le plan de travail, c'est le **cache** (quelques Mo, accès en une nanoseconde), la cave, c'est la **RAM** (accès en une centaine de nanosecondes), et la caisse, c'est une **ligne de cache** : 64 octets sur la plupart des processeurs, 128 sur les puces Apple. Conclusion : un programme rapide utilise des données **voisines**, dans l'**ordre**.
+    - level: 2
+      title: Mémoire, disposition, coûts réels
+      body: |
+        - **Hiérarchie** : registres, cache L1 (environ 1 ns), L2, L3 (une dizaine de ns), RAM (environ 100 ns). Un accès qui manque le cache coûte l'équivalent de centaines d'opérations arithmétiques.
+        - Une matrice C++ `m[i * n + j]` (ou `double m[n][n]`) est rangée **par lignes** : la boucle intérieure doit faire varier `j`, pas `i`.
+        - **Tableau de structures** (AoS, `std::vector<Mesure>`) ou **structure de tableaux** (SoA, un `std::vector` par champ) : si un traitement ne lit qu'un champ, la SoA ne charge que des données utiles.
+        - **Allocations** : chaque `new` coûte des dizaines de nanosecondes et disperse les objets. `reserve`, réutilisation des tampons, conteneurs contigus.
+        - **Abstractions gratuites** en `-O2` : `std::vector`, `std::array`, itérateurs, lambdas, templates, `std::span`. **Abstractions qui coûtent** : appel `virtual` dans une boucle intérieure (pas d'intégration en ligne), `std::function`, copie de `std::shared_ptr` (compteur atomique), exception lancée, `std::endl` (vidage du tampon).
+        - **Mesurer** : en `-O2`, sur des données réalistes, plusieurs essais dont on garde le meilleur (ou la médiane), avec `std::chrono::steady_clock`, et en **utilisant** le résultat pour que le compilateur ne supprime pas le calcul.
+      check:
+        q: Parcourir une matrice 2000 × 2000 par lignes est environ cinq fois plus rapide que par colonnes. Pourquoi ?
+        choices:
+          - t: Par lignes, les éléments lus sont voisins en mémoire et chaque ligne de cache chargée sert entièrement
+            ok: true
+            why: Par colonnes, chaque accès saute de 16 000 octets, charge une ligne de cache entière pour un seul `double`, et déjoue la lecture anticipée.
+          - t: Le compilateur vectorise mieux les boucles écrites dans cet ordre, c'est tout
+            why: La vectorisation joue un peu, mais l'essentiel de l'écart vient des défauts de cache.
+          - t: Les colonnes ont plus d'éléments que les lignes
+            why: La matrice est carrée : même nombre d'éléments, même calcul, seul l'ordre des accès change.
+    - level: 3
+      title: Mesurer l'effet du cache
+      body: |
+        Même calcul, même résultat, seul l'ordre de parcours change. Ce code a été compilé en `g++ -O2` et exécuté sur un serveur Intel ; sur ton Mac, les temps seront différents, mais le rapport restera net.
+      code: |
+        #include <chrono>
+        #include <cstdio>
+        #include <vector>
+
+        int main() {
+            const std::size_t n = 2000;
+            std::vector<double> m(n * n, 1.0);                     // matrice n × n, rangée par lignes
+
+            auto chrono = [](auto&& f) {                           // meilleur de 5 essais, en ms
+                double meilleur = 1e9;
+                for (int essai = 0; essai < 5; ++essai) {
+                    auto t0 = std::chrono::steady_clock::now();
+                    f();
+                    std::chrono::duration<double, std::milli> d = std::chrono::steady_clock::now() - t0;
+                    if (d.count() < meilleur) meilleur = d.count();
+                }
+                return meilleur;
+            };
+
+            double s1 = 0, s2 = 0;
+            double t_lignes = chrono([&] {
+                s1 = 0;
+                for (std::size_t i = 0; i < n; ++i)
+                    for (std::size_t j = 0; j < n; ++j) s1 += m[i * n + j];    // cases voisines
+            });
+            double t_colonnes = chrono([&] {
+                s2 = 0;
+                for (std::size_t j = 0; j < n; ++j)
+                    for (std::size_t i = 0; i < n; ++i) s2 += m[i * n + j];    // sauts de 16 000 octets
+            });
+            std::printf("par lignes   : %.1f ms (somme %.0f)\n", t_lignes, s1);
+            std::printf("par colonnes : %.1f ms (somme %.0f)\n", t_colonnes, s2);
+            std::printf("rapport : %.1f\n", t_colonnes / t_lignes);
+        }
+      verify: false
+      out: |
+        par lignes   : 2.9 ms (somme 4000000)
+        par colonnes : 13.7 ms (somme 4000000)
+        rapport : 4.7
+      after: |
+        Remarque les sommes affichées : sans elles, le compilateur aurait pu supprimer les boucles, dont le résultat ne servait à rien, et le chronomètre aurait mesuré le vide.
+    - level: 4
+      title: La disposition des données sous le capot
+      body: |
+        Le compilateur range les membres d'une `struct` dans l'ordre de déclaration, en insérant du **remplissage** pour respecter l'alignement de chacun : ranger les membres du plus grand au plus petit réduit la taille. Pour une moyenne sur un million de mesures, une organisation en structure de tableaux ne lit que les valeurs utiles, soit quatre fois moins de mémoire ici.
+
+        Dernier phénomène : deux threads qui écrivent chacun dans **leur** compteur, mais dans la même ligne de cache, se la disputent sans cesse entre leurs cœurs (*false sharing*). `alignas(64)` donne à chaque compteur sa propre ligne (128 sur Apple Silicon).
+      code: |
+        #include <cstddef>
+        #include <cstdint>
+        #include <cstdio>
+        #include <vector>
+
+        struct MesureAoS {              // tableau de structures : une mesure = un bloc
+            std::uint64_t horodatage;   // 8 octets
+            std::uint8_t canal;         // 1 octet (+ 3 de remplissage)
+            float valeur;               // 4 octets
+        };
+
+        struct MalRangee { std::uint8_t a; double b; std::uint8_t c; };
+        struct BienRangee { double b; std::uint8_t a; std::uint8_t c; };    // du plus grand au plus petit
+
+        struct SerieSoA {               // structure de tableaux : un tableau par champ
+            std::vector<std::uint64_t> horodatage;
+            std::vector<std::uint8_t> canal;
+            std::vector<float> valeur;
+        };
+
+        struct alignas(64) CompteurParThread {   // une ligne de cache chacun : pas de faux partage
+            std::uint64_t n = 0;
+        };
+
+        int main() {
+            std::printf("MesureAoS : %zu octets, dont %zu utiles pour une moyenne\n", sizeof(MesureAoS), sizeof(float));
+            std::printf("MalRangee : %zu octets, BienRangee : %zu octets\n", sizeof(MalRangee), sizeof(BienRangee));
+            constexpr std::size_t N = 1'000'000;
+            std::printf("moyenne sur %zu mesures : %zu Mo lus en AoS, %zu Mo en SoA\n", N,
+                        N * sizeof(MesureAoS) / 1'000'000, N * sizeof(float) / 1'000'000);
+            std::printf("CompteurParThread : %zu octets, aligné sur %zu\n", sizeof(CompteurParThread),
+                        alignof(CompteurParThread));
+            SerieSoA s;
+            s.valeur.assign(N, 1.0f);
+            double somme = 0.0;
+            for (float v : s.valeur) somme += v;       // parcours contigu d'un seul champ
+            std::printf("somme = %.0f\n", somme);
+        }
+      out: |
+        MesureAoS : 16 octets, dont 4 utiles pour une moyenne
+        MalRangee : 24 octets, BienRangee : 16 octets
+        moyenne sur 1000000 mesures : 16 Mo lus en AoS, 4 Mo en SoA
+        CompteurParThread : 64 octets, aligné sur 64
+        somme = 1000000
+    - level: 5
+      title: Sur le terrain
+      body: |
+        La méthode, dans l'ordre :
+        1. **Mesurer** le programme complet, en `-O2`, sur des données réalistes. Fixer un objectif chiffré.
+        2. **Profiler** pour trouver où part le temps : Instruments (*Time Profiler*) sur Mac, `perf record` puis `perf report` sous Linux.
+        3. Corriger la **cause principale** : algorithme et complexité, puis disposition des données (contiguë, SoA), puis allocations et entrées-sorties.
+        4. **Remesurer**, et garder la version simple si le gain est dans le bruit.
+
+        - Micro-mesures sérieuses : la bibliothèque Google Benchmark (`benchmark::DoNotOptimize`).
+        - En local, `-O2 -march=native` exploite toutes les instructions de ta machine (pas pour un binaire distribué) ; `-flto` optimise à travers les fichiers.
+        - À éviter dans une boucle critique : allocations, `std::endl`, appels `virtual`, `std::list` et `std::map` de petits éléments (pointeurs dispersés).
+        - En embarqué, mesure le temps réel : compteur de cycles (`DWT->CYCCNT` sur Cortex-M, `esp_cpu_get_cycle_count()` sur ESP32) ou une broche basculée à l'entrée et à la sortie d'une routine, observée à l'oscilloscope.
+  recap:
+    - "Le coût est dans les accès mémoire : données voisines, parcourues dans l'ordre."
+    - "Matrice rangée par lignes : boucle intérieure sur les colonnes (`j`)."
+    - "SoA quand un traitement ne lit qu'un champ ; membres du plus grand au plus petit ; `alignas` contre le faux partage."
+    - "Abstractions gratuites en `-O2` ; `virtual`, `std::function`, allocations et `std::endl` coûtent."
+    - "Mesurer, profiler, corriger la cause, remesurer ; toujours utiliser le résultat mesuré."
+  pieges: [cpp-optimiser-sans-mesurer, cpp-benchmark-elimine, cpp-endl-boucle]
+exercises:
+- id: cpp14.1
+  type: qcm
+  level: 3
+  concepts:
+  - cache
+  q: Parcourir une matrice 2000×2000 par lignes est ~5× plus rapide que par colonnes. Pourquoi ?
+  choices:
+  - t: 'Localité spatiale : une ligne de cache (64 octets) apporte 8 doubles voisins, tous utilisés si on va par lignes'
+    ok: true
+    why: Par colonnes, chaque accès charge une ligne de cache dont on n’utilise qu’un élément.
+  - t: Le compilateur optimise mieux les boucles sur `i`
+    ok: false
+    why: L’ordre des boucles compte, mais la cause est matérielle.
+  - t: La mémoire est plus rapide en lecture séquentielle par nature
+    ok: false
+    why: Le préchargement aide, mais c’est bien la ligne de cache qui domine.
+  - t: C’est un mythe
+    ok: false
+    why: C’est mesurable sur n’importe quelle machine.
+  e: |-
+    En C/C++, un tableau 2D est stocké **par lignes** (row-major). `m[i][j]` et `m[i][j+1]` sont voisins en mémoire ; `m[i][j]` et `m[i+1][j]` sont séparés de 2000 × 8 = 16 ko.
+
+    Ordres de grandeur à connaître :
+
+    | Accès | Coût |
+    | --- | --- |
+    | registre | ~0 cycle |
+    | cache L1 | ~4 cycles |
+    | cache L2 | ~12 cycles |
+    | cache L3 | ~40 cycles |
+    | RAM | ~200 cycles |
+
+    Un défaut de cache coûte 50× un accès L1. C’est pour ça qu’un `std::vector` bat presque toujours une `std::list`, même quand la théorie donne l’avantage à la liste chaînée.
+
+    Note : NumPy et Fortran sont **column-major** — l’ordre optimal s’inverse.
+- id: cpp14.2
+  type: qcm
+  level: 3
+  concepts:
+  - cout-abstraction
+  q: Quelle abstraction C++ coûte réellement quelque chose à l’exécution ?
+  choices:
+  - t: Un appel `virtual` (indirection + barrière à l’inlining)
+    ok: true
+    why: Un appel indirect, et surtout l’impossibilité d’inliner et de déduire.
+  - t: '`std::array<int,4>` au lieu de `int[4]`'
+    ok: false
+    why: Strictement identique après compilation.
+  - t: Une lambda passée à `std::sort`
+    ok: false
+    why: 'Inlinée : souvent **plus rapide** que `qsort` avec son pointeur de fonction.'
+  - t: '`const auto&` dans une boucle sur intervalle'
+    ok: false
+    why: Zéro coût, et évite des copies.
+  e: |-
+    « Zero-overhead » veut dire : *tu ne payes pas pour ce que tu n’utilises pas, et ce que tu utilises, tu ne pourrais pas le coder mieux à la main.*
+
+    Coûtent vraiment :
+    - `virtual` — appel indirect, pas d’inlining, +8 octets par objet.
+    - `std::function` — effacement de type, parfois une allocation. Préfère un template ou une lambda concrète dans un chemin chaud.
+    - `shared_ptr` — compteur atomique (barrières mémoire).
+    - Exceptions — en taille binaire.
+    - `dynamic_cast`, RTTI.
+
+    Ne coûtent rien : templates, `constexpr`, RAII, lambdas, `std::array`, `span`, références, `unique_ptr` (identique à un pointeur nu).
+- id: cpp14.3
+  type: cloze
+  level: 2
+  concepts:
+  - mesure
+  q: Chronomètre correctement un bloc de code.
+  lang: cpp
+  tpl: |-
+    #include <chrono>
+
+    long long chronometrer() {
+        auto t0 = std::chrono::⟦0⟧::now();
+        travailler();
+        auto t1 = std::chrono::⟦0⟧::now();
+        return std::chrono::duration_cast<std::chrono::⟦1⟧>(t1 - t0).count();
+    }
+  blanks:
+  - - steady_clock
+    - high_resolution_clock
+  - - microseconds
+  e: |-
+    `steady_clock` est **monotone** : il ne recule jamais, contrairement à `system_clock` qui suit l’heure murale (NTP, changement d’heure). Pour mesurer une durée, c’est le seul choix correct.
+
+    `high_resolution_clock` est souvent un alias de l’un des deux selon l’implémentation — d’où la préférence pour `steady_clock`, explicite.
+
+    Méthode de mesure honnête :
+    1. Compile en `-O2` (mesurer du `-O0` ne veut rien dire).
+    2. Répète 1000 fois et prends la **médiane**, pas la moyenne.
+    3. Empêche l’élimination du code mort : utilise le résultat (`volatile auto sink = r;`).
+    4. Compare toujours à une référence, jamais dans l’absolu.
+
+    Pour aller plus loin : `perf stat ./app` sous Linux te donne les défauts de cache et les mauvaises prédictions de branchement.
+  verify_prelude: |
+    inline void travailler() {}
+- id: cpp14.4
+  type: qcm
+  level: 3
+  concepts:
+  - cache
+  - vector
+  q: Tu stockes 10⁶ mesures `{timestamp, valeur, canal}` et tu ne fais que des moyennes sur `valeur`. Quelle organisation est la plus rapide ?
+  choices:
+  - t: Trois vecteurs séparés (structure de tableaux, SoA)
+    ok: true
+    why: 'Le parcours de `valeur` ne charge que des `valeur` : cache utilisé à 100 %, et vectorisation SIMD possible.'
+  - t: Un `vector<Mesure>` (tableau de structures, AoS)
+    ok: false
+    why: 'Chaque ligne de cache contient timestamp et canal inutiles : ~1/3 de la bande passante utile.'
+  - t: Une `list<Mesure>`
+    ok: false
+    why: 'Le pire : un nœud alloué par élément, aucune localité.'
+  - t: Un `map<timestamp, Mesure>`
+    ok: false
+    why: 'Arbre + allocations : encore plus dispersé.'
+  e: |-
+    **AoS vs SoA.** Avec `struct Mesure { uint64_t t; double v; int c; }` (24 octets), une ligne de cache de 64 octets contient 2,6 mesures — dont tu n’utilises que le champ `v`, soit 8 octets sur 24. Tu gaspilles les deux tiers de la bande passante mémoire.
+
+    En SoA, `std::vector<double> valeurs` : 8 doubles par ligne de cache, tous utiles, et le compilateur peut vectoriser (AVX traite 4 doubles par instruction).
+
+    Ce n’est **pas** une optimisation prématurée quand tu sais dès le départ que le volume est grand et l’accès sélectif — c’est le principe des moteurs de jeu et des bases de données colonnaires (Parquet, Arrow).
+
+    À l’inverse, si tu traites toujours la mesure entière, AoS gagne. Le critère est le **motif d’accès**, pas l’élégance.
+- id: cpp14.5
+  type: predict
+  level: 3
+  concepts:
+  - cache
+  - mesure
+  q: Sortie ? (ordre de grandeur du rapport, pas la valeur exacte)
+  lang: cpp
+  code: |-
+    #include <cstdio>
+    #include <vector>
+    #include <chrono>
+    int main() {
+        const int N = 2000;
+        std::vector<std::vector<double>> m(N, std::vector<double>(N, 1.0));
+        auto t = [](auto f) {
+            auto a = std::chrono::steady_clock::now();
+            f();
+            return std::chrono::duration_cast<std::chrono::milliseconds>(
+                       std::chrono::steady_clock::now() - a).count();
+        };
+        double s1 = 0, s2 = 0;
+        auto lignes   = t([&]{ for (int i=0;i<N;++i) for (int j=0;j<N;++j) s1 += m[i][j]; });
+        auto colonnes = t([&]{ for (int j=0;j<N;++j) for (int i=0;i<N;++i) s2 += m[i][j]; });
+        printf("%d\n", colonnes > lignes ? 1 : 0);
+        return s1 == s2 ? 0 : 1;   // utiliser s1 et s2, sinon l'optimiseur supprime les boucles
+    }
+  answer: '1'
+  e: |-
+    Le parcours **par colonnes** est systématiquement plus lent — typiquement 3 à 10× sur ce genre de matrice.
+
+    Cause : une ligne de cache fait 64 octets, soit 8 `double` **contigus**. En parcourant par lignes, un défaut de cache sert 8 accès. En parcourant par colonnes, chaque accès touche une ligne différente (ici séparée de 16 ko) : un défaut de cache par élément, et le préchargeur matériel ne peut rien.
+
+    Ordres de grandeur à connaître :
+
+    | Accès | Coût |
+    | --- | --- |
+    | registre | ~0 cycle |
+    | cache L1 | ~4 cycles |
+    | cache L2 | ~12 cycles |
+    | cache L3 | ~40 cycles |
+    | RAM | ~200 cycles |
+
+    Un défaut de cache coûte 50× un accès L1. C'est pourquoi `std::vector` bat `std::list` même là où la théorie dit l'inverse.
+
+    Note aussi que `vector<vector<double>>` n'est **pas** contigu globalement : chaque ligne est allouée séparément. Pour une vraie matrice, un seul `vector<double>` de taille N×N indexé par `m[i*N+j]` est nettement meilleur.
+  norun: true
+- id: cpp14.6
+  type: predict
+  level: 3
+  concepts:
+  - alignement
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <cstdio>
+    #include <cstdint>
+    struct A { uint8_t a; uint32_t b; uint8_t c; };
+    struct B { uint32_t b; uint8_t a; uint8_t c; };
+    int main() {
+        printf("%zu %zu %zu\n", sizeof(A), sizeof(B), alignof(A));
+    }
+  answer: 12 8 4
+  e: |-
+    `A` : `a` (1 octet) + **3 de bourrage** pour aligner `b` sur 4 + `b` (4) + `c` (1) + **3 de bourrage final** pour que `sizeof` soit multiple de l'alignement = **12**.
+
+    `B` : `b` (4) + `a` (1) + `c` (1) + 2 de bourrage = **8**.
+
+    **Même contenu, 33 % de mémoire en moins**, juste en réordonnant les membres du plus grand au plus petit.
+
+    Sur un million d'objets, c'est 4 Mo économisés — et surtout plus d'objets par ligne de cache, donc moins de défauts.
+
+    Règle : **déclare les membres du plus grand alignement au plus petit.**
+
+    `-Wpadded` (GCC/Clang) signale chaque octet de bourrage inséré. Bruyant, mais instructif une fois sur une structure critique.
+
+    ⚠️ Ne suppose **jamais** la disposition d'un struct pour lire une trame binaire : utilise `memcpy` champ par champ, ou `struct.unpack` côté Python. Le bourrage dépend de l'ABI.
+- id: cpp14.7
+  type: qcm
+  level: 3
+  concepts:
+  - mesure
+  q: Ton benchmark montre 0 ns pour une fonction de calcul. Que s’est-il passé ?
+  choices:
+  - t: 'Le compilateur a supprimé le calcul : le résultat n’est pas utilisé'
+    ok: true
+    why: C’est l’erreur n°1 en micro-benchmark. Il faut consommer le résultat.
+  - t: L’horloge n’a pas assez de résolution
+    ok: false
+    why: Possible pour une mesure unique, mais 0 ns exact trahit l’élimination.
+  - t: Le CPU est trop rapide
+    ok: false
+    why: Aucun calcul réel ne prend 0 ns.
+  - t: Il faut compiler en `-O0`
+    ok: false
+    why: Mesurer du `-O0` ne veut rien dire non plus.
+  e: |-
+    ```cpp
+    // faux : le résultat est mort, le compilateur supprime tout
+    for (int i = 0; i < 1'000'000; ++i) calculer(i);
+
+    // correct : le résultat est consommé
+    volatile double sink = 0;
+    for (int i = 0; i < 1'000'000; ++i) sink += calculer(i);
+    ```
+
+    Ou, avec Google Benchmark : `benchmark::DoNotOptimize(r)` et `ClobberMemory()`.
+
+    Les cinq règles d'un benchmark honnête :
+    1. Compile en `-O2` (mesurer du `-O0` est inutile).
+    2. **Consomme le résultat**, sinon il disparaît.
+    3. Répète et prends la **médiane** ou le minimum, jamais une mesure unique.
+    4. Fais chauffer le cache (une itération à blanc).
+    5. Compare toujours à une **référence**, jamais dans l'absolu.
+
+    Et méfie-toi de l'effet de la taille des données : un algorithme qui gagne sur 1000 éléments peut perdre sur 10⁶ à cause du cache.
+- id: cpp14.8
+  type: qcm
+  level: 3
+  concepts:
+  - cout-abstraction
+  q: Pourquoi `std::sort` est-il généralement plus rapide que `qsort` du C ?
+  choices:
+  - t: Le comparateur est un type connu à la compilation, donc **inlinable** ; `qsort` passe par un pointeur de fonction
+    ok: true
+    why: Gain typique de 2 à 3×, sans compter l’absence de casts void*.
+  - t: '`std::sort` utilise un meilleur algorithme'
+    ok: false
+    why: Les deux utilisent des variantes de quicksort ; l’algorithme n’explique pas l’écart.
+  - t: '`std::sort` est parallélisé'
+    ok: false
+    why: Seulement avec une politique d’exécution explicite (`std::execution::par`).
+  - t: '`qsort` est obsolète'
+    ok: false
+    why: Il fonctionne parfaitement, il est juste plus lent.
+  e: |-
+    `qsort` reçoit un `int (*cmp)(const void*, const void*)` : appel indirect à chaque comparaison, impossible à inliner, plus deux déréférencements de `void*`.
+
+    `std::sort` est un **template** : le comparateur (lambda ou foncteur) a un type unique connu à la compilation. Le compilateur inline la comparaison **dans** la boucle de tri.
+
+    C'est l'illustration du principe « zero-overhead abstraction » : l'abstraction de plus haut niveau produit du code **plus rapide**.
+
+    Ce qui coûte vraiment en C++ :
+    - `virtual` — appel indirect, pas d'inlining, +8 octets par objet ;
+    - `std::function` — effacement de type, parfois une allocation ;
+    - `shared_ptr` — compteur atomique ;
+    - exceptions — en taille binaire ;
+    - `dynamic_cast`, RTTI.
+
+    Ce qui ne coûte rien : templates, `constexpr`, RAII, lambdas, références, `std::array`, `span`, `unique_ptr`.
+- id: cpp14.9
+  type: code
+  level: 3
+  concepts:
+  - cache
+  q: 'Écris une matrice contiguë : `class Matrice` avec un seul `std::vector<double>`, un constructeur `(lignes, colonnes)`, et `operator()(i, j)` en lecture et écriture.'
+  lang: cpp
+  start: |-
+    #include <vector>
+    #include <cstddef>
+
+    class Matrice {
+        // ton code
+    };
+  sol: |-
+    #include <vector>
+    #include <cstddef>
+
+    class Matrice {
+        std::size_t l_, c_;
+        std::vector<double> d_;
+    public:
+        Matrice(std::size_t lignes, std::size_t colonnes)
+            : l_(lignes), c_(colonnes), d_(lignes * colonnes, 0.0) {}
+
+        double& operator()(std::size_t i, std::size_t j) { return d_[i * c_ + j]; }
+        double operator()(std::size_t i, std::size_t j) const { return d_[i * c_ + j]; }
+
+        std::size_t lignes() const noexcept { return l_; }
+        std::size_t colonnes() const noexcept { return c_; }
+    };
+  tests: |-
+    #include <cassert>
+    #include <iostream>
+    int main() {
+        Matrice m(3, 4);
+        assert(m.lignes() == 3 && m.colonnes() == 4);
+        assert(m(0, 0) == 0.0 && "initialisee a zero");
+        m(1, 2) = 7.5;
+        assert(m(1, 2) == 7.5);
+        const Matrice& cm = m;
+        assert(cm(1, 2) == 7.5 && "doit marcher sur un objet const");
+        m(2, 3) = 1.0;
+        assert(m(2, 3) == 1.0 && m(1, 2) == 7.5 && "pas de collision d'index");
+        Matrice vide(0, 0);
+        assert(vide.lignes() == 0);
+        std::cout << "OK\n";
+    }
+  e: |-
+    Un **seul** `vector` pour tout : les données sont réellement contiguës, contrairement à `vector<vector<double>>` où chaque ligne est allouée séparément (n allocations, aucune garantie de proximité, une indirection de plus par accès).
+
+    `i * c_ + j` est l'indexation **row-major** : les éléments d'une même ligne sont voisins, donc un parcours par lignes est optimal pour le cache.
+
+    `operator()` plutôt que `operator[]` : jusqu'à C++23, `operator[]` n'acceptait qu'un seul argument. C'est la convention de toutes les bibliothèques matricielles (Eigen, Armadillo).
+
+    Les **deux surcharges** (non-const renvoyant `double&`, const renvoyant `double`) sont indispensables : le test sur `const Matrice&` échoue sans la seconde.
+
+    Extensions naturelles : un `assert(i < l_ && j < c_)` en debug, une méthode `data()` pour interfacer avec BLAS ou NumPy.
+- id: cpp14.10
+  type: bug
+  level: 3
+  concepts:
+  - cout-abstraction
+  q: Cette boucle est 20× plus lente que nécessaire. Clique sur la ligne fautive.
+  lang: cpp
+  code: |-
+    #include <vector>
+    #include <string>
+    double total(const std::vector<std::string>& noms,
+                 const std::map<std::string, double>& table) {
+        double t = 0;
+        for (auto nom : noms) {
+            t += table.at(nom);
+        }
+        return t;
+    }
+  bad: 6
+  fix: '    for (const auto& nom : noms) {'
+  e: |-
+    `for (auto nom : noms)` **copie** chaque `std::string` : une allocation et une copie d'octets par itération, pour rien.
+
+    `const auto&` lie une référence : zéro copie, zéro allocation.
+
+    C'est probablement l'erreur de performance la plus fréquente en C++, et elle est invisible à la lecture rapide.
+
+    Les trois formes de boucle sur intervalle :
+    ```cpp
+    for (const auto& x : v)   // lecture — le défaut
+    for (auto& x : v)         // modification
+    for (auto x : v)          // copie — seulement si tu la veux vraiment
+    ```
+
+    Pour les types triviaux (`int`, `double`, pointeur), `auto` par valeur est équivalent et parfois préférable.
+
+    Détection : clang-tidy `performance-for-range-copy` la signale et propose la correction automatiquement.
+
+    Note aussi `table.at(nom)` : `at` vérifie et lève, `operator[]` sur une `map` non-const **insérerait** la clé absente. Ici `at` est le bon choix.
+- id: cpp14.11
+  type: qcm
+  level: 3
+  concepts:
+  - cache
+  - alignement
+  q: Deux threads incrémentent chacun un `std::atomic<int>` distinct, dans le même tableau. Pourquoi est-ce lent ?
+  choices:
+  - t: '**Faux partage** : les deux compteurs sont dans la même ligne de cache, qui fait des allers-retours entre les cœurs'
+    ok: true
+    why: Chaque écriture invalide la ligne dans l’autre cœur — le protocole de cohérence sature.
+  - t: Les atomiques sont lents par nature
+    ok: false
+    why: Un atomique non contesté coûte quelques cycles.
+  - t: Le GIL
+    ok: false
+    why: Aucun GIL en C++.
+  - t: Il manque un mutex
+    ok: false
+    why: Les atomiques sont déjà sûrs ; ajouter un mutex empirerait.
+  e: |-
+    **Faux partage (false sharing)** : la cohérence de cache travaille par **ligne de 64 octets**, pas par variable. Deux compteurs de 4 octets côte à côte partagent la ligne ; chaque écriture d'un cœur invalide la copie de l'autre.
+
+    Résultat mesurable : 10 à 100× plus lent que deux compteurs éloignés.
+
+    Remède : aligner chacun sur sa propre ligne.
+    ```cpp
+    struct alignas(64) Compteur {          // C++17 : std::hardware_destructive_interference_size
+        std::atomic<int> n{0};
+    };
+    std::vector<Compteur> compteurs(nb_threads);
+    ```
+
+    Meilleure solution encore : **ne pas partager**. Chaque thread accumule dans une variable **locale** et n'écrit dans le compteur partagé qu'à la fin.
+
+    C'est la règle générale du parallélisme : la donnée non partagée n'a besoin ni de verrou, ni d'atomique, ni de cohérence de cache.
+- id: cpp14.12
+  type: flash
+  level: 3
+  concepts:
+  - mesure
+  - complexite
+  q: La méthode d’optimisation, dans l’ordre.
+  back: |-
+    1. **Mesurer** — `perf record`, `valgrind --tool=callgrind`, ou un chronomètre. Ne devine jamais.
+    2. **Algorithme** — O(n²) → O(n log n) bat toute micro-optimisation.
+    3. **Structure de données** — `vector` plutôt que `list` ; `unordered_map` plutôt qu'une recherche linéaire.
+    4. **Disposition mémoire** — contiguïté, ordre des membres, SoA plutôt qu'AoS.
+    5. **Éviter le travail** — cache, calcul à la compilation (`constexpr`), sortie anticipée.
+    6. **Micro-optimisation** — inlining, déroulage, SIMD. En dernier, et seulement mesuré.
+
+    Et à chaque étape : **remesure**. Une « optimisation » non mesurée est une hypothèse.
+  e: |-
+    Les outils, sous Linux :
+    ```bash
+    perf stat ./app                   # cycles, défauts de cache, branches ratées
+    perf record ./app && perf report  # où passe le temps, ligne par ligne
+    valgrind --tool=cachegrind ./app  # simulation de cache détaillée
+    ```
+
+    `perf stat` te donne en une commande le taux de défauts de cache et de mauvaises prédictions de branchement — souvent, le diagnostic tient dans ces deux chiffres.
+
+    La loi d'Amdahl gouverne tout : optimiser d'un facteur 10 une portion qui représente 5 % du temps total te fait gagner 4,5 %. **Trouve les 5 % du code qui prennent 80 % du temps**, et ignore le reste.
+
+    Et n'oublie pas le coût le plus cher : celui de ton temps. Du code lisible et assez rapide bat du code illisible et un peu plus rapide.
+- id: cpp14.13
+  type: parsons
+  level: 3
+  concepts:
+  - cache
+  q: Reconstitue un traitement en SoA (structure de tableaux) pour un flux de mesures.
+  lang: cpp
+  lines:
+  - '#include <vector>'
+  - '#include <cstdint>'
+  - ''
+  - '// Structure de tableaux : chaque champ est contigu'
+  - struct Mesures {
+  - '    std::vector<uint64_t> horodatages;'
+  - '    std::vector<double>   valeurs;'
+  - '    std::vector<uint8_t>  canaux;'
+  - ''
+  - '    void reserver(std::size_t n) {'
+  - '        horodatages.reserve(n);'
+  - '        valeurs.reserve(n);'
+  - '        canaux.reserve(n);'
+  - '    }'
+  - ''
+  - '    double moyenne() const {'
+  - '        double t = 0;'
+  - '        for (double v : valeurs) t += v;   // ne touche QUE les valeurs'
+  - '        return valeurs.empty() ? 0.0 : t / static_cast<double>(valeurs.size());'
+  - '    }'
+  - '};'
+  extra:
+  - struct Mesure { uint64_t t; double v; uint8_t c; };
+  - '        for (const auto& m : mesures) t += m.v;'
+  e: |-
+    **AoS vs SoA.** Avec `struct Mesure { uint64_t t; double v; uint8_t c; }` (24 octets après bourrage), une ligne de cache de 64 octets contient 2,6 mesures — dont tu n'utilises que le champ `v`, soit 8 octets sur 24. **Deux tiers de la bande passante mémoire gaspillés.**
+
+    En SoA, `valeurs` est un `vector<double>` pur : 8 doubles par ligne de cache, tous utiles, et le compilateur peut vectoriser (AVX traite 4 doubles par instruction).
+
+    Gain typique sur un parcours sélectif : 3 à 5×.
+
+    Ce n'est **pas** une optimisation prématurée quand tu sais dès la conception que le volume est grand et l'accès sélectif. C'est le principe des moteurs de jeu et des formats colonnaires (Parquet, Arrow, HDF5 chunked).
+
+    À l'inverse, si tu traites toujours la mesure **entière**, l'AoS gagne : meilleure localité par élément et code plus simple. Le critère est le **motif d'accès**, jamais l'élégance.
+- id: cpp14.14
+  type: qcm
+  level: 2
+  concepts:
+  - cout-abstraction
+  q: Quel est le coût réel d’un appel `virtual` par rapport à un appel direct ?
+  choices:
+  - t: Une indirection (~1-2 ns) et surtout la perte de l’inlining et des optimisations qu’il permet
+    ok: true
+    why: L’indirection seule est négligeable ; c’est l’absence d’inlining qui coûte, parfois 10×.
+  - t: Environ 100 ns
+    ok: false
+    why: Très surestimé.
+  - t: Aucun coût
+    ok: false
+    why: Il y a bien une vtable et un appel indirect.
+  - t: Cela dépend du nombre de classes dérivées
+    ok: false
+    why: Le coût de l’appel est constant.
+  e: |-
+    Mécanique : l'objet contient un pointeur vers la vtable, l'appel lit l'adresse dans la table puis saute. Sur un processeur moderne, la prédiction de branchement rend ça presque gratuit **si le type est stable**.
+
+    Le vrai coût est indirect :
+    - **pas d'inlining** → pas de propagation de constantes, pas de vectorisation, pas d'élimination de code mort ;
+    - **+8 octets par objet** (le pointeur de vtable) ;
+    - si le type varie d'un appel à l'autre, la prédiction échoue : ~15 cycles perdus.
+
+    Quand ça compte : une boucle serrée sur des millions d'éléments. Quand ça ne compte pas : tout le reste.
+
+    Alternatives quand la mesure le justifie :
+    - **template** (polymorphisme statique, CRTP) ;
+    - `std::variant` + `std::visit` — ensemble fermé de types, pas d'allocation ;
+    - `final` sur la classe ou la méthode : autorise le compilateur à dévirtualiser.
+
+    En embarqué, le poids de la vtable en Flash compte autant que la vitesse.
+- id: cpp14.15
+  type: predict
+  level: 3
+  concepts:
+  - mesure
+  - cache
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <cstdio>
+    #include <vector>
+    #include <list>
+    int main() {
+        printf("%zu %zu %zu\n",
+               sizeof(std::vector<int>),
+               sizeof(int),
+               sizeof(int) + 2 * sizeof(void*));
+    }
+  answer: 24 4 20
+  e: |-
+    `sizeof(std::vector<int>)` = 24 : trois pointeurs (début, fin, fin de capacité) sur 64 bits. **La taille de l'objet vector ne dépend pas du nombre d'éléments** — ceux-ci sont sur le tas.
+
+    La troisième valeur (20) est la taille théorique d'un nœud de `std::list<int>` : la donnée plus deux pointeurs de chaînage. En pratique, l'alignement porte le nœud à 24 octets, **plus** une allocation séparée par élément.
+
+    Comparaison pour 1000 `int` :
+    | | `vector<int>` | `list<int>` |
+    | --- | --- | --- |
+    | mémoire | ~4 ko contigus | ~24 ko dispersés |
+    | allocations | 1 (avec reserve) | 1000 |
+    | parcours | 8 défauts de cache | jusqu'à 1000 |
+
+    C'est pour ça que `vector` bat `list` même sur des insertions au milieu, jusqu'à des tailles étonnamment grandes : le décalage de mémoire contiguë est plus rapide que le parcours d'une liste chaînée pour trouver le point d'insertion.
+
+    `std::list` ne se justifie que si tu as besoin d'itérateurs **stables** ou de `splice` en O(1).
+- id: cpp14.16
+  type: cloze
+  level: 2
+  concepts:
+  - mesure
+  q: Chronomètre un bloc correctement, et empêche l’élimination du résultat.
+  lang: cpp
+  tpl: |-
+    #include <chrono>
+    #include <cstdio>
+
+    void mesurer() {
+        const auto t0 = std::chrono::⟦0⟧::now();
+        const double r = calculer();
+        const auto dt = std::chrono::⟦0⟧::now() - t0;
+
+        ⟦1⟧ double sink = r;                // empêche la suppression du calcul
+        std::printf("%lld us\n", (long long)std::chrono::duration_cast<
+                std::chrono::⟦2⟧>(dt).count());
+    }
+  blanks:
+  - - steady_clock
+  - - volatile
+  - - microseconds
+  e: |-
+    `steady_clock` est **monotone** : il ne recule jamais, contrairement à `system_clock` qui suit l'heure murale (NTP, changement d'heure). Pour mesurer une **durée**, c'est le seul choix correct.
+
+    `volatile double sink = r;` force le compilateur à conserver le calcul : sans consommation du résultat, il a le droit de supprimer l'appel entier, et tu mesures 0 ns.
+
+    `duration_cast` convertit explicitement vers l'unité voulue — les `std::chrono::duration` sont typées, ce qui empêche de confondre millisecondes et microsecondes.
+
+    Pour des mesures sérieuses, utilise **Google Benchmark** : il gère les répétitions, la chauffe, la variance, et fournit `benchmark::DoNotOptimize`.
+
+    En embarqué, la mesure la plus fiable reste une **broche GPIO** basculée en entrée et en sortie de fonction, lue à l'oscilloscope : coût d'une instruction, précision à la nanoseconde.
+  verify_prelude: |
+    inline double calculer() { return 1.0; }

@@ -1,0 +1,642 @@
+id: py12
+track: python
+title: Performance & NumPy
+goal: Trouver le vrai goulot d’étranglement et vectoriser au lieu de boucler.
+level: avance
+requires:
+- py06
+concepts:
+- complexite
+- profilage
+- numpy
+- vectorisation
+lesson:
+  minutes: 18
+  intro: |
+    Ton script d'analyse met 40 secondes. Avant de réécrire quoi que ce soit, deux questions : **où** passe le temps (le mesurer, pas le deviner), et **comment** le calcul est fait (une boucle Python sur chaque point, ou une opération sur le tableau entier). Ce module te donne la méthode, puis l'outil de base du calcul scientifique en Python : **NumPy**.
+  steps:
+    - level: 1
+      title: Le poste le plus lent et la machine à plateaux
+      body: |
+        Sur une ligne de production, la cadence est fixée par le **poste le plus lent**. Accélérer un autre poste ne sert à rien. En informatique c'est pareil : on commence par **mesurer** où passe le temps, puis on ne travaille que sur ce poste-là.
+
+        Deuxième image : une boucle Python sur un million de mesures, c'est un technicien qui prend chaque pièce, remplit une fiche, la repose, prend la suivante. NumPy, c'est une machine qui traite **le plateau entier d'un coup** : toutes les pièces sont du même type, rangées côte à côte, et la machine enchaîne sans remplir de fiche.
+    - level: 2
+      title: Mesurer, puis vectoriser
+      body: |
+        **Mesurer** : `time.perf_counter()` pour chronométrer un bloc, le module `timeit` pour un petit bout de code, et le profileur `python -m cProfile -s cumtime script.py` pour savoir quelle fonction consomme le temps.
+
+        **La complexité d'abord** : un algorithme en n² (une boucle dans une boucle, un `in` sur une liste dans une boucle) reste lent quelle que soit l'astuce. Passer à un `set` ou trier une fois change l'ordre de grandeur.
+
+        **NumPy** : un `ndarray` est un bloc mémoire contigu d'éléments **tous du même type** (`dtype` : `float64`, `int32`, `uint8`…), avec une forme (`shape`, par exemple `(1000, 3)`).
+        - Les opérations s'appliquent **élément par élément**, dans une boucle compilée : `a * 2 + 1`, `np.sin(a)`, `a - b`.
+        - Une comparaison donne un **masque** booléen : `a[a > 0]` garde les éléments positifs. On combine les masques avec `&`, `|` et `~` (pas `and`, `or`, `not`), avec des parenthèses.
+        - Les réductions acceptent un axe : `a.mean()`, `a.sum(axis=0)` (colonne par colonne), `a.max(axis=1)` (ligne par ligne).
+        - **Broadcasting** : deux formes différentes se combinent si, en les comparant par la droite, chaque dimension est égale ou vaut 1. Un tableau `(1000, 3)` moins un vecteur `(3,)` retire le vecteur à chaque ligne.
+      check:
+        q: "`a` a la forme (1000, 3). Que donne `a.mean(axis=0)` ?"
+        choices:
+          - t: 3 valeurs, la moyenne de chaque colonne
+            ok: true
+            why: "`axis=0` fait disparaître l'axe des lignes : on moyenne en descendant les colonnes."
+          - t: 1000 valeurs, la moyenne de chaque ligne
+            why: "Ça, c'est `axis=1`."
+          - t: Une seule valeur
+            why: "Ça, c'est `a.mean()` sans axe."
+    - level: 3
+      title: Mesurer avant d'optimiser
+      body: |
+        Deux façons de trouver les canaux manquants : un `in` sur une liste (n × m comparaisons), ou sur un `set` (une recherche immédiate). Même résultat, pas le même ordre de grandeur. Ce code tourne dans l'app.
+      code: |
+        import time
+
+        def chrono(fn, *args, repet=5):
+            meilleur = float("inf")
+            for _ in range(repet):
+                t0 = time.perf_counter()
+                fn(*args)
+                meilleur = min(meilleur, time.perf_counter() - t0)
+            return meilleur
+
+        attendus = list(range(500))
+        recus = list(range(0, 40_000, 2))          # 20 000 canaux reçus
+
+        def manquants_liste(attendus, recus):
+            return [c for c in attendus if c not in recus]    # parcourt recus à chaque fois
+
+        def manquants_set(attendus, recus):
+            r = set(recus)                                    # construit une fois
+            return [c for c in attendus if c not in r]
+
+        print(manquants_set(attendus, recus)[:5], len(manquants_set(attendus, recus)))
+        print("même résultat :", manquants_liste(attendus, recus) == manquants_set(attendus, recus))
+        t_liste = chrono(manquants_liste, attendus, recus, repet=1)
+        t_set = chrono(manquants_set, attendus, recus)
+        print("set plus de 20 fois plus rapide :", t_liste > 20 * t_set)
+      run: true
+      out: |
+        [1, 3, 5, 7, 9] 250
+        même résultat : True
+        set plus de 20 fois plus rapide : True
+      after: |
+        Retiens la fonction `chrono` : on garde le **meilleur** de plusieurs essais, car les autres sont perturbés par le reste du système.
+    - level: 3
+      title: Vectoriser avec NumPy
+      body: |
+        NumPy n'est pas chargé dans l'app : ce code s'affiche avec sa sortie réelle, et tu le lanceras sur ton Mac dans le lab NumPy.
+      code: |
+        import numpy as np
+
+        t = np.linspace(0.0, 1.0, 6)                   # 6 instants de 0 à 1 s
+        temp = 20.0 + 5.0 * t                          # une rampe, sans boucle
+        print(t)
+        print(temp, temp.dtype, temp.shape)
+
+        mesures = np.array([20.1, 20.4, -999.0, 21.0, 22.6, 95.0])
+        valides = (mesures > -200) & (mesures < 50)    # masque booléen
+        print(valides)
+        print(mesures[valides], mesures[valides].mean().round(2))
+
+        brut = np.array([[512, 520, 498], [515, 530, 501]])   # 2 acquisitions × 3 voies
+        gains = np.array([0.01, 0.02, 0.01])
+        print(brut * gains)                            # chaque voie multipliée par son gain
+        print(brut.mean(axis=0), brut.mean(axis=1))
+      out: |
+        [0.  0.2 0.4 0.6 0.8 1. ]
+        [20. 21. 22. 23. 24. 25.] float64 (6,)
+        [ True  True False  True  True False]
+        [20.1 20.4 21.  22.6] 21.02
+        [[ 5.12 10.4   4.98]
+         [ 5.15 10.6   5.01]]
+        [513.5 525.  499.5] [510.         515.33333333]
+    - level: 4
+      title: Vues, types et broadcasting sous le capot
+      body: |
+        Un tableau NumPy, c'est un bloc d'octets plus une description : type des éléments, forme, et **pas** (*strides*) pour passer d'un élément au suivant sur chaque axe. D'où trois conséquences :
+        - **vues** : un découpage simple (`a[1:4]`, `a[:, 0]`, `a.T`, `a.reshape(...)`) ne copie rien, il crée une nouvelle description des **mêmes** octets. Modifier la vue modifie l'original. Un masque ou une liste d'indices (`a[a > 0]`, `a[[0, 2]]`) crée au contraire une copie ;
+        - **types fixes** : un `uint8` va de 0 à 255 ; au-delà, le résultat reboucle en silence, comme en C ;
+        - **broadcasting** : le vecteur n'est pas recopié mille fois, NumPy le relit avec un pas de zéro.
+
+        C'est aussi ce qui rend NumPy rapide : un seul contrôle de type pour tout le tableau, puis une boucle en C, souvent avec des instructions SIMD qui traitent plusieurs nombres à la fois.
+      code: |
+        import numpy as np
+
+        a = np.arange(6)
+        vue = a[1:4]                     # une vue : mêmes données
+        vue[0] = 99
+        print(a)                         # l'original a changé
+        copie = a[1:4].copy()
+        copie[0] = -1
+        print(a, copie, np.shares_memory(a, vue), np.shares_memory(a, copie))
+
+        u = np.array([200, 100], dtype=np.uint8)
+        print(u + u)                     # 400 dépasse 255 : ça reboucle
+        print(u.astype(np.int32) + u)    # élargir le type d'abord
+
+        offsets = np.array([0.5, -0.2, 0.1])
+        acq = np.zeros((4, 3))
+        print((acq - offsets).shape, (acq - offsets)[0])   # (4, 3) - (3,)
+      out: |
+        [ 0 99  2  3  4  5]
+        [ 0 99  2  3  4  5] [-1  2  3] True False
+        [144 200]
+        [400 200]
+        (4, 3) [-0.5  0.2 -0.1]
+    - level: 5
+      title: Sur le terrain
+      body: |
+        - Profile avant d'optimiser : `python -m cProfile -s cumtime analyse.py | head -20`, ou `%timeit` dans Jupyter. Optimise la fonction qui domine, et rien d'autre.
+        - Données : `np.loadtxt` ou `np.genfromtxt` pour un CSV simple, pandas (`pd.read_csv`) pour des tableaux étiquetés, **HDF5** (`h5py`) pour les gros volumes. Dans les synchrotrons (ESRF, SOLEIL…) et les sources de neutrons, les données d'acquisition sont justement écrites en HDF5, au format NeXus.
+        - Plus de boucle `for` sur les éléments d'un tableau : arithmétique, `np.where(cond, a, b)`, masques, `axis=`. Si l'algorithme résiste vraiment, Numba (`@njit`) compile la boucle.
+        - Mémoire : `float32` divise la taille par deux, au prix de 7 chiffres significatifs au lieu de 16. Garde `float64` pour les calculs, sauf contrainte.
+        - Code lisible d'abord : une optimisation qui n'est pas mesurée est un pari, et un code illisible coûte plus cher que quelques secondes.
+  recap:
+    - "Mesure (perf_counter, timeit, cProfile) avant toute optimisation."
+    - "Complexité d'abord : `in` sur un set plutôt qu'une liste, pas de boucle dans une boucle."
+    - "NumPy : un type, une forme, des opérations élément par élément en C ; masques avec `&`, `|`, `~`."
+    - "`axis=0` réduit les lignes (résultat par colonne) ; broadcasting par la droite."
+    - "Tranche simple = vue (`.copy()` si besoin) ; types fixes qui rebouclent."
+  pieges: [py-boucle-numpy, py-numpy-vue, py-numpy-dtype]
+exercises:
+- id: py12.1
+  type: qcm
+  level: 2
+  concepts:
+  - complexite
+  q: Tu cherches si chaque élément de `a` (10 000 éléments) est présent dans `b` (100 000 éléments). Que faire ?
+  choices:
+  - t: Convertir `b` en `set` puis tester `x in b_set`
+    ok: true
+    why: 'O(n+m) au lieu de O(n·m). Ici : ~110 000 opérations contre 1 milliard.'
+  - t: Trier `b` puis `bisect`
+    ok: false
+    why: O(m log m + n log m) — correct, mais plus lent et plus verbeux qu’un set.
+  - t: '`x in b` directement sur la liste'
+    ok: false
+    why: O(m) par test → O(n·m). C’est le piège.
+  - t: Boucles imbriquées avec `break`
+    ok: false
+    why: Même complexité, en pire.
+  e: |-
+    `in` sur une **liste** est une recherche linéaire ; sur un **set** ou un **dict**, c’est une table de hachage → O(1) moyen.
+
+    C’est l’optimisation la plus rentable du langage : une ligne, un facteur 1000.
+
+    Repère utile : ~10⁷ opérations Python simples par seconde. Si ton calcul dépasse 10⁸, change d’algorithme ou passe à NumPy — n’essaie pas de micro-optimiser la boucle.
+- id: py12.2
+  type: qcm
+  level: 2
+  concepts:
+  - profilage
+  q: Ton script d’analyse met 40 s. Premier réflexe ?
+  choices:
+  - t: 'Le profiler : `python -m cProfile -s cumtime script.py | head -30`'
+    ok: true
+    why: Mesurer avant d’optimiser. L’intuition sur les goulots est fausse une fois sur deux.
+  - t: Remplacer les boucles par des comprehensions
+    ok: false
+    why: Gain marginal (~20 %) si le goulot est ailleurs.
+  - t: Passer en multiprocessing
+    ok: false
+    why: Complexité maximale pour un gain incertain tant qu’on ne sait pas où passe le temps.
+  - t: Réécrire en C++
+    ok: false
+    why: Absolument pas en premier.
+  e: |-
+    Ordre d’intervention :
+    1. `cProfile` (`-s cumtime`) pour trouver la fonction coupable.
+    2. `line_profiler` (`@profile` + `kernprof -l -v`) pour trouver **la ligne**.
+    3. Meilleur algorithme / meilleure structure de données.
+    4. Vectorisation NumPy.
+    5. Cython, Numba, ou une extension C++ — en dernier.
+
+    Pour un micro-benchmark fiable : `timeit.timeit(stmt, number=1000)` ou `python -m timeit`. Une mesure unique ne vaut rien (cache, GC, fréquence CPU).
+- id: py12.3
+  type: predict
+  level: 2
+  concepts:
+  - numpy
+  - vectorisation
+  q: Sortie ?
+  code: |-
+    import numpy as np
+    a = np.array([1, 2, 3])
+    b = a
+    b[0] = 99
+    print(a)
+    c = a[1:]
+    c[0] = 42
+    print(a)
+  answer: |-
+    [99  2  3]
+    [99 42  3]
+  e: |-
+    Différence majeure avec les listes : **un slice NumPy est une vue, pas une copie.** `a[1:]` partage la mémoire du tableau d’origine.
+
+    C’est voulu : ça permet de travailler sur des gigaoctets sans copie. Mais ça surprend quand on vient des listes.
+
+    Pour une copie explicite : `a[1:].copy()` ou `np.array(a[1:])`.
+    Pour savoir : `c.base is a` → `True` si c’est une vue.
+- id: py12.4
+  type: code
+  level: 3
+  concepts:
+  - vectorisation
+  q: 'Écris `normaliser(v)` **sans boucle Python** : renvoie une liste où chaque valeur est ramenée dans [0, 1] par min-max. Si toutes les valeurs sont égales, renvoie une liste de 0.0.'
+  lang: python
+  start: |-
+    def normaliser(v):
+        ...
+  sol: |-
+    def normaliser(v):
+        if not v:
+            return []
+        lo, hi = min(v), max(v)
+        if hi == lo:
+            return [0.0] * len(v)
+        ecart = hi - lo
+        return [(x - lo) / ecart for x in v]
+  tests: |-
+    assert normaliser([]) == []
+    assert normaliser([5, 5, 5]) == [0.0, 0.0, 0.0]
+    r = normaliser([0, 5, 10])
+    assert r == [0.0, 0.5, 1.0], r
+    r2 = normaliser([-10, 0, 10])
+    assert r2 == [0.0, 0.5, 1.0], r2
+    assert normaliser([3]) == [0.0]
+    print("OK")
+  e: |-
+    Le point technique : `min`/`max` sont calculés **une fois** hors de la comprehension. Les remettre dedans (`(x - min(v)) / (max(v) - min(v))`) transforme un O(n) en O(n²) — c’est l’erreur la plus fréquente sur cet exercice.
+
+    Le cas `hi == lo` évite une division par zéro : sur un capteur saturé ou débranché, c’est exactement ce qui arrive.
+
+    En NumPy : `(a - a.min()) / np.ptp(a)` — mais garde le garde-fou sur `ptp == 0`.
+- id: py12.5
+  type: qcm
+  level: 3
+  concepts:
+  - numpy
+  q: '`a` est un tableau NumPy de 10⁷ flottants. Quelle expression est la plus rapide pour la moyenne des valeurs > 0 ?'
+  choices:
+  - t: '`a[a > 0].mean()`'
+    ok: true
+    why: 'Masque booléen : deux passes vectorisées en C. Alloue un tableau intermédiaire, mais reste ~100× plus rapide qu’une boucle.'
+  - t: '`sum(x for x in a if x > 0) / len(a)`'
+    ok: false
+    why: Boucle Python sur 10⁷ éléments **et** dénominateur faux.
+  - t: '`np.mean([x for x in a if x > 0])`'
+    ok: false
+    why: 'La comprehension repasse en Python : le pire des deux mondes.'
+  - t: '`statistics.mean(a[a > 0])`'
+    ok: false
+    why: Correct mais `statistics` est lent (précision exacte, pas la vitesse).
+  e: |-
+    Le réflexe NumPy : **aucune boucle Python sur les éléments**. Tu exprimes l’opération sur le tableau entier.
+
+    ```python
+    a[a > 0].mean()             # masque
+    np.where(a > 0, a, 0).sum() # sans allocation du sous-tableau
+    a.mean(axis=0)              # par colonne
+    np.clip(a, lo, hi)          # saturation
+    ```
+
+    Si tu écris `for i in range(len(a))` sur un tableau NumPy, il y a presque toujours une meilleure façon.
+- id: py12.6
+  type: qcm
+  level: 2
+  concepts:
+  - complexite
+  q: Quelle est la complexité de `"".join(mots)` pour `n` mots de longueur moyenne `k` ?
+  choices:
+  - t: O(n·k) — une seule allocation, un seul parcours
+    ok: true
+    why: '`join` calcule la taille totale, alloue une fois, puis copie.'
+  - t: O(n²·k)
+    ok: false
+    why: C’est le coût de la concaténation `s += mot` dans une boucle.
+  - t: O(n log n)
+    ok: false
+    why: Aucun tri n’a lieu.
+  - t: O(k)
+    ok: false
+    why: Il faut bien parcourir les n mots.
+  e: |-
+    Les complexités à connaître par cœur en Python :
+
+    | Opération | Coût |
+    | --- | --- |
+    | `v[i]`, `len`, `append`, `pop()` | O(1) |
+    | `d[k]`, `k in d`, `k in set` | O(1) moyen |
+    | `x in liste`, `liste.insert(0,x)`, `liste.pop(0)` | O(n) |
+    | `liste.sort()`, `sorted()` | O(n log n) |
+    | `"".join(v)` | O(total) |
+    | `s += x` en boucle sur des `str` | O(n²) |
+    | `deque.appendleft` | O(1) |
+
+    Repère de calibrage : **~10⁷ opérations Python simples par seconde**. Si ton estimation dépasse 10⁸, change d'algorithme — micro-optimiser ne te sauvera pas.
+- id: py12.7
+  type: predict
+  level: 2
+  concepts:
+  - numpy
+  q: Sortie ?
+  code: |-
+    import numpy as np
+    a = np.arange(6).reshape(2, 3)
+    print(a.shape, a.dtype)
+    print(a[1, 2], a[:, 1])
+    print(a.sum(axis=0), a.sum(axis=1))
+  answer: |-
+    (2, 3) int64
+    5 [1 4]
+    [3 5 7] [ 3 12]
+  e: |-
+    Trois notions fondamentales :
+    - `shape` est un tuple **(lignes, colonnes)** ; `dtype` est le type des éléments, homogène pour tout le tableau.
+    - `a[1, 2]` indexe en une seule opération — pas `a[1][2]`, qui construit une vue intermédiaire.
+    - `axis=0` **écrase les lignes** (résultat de longueur = nb de colonnes), `axis=1` écrase les colonnes.
+
+    Le moyen mnémotechnique : `axis=k` est l'axe qui **disparaît** du résultat.
+
+    Sur un tableau (n_échantillons, n_canaux), `a.mean(axis=0)` donne la moyenne **par canal** — c'est presque toujours ce que tu veux.
+- id: py12.8
+  type: predict
+  level: 3
+  concepts:
+  - numpy
+  - vectorisation
+  q: Sortie ?
+  code: |-
+    import numpy as np
+    a = np.array([1, 2, 3, 4])
+    print(a[a > 2])
+    print(np.where(a > 2, a, 0))
+    print((a > 2).sum(), (a > 2).any(), (a > 2).all())
+  answer: |-
+    [3 4]
+    [0 0 3 4]
+    2 True False
+  e: |-
+    Les trois usages d'un **masque booléen** :
+    - `a[masque]` → **extrait** les éléments (taille variable).
+    - `np.where(masque, si_vrai, si_faux)` → **remplace** en gardant la forme.
+    - `masque.sum()` → **compte** (les booléens valent 0/1).
+
+    C'est le remplacement direct d'une boucle avec `if`, et c'est 50 à 100× plus rapide.
+
+    Piège majeur : **`and` / `or` / `not` ne fonctionnent pas** sur des tableaux (« The truth value of an array is ambiguous »). Utilise `&`, `|`, `~` — **avec des parenthèses**, car leur priorité est plus forte que celle des comparaisons :
+    ```python
+    a[(a > 2) & (a < 4)]      # correct
+    a[a > 2 & a < 4]          # faux : interprété comme a > (2 & a) < 4
+    ```
+- id: py12.9
+  type: qcm
+  level: 3
+  concepts:
+  - numpy
+  q: '`a` est de forme (1000, 3) et `offsets` de forme (3,). Que fait `a - offsets` ?'
+  choices:
+  - t: 'La diffusion (broadcasting) étend `offsets` à chaque ligne : soustraction canal par canal'
+    ok: true
+    why: Les dimensions sont alignées par la droite ; une dimension de taille 1 ou absente est étirée.
+  - t: Une erreur de forme
+    ok: false
+    why: (1000,3) et (3,) sont compatibles par diffusion.
+  - t: Une soustraction élément par élément sur les 3 premières lignes
+    ok: false
+    why: Ce n’est pas ainsi que NumPy aligne les formes.
+  - t: Une soustraction de la moyenne
+    ok: false
+    why: Aucun calcul de moyenne n’a lieu.
+  e: |-
+    **Règle de diffusion** : on aligne les formes par la **droite**, puis chaque dimension doit être égale, ou valoir 1, ou être absente.
+
+    ```
+    a        (1000, 3)
+    offsets  (      3)   → étendu en (1000, 3)
+    ```
+
+    Cas d'usage direct : retirer l'offset de chacun des 3 capteurs sur 1000 échantillons, en une ligne, sans boucle.
+
+    Pour soustraire une valeur **par ligne** (forme (1000,)), il faut expliciter la colonne :
+    ```python
+    a - moyennes[:, None]        # (1000,1) diffusé sur (1000,3)
+    ```
+    `None` (ou `np.newaxis`) insère une dimension. C'est le geste NumPy le plus utile à maîtriser.
+- id: py12.10
+  type: bug
+  level: 3
+  concepts:
+  - vectorisation
+  - profilage
+  q: Cette normalisation est 200× trop lente. Clique sur la ligne responsable.
+  code: |-
+    import numpy as np
+
+    def normaliser(a):
+        out = np.empty_like(a)
+        for i in range(len(a)):
+            out[i] = (a[i] - a.min()) / (a.max() - a.min())
+        return out
+  bad: 6
+  fix: |2-
+        lo, hi = a.min(), a.max()
+        return (a - lo) / (hi - lo)
+  e: |-
+    Deux fautes cumulées sur cette ligne :
+    1. `a.min()` et `a.max()` sont recalculés **à chaque tour** : O(n²) au lieu de O(n).
+    2. La boucle Python annule tout l'intérêt de NumPy — chaque `a[i]` construit un scalaire Python.
+
+    La version vectorisée fait deux passes en C, sans aucun objet Python intermédiaire.
+
+    Le réflexe à acquérir : **si tu écris `for i in range(len(tableau))` sur un tableau NumPy, il y a presque toujours une meilleure façon.**
+
+    Et n'oublie pas le garde `hi == lo` (capteur saturé) : sinon division par zéro et tableau de `nan`.
+  fixed: |
+    import numpy as np
+
+    def normaliser(a):
+        lo, hi = a.min(), a.max()
+        return (a - lo) / (hi - lo)
+- id: py12.11
+  type: cloze
+  level: 2
+  concepts:
+  - profilage
+  q: Chronomètre un bout de code de façon fiable.
+  tpl: |-
+    import timeit
+    # 1000 exécutions, on garde la MÉDIANE des répétitions
+    duree = min(timeit.⟦0⟧("f(donnees)", globals=globals(), number=1000, repeat=5))
+
+    import time
+    t0 = time.⟦1⟧()          # horloge monotone haute résolution
+    travail()
+    print(time.⟦1⟧() - t0)
+  blanks:
+  - - repeat
+  - - perf_counter
+  e: |-
+    `timeit.repeat(..., repeat=5)` renvoie 5 mesures ; on prend le **minimum** (la mesure la moins polluée par l'ordonnanceur), pas la moyenne.
+
+    `time.perf_counter()` : horloge monotone de plus haute résolution. Jamais `time.time()` pour mesurer une durée — elle peut reculer.
+
+    Trois règles pour un benchmark honnête :
+    1. Mesure toujours **à `-O2`/en conditions réelles**, jamais un cas dégénéré.
+    2. **Répète** et prends le minimum ou la médiane.
+    3. **Utilise le résultat**, sinon l'optimiseur peut supprimer le calcul.
+
+    Pour trouver la ligne coupable : `python -m cProfile -s cumtime script.py`, puis `line_profiler` sur la fonction identifiée.
+- id: py12.12
+  type: code
+  level: 3
+  concepts:
+  - numpy
+  q: 'Écris `filtre_median(a, k)` avec NumPy : renvoie la médiane glissante sur des fenêtres de `k` (impair). Le résultat a `len(a) - k + 1` éléments. `k` pair ou `k > len(a)` → tableau vide.'
+  lang: python
+  start: |-
+    import numpy as np
+
+    def filtre_median(a, k):
+        ...
+  sol: |-
+    import numpy as np
+
+    def filtre_median(a, k):
+        a = np.asarray(a, dtype=float)
+        if k % 2 == 0 or k <= 0 or k > a.size:
+            return np.array([])
+        vues = np.lib.stride_tricks.sliding_window_view(a, k)
+        return np.median(vues, axis=1)
+  tests: |-
+    import numpy as np
+    r = filtre_median([1, 100, 2, 3, 4], 3)
+    assert np.allclose(r, [2, 3, 3]), r
+    assert filtre_median([1,2,3], 2).size == 0
+    assert filtre_median([1,2,3], 5).size == 0
+    assert np.allclose(filtre_median([5,5,5], 3), [5.0])
+    assert filtre_median([], 3).size == 0
+    print("OK")
+  e: |-
+    `sliding_window_view` (NumPy 1.20+) crée une **vue** (n-k+1, k) sans copier un seul octet : les fenêtres se recouvrent en mémoire. C'est l'outil vectorisé pour tout filtre glissant.
+
+    Le filtre médian est le bon outil contre les **valeurs aberrantes isolées** : ici le pic à 100 disparaît complètement, là où une moyenne glissante l'étalerait sur 3 échantillons. C'est le filtre standard contre les parasites d'un capteur.
+
+    Détails : `np.asarray(..., dtype=float)` accepte une liste et évite l'arithmétique entière ; `a.size` plutôt que `len(a)` marche aussi sur un tableau vide de forme (0,).
+
+    Sans NumPy : `statistics.median(v[i:i+k])` en boucle — correct, mais ~100× plus lent.
+- id: py12.13
+  type: flash
+  level: 2
+  concepts:
+  - numpy
+  q: Les fonctions NumPy à connaître pour traiter un signal de mesures.
+  back: |-
+    | Besoin | Fonction |
+    | --- | --- |
+    | statistiques robustes aux trous | `np.nanmean`, `np.nanstd`, `np.nanmax` |
+    | bornes | `np.clip(a, lo, hi)` |
+    | différences successives | `np.diff(a)` |
+    | somme/produit cumulés | `np.cumsum`, `np.cumprod` |
+    | recherche d'indices | `np.argmax`, `np.argmin`, `np.argsort`, `np.nonzero` |
+    | interpolation | `np.interp(x, xp, fp)` |
+    | polynômes | `np.polyfit`, `np.polyval` |
+    | fenêtres glissantes | `np.lib.stride_tricks.sliding_window_view` |
+    | lire/écrire | `np.loadtxt`, `np.savetxt`, `np.save` (.npy binaire) |
+  e: |-
+    Les variantes `nan*` sont essentielles en instrumentation : un seul `nan` contamine `mean()` en le rendant `nan`, alors que `nanmean()` l'ignore.
+
+    `np.argmax` renvoie l'**indice** du maximum : c'est ce que tu veux pour localiser un pic dans un spectre, pas sa valeur.
+
+    `.npy` est ~10× plus rapide et plus compact qu'un CSV, et conserve le `dtype` et la forme exacts.
+- id: py12.14
+  type: qcm
+  level: 3
+  concepts:
+  - complexite
+  - profilage
+  q: Ton traitement passe de 2 s à 40 s quand les données doublent. Que t’apprend cette observation ?
+  choices:
+  - t: 'La complexité est au moins quadratique : il faut changer d’algorithme, pas micro-optimiser'
+    ok: true
+    why: 'Doubler n multiplie le temps par 20 : c’est bien pire que du linéaire, donc structurel.'
+  - t: Le disque est saturé
+    ok: false
+    why: Possible, mais un facteur 20 pour un facteur 2 pointe d’abord vers l’algorithme.
+  - t: Il faut plus de RAM
+    ok: false
+    why: Un manque de RAM (swap) donnerait ce profil, mais c’est à vérifier après l’algorithme.
+  - t: C’est normal
+    ok: false
+    why: 'Non : un traitement linéaire aurait doublé.'
+  e: |-
+    Mesurer sur **deux tailles** est le diagnostic le plus rentable qui existe, et il coûte deux minutes :
+
+    | n → 2n | Temps × | Complexité |
+    | --- | --- | --- |
+    | ×2 | ×2 | O(n) |
+    | ×2 | ×2,2 | O(n log n) |
+    | ×2 | ×4 | O(n²) |
+    | ×2 | ×8 | O(n³) |
+    | ×2 | ×20 | pire que quadratique, ou swap |
+
+    Les coupables habituels : un `x in liste` dans une boucle, une concaténation de chaînes, un `pop(0)`, un `min()/max()` recalculé, ou une jointure imbriquée.
+
+    **Corollaire** : optimiser une constante (passer de 2 s à 1,5 s) sur un algorithme quadratique ne sert à rien. Change la structure de données d'abord.
+- id: py12.15
+  type: parsons
+  level: 3
+  concepts:
+  - numpy
+  - vectorisation
+  q: Reconstitue une calibration vectorisée avec rejet des valeurs aberrantes.
+  lang: python
+  lines:
+  - import numpy as np
+  - ''
+  - 'def calibrer(brut, gain, offset, n_sigma=3.0):'
+  - '    a = np.asarray(brut, dtype=float)'
+  - '    v = gain * a + offset'
+  - '    fini = np.isfinite(v)'
+  - '    if not fini.any():'
+  - '        return v'
+  - '    mu, sigma = v[fini].mean(), v[fini].std()'
+  - '    aberrant = np.abs(v - mu) > n_sigma * sigma'
+  - '    v[aberrant] = np.nan'
+  - '    return v'
+  extra:
+  - '    mu, sigma = v.mean(), v.std()'
+  - '    v = [gain * x + offset for x in a]'
+  e: |-
+    Quatre décisions de conception :
+    - `np.asarray(..., dtype=float)` accepte listes et tableaux, et garantit l'arithmétique flottante.
+    - Les statistiques sont calculées **sur les valeurs finies seulement** : un seul `nan` dans l'entrée rendrait `mu` et `sigma` égaux à `nan`, et le masque serait entièrement faux. C'est le premier intrus.
+    - Le garde `if not fini.any()` évite un `RuntimeWarning: Mean of empty slice`.
+    - Les aberrants deviennent `nan` plutôt que d'être **supprimés** : la longueur et donc l'alignement temporel sont conservés. C'est presque toujours ce qu'on veut sur une série temporelle.
+
+    Le second intrus (comprehension) refait une boucle Python : 100× plus lent.
+
+    Note : le critère « n sigma » suppose une distribution à peu près normale. Sur des données bruitées, l'écart médian absolu (MAD) est plus robuste.
+- id: py12.16
+  type: predict
+  level: 3
+  concepts:
+  - numpy
+  q: Sortie ?
+  code: |-
+    import numpy as np
+    a = np.array([1, 2, 3], dtype=np.int8)
+    print(a * 100)
+    b = np.array([1.0, 2.0])
+    print(b / 0)
+  answer: |-
+    [100 -56  44]
+    [inf inf]
+  e: |-
+    Deux comportements qui surprennent quand on vient du Python pur :
+
+    **1. NumPy ne promeut pas les entiers.** `int8` reste `int8` : 2×100 = 200 déborde et boucle à −56 (modulo 256, signé). Aucune exception, aucun avertissement dans une opération vectorisée. C'est le comportement du C, pas celui de Python.
+
+    **2. La division flottante par zéro donne `inf`**, avec un `RuntimeWarning` — pas une `ZeroDivisionError`. Sur des entiers, elle donne 0 avec un avertissement.
+
+    En instrumentation, choisis tes `dtype` en connaissance de cause : un compteur en `uint16` déborde à 65 535. Utilise `np.seterr(over="raise")` pendant le développement pour transformer ces débordements en exceptions.

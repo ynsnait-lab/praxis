@@ -1,0 +1,741 @@
+id: methodes
+title: Méthodes de l'ingénieur
+en: Engineering methods
+desc: Incertitudes de mesure, analyse fonctionnelle et cahier des charges, résolution de problèmes, AMDEC et gestion de projet.
+intro: |
+  Savoir calculer ne suffit pas : il faut savoir ce qu'on cherche (le besoin), à quel point on peut se fier au résultat (l'incertitude), pourquoi quelque chose a cassé (la cause racine), ce qui pourrait mal tourner (l'AMDEC) et comment livrer à temps (le projet).
+
+  Ce sont les méthodes qu'on attend d'un ingénieur dès son premier poste, et qui font la différence en entretien.
+notions:
+  # ------------------------------------------------------------------ incertitudes
+  - id: met-incertitudes
+    title: Incertitudes de mesure
+    en: Measurement uncertainty
+    goal: Évaluer une incertitude-type (types A et B), la composer, l'élargir et présenter un résultat correctement.
+    minutes: 13
+    lesson:
+      steps:
+        - level: 1
+          title: « Environ 10 mm »
+          body: |
+            Une mesure sans incertitude ne vaut rien : « 10 mm » peut vouloir dire « entre 9 et 11 » ou « entre 9,999 et 10,001 ». Pour décider si une pièce est bonne ou si deux mesures sont en accord, il faut savoir **à quel point on est sûr**.
+        - level: 2
+          title: D'où vient le doute
+          body: |
+            Toute mesure est entachée d'erreurs : l'instrument, la méthode, l'opérateur, l'environnement (température !), la dispersion de répétabilité. On les chiffre avec des **incertitudes-types** $u$, qui s'évaluent de deux façons :
+            - **type A** : par la statistique, en répétant la mesure (écart-type) ;
+            - **type B** : par toute autre information, comme la spécification de l'instrument, un certificat d'étalonnage, la résolution de l'affichage.
+
+            Puis on **compose** les contributions et on **élargit** pour donner un intervalle de confiance.
+          check:
+            q: L'incertitude venant de la classe de précision annoncée par le fabricant d'un multimètre est une évaluation…
+            choices:
+              - t: de type B
+                ok: true
+                why: Elle ne vient pas de mesures répétées, mais d'une information extérieure.
+              - t: de type A
+                why: Le type A est réservé à l'analyse statistique de mesures répétées.
+              - t: ni l'un ni l'autre
+                why: Toute incertitude est évaluée par l'une des deux méthodes.
+        - level: 3
+          title: Les formules
+          body: |
+            **Type A** : $u = s/\sqrt n$ pour la moyenne de $n$ mesures d'écart-type $s$.
+
+            **Type B**, loi rectangulaire : si l'on sait seulement que l'erreur est comprise dans $\pm a$, $u = a/\sqrt 3$. Pour la résolution $q$ d'un affichage : $u = q/\sqrt{12}$.
+
+            **Composition** (sources indépendantes) : les incertitudes s'additionnent **quadratiquement**
+            $$u_c = \sqrt{u_1^2 + u_2^2 + \dots}$$
+
+            **Incertitude élargie** : $U = k\,u_c$, avec $k = 2$ pour environ 95 % de confiance.
+
+            **Propagation** pour un produit ou un quotient ($P = U\,I$, $\rho = m/V$) : ce sont les incertitudes **relatives** qui se composent quadratiquement.
+
+            **Présentation** : $L = (12{,}35 \pm 0{,}12)$ mm, $k = 2$. L'incertitude a une ou deux chiffres significatifs, et le résultat est arrondi à la même position.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Pourquoi quadratiquement ?** Des erreurs indépendantes ne vont pas toutes dans le même sens au même moment ; elles se compensent en partie. La variance d'une somme de variables indépendantes est la somme des variances, d'où la racine de la somme des carrés.
+
+            **Conséquence pratique** : la plus grosse source domine. Avec 0,03 et 0,01, $u_c = 0{,}032$ : réduire la petite ne sert à rien. On commence toujours par le **budget d'incertitude** (tableau des sources) pour savoir où agir.
+
+            **Loi rectangulaire** : si toutes les valeurs de $-a$ à $+a$ sont également probables, l'écart-type vaut $a/\sqrt 3$. C'est l'hypothèse prudente quand on ne connaît que des bornes.
+
+            Référence : le **GUM** (*Guide to the expression of Uncertainty in Measurement*), norme internationale de la métrologie.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Pour une mesure dimensionnelle, pense à la **température** (1 °C sur 100 mm d'acier = 1,2 µm) et à l'étalonnage de l'instrument.
+            - Deux résultats sont compatibles si leurs intervalles se recouvrent (à $k = 2$).
+            - Une incertitude de mesure doit être petite devant la tolérance à vérifier : une règle courante demande un rapport d'au moins 4 à 10.
+      recap:
+        - "Type A : statistique (s/√n) ; type B : autres informations (± a → a/√3)."
+        - "Composition quadratique : u_c = √(Σ uᵢ²) ; la plus grosse source domine."
+        - "Élargie : U = k·u_c, k = 2 pour ≈ 95 %."
+        - "Produit/quotient : incertitudes relatives en quadrature."
+        - "Résultat : (12,35 ± 0,12) mm, k = 2, arrondi cohérent."
+      pieges: [ing-chiffres-significatifs, ing-ecart-type-moyenne]
+    vocab:
+      - incertitude-type = standard uncertainty
+      - incertitude élargie = expanded uncertainty
+      - facteur d'élargissement = coverage factor (k)
+      - évaluation de type A / B = Type A / Type B evaluation
+      - loi rectangulaire = rectangular (uniform) distribution
+      - budget d'incertitude = uncertainty budget
+      - propagation des incertitudes = uncertainty propagation
+      - métrologie = metrology
+    exercises:
+      - id: met-incertitudes.1
+        type: numeric
+        level: 2
+        q: Un pied à coulisse est annoncé à ± 0,02 mm (loi rectangulaire). Incertitude-type, en mm ?
+        answer: 0.01155
+        tol: 0.01
+        unit: mm
+        calc: 0.02 / sqrt(3)
+        trap_values:
+          - v: 0.02
+            why: ± 0,02 mm est une borne, pas une incertitude-type ; pour une loi rectangulaire, on divise par √3.
+        e: $0{,}02/\sqrt 3 \approx 0{,}0115$ mm.
+      - id: met-incertitudes.2
+        type: numeric
+        level: 1
+        q: Deux sources indépendantes d'incertitudes-types 0,03 mm et 0,04 mm. Incertitude composée ?
+        answer: 0.05
+        tol: 0.01
+        unit: mm
+        calc: sqrt(0.03**2 + 0.04**2)
+        trap_values:
+          - v: 0.07
+            why: Des incertitudes indépendantes se composent quadratiquement, pas en les additionnant.
+        e: $\sqrt{0{,}0009 + 0{,}0016} = 0{,}05$ mm.
+      - id: met-incertitudes.3
+        type: numeric
+        level: 1
+        q: Incertitude composée 0,05 mm. Incertitude élargie à environ 95 % ?
+        answer: 0.1
+        tol: 0.01
+        unit: mm
+        calc: 2 * 0.05
+        e: $U = k\,u_c = 2 \times 0{,}05 = 0{,}10$ mm.
+      - id: met-incertitudes.4
+        type: numeric
+        level: 3
+        q: "P = U × I. Incertitude relative sur U : 1 %, sur I : 2 % (indépendantes). Incertitude relative sur P, en % ?"
+        answer: 2.236
+        tol: 0.01
+        unit: "%"
+        calc: sqrt(1**2 + 2**2)
+        trap_values:
+          - v: 3
+            why: C'est la somme linéaire, trop pessimiste pour des sources indépendantes.
+          - v: 2
+            why: Tu as gardé la plus grande seulement ; elles se composent.
+        e: $\sqrt{1^2 + 2^2} \approx 2{,}2$ %.
+      - id: met-incertitudes.5
+        type: qcm
+        level: 1
+        q: Quelle présentation d'un résultat est correcte ?
+        piege: ing-chiffres-significatifs
+        choices:
+          - t: L = (12,35 ± 0,12) mm, k = 2
+            ok: true
+          - t: L = 12,34872 mm
+            piege: true
+            why: Sans incertitude et avec des chiffres qui n'ont aucun sens physique.
+          - t: L = (12,34872 ± 0,1) mm
+            why: Le résultat doit être arrondi à la même position que l'incertitude.
+        e: Une incertitude à 1 ou 2 chiffres significatifs, le résultat arrondi au même rang, et le facteur k précisé.
+      - id: met-incertitudes.6
+        type: qcm
+        level: 2
+        q: Dans un budget d'incertitude, trois sources valent 0,050 ; 0,010 et 0,005 mm. Que faut-il améliorer en priorité ?
+        choices:
+          - t: La source à 0,050 mm, qui domine la composition quadratique
+            ok: true
+          - t: La source à 0,005 mm, la plus facile
+            why: La réduire à zéro ne changerait u_c que de 0,0005 mm environ.
+          - t: Les trois également
+            why: La composition quadratique rend les petites sources presque négligeables.
+        e: u_c = √(0,05² + 0,01² + 0,005²) ≈ 0,051 mm ; seule la première compte vraiment.
+      - id: met-incertitudes.7
+        type: flash
+        level: 2
+        q: Quelles sont les étapes pour évaluer l'incertitude d'une mesure ?
+        back: |
+          1. Définir le mesurande et la méthode.
+          2. Lister toutes les sources (instrument, étalonnage, répétabilité, résolution, température, opérateur…).
+          3. Évaluer chaque incertitude-type (type A statistique, type B autres informations).
+          4. Composer quadratiquement (avec les coefficients de sensibilité si besoin).
+          5. Élargir (k = 2) et présenter le résultat avec un arrondi cohérent.
+        e: Le tableau des sources s'appelle le budget d'incertitude.
+  # ------------------------------------------------------------------ analyse fonctionnelle
+  - id: met-fonctionnel
+    title: Analyse fonctionnelle et cahier des charges
+    en: Functional analysis and requirements
+    goal: Exprimer un besoin en fonctions de service mesurables, sans imposer de solution.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: Le trou, pas la perceuse
+          body: |
+            Un client qui achète une perceuse n'a pas besoin d'une perceuse : il a besoin d'un trou dans son mur (et même, d'accrocher un cadre). Si on commence par la solution, on passe à côté d'autres idées (une colle, un crochet adhésif) et on risque de mal répondre au vrai besoin.
+        - level: 2
+          title: Du besoin aux fonctions
+          body: |
+            L'**analyse fonctionnelle** part du besoin et le décrit en **fonctions**, sans parler de solution :
+            - **le besoin** (outil « bête à cornes ») : à qui le produit rend-il service ? Sur quoi agit-il ? Dans quel but ?
+            - **les fonctions de service** (diagramme « pieuvre ») : les **fonctions principales** relient deux éléments de l'environnement à travers le produit (« permettre à l'utilisateur de régler la température de l'échantillon ») ; les **fonctions contraintes** adaptent le produit à un élément (« résister au vide », « respecter l'encombrement »).
+
+            Une fonction s'écrit **verbe à l'infinitif + complément** : « maintenir l'échantillon à la température de consigne », et non « mettre un chauffage de 50 W ».
+          check:
+            q: Laquelle est une fonction de service bien formulée ?
+            choices:
+              - t: Positionner l'échantillon dans le faisceau
+                ok: true
+              - t: Utiliser une platine motorisée XY
+                why: C'est une solution, pas une fonction.
+              - t: Précision
+                why: C'est un critère, sans verbe ni objet.
+        - level: 3
+          title: Le cahier des charges fonctionnel
+          body: |
+            Le **cahier des charges fonctionnel** (CdCF) chiffre chaque fonction :
+
+            | Fonction | Critère | Niveau | Flexibilité |
+            | --- | --- | --- | --- |
+            | Positionner l'échantillon dans le faisceau | course | ± 10 mm | F0 (impératif) |
+            | | répétabilité | ≤ 1 µm | F1 (peu négociable) |
+            | Résister au vide | pression de fonctionnement | 10⁻⁷ mbar | F0 |
+            | Tenir dans la chambre existante | encombrement | Ø 200 × 150 mm | F2 (négociable) |
+
+            - **Critère** : la grandeur qui permet de juger ;
+            - **niveau** : la valeur visée, avec son unité ;
+            - **flexibilité** : ce qui est négociable (F0 impératif … F3 très négociable).
+
+            Un besoin non chiffré ne peut pas être vérifié à la réception.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Pourquoi séparer besoin et solution** : le cahier des charges fonctionnel appartient au demandeur (ce qu'il veut), la solution au concepteur (comment). Mélanger les deux ferme des options, et empêche de comparer des solutions différentes.
+
+            **Outils de la suite** : le diagramme **FAST** décompose chaque fonction de service en fonctions techniques, puis en solutions (« comment ? » vers la droite, « pourquoi ? » vers la gauche). La **SADT** décrit les flux de matière, d'énergie et d'information.
+
+            **Exigences vérifiables** : chaque ligne du CdCF doit pouvoir être testée à la réception. « Robuste » ou « facile à utiliser » ne se testent pas ; « supporter 10 000 cycles » ou « montage en moins de 15 min par un technicien » oui.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Pour un équipement d'environnement échantillon (cryostat, four, cellule de pression), le CdCF vient des scientifiques : plage de température, stabilité, temps de mise en froid, accès du faisceau, compatibilité vide, interfaces avec le diffractomètre.
+            - Fais relire le CdCF par l'utilisateur **avant** de concevoir : un malentendu y coûte une heure, en fin de projet il coûte des mois.
+            - Garde la trace de chaque exigence jusqu'à son essai de validation (matrice de traçabilité).
+      recap:
+        - "Partir du besoin (bête à cornes), pas de la solution."
+        - "Fonction = verbe à l'infinitif + complément."
+        - "Fonctions principales (relient deux éléments) et contraintes (adaptation à un élément)."
+        - "CdCF : fonction, critère, niveau, flexibilité (F0 à F3)."
+        - "Chaque exigence doit être vérifiable à la réception."
+      pieges: [ing-solution-avant-besoin]
+    vocab:
+      - analyse fonctionnelle = functional analysis
+      - expression du besoin = needs statement
+      - fonction de service = service function
+      - fonction contrainte = constraint function
+      - cahier des charges fonctionnel = functional specification (requirements)
+      - critère d'appréciation = evaluation criterion
+      - flexibilité = flexibility (negotiability)
+      - traçabilité des exigences = requirements traceability
+    exercises:
+      - id: met-fonctionnel.1
+        type: qcm
+        level: 1
+        q: Quelles questions pose l'outil « bête à cornes » ?
+        choices:
+          - t: À qui le produit rend-il service ? Sur quoi agit-il ? Dans quel but ?
+            ok: true
+          - t: Combien ça coûte ? Quand est-ce livré ? Qui le fabrique ?
+            why: Ce sont des questions de projet, pas d'expression du besoin.
+          - t: Quels composants ? Quels matériaux ? Quelles cotes ?
+            why: Ce sont des questions de solution.
+        e: Elles valident que le besoin existe et qu'on l'a bien compris.
+      - id: met-fonctionnel.2
+        type: qcm
+        level: 1
+        q: Dans un cahier des charges fonctionnel, que manque-t-il à « Refroidir l'échantillon, rapidement » ?
+        choices:
+          - t: Un critère chiffré (temps de mise en froid), un niveau (≤ 30 min de 300 K à 80 K) et une flexibilité
+            ok: true
+          - t: Le nom du fournisseur du cryostat
+            why: C'est une solution, qui n'a rien à faire dans le CdCF.
+          - t: Rien, c'est clair
+            why: « Rapidement » n'est pas vérifiable.
+        e: Une exigence non chiffrée ne peut pas être vérifiée.
+      - id: met-fonctionnel.3
+        type: qcm
+        level: 2
+        q: Un demandeur écrit « Le système doit utiliser un moteur pas à pas Nema 17 ». Que lui répondre ?
+        piege: ing-solution-avant-besoin
+        choices:
+          - t: Lui demander la fonction et les critères derrière ce choix (course, précision, vitesse, environnement)
+            ok: true
+          - t: L'accepter tel quel
+            piege: true
+            why: C'est une solution. Si le besoin réel est la précision sous vide, un autre actionneur conviendrait peut-être mieux.
+          - t: Le refuser sans discuter
+            why: Il peut exister une vraie contrainte (pièces de rechange standard, par exemple) ; il faut la faire apparaître comme telle.
+        e: Une solution imposée est parfois une vraie contrainte ; elle doit alors figurer comme fonction contrainte justifiée.
+      - id: met-fonctionnel.4
+        type: qcm
+        level: 2
+        q: Que signifie une flexibilité F0 sur un niveau du cahier des charges ?
+        choices:
+          - t: Le niveau est impératif, non négociable
+            ok: true
+          - t: Le niveau est totalement négociable
+            why: C'est l'inverse ; plus le chiffre est élevé, plus c'est négociable.
+          - t: La fonction est facultative
+            why: La flexibilité porte sur le niveau d'un critère, pas sur l'existence de la fonction.
+        e: F0 impératif, F1 peu négociable, F2 négociable, F3 très négociable.
+      - id: met-fonctionnel.5
+        type: qcm
+        level: 2
+        q: Laquelle de ces exigences est vérifiable ?
+        choices:
+          - t: Supporter 10 000 cycles d'ouverture sans perte d'étanchéité (fuite < 10⁻⁹ mbar·L/s)
+            ok: true
+          - t: Être robuste
+            why: Aucun critère ni niveau ; impossible à tester.
+          - t: Être facile à utiliser
+            why: À traduire en critère mesurable (durée de montage, nombre d'étapes, formation nécessaire).
+        e: Une bonne exigence dit ce qu'on mesure, quel niveau atteindre, et dans quelles conditions.
+      - id: met-fonctionnel.6
+        type: flash
+        level: 1
+        q: Quelles sont les colonnes d'un cahier des charges fonctionnel ?
+        back: |
+          **Fonction** (verbe + complément), **critère** d'appréciation (la grandeur mesurée), **niveau** (valeur visée avec unité et tolérance), **flexibilité** (F0 impératif à F3 très négociable).
+        e: On y ajoute souvent la méthode de vérification prévue pour la réception.
+  # ------------------------------------------------------------------ résolution de problèmes
+  - id: met-resolution
+    title: Résoudre un problème à la racine
+    en: Root cause problem solving
+    goal: Utiliser les 5 pourquoi, le diagramme d'Ishikawa et Pareto pour trouver et traiter la cause racine.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: Changer l'ampoule, encore et encore
+          body: |
+            Une ampoule grille tous les mois. On la change, encore et encore. Un jour, quelqu'un se demande pourquoi : la douille est mal serrée, le contact chauffe. On ne traitait que le **symptôme**. En réparant la douille, on traite la **cause racine**, et le problème disparaît pour de bon.
+        - level: 2
+          title: Les outils de base
+          body: |
+            - **QQOQCCP** (Qui ? Quoi ? Où ? Quand ? Comment ? Combien ? Pourquoi ?) : décrire précisément le problème avant de chercher. Un problème bien posé est à moitié résolu.
+            - **5 pourquoi** : demander « pourquoi ? » à chaque réponse, jusqu'à atteindre une cause sur laquelle on peut agir durablement.
+            - **Diagramme d'Ishikawa** (en arêtes de poisson) : classer toutes les causes possibles en **5M** : Matière, Matériel (machines), Méthode, Milieu, Main-d'œuvre.
+            - **Pareto** : classer les causes ou défauts par fréquence ; souvent, 20 % des causes produisent 80 % des problèmes. On commence par elles.
+            - **PDCA** (*Plan, Do, Check, Act*) : planifier, faire, vérifier, pérenniser, et recommencer.
+          check:
+            q: Un vérin pneumatique se bloque de temps en temps. Quelle est la meilleure première étape ?
+            choices:
+              - t: Décrire précisément le problème (quand, à quelle position, à quelle fréquence, depuis quand, dans quelles conditions)
+                ok: true
+              - t: Changer le vérin
+                why: C'est une solution avant d'avoir une cause ; si la cause est ailleurs (air humide, distributeur), le problème reviendra.
+              - t: Augmenter la pression
+                why: Traiter le symptôme peut masquer la cause et créer un autre problème.
+        - level: 3
+          title: Un exemple
+          body: |
+            **5 pourquoi** sur un moteur de platine qui s'arrête en défaut de surchauffe :
+            1. Pourquoi s'arrête-t-il ? Sa protection thermique déclenche.
+            2. Pourquoi chauffe-t-il ? Il consomme plus de courant que prévu.
+            3. Pourquoi ? Le couple demandé a augmenté.
+            4. Pourquoi ? Le guidage frotte davantage.
+            5. Pourquoi ? La graisse, non compatible vide, s'est dégradée après l'étuvage.
+
+            Action racine : changer de lubrifiant (et mettre à jour la procédure d'étuvage), pas « mettre un plus gros moteur ».
+
+            **Pareto** sur 100 arrêts de ligne : bourrage 45, capteur 25, réseau 15, opérateur 10, divers 5. Les deux premières causes représentent 70 % des arrêts.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Symptôme, cause directe, cause racine** : la cause racine est celle qui, supprimée, empêche le problème de réapparaître. Elle est souvent dans une **méthode** ou une **organisation** (une procédure, un choix de conception, une vérification absente), rarement dans « l'erreur de quelqu'un ».
+
+            **Vérifier la cause** : une hypothèse n'est une cause qu'une fois confirmée, par un essai, une mesure, ou la reproduction du défaut. Sinon, on corrige au hasard.
+
+            **Méthode 8D** (industrie) : équipe, description, action immédiate de protection, cause racine, actions correctives, mise en œuvre, prévention de la réapparition, félicitations. Elle formalise tout cela pour les problèmes importants.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Note ce que tu observes **avant** de toucher à quoi que ce soit : un redémarrage efface souvent les indices.
+            - Sépare **l'action immédiate** (remettre en service, protéger) de **l'action corrective** (supprimer la cause).
+            - Capitalise : une fiche de retour d'expérience évite que la même panne coûte trois jours à quelqu'un d'autre.
+      recap:
+        - "Décrire d'abord (QQOQCCP), chercher ensuite."
+        - "5 pourquoi jusqu'à une cause sur laquelle agir durablement."
+        - "Ishikawa : Matière, Matériel, Méthode, Milieu, Main-d'œuvre."
+        - "Pareto : traiter d'abord les quelques causes qui font la majorité des problèmes."
+        - "Confirmer la cause avant de corriger ; séparer action immédiate et corrective."
+      pieges: [ing-cause-symptome]
+    vocab:
+      - cause racine = root cause
+      - symptôme = symptom
+      - 5 pourquoi = 5 whys
+      - diagramme d'Ishikawa = Ishikawa (fishbone) diagram
+      - diagramme de Pareto = Pareto chart
+      - action corrective = corrective action
+      - retour d'expérience = lessons learned
+      - roue de Deming = PDCA cycle (Plan-Do-Check-Act)
+    exercises:
+      - id: met-resolution.1
+        type: qcm
+        level: 1
+        q: Quelles sont les familles de causes du diagramme d'Ishikawa (5M) ?
+        choices:
+          - t: Matière, Matériel, Méthode, Milieu, Main-d'œuvre
+            ok: true
+          - t: Moteur, Mécanique, Maintenance, Mesure, Montage
+            why: Ce ne sont pas les catégories standard.
+          - t: Mois, Minute, Marge, Moyen, Management
+            why: Non ; les 5M classent les causes par nature.
+        e: On ajoute parfois Mesure et Management (7M).
+      - id: met-resolution.2
+        type: numeric
+        level: 1
+        q: "Sur 100 arrêts : bourrage 45, capteur 25, réseau 15, opérateur 10, divers 5. Quel pourcentage des arrêts représentent les deux premières causes ?"
+        answer: 70
+        tol: 0.01
+        unit: "%"
+        calc: (45 + 25) / 100 * 100
+        e: 45 + 25 = 70 %. C'est là qu'agir en premier.
+      - id: met-resolution.3
+        type: qcm
+        level: 2
+        q: Un fusible saute régulièrement sur une armoire. On met un fusible de calibre supérieur. Qu'a-t-on fait ?
+        piege: ing-cause-symptome
+        choices:
+          - t: Traité le symptôme, en supprimant au passage une protection ; la cause (surcharge, court-circuit, défaut) reste
+            ok: true
+          - t: Résolu le problème
+            piege: true
+            why: Le fusible faisait son travail ; il signalait un problème en amont.
+          - t: Amélioré la fiabilité
+            why: Le câble n'est plus protégé correctement ; le risque d'incendie augmente.
+        e: Un fusible qui saute est un symptôme ; cherche pourquoi le courant dépasse le calibre.
+      - id: met-resolution.4
+        type: qcm
+        level: 1
+        q: Quel est le but de la méthode des 5 pourquoi ?
+        choices:
+          - t: Remonter du symptôme à une cause racine sur laquelle agir durablement
+            ok: true
+          - t: Trouver un responsable
+            why: Elle vise une cause, souvent dans une méthode ou une organisation, pas une personne.
+          - t: Poser exactement cinq questions
+            why: Le nombre est indicatif ; on s'arrête quand on atteint une cause actionnable.
+        e: Chaque réponse doit être vérifiée par un fait, pas supposée.
+      - id: met-resolution.5
+        type: qcm
+        level: 2
+        q: Que signifie le « C » de PDCA ?
+        choices:
+          - t: Check, vérifier que l'action a produit l'effet attendu
+            ok: true
+          - t: Correct, corriger
+            why: La correction vient avant (Do) et la pérennisation après (Act).
+          - t: Cost, chiffrer
+            why: Ce n'est pas l'un des quatre temps.
+        e: Plan, Do, Check, Act, puis on recommence ; c'est l'amélioration continue.
+      - id: met-resolution.6
+        type: flash
+        level: 1
+        q: Que veut dire QQOQCCP et à quoi ça sert ?
+        back: |
+          Qui ? Quoi ? Où ? Quand ? Comment ? Combien ? Pourquoi ?
+
+          Décrire complètement un problème (ou un projet) avant d'agir : qui est concerné, ce qui se passe exactement, où, depuis quand et à quelle fréquence, dans quelles conditions, avec quelle ampleur, et pourquoi c'est un problème.
+        e: Un problème bien décrit évite la moitié des fausses pistes.
+  # ------------------------------------------------------------------ AMDEC
+  - id: met-amdec
+    title: L'AMDEC
+    en: Failure mode and effects analysis (FMEA)
+    goal: Construire une ligne d'AMDEC, calculer une criticité et choisir des actions pertinentes.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: Imaginer les pannes avant qu'elles arrivent
+          body: |
+            Avant un long voyage en voiture, on se demande ce qui pourrait tomber en panne et avec quelles conséquences : un pneu crevé (on prend une roue de secours), une batterie faible (on la vérifie). L'**AMDEC** fait la même chose, méthodiquement, pour un produit ou un procédé.
+        - level: 2
+          title: Mode, effet, cause, et trois notes
+          body: |
+            Pour chaque élément du système, on se demande :
+            - **mode de défaillance** : comment peut-il ne pas remplir sa fonction ? (fuite, rupture, blocage, dérive) ;
+            - **effet** : quelle conséquence pour le système et l'utilisateur ?
+            - **cause** : qu'est-ce qui peut provoquer ce mode ?
+
+            Puis on note (souvent de 1 à 10) :
+            - **G** : la gravité de l'effet ;
+            - **O** : la probabilité d'occurrence de la cause ;
+            - **D** : la difficulté de **détection** avant que l'effet ne se produise (10 = indétectable).
+
+            La **criticité** $C = G \times O \times D$ classe les risques. Au-dessus d'un seuil, on définit des actions, puis on renote.
+          check:
+            q: Dans une AMDEC, une note de détection D élevée signifie…
+            choices:
+              - t: que la défaillance est difficile à détecter avant qu'elle ne produise son effet
+                ok: true
+              - t: que la défaillance est facile à détecter
+                why: C'est l'inverse ; une note élevée est défavorable, comme G et O.
+              - t: que la défaillance est fréquente
+                why: C'est la note d'occurrence O.
+        - level: 3
+          title: Un exemple
+          body: |
+            | Élément | Mode | Effet | Cause | G | O | D | C |
+            | --- | --- | --- | --- | --- | --- | --- | --- |
+            | Circuit d'eau d'un monochromateur | fuite au raccord | eau sous vide, arrêt de la ligne | joint vieilli | 8 | 3 | 4 | 96 |
+
+            **Actions possibles** :
+            - réduire **O** : changer de joint, planifier son remplacement ;
+            - réduire **D** : ajouter une détection (débitmètre, capteur de fuite, surveillance de pression) ;
+            - réduire **G** (plus difficile) : concevoir pour que la fuite ne soit pas dans le vide (double enveloppe, raccords hors vide).
+
+            Après remplacement préventif (O = 1) : $C = 8 \times 1 \times 4 = 32$.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **La criticité ne suffit pas** : une gravité de 10 (danger pour une personne) avec O = 1 et D = 2 donne C = 20, en dessous de beaucoup de seuils. Les bonnes pratiques imposent de traiter **toute gravité élevée**, quelle que soit la criticité. Les méthodes récentes remplacent d'ailleurs le produit G×O×D par des priorités d'action lues dans des tableaux (G d'abord).
+
+            **Deux familles** : l'AMDEC **produit** (conception) et l'AMDEC **procédé** (fabrication, montage, maintenance). Les causes de l'une sont souvent les modes de l'autre.
+
+            **Travail d'équipe** : une AMDEC se fait à plusieurs (conception, fabrication, utilisation, maintenance), chacun voyant des défaillances que les autres ignorent.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Commence tôt, en conception : une défaillance évitée sur le papier ne coûte presque rien.
+            - Pour une installation expérimentale, pense aux défaillances « lentes » (dérive, colmatage, usure) autant qu'aux ruptures, et à ce qui se passe lors d'une coupure de courant, d'air ou d'eau.
+            - Garde l'AMDEC vivante : mets-la à jour après chaque incident réel.
+      recap:
+        - "Mode (comment ça rate), effet (conséquence), cause (origine)."
+        - "G gravité, O occurrence, D détection (10 = indétectable)."
+        - "Criticité C = G × O × D ; au-dessus d'un seuil, actions puis nouvelle cotation."
+        - "Agir sur O (prévention), D (détection) ou G (conception)."
+        - "Toute gravité élevée se traite, même si C est faible."
+      pieges: [ing-amdec-gravite]
+    vocab:
+      - AMDEC = FMEA (failure mode and effects analysis)
+      - mode de défaillance = failure mode
+      - effet = effect
+      - cause = cause
+      - gravité = severity
+      - occurrence = occurrence
+      - détection = detection
+      - criticité = risk priority number (RPN)
+    exercises:
+      - id: met-amdec.1
+        type: numeric
+        level: 1
+        q: Gravité 8, occurrence 3, détection 4. Criticité ?
+        answer: 96
+        tol: 0.001
+        calc: 8 * 3 * 4
+        e: C = 8 × 3 × 4 = 96.
+      - id: met-amdec.2
+        type: numeric
+        level: 1
+        q: Après une action préventive, l'occurrence passe de 3 à 1 (G = 8, D = 4). Nouvelle criticité ?
+        answer: 32
+        tol: 0.001
+        calc: 8 * 1 * 4
+        e: C = 8 × 1 × 4 = 32.
+      - id: met-amdec.3
+        type: qcm
+        level: 2
+        q: Quelle action réduit la note de détection D d'une fuite d'eau dans une enceinte sous vide ?
+        choices:
+          - t: Ajouter un débitmètre et une surveillance de pression qui alertent avant que la fuite soit importante
+            ok: true
+          - t: Changer le joint plus souvent
+            why: Cela réduit l'occurrence O.
+          - t: Déplacer les raccords hors du vide
+            why: Cela réduit la gravité G de l'effet.
+        e: D mesure la capacité à voir venir la défaillance avant qu'elle ne produise son effet.
+      - id: met-amdec.4
+        type: qcm
+        level: 2
+        q: Une ligne a G = 10 (risque pour une personne), O = 1, D = 2, soit C = 20, sous le seuil de 100. Que faire ?
+        piege: ing-amdec-gravite
+        choices:
+          - t: La traiter quand même, une gravité maximale impose une action ou une justification
+            ok: true
+          - t: Rien, la criticité est sous le seuil
+            piege: true
+            why: Le produit G×O×D peut masquer un risque grave et rare ; la gravité se traite pour elle-même.
+          - t: Baisser G pour rester cohérent
+            why: On ne baisse une note qu'après une action réelle qui la justifie.
+        e: Les risques pour les personnes se traitent en priorité, quelle que soit la criticité.
+      - id: met-amdec.5
+        type: qcm
+        level: 1
+        q: Pour un raccord hydraulique, « fuite » est…
+        choices:
+          - t: un mode de défaillance
+            ok: true
+          - t: une cause
+            why: La cause serait par exemple un joint vieilli ou un serrage insuffisant.
+          - t: un effet
+            why: L'effet serait la perte de pression, la pollution, l'arrêt.
+        e: Mode = la manière dont l'élément ne remplit plus sa fonction.
+      - id: met-amdec.6
+        type: flash
+        level: 1
+        q: Quelles colonnes contient une ligne d'AMDEC ?
+        back: |
+          Élément (ou fonction) ; mode de défaillance ; effet ; cause ; gravité G ; occurrence O ; détection D ; criticité C = G × O × D ; actions ; nouvelles notes après action ; responsable et délai.
+        e: Les notes vont en général de 1 à 10, selon des grilles définies à l'avance.
+  # ------------------------------------------------------------------ projet
+  - id: met-projet
+    title: Gestion de projet
+    en: Project management
+    goal: Découper un projet, trouver son chemin critique, et piloter délais, coûts et risques.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Préparer un repas pour dix
+          body: |
+            Pour servir un repas à l'heure, on sait qu'il faut mettre le rôti au four avant d'éplucher les légumes, et que la sauce peut attendre la fin. On découpe le travail en tâches, on voit ce qui dépend de quoi, et on repère ce qui ne doit surtout pas prendre de retard. C'est de la gestion de projet.
+        - level: 2
+          title: Découper, ordonner, suivre
+          body: |
+            - **Découpage** (WBS, *Work Breakdown Structure*) : le projet en livrables, puis en tâches assez petites pour être estimées.
+            - **Dépendances** : ce qui doit être fini avant de commencer autre chose.
+            - **Planning** (diagramme de **Gantt**) : les tâches sur un calendrier, avec des **jalons** (moments de décision ou de livraison : revue de conception, réception).
+            - **Chemin critique** : la plus longue chaîne de tâches dépendantes. Tout retard sur elle retarde le projet entier ; les autres tâches ont une **marge**.
+            - **Triangle** coût, délai, qualité (ou périmètre) : on ne peut pas en améliorer un sans jouer sur les autres.
+          check:
+            q: Une tâche du chemin critique prend 3 jours de retard. Que devient la date de fin du projet ?
+            choices:
+              - t: Elle recule de 3 jours, sauf si on rattrape ailleurs sur le chemin critique
+                ok: true
+              - t: Rien, les autres tâches compensent
+                why: Par définition, le chemin critique n'a pas de marge.
+              - t: Elle recule de 3 jours pour chaque tâche suivante
+                why: Le retard se propage une fois, il ne se multiplie pas.
+        - level: 3
+          title: Un exemple de chemin critique
+          body: |
+            | Tâche | Durée | Après |
+            | --- | --- | --- |
+            | A : conception | 3 semaines | — |
+            | B : fabrication de la mécanique | 5 semaines | A |
+            | C : achat de l'électronique | 2 semaines | A |
+            | D : intégration et essais | 2 semaines | B et C |
+
+            Chemins : A-B-D = 10 semaines ; A-C-D = 7 semaines. Le **chemin critique** est A-B-D (10 semaines). La tâche C a **3 semaines de marge**.
+
+            Conséquence : pour gagner du temps, il faut agir sur la fabrication (B), pas sur les achats (C).
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Estimer** : on sous-estime presque toujours (oubli des tâches « invisibles » : documentation, essais, reprises, attente des pièces). Découpe finement, compare avec des projets passés, et ajoute une **réserve** explicite pour les risques plutôt que de gonfler chaque tâche.
+
+            **Gestion des risques** : pour chaque risque, probabilité, impact, et action (éviter, réduire, transférer, accepter). Un délai fournisseur long est un risque de planning à anticiper (commandes lancées tôt).
+
+            **Loi de Brooks** : ajouter des personnes à un projet en retard le retarde souvent encore, le temps de les former et de coordonner.
+
+            **Méthodes agiles** : pour les projets incertains (logiciel), des cycles courts (sprints) avec livraisons fréquentes et ajustement des priorités, plutôt qu'un plan figé.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Un projet d'instrumentation typique : spécification, conception, revue de conception, commandes, fabrication, montage, essais, installation, recette. Les **délais d'approvisionnement** (usinage, pièces sous vide, électronique) sont souvent sur le chemin critique.
+            - Tiens un point d'avancement régulier : fait, reste à faire, risques, décisions attendues.
+            - Annonce un retard **dès qu'il est probable**, avec une proposition : c'est beaucoup mieux reçu que la veille de l'échéance.
+      recap:
+        - "WBS : découper jusqu'à des tâches estimables."
+        - "Gantt, dépendances, jalons."
+        - "Chemin critique = plus longue chaîne ; sans marge ; c'est là qu'on agit."
+        - "Triangle coût / délai / qualité (périmètre)."
+        - "Estimer avec réserve explicite ; annoncer les retards tôt."
+      pieges: [ing-planning-optimiste]
+    vocab:
+      - gestion de projet = project management
+      - découpage du projet = work breakdown structure (WBS)
+      - diagramme de Gantt = Gantt chart
+      - jalon = milestone
+      - chemin critique = critical path
+      - marge = float (slack)
+      - livrable = deliverable
+      - délai d'approvisionnement = lead time
+    exercises:
+      - id: met-projet.1
+        type: numeric
+        level: 2
+        q: "A (3 sem.) puis B (5 sem.) et C (2 sem.) en parallèle, puis D (2 sem.) après B et C. Durée totale du projet, en semaines ?"
+        answer: 10
+        tol: 0.001
+        unit: semaines
+        calc: 3 + max(5, 2) + 2
+        trap_values:
+          - v: 12
+            why: Tu as additionné toutes les tâches ; B et C se déroulent en parallèle.
+          - v: 7
+            why: C'est le chemin A-C-D ; le projet dure autant que le plus long chemin.
+        piege: ing-planning-optimiste
+        e: Chemin critique A-B-D = 3 + 5 + 2 = 10 semaines.
+      - id: met-projet.2
+        type: numeric
+        level: 2
+        q: Dans ce même projet, quelle est la marge de la tâche C, en semaines ?
+        answer: 3
+        tol: 0.001
+        unit: semaines
+        calc: 5 - 2
+        e: C peut glisser de 5 − 2 = 3 semaines sans retarder D.
+      - id: met-projet.3
+        type: qcm
+        level: 1
+        q: Qu'est-ce qu'un jalon ?
+        choices:
+          - t: Un événement clé de durée nulle (revue, livraison, décision) qui marque une étape du projet
+            ok: true
+          - t: Une tâche très longue
+            why: Un jalon n'a pas de durée.
+          - t: Un membre de l'équipe
+            why: Non, c'est un repère de planning.
+        e: Les jalons servent à vérifier l'avancement et à prendre les décisions au bon moment.
+      - id: met-projet.4
+        type: qcm
+        level: 2
+        q: Le client veut le même projet deux mois plus tôt, sans changer le budget. Que dire ?
+        choices:
+          - t: Proposer des options qui jouent sur le périmètre ou la qualité (livrer d'abord une version réduite, par exemple)
+            ok: true
+          - t: Accepter, en travaillant plus vite
+            why: Coût, délai et périmètre sont liés ; promettre sans levier, c'est préparer un échec.
+          - t: Refuser sans discuter
+            why: Il existe souvent des compromis acceptables à proposer.
+        e: C'est le triangle coût, délai, qualité (ou périmètre).
+      - id: met-projet.5
+        type: qcm
+        level: 2
+        q: Pour raccourcir le projet de l'exemple, sur quelle tâche agir ?
+        choices:
+          - t: Sur B (fabrication), qui est sur le chemin critique
+            ok: true
+          - t: Sur C (achats)
+            why: Elle a 3 semaines de marge ; la raccourcir ne change rien à la date de fin.
+          - t: Sur n'importe laquelle
+            why: Seules les tâches du chemin critique déterminent la durée.
+        e: Gagner du temps sur B (ou sur A ou D) raccourcit le projet, tant qu'A-B-D reste le plus long chemin.
+      - id: met-projet.6
+        type: flash
+        level: 1
+        q: Définis chemin critique et marge.
+        back: |
+          **Chemin critique** : la suite de tâches dépendantes la plus longue ; elle fixe la durée du projet ; ses tâches n'ont aucune marge.
+          **Marge** : le retard qu'une tâche peut prendre sans retarder la fin du projet (ou la tâche suivante, pour la marge libre).
+        e: Le chemin critique peut changer si une tâche hors chemin prend plus de retard que sa marge.

@@ -1,0 +1,811 @@
+id: analogique
+title: Électronique analogique
+en: Analog electronics
+desc: Diodes et LED, transistors en commutation, filtres RC et décibels, amplificateurs opérationnels, alimentations et masses.
+intro: |
+  L'électronique analogique traite des tensions qui varient continûment : un signal de capteur, une alimentation, une commande de moteur. Même dans un système numérique, tout ce qui touche au monde réel (capteurs, puissance, alimentation) reste analogique.
+
+  Ces cinq notions couvrent ce qu'un mécatronicien rencontre sur presque chaque carte.
+notions:
+  # ------------------------------------------------------------------ diodes
+  - id: an-diodes
+    title: Diodes et LED
+    en: Diodes and LEDs
+    goal: Calculer la résistance série d'une LED, comprendre le seuil d'une diode et le redressement.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: Le clapet anti-retour
+          body: |
+            Un clapet anti-retour laisse passer l'eau dans un sens et la bloque dans l'autre. La **diode** fait pareil avec le courant électrique.
+
+            Une **LED** (diode électroluminescente) est une diode qui, en plus, émet de la lumière quand le courant la traverse dans le bon sens.
+        - level: 2
+          title: Un seuil, puis tout passe
+          body: |
+            Dans le sens passant (de l'anode vers la cathode), une diode ne conduit qu'à partir d'une petite tension de **seuil** : environ 0,6 à 0,7 V pour une diode au silicium, 0,2 à 0,4 V pour une diode Schottky, de 1,8 V (rouge) à 3 V et plus (bleue, blanche) pour une LED.
+
+            Au-dessus du seuil, le courant grimpe **très vite** pour une petite augmentation de tension. Une LED branchée directement sur une alimentation laisse donc passer un courant énorme et grille. Il faut **limiter le courant**, le plus souvent avec une résistance en série.
+
+            En sens inverse, la diode bloque, jusqu'à sa tension de claquage (très basse pour une LED, souvent 5 V).
+          check:
+            q: Une LED rouge (seuil 2 V) est branchée directement, sans résistance, sur une alimentation 5 V. Que se passe-t-il ?
+            choices:
+              - t: Le courant n'est limité par presque rien, la LED grille (ou l'alimentation se met en protection)
+                ok: true
+              - t: Elle éclaire normalement
+                why: Au-dessus de son seuil, une diode n'impose plus de limite de courant.
+              - t: Elle reste éteinte car 5 V dépasse son seuil
+                why: Dépasser le seuil, c'est justement ce qui la fait conduire.
+        - level: 3
+          title: Les formules
+          body: |
+            **Résistance série d'une LED** :
+            $$R = \frac{U_{alim} - V_f}{I_{LED}} \qquad P_R = R\,I^2$$
+
+            $V_f$ : tension directe de la LED (*forward voltage*), $I_{LED}$ : courant voulu (souvent 2 à 20 mA pour un voyant).
+
+            **Exemple** : alimentation 5 V, LED rouge ($V_f = 2$ V), 10 mA : $R = 3/0{,}01 = 300$ Ω, on prend 330 Ω (valeur normalisée au-dessus).
+
+            **Redressement** : un **pont de diodes** (4 diodes) transforme l'alternatif en une tension toujours positive. Un condensateur la lisse. La tension continue obtenue vaut environ la valeur **crête** moins deux seuils : pour un transformateur 12 V efficaces, $12\sqrt 2 - 2 \times 0{,}7 \approx 15{,}6$ V à vide.
+        - level: 4
+          title: Sous le capot
+          body: |
+            Le courant d'une diode suit une **exponentielle** de la tension : environ 60 mV de plus multiplient le courant par 10. C'est pourquoi on pilote une LED en **courant**, pas en tension.
+
+            La tension de seuil **baisse avec la température** (environ −2 mV/°C). Plusieurs LED en parallèle sur une seule résistance : celle qui chauffe le plus conduit davantage, chauffe encore plus, et prend tout le courant. Une résistance par LED, ou des LED en série.
+
+            La **diode Zener** est faite pour travailler en inverse : elle maintient une tension presque constante (3,3 V, 5,1 V…) quand on dépasse sa tension de claquage, avec une résistance série pour limiter le courant. C'est la plus simple des références de tension.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Voyant sur du 24 V : $R = (24 - 2)/0{,}01 = 2{,}2$ kΩ, qui dissipe 0,22 W. Une résistance 1/4 W serait à la limite : prends 1/2 W.
+            - **Protection contre l'inversion de polarité** : une diode en série (simple mais elle chute 0,7 V) ou un MOSFET monté en protection (sans chute notable).
+            - **Diodes TVS** : protection contre les surtensions brèves sur les entrées et les alimentations.
+            - Dans une fiche technique : courant direct maximal, tension directe au courant nominal, tension inverse maximale, puissance.
+      recap:
+        - "Diode : sens passant au-dessus d'un seuil (≈ 0,7 V Si, 0,3 V Schottky, 1,8 à 3 V LED)."
+        - "LED : R = (U − Vf)/I, jamais sans limitation de courant."
+        - "Une résistance par LED en parallèle."
+        - "Pont de diodes + condensateur : ≈ Û − 1,4 V."
+        - "Zener : référence de tension en inverse ; TVS : protection surtensions."
+      pieges: [ing-led-resistance, ing-leds-parallele]
+    vocab:
+      - diode = diode
+      - LED = light-emitting diode (LED)
+      - tension de seuil = forward voltage
+      - anode, cathode = anode, cathode
+      - pont de diodes = bridge rectifier
+      - redressement = rectification
+      - diode Zener = Zener diode
+      - protection contre l'inversion de polarité = reverse polarity protection
+    exercises:
+      - id: an-diodes.1
+        type: numeric
+        level: 1
+        q: Résistance série pour une LED rouge (Vf = 2 V) à 10 mA sur une alimentation 5 V ?
+        answer: 300
+        tol: 0.01
+        unit: Ω
+        calc: (5 - 2) / 0.010
+        trap_values:
+          - v: 500
+            why: Tu as oublié de retirer la tension de la LED. La résistance ne voit que U − Vf.
+          - v: 200
+            why: Tu as divisé la tension de la LED par le courant. C'est la tension restante (5 − 2 V) qui compte.
+        piege: ing-led-resistance
+        e: $R = (5 - 2)/0{,}01 = 300$ Ω, en pratique 330 Ω.
+      - id: an-diodes.2
+        type: numeric
+        level: 2
+        q: Voyant LED (Vf = 2 V, 10 mA) sur du 24 V. Puissance dissipée dans la résistance, en mW ?
+        answer: 220
+        tol: 0.01
+        unit: mW
+        calc: (24 - 2) * 0.010 * 1000
+        trap_values:
+          - v: 240
+            why: C'est la puissance totale. La LED en prend une partie (2 V × 10 mA).
+        piege: ing-puissance-resistance
+        e: $P = (24 - 2) \times 0{,}01 = 0{,}22$ W. Une résistance 1/4 W chaufferait beaucoup ; prends 1/2 W.
+      - id: an-diodes.3
+        type: numeric
+        level: 2
+        q: Un transformateur 12 V (efficaces) alimente un pont de diodes (0,7 V par diode) suivi d'un gros condensateur. Tension continue à vide ?
+        answer: 15.57
+        tol: 0.02
+        unit: V
+        calc: 12 * sqrt(2) - 2 * 0.7
+        trap_values:
+          - v: 12
+            why: Le condensateur se charge à la valeur crête, pas à la valeur efficace.
+          - v: 16.97
+            why: Tu as oublié les deux diodes du pont traversées à chaque alternance.
+        piege: ing-crete-efficace
+        e: $12\sqrt 2 - 1{,}4 \approx 15{,}6$ V. En charge, la tension baisse et ondule.
+      - id: an-diodes.4
+        type: qcm
+        level: 2
+        q: Trois LED identiques sont branchées en parallèle derrière une seule résistance. Quel est le risque ?
+        piege: ing-leds-parallele
+        choices:
+          - t: Une LED prend la majorité du courant, chauffe et vieillit prématurément
+            ok: true
+          - t: Aucun, le courant se partage équitablement
+            piege: true
+            why: Les seuils ne sont jamais parfaitement identiques, et celui de la LED qui chauffe baisse encore.
+          - t: Aucune ne s'allume
+            why: Elles s'allument, mais de façon inégale.
+        e: Une résistance par LED, ou les LED en série avec une seule résistance (si la tension d'alimentation suffit).
+      - id: an-diodes.5
+        type: qcm
+        level: 1
+        q: Pourquoi dit-on qu'une LED se pilote en courant et pas en tension ?
+        choices:
+          - t: Parce qu'au-dessus du seuil, une toute petite variation de tension fait varier énormément le courant
+            ok: true
+          - t: Parce qu'elle ne supporte pas de tension
+            why: Elle a bien une tension à ses bornes, son seuil.
+          - t: Parce qu'elle fonctionne en alternatif
+            why: Une LED fonctionne en continu, dans le sens passant.
+        e: Sa caractéristique est exponentielle ; on fixe donc le courant (résistance série ou driver à courant constant).
+      - id: an-diodes.6
+        type: flash
+        level: 1
+        q: Donne les tensions de seuil typiques d'une diode silicium, d'une Schottky, d'une LED rouge et d'une LED blanche.
+        back: |
+          Diode silicium : ≈ 0,6 à 0,7 V
+          Schottky : ≈ 0,2 à 0,4 V
+          LED rouge : ≈ 1,8 à 2,2 V
+          LED blanche ou bleue : ≈ 2,8 à 3,4 V
+        e: Une LED blanche sur 3,3 V laisse très peu de tension à sa résistance, et le courant devient très sensible aux variations.
+  # ------------------------------------------------------------------ transistor
+  - id: an-transistor
+    title: Le transistor en commutation
+    en: Transistors as switches
+    goal: Commander une charge depuis un microcontrôleur avec un transistor bipolaire ou un MOSFET, sans le faire chauffer.
+    minutes: 13
+    lesson:
+      steps:
+        - level: 1
+          title: Un petit geste, un gros effet
+          body: |
+            Avec un petit mouvement de la main sur un robinet, tu commandes un gros débit d'eau. Un **transistor** permet pareil : un tout petit courant (ou une petite tension) venant d'un microcontrôleur commande un courant bien plus grand dans un moteur, une électrovanne ou une rangée de LED.
+        - level: 2
+          title: Interrupteur électronique
+          body: |
+            Un transistor peut amplifier, mais en mécatronique on l'utilise surtout comme **interrupteur** : complètement bloqué (ouvert) ou complètement passant (fermé), rien entre les deux.
+
+            Une broche de microcontrôleur fournit quelques milliampères sous 3,3 ou 5 V : bien trop peu pour une électrovanne 24 V qui demande 200 mA. Le transistor fait le lien.
+
+            Deux familles :
+            - **bipolaire** (NPN, PNP) : commandé par un **courant** de base ;
+            - **MOSFET** : commandé par une **tension** de grille, quasiment sans courant en régime établi.
+
+            Montage le plus courant : **côté bas** (*low-side*), le transistor entre la charge et la masse.
+          check:
+            q: Pourquoi ne pas brancher une électrovanne 24 V / 200 mA directement sur une sortie de microcontrôleur ?
+            choices:
+              - t: La sortie ne fournit ni la tension (24 V) ni le courant (200 mA) nécessaires
+                ok: true
+              - t: C'est possible si le programme le permet
+                why: C'est une limite électrique, pas logicielle.
+              - t: Parce que l'électrovanne est en alternatif
+                why: Même en continu, la sortie ne peut pas fournir 24 V ni 200 mA.
+        - level: 3
+          title: Les formules
+          body: |
+            **Bipolaire NPN en saturation** : il faut assez de courant de base.
+            $$I_B > \frac{I_C}{\beta_{min}} \quad \text{(avec une marge de 3 à 10)} \qquad R_B = \frac{V_{commande} - V_{BE}}{I_B}, \ V_{BE} \approx 0{,}7\ \text{V}$$
+
+            **Exemple** : relais de 100 mA, $\beta_{min} = 100$ : $I_B > 1$ mA, on prend 5 mA. Depuis une sortie 3,3 V : $R_B = (3{,}3 - 0{,}7)/0{,}005 = 520$ Ω, donc 470 Ω.
+
+            **MOSFET** : pour qu'il soit **complètement** passant, la tension grille-source doit atteindre la valeur à laquelle sa fiche garantit un $R_{DS(on)}$ faible (souvent 10 V, ou 4,5 V et 2,5 V pour les modèles « *logic level* »). Pertes : $P = R_{DS(on)} \times I^2$.
+
+            **Et toujours** : une diode de roue libre sur une charge inductive.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Un transistor à moitié passant est un radiateur.** Bloqué, il ne laisse pas passer de courant ($P = 0$). Saturé, il n'a presque pas de tension à ses bornes ($P$ faible). Entre les deux, il a à la fois de la tension et du courant : $P = V_{DS} \times I$. Avec 6 V et 1 A, c'est 6 W dans un petit boîtier. D'où l'importance d'une commande franche.
+
+            **La tension de seuil $V_{GS(th)}$ est un piège** : c'est la tension à laquelle le MOSFET **commence** à conduire (souvent quelques centaines de microampères), pas celle où il est pleinement passant.
+
+            **La grille est un condensateur** : elle ne consomme rien en statique, mais il faut la charger et la décharger à chaque commutation. En PWM rapide avec de gros MOSFET, un **driver de grille** fournit ces pointes de courant. Une grille laissée « en l'air » (broche non configurée au démarrage) peut rendre le transistor passant au hasard : une **résistance de rappel** (10 à 100 kΩ vers la source) la tient bloquée.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - **Côté bas / côté haut** : en côté bas, simple, mais la charge n'est plus reliée à la masse. En côté haut (charge reliée à la masse), il faut un PNP, un MOSFET canal P ou un driver dédié. Les sorties d'automates européennes sont souvent de type **PNP** (elles fournissent le +24 V).
+            - **Réseaux de Darlington** (ULN2003, ULN2803) : 7 ou 8 sorties avec diodes de roue libre intégrées, pour des relais ou petits moteurs.
+            - **Optocoupleurs** : pour isoler électriquement la commande et la puissance.
+            - **Pont en H intégré** pour les moteurs CC, **relais statiques** pour commuter le secteur.
+      recap:
+        - "Commutation : complètement bloqué ou saturé, jamais entre les deux."
+        - "NPN : I_B > I_C/β_min × marge ; R_B = (V − 0,7)/I_B."
+        - "MOSFET : vérifier R_DS(on) à la tension de grille réellement disponible ; V_GS(th) ≠ pleinement passant."
+        - "À moitié passant : P = V·I, il chauffe."
+        - "Résistance de rappel sur la grille ; diode de roue libre sur les bobines."
+      pieges: [ing-vgs-seuil, ing-transistor-lineaire, ing-roue-libre]
+    vocab:
+      - transistor bipolaire = bipolar junction transistor (BJT)
+      - base, collecteur, émetteur = base, collector, emitter
+      - grille, drain, source = gate, drain, source
+      - saturation = saturation
+      - tension de seuil de grille = gate threshold voltage
+      - commutation côté bas = low-side switching
+      - driver de grille = gate driver
+      - optocoupleur = optocoupler
+    exercises:
+      - id: an-transistor.1
+        type: numeric
+        level: 1
+        q: Un NPN doit commuter 200 mA et son gain minimal est de 100. Courant de base minimal (sans marge), en mA ?
+        answer: 2
+        tol: 0.01
+        unit: mA
+        calc: 200 / 100
+        e: $I_B = 200/100 = 2$ mA au minimum. En pratique on prend une marge de 3 à 10 pour garantir la saturation.
+      - id: an-transistor.2
+        type: numeric
+        level: 2
+        q: On veut I_B = 5 mA depuis une sortie 3,3 V (V_BE ≈ 0,7 V). Résistance de base ?
+        answer: 520
+        tol: 0.01
+        unit: Ω
+        calc: (3.3 - 0.7) / 0.005
+        trap_values:
+          - v: 660
+            why: Tu as oublié la tension base-émetteur (≈ 0,7 V).
+        e: $R_B = 2{,}6/0{,}005 = 520$ Ω, donc 470 Ω en valeur normalisée (un peu plus de courant, c'est plus sûr).
+      - id: an-transistor.3
+        type: numeric
+        level: 2
+        q: Un MOSFET mal commandé reste à moitié passant, avec 6 V à ses bornes et 1 A qui le traverse. Puissance dissipée ?
+        answer: 6
+        tol: 0.01
+        unit: W
+        calc: 6 * 1
+        piege: ing-transistor-lineaire
+        e: $P = 6 \times 1 = 6$ W, de quoi le détruire sans dissipateur. Bien commandé ($R_{DS(on)} = 0{,}05$ Ω, 2 A), il dissiperait 0,2 W.
+      - id: an-transistor.4
+        type: qcm
+        level: 2
+        q: Un MOSFET a V_GS(th) = 2 V. Tu le commandes avec 3,3 V. Est-il pleinement passant ?
+        piege: ing-vgs-seuil
+        choices:
+          - t: Pas forcément ; il faut vérifier son R_DS(on) garanti à V_GS = 3,3 V (ou 2,5 V) dans la fiche
+            ok: true
+          - t: Oui, 3,3 V est au-dessus du seuil
+            piege: true
+            why: Le seuil est la tension où il commence à conduire, souvent pour quelques centaines de µA seulement.
+          - t: Non, il faut toujours 10 V
+            why: Les MOSFET « logic level » sont justement garantis à 4,5 V, 2,5 V ou moins.
+        e: Choisis un MOSFET dont la fiche donne R_DS(on) à une tension de grille inférieure ou égale à celle dont tu disposes.
+      - id: an-transistor.5
+        type: qcm
+        level: 2
+        q: À quoi sert une résistance de 100 kΩ entre la grille et la source d'un MOSFET commandé par un microcontrôleur ?
+        choices:
+          - t: À garder le MOSFET bloqué quand la broche n'est pas encore configurée (démarrage, reset)
+            ok: true
+          - t: À limiter le courant de drain
+            why: Elle n'est pas dans le circuit de puissance.
+          - t: À accélérer la commutation
+            why: Une résistance de 100 kΩ est bien trop grande pour ça ; c'est une résistance de rappel.
+        e: Au démarrage, une broche est souvent en haute impédance ; sans rappel, la grille flotte et la charge peut s'activer toute seule.
+      - id: an-transistor.6
+        type: flash
+        level: 2
+        q: Quelle différence entre commutation côté bas et côté haut ?
+        back: |
+          **Côté bas** (*low-side*) : le transistor est entre la charge et la masse ; la charge est reliée en permanence au +. Simple (NPN, MOSFET canal N).
+          **Côté haut** (*high-side*) : le transistor est entre le + et la charge ; la charge est reliée à la masse. Il faut un PNP, un MOSFET canal P ou un driver dédié.
+        e: Les sorties PNP des automates sont des commutations côté haut ; un défaut à la masse de la charge y est moins dangereux.
+  # ------------------------------------------------------------------ filtres
+  - id: an-filtres
+    title: Filtres RC et décibels
+    en: RC filters and decibels
+    goal: Calculer une fréquence de coupure, manier les décibels et prévoir l'atténuation d'un filtre du premier ordre.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: L'amortisseur de la voiture
+          body: |
+            Les amortisseurs d'une voiture laissent passer les mouvements lents (la route qui monte) mais filtrent les vibrations rapides des petits cailloux. Un **filtre électronique** fait la même chose avec un signal : il garde certaines fréquences et atténue les autres.
+        - level: 2
+          title: Garder le lent, enlever le rapide
+          body: |
+            Un signal de capteur utile varie souvent lentement (une température, une position), alors que le bruit et les parasites sont rapides. Un **passe-bas** garde le lent et atténue le rapide. Un **passe-haut** fait l'inverse (il supprime par exemple une composante continue).
+
+            Le plus simple : une résistance et un condensateur. Aux basses fréquences, le condensateur ne fait presque rien ; aux hautes fréquences, il court-circuite le signal vers la masse. La frontière s'appelle la **fréquence de coupure** $f_c$.
+          check:
+            q: Un filtre passe-bas a une fréquence de coupure de 100 Hz. Un signal utile à 1 Hz et un bruit à 10 kHz arrivent. Que sort-il ?
+            choices:
+              - t: Le signal à 1 Hz presque intact, le bruit fortement atténué
+                ok: true
+              - t: Rien, tout est coupé au-dessus de 100 Hz et en dessous
+                why: Un passe-bas laisse passer tout ce qui est sous la coupure.
+              - t: Le bruit seul
+                why: C'est le rôle d'un passe-haut.
+        - level: 3
+          title: Les formules
+          body: |
+            $$f_c = \frac{1}{2\pi R C} \qquad G_{dB} = 20 \log_{10}\frac{U_s}{U_e}$$
+
+            Pour un passe-bas du premier ordre :
+            - à $f_c$, le gain vaut $1/\sqrt 2 \approx 0{,}707$, soit **−3 dB** ;
+            - au-delà, l'atténuation augmente de **20 dB par décade** (l'amplitude est divisée par 10 chaque fois que la fréquence est multipliée par 10).
+
+            | Gain | Rapport d'amplitude |
+            | --- | --- |
+            | +20 dB | × 10 |
+            | 0 dB | × 1 |
+            | −3 dB | × 0,707 (moitié de la puissance) |
+            | −6 dB | × 0,5 |
+            | −20 dB | × 0,1 |
+            | −40 dB | × 0,01 |
+
+            ```svg caption="Diagramme de Bode en gain d'un passe-bas RC (R = 10 kΩ, C = 100 nF, fc ≈ 159 Hz) : plat, −3 dB à fc, puis −20 dB par décade. En pointillés, les asymptotes."
+            <svg viewBox="0 0 460 215" width="460" role="img" aria-label="Diagramme de Bode d'un filtre passe-bas du premier ordre">
+              <line class="grid" x1="50" y1="30" x2="430" y2="30"/>
+              <line class="grid" x1="50" y1="78" x2="430" y2="78"/>
+              <line class="grid" x1="50" y1="126" x2="430" y2="126"/>
+              <line class="grid" x1="50" y1="174" x2="430" y2="174"/>
+              <line class="grid" x1="50" y1="20" x2="50" y2="180"/>
+              <line class="grid" x1="145" y1="20" x2="145" y2="180"/>
+              <line class="grid" x1="240" y1="20" x2="240" y2="180"/>
+              <line class="grid" x1="335" y1="20" x2="335" y2="180"/>
+              <line class="grid" x1="430" y1="20" x2="430" y2="180"/>
+              <line class="grid dash" x1="164.2" y1="30" x2="164.2" y2="180"/>
+              <polyline class="ws dash" points="50,30 164.2,30 430,164.3"/>
+              <polyline class="as" points="50.0,30.0 54.8,30.1 59.5,30.1 64.2,30.1 69.0,30.1 73.8,30.1 78.5,30.2 83.2,30.2 88.0,30.3 92.8,30.3 97.5,30.4 102.2,30.5 107.0,30.6 111.8,30.8 116.5,31.0 121.2,31.2 126.0,31.5 130.8,31.9 135.5,32.3 140.2,32.8 145.0,33.5 149.8,34.2 154.5,35.1 159.2,36.1 164.0,37.2 168.8,38.4 173.5,39.8 178.2,41.4 183.0,43.0 187.8,44.8 192.5,46.7 197.2,48.6 202.0,50.7 206.8,52.8 211.5,54.9 216.2,57.1 221.0,59.4 225.8,61.6 230.5,63.9 235.3,66.2 240.0,68.6 244.7,70.9 249.5,73.3 254.2,75.6 259.0,78.0 263.8,80.4 268.5,82.8 273.2,85.2 278.0,87.6 282.8,89.9 287.5,92.3 292.2,94.7 297.0,97.1 301.8,99.5 306.5,101.9 311.2,104.3 316.0,106.7 320.8,109.1 325.5,111.5 330.2,113.9 335.0,116.3 339.8,118.7 344.5,121.1 349.3,123.5 354.0,125.9 358.8,128.3 363.5,130.7 368.2,133.1 373.0,135.5 377.8,137.9 382.5,140.3 387.2,142.7 392.0,145.1 396.8,147.5 401.5,149.9 406.2,152.3 411.0,154.7 415.7,157.1 420.5,159.5 425.2,161.9 430.0,164.3"/>
+              <circle class="a" cx="164.2" cy="37.2" r="3.5"/>
+              <text class="tw" x="172" y="24">−3 dB</text>
+              <text class="ta" x="296" y="78">−20 dB/décade</text>
+              <text class="tm" x="8" y="34">0 dB</text>
+              <text class="tm" x="18" y="82">−20</text>
+              <text class="tm" x="18" y="130">−40</text>
+              <text class="tm" x="18" y="178">−60</text>
+              <text class="tm" x="50" y="196" text-anchor="middle">10 Hz</text>
+              <text class="tm" x="145" y="196" text-anchor="middle">100</text>
+              <text class="tm" x="240" y="196" text-anchor="middle">1 k</text>
+              <text class="tm" x="335" y="196" text-anchor="middle">10 k</text>
+              <text class="tm" x="430" y="196" text-anchor="middle">100 k</text>
+              <text class="tw" x="164" y="211" text-anchor="middle">fc ≈ 159 Hz</text>
+            </svg>
+            ```
+
+            **Exemple** : $R = 10$ kΩ, $C = 100$ nF, $f_c \approx 159$ Hz. Un bruit à 15,9 kHz (deux décades plus haut) est atténué d'environ 40 dB, soit divisé par 100.
+        - level: 4
+          title: Sous le capot
+          body: |
+            Le filtre RC est un **pont diviseur** dont la résistance du bas est l'impédance du condensateur, $1/(jC\omega)$ :
+            $$H = \frac{1}{1 + jRC\omega} \qquad |H| = \frac{1}{\sqrt{1 + (f/f_c)^2}}$$
+            À $f = f_c$, $|H| = 1/\sqrt 2$. Très au-dessus, $|H| \approx f_c/f$ : d'où les −20 dB par décade.
+
+            **20 ou 10 ?** Le décibel est défini sur les **puissances** : $10 \log_{10}(P_2/P_1)$. Comme la puissance varie comme le carré de l'amplitude, on écrit $20 \log_{10}$ pour les tensions et les courants.
+
+            **Un filtre retarde** : le passe-bas déphase (−45° à $f_c$) et introduit un retard. Dans une boucle d'asservissement, filtrer trop fort une mesure peut rendre le système instable.
+
+            Un filtre d'ordre 2 atténue de 40 dB/décade, d'ordre $n$ de $20n$ dB/décade.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - **Filtre anti-repliement** : avant un convertisseur analogique-numérique, un passe-bas coupe tout ce qui dépasse la moitié de la fréquence d'échantillonnage (voir le traitement du signal).
+            - Filtrage **logiciel** d'une mesure bruitée : moyenne glissante, ou filtre du premier ordre `y += k * (x - y)`, l'équivalent numérique du RC.
+            - Un filtre RC suivi d'un étage qui consomme du courant ne se comporte plus comme prévu : on intercale un **suiveur** (AOP) si nécessaire.
+      recap:
+        - "fc = 1/(2π·R·C) ; −3 dB (× 0,707) à fc."
+        - "Premier ordre : −20 dB par décade au-delà de fc."
+        - "dB : 20·log pour les tensions, 10·log pour les puissances."
+        - "−20 dB = ÷10, −40 dB = ÷100, −6 dB ≈ ÷2."
+        - "Un filtre retarde le signal ; anti-repliement avant un CAN."
+      pieges: [ing-2pi, ing-db-10-20]
+    vocab:
+      - filtre passe-bas = low-pass filter
+      - filtre passe-haut = high-pass filter
+      - fréquence de coupure = cutoff frequency
+      - décibel = decibel (dB)
+      - décade = decade
+      - diagramme de Bode = Bode plot
+      - déphasage = phase shift (phase lag)
+      - filtre anti-repliement = anti-aliasing filter
+    exercises:
+      - id: an-filtres.1
+        type: numeric
+        level: 1
+        q: Fréquence de coupure d'un filtre RC avec R = 10 kΩ et C = 100 nF ?
+        answer: 159.2
+        tol: 0.01
+        unit: Hz
+        calc: 1 / (2 * pi * 10e3 * 100e-9)
+        trap_values:
+          - v: 1000
+            why: Tu as oublié le 2π. 1/(RC) donne une pulsation (rad/s), pas une fréquence (Hz).
+        piege: ing-2pi
+        e: $f_c = 1/(2\pi \times 10^4 \times 10^{-7}) = 1/(2\pi \times 10^{-3}) \approx 159$ Hz.
+      - id: an-filtres.2
+        type: numeric
+        level: 1
+        q: Un signal de 2 V ressort d'un filtre à 0,2 V. Gain en dB ?
+        answer: -20
+        tol: 0.01
+        unit: dB
+        calc: 20 * log10(0.2 / 2)
+        trap_values:
+          - v: -10
+            why: Pour des tensions, le gain en dB vaut 20·log, pas 10·log.
+        piege: ing-db-10-20
+        e: $20 \log_{10}(0{,}1) = -20$ dB.
+      - id: an-filtres.3
+        type: numeric
+        level: 2
+        q: Passe-bas du premier ordre, fc = 100 Hz. Par combien l'amplitude d'un bruit à 10 kHz est-elle divisée ?
+        answer: 100
+        tol: 0.01
+        calc: sqrt(1 + (10000 / 100)**2)
+        trap_values:
+          - v: 10
+            why: 10 kHz, c'est deux décades au-dessus de fc (×100), donc −40 dB, soit une division par 100.
+          - v: 10000
+            why: C'est le rapport des puissances, pas des amplitudes.
+        e: Deux décades au-delà de la coupure, −40 dB, soit un facteur 100 sur l'amplitude.
+      - id: an-filtres.4
+        type: numeric
+        level: 2
+        q: On veut un passe-bas à fc = 10 Hz avec R = 100 kΩ. Quelle capacité, en nF ?
+        answer: 159.2
+        tol: 0.01
+        unit: nF
+        calc: 1 / (2 * pi * 100e3 * 10) * 1e9
+        trap_values:
+          - v: 1000
+            why: Tu as oublié le 2π.
+        piege: ing-2pi
+        e: $C = 1/(2\pi R f_c) = 1/(2\pi \times 10^5 \times 10) \approx 159$ nF, en pratique 150 nF ou 220 nF selon la précision voulue.
+      - id: an-filtres.5
+        type: qcm
+        level: 1
+        q: Que vaut le gain d'un passe-bas du premier ordre exactement à sa fréquence de coupure ?
+        choices:
+          - t: −3 dB, soit environ 0,707 en amplitude
+            ok: true
+          - t: 0 dB
+            why: À fc, l'atténuation a déjà commencé.
+          - t: −20 dB
+            why: −20 dB, c'est une décade au-dessus de fc.
+        e: À fc, la puissance transmise est divisée par 2, l'amplitude par √2.
+      - id: an-filtres.6
+        type: flash
+        level: 1
+        q: Convertis en rapport d'amplitude −3 dB, −6 dB, −20 dB et −40 dB.
+        back: |
+          −3 dB ≈ × 0,707 (moitié de la puissance)
+          −6 dB ≈ × 0,5
+          −20 dB = × 0,1
+          −40 dB = × 0,01
+        e: Les dB s'additionnent quand les rapports se multiplient, c'est tout leur intérêt.
+  # ------------------------------------------------------------------ AOP
+  - id: an-aop
+    title: L'amplificateur opérationnel
+    en: The operational amplifier
+    goal: Calculer le gain des montages de base et connaître les limites d'un AOP réel.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Grossir un petit signal
+          body: |
+            Un capteur de force ou un thermocouple donne des signaux de quelques millivolts, trop faibles pour être mesurés proprement par un microcontrôleur qui attend 0 à 3,3 V. Il faut les **amplifier** : c'est le travail de l'**amplificateur opérationnel** (AOP, *op-amp*), le couteau suisse de l'électronique analogique.
+        - level: 2
+          title: Un comparateur obsédé par l'équilibre
+          body: |
+            Un AOP a deux entrées (+ et −) et une sortie. Il amplifie **la différence** entre ses entrées avec un gain gigantesque (100 000 et plus).
+
+            Seul, il se comporte en **comparateur** : sortie au maximum si l'entrée + est plus haute que l'entrée −, au minimum sinon.
+
+            Avec une **contre-réaction** (une partie de la sortie renvoyée sur l'entrée −), il s'ajuste en permanence pour que ses deux entrées soient au même potentiel. Le gain ne dépend alors plus de l'AOP, mais de **deux résistances** : il devient précis et stable.
+          check:
+            q: Un AOP câblé avec une contre-réaction (sortie reliée à l'entrée − par une résistance) fonctionne normalement. Que vaut V+ − V− ?
+            choices:
+              - t: Pratiquement 0
+                ok: true
+                why: C'est la « règle d'or » du montage à contre-réaction.
+              - t: La tension de sortie
+                why: La sortie peut valoir plusieurs volts alors que l'écart entre les entrées reste de quelques microvolts.
+              - t: La tension d'alimentation
+                why: Ce serait le cas en comparateur saturé, pas avec contre-réaction.
+        - level: 3
+          title: Les montages de base
+          body: |
+            Deux règles d'or (AOP idéal avec contre-réaction) : **V+ = V−**, et **aucun courant n'entre dans les entrées**.
+
+            | Montage | Gain |
+            | --- | --- |
+            | suiveur | $V_s = V_e$ (gain 1) |
+            | non-inverseur | $G = 1 + R_2/R_1$ |
+            | inverseur | $G = -R_2/R_1$ |
+
+            ```svg caption="Amplificateur non-inverseur : la sortie se règle pour que l'entrée − (au milieu du diviseur R₂/R₁) égale Ve. D'où G = 1 + R₂/R₁."
+            <svg viewBox="0 0 460 215" width="460" role="img" aria-label="Schéma d'un amplificateur non-inverseur">
+              <polygon class="s" points="200,30 200,130 290,80"/>
+              <text class="tb" x="206" y="60">+</text>
+              <text class="tb" x="206" y="110">−</text>
+              <circle class="s" cx="60" cy="55" r="4"/>
+              <line class="s" x1="64" y1="55" x2="200" y2="55"/>
+              <text class="ta" x="28" y="59">Ve</text>
+              <line class="s" x1="290" y1="80" x2="420" y2="80"/>
+              <circle class="s" cx="424" cy="80" r="4"/>
+              <text class="ta" x="432" y="84">Vs</text>
+              <circle class="ink" cx="360" cy="80" r="3.5"/>
+              <line class="s" x1="360" y1="80" x2="360" y2="140"/>
+              <line class="s" x1="360" y1="140" x2="290" y2="140"/>
+              <rect class="soft" x="230" y="130" width="60" height="20"/>
+              <line class="s" x1="230" y1="140" x2="170" y2="140"/>
+              <line class="s" x1="200" y1="105" x2="170" y2="105"/>
+              <line class="s" x1="170" y1="105" x2="170" y2="150"/>
+              <circle class="ink" cx="170" cy="140" r="3.5"/>
+              <rect class="soft" x="160" y="150" width="20" height="35"/>
+              <line class="s" x1="170" y1="185" x2="170" y2="195"/>
+              <line class="s" x1="150" y1="195" x2="190" y2="195"/>
+              <line class="s" x1="158" y1="200" x2="182" y2="200"/>
+              <line class="s" x1="166" y1="205" x2="174" y2="205"/>
+              <text class="t" x="252" y="124">R₂</text>
+              <text class="t" x="186" y="172">R₁</text>
+              <text class="ta" x="280" y="195">G = 1 + R₂/R₁</text>
+            </svg>
+            ```
+
+            **Exemple** : un signal de capteur de 0 à 30 mV doit devenir 0 à 3 V. Gain 100 : non-inverseur avec $R_1 = 1$ kΩ et $R_2 = 99$ kΩ (ou 100 kΩ, gain 101).
+
+            **Limite dure** : la sortie ne peut jamais dépasser ses **alimentations**. Même un AOP « *rail-to-rail* » s'arrête à quelques dizaines de millivolts des rails ; un modèle ordinaire s'arrête bien avant, parfois à plus d'un volt.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Pourquoi V+ = V− ?** Avec un gain en boucle ouverte $A$ énorme : $V_s = A\,(V_e - \beta V_s)$, où $\beta = R_1/(R_1+R_2)$ est la fraction renvoyée. D'où $V_s/V_e = A/(1 + A\beta) \approx 1/\beta$ dès que $A\beta \gg 1$. L'AOP « force » l'égalité parce que le moindre écart serait amplifié 100 000 fois.
+
+            **Produit gain-bande** : le gain d'un AOP réel baisse avec la fréquence. Un AOP de produit gain-bande 1 MHz, monté en gain 100, n'amplifie correctement que jusqu'à environ 10 kHz.
+
+            **Défauts réels** : tension de décalage (*offset*, quelques µV à quelques mV, amplifiée comme le signal), courants d'entrée, bruit, vitesse de balayage (*slew rate*) limitée.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Pour les ponts de jauges et les capteurs différentiels : **amplificateur d'instrumentation** (INA), qui amplifie la différence entre deux signaux en rejetant ce qui leur est commun.
+            - **Comparateur à hystérésis** (trigger de Schmitt) : deux seuils différents pour éviter que la sortie oscille quand le signal traîne autour du seuil.
+            - En alimentation unique 3,3 V ou 5 V, choisis un AOP **rail-to-rail** en entrée et en sortie, et vérifie la plage de mode commun d'entrée.
+            - Un **suiveur** sert de tampon : il recopie une tension venant d'une source à haute impédance (diviseur, filtre, capteur) sans la charger.
+      recap:
+        - "Contre-réaction : V+ = V−, pas de courant dans les entrées."
+        - "Suiveur G = 1 ; non-inverseur G = 1 + R₂/R₁ ; inverseur G = −R₂/R₁."
+        - "Sans contre-réaction : comparateur (sortie saturée)."
+        - "La sortie reste entre les alimentations (rail-to-rail ou pas)."
+        - "Bande passante ≈ produit gain-bande / gain."
+      pieges: [ing-aop-rails]
+    vocab:
+      - amplificateur opérationnel = operational amplifier (op-amp)
+      - contre-réaction = negative feedback
+      - suiveur = voltage follower (buffer)
+      - montage non-inverseur = non-inverting amplifier
+      - comparateur = comparator
+      - produit gain-bande = gain-bandwidth product (GBW)
+      - tension de décalage = offset voltage
+      - amplificateur d'instrumentation = instrumentation amplifier
+    exercises:
+      - id: an-aop.1
+        type: numeric
+        level: 1
+        q: Gain d'un montage non-inverseur avec R₁ = 1 kΩ et R₂ = 99 kΩ ?
+        answer: 100
+        tol: 0.01
+        calc: 1 + 99 / 1
+        trap_values:
+          - v: 99
+            why: C'est le gain (en valeur absolue) du montage inverseur. Le non-inverseur a un « 1 + ».
+        e: $G = 1 + 99/1 = 100$.
+      - id: an-aop.2
+        type: numeric
+        level: 2
+        q: Montage inverseur, R₁ = 10 kΩ, R₂ = 47 kΩ, entrée à 0,5 V. Tension de sortie ?
+        answer: -2.35
+        tol: 0.01
+        unit: V
+        calc: -47 / 10 * 0.5
+        trap_values:
+          - v: 2.35
+            why: Le montage inverseur change le signe.
+          - v: 2.85
+            why: C'est la formule du non-inverseur (1 + R₂/R₁).
+        e: $V_s = -\dfrac{47}{10} \times 0{,}5 = -2{,}35$ V, à condition que l'AOP soit alimenté en symétrique (avec une tension négative disponible).
+      - id: an-aop.3
+        type: numeric
+        level: 2
+        q: Un AOP a un produit gain-bande de 1 MHz. Monté avec un gain de 100, jusqu'à quelle fréquence amplifie-t-il correctement, en kHz ?
+        answer: 10
+        tol: 0.01
+        unit: kHz
+        calc: 1e6 / 100 / 1000
+        e: 1 MHz / 100 = 10 kHz. Pour un gain élevé et large bande, on répartit le gain sur deux étages ou on choisit un AOP plus rapide.
+      - id: an-aop.4
+        type: qcm
+        level: 2
+        q: Un non-inverseur de gain 20, alimenté en 0-5 V (rail-to-rail), reçoit 0,5 V. Que vaut la sortie ?
+        piege: ing-aop-rails
+        choices:
+          - t: Environ 5 V, la sortie est saturée
+            ok: true
+          - t: 10 V
+            piege: true
+            why: La sortie ne peut pas dépasser l'alimentation.
+          - t: 0,5 V
+            why: Le montage amplifie, mais il est limité par ses rails.
+        e: Le calcul donne 10 V, l'AOP plafonne à ~5 V (moins, s'il n'est pas rail-to-rail). Réduis le gain ou adapte l'alimentation.
+      - id: an-aop.5
+        type: qcm
+        level: 1
+        q: À quoi sert un montage suiveur (gain 1) ?
+        choices:
+          - t: À recopier une tension sans charger la source, grâce à son impédance d'entrée très élevée
+            ok: true
+          - t: À rien, puisqu'il ne change pas la tension
+            why: Il ne change pas la tension, mais il peut fournir du courant sans en demander à la source.
+          - t: À inverser le signe
+            why: C'est le montage inverseur de gain −1.
+        e: Typiquement, derrière un pont diviseur ou un filtre RC avant un convertisseur.
+      - id: an-aop.6
+        type: flash
+        level: 1
+        q: Quelles sont les deux règles d'or de l'AOP idéal avec contre-réaction ?
+        back: |
+          1. Les deux entrées sont au même potentiel : V+ = V−.
+          2. Aucun courant n'entre dans les entrées.
+
+          Avec ces deux règles et la loi d'Ohm, on calcule tous les montages de base.
+        e: Elles ne valent que si la sortie n'est pas saturée et qu'il y a bien une contre-réaction.
+  # ------------------------------------------------------------------ alimentations
+  - id: an-alim
+    title: Alimentations, découplage et masses
+    en: Power supplies, decoupling and grounding
+    goal: Estimer une autonomie et un courant d'entrée, placer les condensateurs de découplage et éviter les erreurs de masse.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Le château d'eau et les réservoirs
+          body: |
+            Une ville a besoin d'une pression d'eau stable, même quand tout le monde ouvre ses robinets en même temps. Un château d'eau central aide, et des petits réservoirs près des maisons absorbent les pics de consommation.
+
+            Une carte électronique a les mêmes besoins : une alimentation stable, et des **condensateurs de découplage** au plus près de chaque circuit.
+        - level: 2
+          title: Alimenter proprement
+          body: |
+            Les sources d'énergie : un bloc secteur (AC/DC), une batterie, puis des **régulateurs** pour obtenir les tensions de la carte (24 V, 5 V, 3,3 V) :
+            - **linéaire** : simple, silencieux, mais il brûle la différence de tension ;
+            - **à découpage** : rendement de 85 à 95 %, mais un peu de bruit à haute fréquence.
+
+            Les circuits numériques consomment par **pics** très brefs à chaque front d'horloge. Si l'énergie doit venir de loin, la tension locale s'effondre un instant : resets aléatoires, erreurs, bruit. Un condensateur de 100 nF **collé** aux broches d'alimentation fournit ces pics sur place.
+
+            La **masse** est la référence commune de toutes les tensions. Deux cartes qui échangent des signaux doivent partager la même masse.
+          check:
+            q: Un microcontrôleur pilote un driver de moteur alimenté par une alimentation 24 V séparée. Rien ne marche. Première chose à vérifier ?
+            choices:
+              - t: Que les masses des deux alimentations sont reliées
+                ok: true
+                why: Sans masse commune, les signaux de commande n'ont pas de référence : « 3,3 V » par rapport à quoi ?
+              - t: La vitesse du programme
+                why: Le problème est électrique avant d'être logiciel.
+              - t: Remplacer le moteur
+                why: Commence par le câblage de référence.
+        - level: 3
+          title: Les formules
+          body: |
+            **Batterie** : capacité en mAh (ou Ah) et énergie en Wh.
+            $$t \approx \frac{C_{mAh}}{I_{mA}} \qquad E_{Wh} = U \times C_{Ah}$$
+            Une batterie 3,7 V, 2000 mAh stocke 7,4 Wh et alimente théoriquement 150 mA pendant 13 h (moins en pratique : décharge incomplète, vieillissement, froid).
+
+            **Convertisseur à découpage** : la puissance se conserve (aux pertes près), pas le courant.
+            $$I_{entrée} = \frac{U_{s}\,I_{s}}{\eta\,U_{e}}$$
+            5 V sous 2 A depuis du 24 V avec $\eta = 0{,}9$ : $I_e = 10/(0{,}9 \times 24) \approx 0{,}46$ A.
+
+            **Découplage** : 100 nF céramique par broche d'alimentation, au plus près, plus un condensateur réservoir de 10 à 100 µF par carte ou par zone.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Pourquoi « au plus près » ?** Chaque fil ou piste a une **inductance** (de l'ordre du nanohenry par millimètre). Face à un appel de courant très rapide, $u = L\,di/dt$ : quelques centimètres de piste suffisent à créer une chute de tension notable. Un condensateur éloigné ne sert à rien à haute fréquence.
+
+            **Les boucles de masse** : deux appareils reliés chacun à la terre, et entre eux par un câble de signal blindé. La boucle ainsi formée capte les champs magnétiques (le 50 Hz du secteur) et fait circuler un courant dans le blindage : ronflement, mesures bruitées. Remèdes : un seul point de masse (masse en étoile), signaux différentiels, isolation galvanique.
+
+            **Séparer puissance et signal** : le fort courant d'un moteur qui revient par la même piste de masse qu'un capteur décale le zéro de la mesure. On fait revenir les courants de puissance par leur propre chemin.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Dimensionne une alimentation avec une marge (au moins 25 %), et pense aux **appels de courant** au démarrage (moteurs, condensateurs).
+            - Un **fusible** ou une protection sur chaque alimentation ; une protection contre l'inversion de polarité sur les entrées.
+            - En instrumentation, les signaux analogiques sensibles voyagent en paires torsadées blindées, blindage relié d'un seul côté (en général), ou mieux en boucle de courant 4-20 mA.
+      recap:
+        - "Linéaire : simple, chauffe ; découpage : efficace, un peu bruyant."
+        - "Autonomie ≈ capacité (mAh) / courant (mA) ; E(Wh) = U × Ah."
+        - "Découpage : la puissance se conserve, pas le courant (I_e = U_s·I_s/(η·U_e))."
+        - "100 nF collé à chaque broche d'alimentation + un réservoir par carte."
+        - "Masse commune entre cartes ; éviter les boucles de masse ; séparer puissance et signal."
+      pieges: [ing-masse-commune, ing-decouplage, ing-dissipation-lineaire]
+    vocab:
+      - alimentation = power supply
+      - régulateur = voltage regulator
+      - convertisseur abaisseur = buck converter
+      - condensateur de découplage = decoupling (bypass) capacitor
+      - masse = ground (GND)
+      - boucle de masse = ground loop
+      - isolation galvanique = galvanic isolation
+      - capacité d'une batterie = battery capacity
+    exercises:
+      - id: an-alim.1
+        type: numeric
+        level: 1
+        q: Autonomie théorique d'une batterie de 2000 mAh qui alimente un montage consommant 150 mA, en heures ?
+        answer: 13.33
+        tol: 0.01
+        unit: h
+        calc: 2000 / 150
+        e: 2000/150 ≈ 13,3 h, un peu moins en réalité.
+      - id: an-alim.2
+        type: numeric
+        level: 1
+        q: Énergie stockée dans une batterie 3,7 V de 2000 mAh, en Wh ?
+        answer: 7.4
+        tol: 0.01
+        unit: Wh
+        calc: 3.7 * 2
+        trap_values:
+          - v: 7400
+            why: Tu as gardé des mAh. 2000 mAh = 2 Ah.
+        e: $E = 3{,}7 \times 2 = 7{,}4$ Wh (c'est la valeur utilisée pour les limites de transport en avion).
+      - id: an-alim.3
+        type: numeric
+        level: 2
+        q: Un convertisseur 24 V → 5 V (rendement 90 %) fournit 2 A. Quel courant prélève-t-il sur le 24 V ?
+        answer: 0.463
+        tol: 0.02
+        unit: A
+        calc: 5 * 2 / (0.9 * 24)
+        trap_values:
+          - v: 2
+            why: Un convertisseur à découpage conserve la puissance, pas le courant (c'est le linéaire qui prélève le même courant).
+          - v: 0.4167
+            why: Tu as oublié le rendement.
+        e: $I_e = 10/(0{,}9 \times 24) \approx 0{,}46$ A.
+      - id: an-alim.4
+        type: qcm
+        level: 1
+        q: Où placer le condensateur de découplage de 100 nF d'un microcontrôleur ?
+        piege: ing-decouplage
+        choices:
+          - t: Au plus près de ses broches d'alimentation et de masse
+            ok: true
+          - t: N'importe où sur la carte, près du connecteur d'alimentation
+            piege: true
+            why: À haute fréquence, l'inductance des pistes le rend inutile s'il est loin.
+          - t: Il n'en a pas besoin s'il y a déjà un gros condensateur sur l'alimentation
+            why: Le gros condensateur gère les basses fréquences ; les pics rapides doivent être servis sur place.
+        e: Une boucle la plus courte possible entre la broche VCC, le condensateur et la broche GND.
+      - id: an-alim.5
+        type: qcm
+        level: 2
+        q: Une mesure de capteur est perturbée chaque fois que le moteur démarre, alors que les deux partagent la même masse. Cause probable ?
+        choices:
+          - t: Le courant du moteur revient par la même piste de masse que le capteur et décale sa référence
+            ok: true
+          - t: Le capteur est défectueux
+            why: Le lien avec le démarrage du moteur pointe vers un problème de câblage.
+          - t: La masse commune est une erreur, il faut les séparer complètement
+            why: Il faut une référence commune, mais des chemins de retour séparés pour la puissance et le signal (masse en étoile).
+        e: Fais revenir le courant du moteur par son propre conducteur jusqu'au point de masse commun.
+      - id: an-alim.6
+        type: flash
+        level: 2
+        q: Qu'est-ce qu'une boucle de masse et comment l'éviter ?
+        back: |
+          Un circuit fermé involontaire formé par plusieurs liaisons de masse (deux appareils reliés à la terre et entre eux par un câble). Il capte les champs magnétiques et fait circuler un courant parasite, qui se superpose aux signaux (ronflement à 50 Hz).
+
+          Remèdes : une seule liaison de masse (étoile), signaux différentiels ou en courant (4-20 mA), isolation galvanique, blindage relié d'un seul côté.
+        e: Le symptôme typique, un bruit à 50 Hz (ou 100 Hz) sur une mesure.

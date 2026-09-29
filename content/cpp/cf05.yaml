@@ -1,0 +1,328 @@
+id: cf05
+track: cpp
+title: Fonctions
+goal: Déclarer, définir et appeler des fonctions typées, comprendre le passage par valeur, et utiliser la surcharge.
+level: fondations
+requires: [cf04]
+concepts: [fonctions, prototype, passage-valeur, surcharge]
+lesson:
+  minutes: 15
+  intro: |
+    Le principe est le même qu'en Python : une machine avec des entrées et une sortie. Mais en C++, la machine a une **plaque signalétique** : le type de chaque entrée et le type de la sortie sont écrits noir sur blanc. Le compilateur s'en sert pour vérifier chaque appel. Et les arguments sont **copiés** par défaut, ce qui est la source d'un malentendu très fréquent.
+  steps:
+    - level: 1
+      title: Une plaque signalétique
+      body: |
+        ```cpp
+        double puissance(double u, double i) {
+            return u * i;
+        }
+        ```
+
+        - Avant le nom : le **type de retour** (`double`).
+        - Entre parenthèses : chaque paramètre avec **son type**.
+        - `return` renvoie la valeur. Une fonction qui ne renvoie rien a le type `void`.
+
+        L'appel est le même qu'en Python : `double p = puissance(12.0, 0.5);`. Si tu passes un texte à la place d'un nombre, **le programme ne compile pas**.
+    - level: 2
+      title: Déclarer avant d'utiliser
+      body: |
+        Le compilateur lit le fichier de haut en bas, et il doit connaître une fonction **avant** son premier appel. Deux solutions : la définir plus haut, ou écrire sa **déclaration** (son *prototype* : la plaque signalétique seule, terminée par `;`) en haut du fichier, et sa **définition** (le corps) plus bas.
+      code: |
+        #include <iostream>
+
+        double moyenne(double a, double b);   // déclaration (prototype)
+        void afficher(double valeur);          // void : ne renvoie rien
+
+        int main() {
+            afficher(moyenne(21.5, 22.5));
+        }
+
+        double moyenne(double a, double b) {   // définition
+            return (a + b) / 2.0;
+        }
+
+        void afficher(double valeur) {
+            std::cout << "valeur : " << valeur << '\n';
+        }
+      out: |
+        valeur : 22
+      after: |
+        Cette séparation déclaration / définition est exactement ce qui permet de découper un programme en plusieurs fichiers : les déclarations vont dans un fichier d'en-tête `.hpp` (cours 10).
+    - level: 3
+      title: Valeurs par défaut et surcharge
+      body: |
+        Comme en Python, un paramètre peut avoir une **valeur par défaut** (en fin de liste). Et C++ permet la **surcharge** : plusieurs fonctions **du même nom** avec des paramètres de types différents. Le compilateur choisit la bonne selon les arguments.
+      code: |
+        #include <iostream>
+        #include <string>
+
+        double vers_pascal(double valeur, double facteur = 1e5) {   // bar par défaut
+            return valeur * facteur;
+        }
+
+        std::string formater(int n) { return "entier " + std::to_string(n); }
+        std::string formater(double x) { return "réel " + std::to_string(x); }
+
+        int main() {
+            std::cout << vers_pascal(1.013) << " " << vers_pascal(1013, 100) << '\n';
+            std::cout << formater(3) << " / " << formater(3.0) << '\n';
+        }
+      out: |
+        101300 101300
+        entier 3 / réel 3.000000
+    - level: 4
+      title: Les arguments sont copiés
+      body: |
+        Par défaut, C++ passe les arguments **par valeur** : la fonction reçoit une **copie**. Modifier le paramètre dans la fonction ne change **rien** chez l'appelant.
+
+        C'est différent de Python, où une fonction reçoit l'objet lui-même (et peut modifier une liste de l'appelant). En C++, même un `std::vector` de 10 000 éléments est **copié entièrement** s'il est passé par valeur : correct, mais coûteux.
+
+        Pour modifier une variable de l'appelant, ou éviter une copie coûteuse, on utilise les **références**, au cours suivant.
+
+        Autre piège : une fonction non `void` qui oublie un `return` sur un chemin **compile**, mais la valeur renvoyée est indéfinie. `-Wall` le signale : `control reaches end of non-void function`.
+      code: |
+        #include <iostream>
+
+        void remettre_a_zero(int compteur) {
+            compteur = 0;               // modifie la copie locale seulement
+        }
+
+        int main() {
+            int c = 42;
+            remettre_a_zero(c);
+            std::cout << c << '\n';     // toujours 42
+        }
+      out: |
+        42
+      flags: [-Wno-unused-but-set-parameter, -Wno-unused-parameter]
+      check:
+        q: "Comment faire pour que `remettre_a_zero(c)` modifie vraiment `c` ?"
+        choices:
+          - t: "Passer le paramètre par référence : `void remettre_a_zero(int& compteur)`."
+            ok: true
+            why: "Le `&` fait du paramètre un autre nom pour la variable de l'appelant. C'est le sujet du prochain cours."
+          - t: "Déclarer `compteur` en `static`."
+            why: "Ça ne crée aucun lien avec la variable de l'appelant."
+          - t: "Mettre `return compteur;` à la fin."
+            why: "Ça renverrait la valeur, mais il faudrait écrire `c = remettre_a_zero(c);` chez l'appelant. C'est d'ailleurs une bonne solution… pour une fonction qui renvoie un résultat."
+    - level: 5
+      title: Écrire de bonnes fonctions C++
+      body: |
+        Les mêmes règles qu'en Python s'appliquent (une tâche, un nom en verbe, pas d'effet caché), plus quelques-unes propres au C++ :
+
+        - **Renvoie des résultats** plutôt que de modifier des paramètres quand c'est possible : `double v = lire_tension();` se lit mieux que `lire_tension(v);`.
+        - **Plusieurs résultats ?** Renvoie une petite `struct` (cours 9) ou un `std::pair`.
+        - **Petits types** (`int`, `double`, `bool`, `char`) : par valeur. **Gros objets** (`std::string`, `std::vector`) : par `const&` (cours suivant).
+        - **`[[nodiscard]]`** devant le type de retour demande au compilateur d'avertir si l'appelant ignore le résultat : idéal pour une fonction qui renvoie un code d'erreur.
+  recap:
+    - "`type_retour nom(type param, ...) { ... return valeur; }` ; `void` si rien n'est renvoyé."
+    - "Une fonction doit être déclarée avant son appel : prototype en haut (ou dans un `.hpp`), définition ailleurs."
+    - "Valeurs par défaut en fin de liste ; surcharge = même nom, types de paramètres différents."
+    - "Passage **par valeur** : la fonction travaille sur une copie ; l'appelant ne voit pas les modifications."
+    - "Un chemin sans `return` dans une fonction non `void` : comportement indéfini, signalé par `-Wall`."
+  pieges: [cpp-passage-par-valeur, cpp-return-manquant]
+exercises:
+  - id: cf05.1
+    type: predict
+    level: 1
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+
+      int carre(int x) {
+          return x * x;
+      }
+
+      int main() {
+          std::cout << carre(3) + carre(4) << '\n';
+      }
+    answer: "25"
+    e: "9 + 16 = 25. Chaque appel renvoie une valeur utilisable dans une expression."
+  - id: cf05.2
+    type: predict
+    level: 2
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+
+      void doubler(int x) {
+          x = x * 2;
+      }
+
+      int main() {
+          int n = 5;
+          doubler(n);
+          std::cout << n << '\n';
+      }
+    answer: "5"
+    trap_answers: ["10"]
+    flags: [-Wno-unused-but-set-parameter]
+    piege: cpp-passage-par-valeur
+    e: "`doubler` reçoit une **copie** de `n`. Elle double sa copie, puis la copie disparaît. Pour modifier `n` : `void doubler(int& x)`, ou mieux `int doubler(int x) { return 2 * x; }` et `n = doubler(n);`."
+  - id: cf05.3
+    type: qcm
+    level: 1
+    q: "Ce fichier ne compile pas : `use of undeclared identifier 'moyenne'`. Pourquoi ?"
+    code: |
+      int main() {
+          return moyenne(1, 3);
+      }
+      int moyenne(int a, int b) { return (a + b) / 2; }
+    choices:
+      - t: "`moyenne` est utilisée avant d'être déclarée."
+        ok: true
+        why: "Le compilateur lit de haut en bas. Il faut une déclaration `int moyenne(int a, int b);` avant `main`, ou déplacer la définition au-dessus."
+      - t: "`main` ne peut pas appeler d'autre fonction."
+        why: "`main` peut appeler n'importe quelle fonction déclarée."
+      - t: "Il manque `#include <iostream>`."
+        why: "Ce code n'utilise rien de `<iostream>`."
+    e: "Python cherche les noms au moment de l'exécution ; C++ exige de les connaître au moment de la compilation, dans l'ordre du fichier."
+  - id: cf05.4
+    type: bug
+    level: 2
+    q: "Cette fonction compile (avec un avertissement) mais renvoie n'importe quoi pour `x == 0`. Clique sur la ligne où il manque quelque chose."
+    code: |
+      int signe(double x) {
+          if (x > 0) {
+              return 1;
+          } else if (x < 0) {
+              return -1;
+          } else {
+              // cas nul : rien n'est renvoyé !
+          }
+      }
+    bad: 7
+    fix: "        return 0;"
+    piege: cpp-return-manquant
+    e: "Pour `x == 0` (ou NaN), aucun `return` n'est atteint : la valeur renvoyée est indéfinie. `-Wall` le signale : `non-void function does not return a value in all control paths`. Chaque chemin d'une fonction non `void` doit se terminer par un `return`."
+  - id: cf05.5
+    type: predict
+    level: 2
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+
+      void afficher(int x) { std::cout << "int "; }
+      void afficher(double x) { std::cout << "double "; }
+      void afficher(char x) { std::cout << "char "; }
+
+      int main() {
+          afficher(3);
+          afficher(3.0);
+          afficher('3');
+          afficher(3.0f);
+          std::cout << '\n';
+      }
+    answer: int double char double
+    flags: [-Wno-unused-parameter]
+    e: "La surcharge est résolue selon le type exact de l'argument. `3.0f` est un `float` : faute de version `float`, le compilateur choisit la conversion la plus naturelle, `float` → `double` (une *promotion*)."
+  - id: cf05.6
+    type: cloze
+    level: 1
+    q: "Complète le prototype et l'appel d'une fonction qui convertit des tr/min en rad/s."
+    lang: cpp
+    tpl: |
+      #include <iostream>
+
+      ⟦0⟧ tr_min_vers_rad_s(double n);
+
+      int main() {
+          std::cout << tr_min_vers_rad_s(⟦1⟧) << '\n';
+      }
+
+      double tr_min_vers_rad_s(double n) {
+          return n * 2.0 * 3.141592653589793 / 60.0;
+      }
+    blanks:
+      - [double]
+      - ["1500", "1500.0"]
+    verify: compile
+    e: "Le prototype doit avoir exactement le même type de retour et les mêmes types de paramètres que la définition."
+  - id: cf05.7
+    type: code
+    level: 1
+    lang: cpp
+    q: |
+      Écris `double borner(double x, double mini, double maxi)` qui renvoie `x` ramené dans `[mini, maxi]` (saturation d'une consigne).
+    start: |
+      double borner(double x, double mini, double maxi) {
+          return x;  // à compléter
+      }
+    sol: |
+      double borner(double x, double mini, double maxi) {
+          if (x < mini) {
+              return mini;
+          }
+          if (x > maxi) {
+              return maxi;
+          }
+          return x;
+      }
+    tests: |
+      #include <cassert>
+      #include <iostream>
+      int main() {
+          assert(borner(5, 0, 10) == 5);
+          assert(borner(-1, 0, 10) == 0);
+          assert(borner(11, 0, 10) == 10);
+          assert(borner(0, 0, 0) == 0);
+          std::cout << "OK\n";
+      }
+    e: "Même solution qu'en Python, typée. La bibliothèque standard propose `std::clamp(x, mini, maxi)` (dans `<algorithm>`, C++17)."
+  - id: cf05.8
+    type: qcm
+    level: 2
+    q: "Quelle déclaration est valide pour un paramètre par défaut ?"
+    choices:
+      - t: "`double lire(int canal, int moyennage = 8);`"
+        ok: true
+      - t: "`double lire(int moyennage = 8, int canal);`"
+        why: "Les paramètres par défaut doivent être à la **fin** de la liste."
+      - t: "`double lire(int canal, moyennage = 8);`"
+        why: "Il manque le type de `moyennage`."
+    e: "Une fois qu'un paramètre a une valeur par défaut, tous ceux qui le suivent doivent en avoir une."
+  - id: cf05.9
+    type: flash
+    level: 1
+    q: "Différence entre la **déclaration** et la **définition** d'une fonction ?"
+    back: |
+      - Déclaration (prototype) : la signature seule, terminée par `;` → `double moyenne(double a, double b);`
+      - Définition : la signature **et** le corps entre accolades.
+
+      On peut déclarer autant de fois qu'on veut, mais définir **une seule fois**.
+    e: "Les déclarations vont dans les `.hpp`, les définitions dans les `.cpp` : c'est la base de la compilation séparée."
+  - id: cf05.10
+    type: predict
+    level: 3
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+
+      int f(int x) { return x + 1; }
+      double f(double x) { return x * 10; }
+
+      int main() {
+          std::cout << f(2) << " " << f(2.5) << " " << f(2) / 2 << '\n';
+      }
+    answer: 3 25 1
+    e: "`f(2)` appelle la version `int` (3), `f(2.5)` la version `double` (25). `f(2) / 2` : `3 / 2` en entiers vaut 1."
+  - id: cf05.11
+    type: parsons
+    level: 2
+    q: "Reconstruis un programme complet : prototype, `main` qui affiche `aire(2.0)`, puis la définition de l'aire d'un disque."
+    lang: cpp
+    lines:
+      - "#include <iostream>"
+      - "double aire(double r);"
+      - "int main() {"
+      - "    std::cout << aire(2.0) << '\\n';"
+      - "}"
+      - "double aire(double r) {"
+      - "    return 3.141592653589793 * r * r;"
+      - "}"
+    extra:
+      - "double aire(double r)"
+      - "    return 3.141592653589793 * r ^ 2;"
+    verify: compile
+    e: "Le prototype se termine par `;` (l'intrus sans `;` ne compile pas). Et `r ^ 2` est un OU exclusif, pas un carré."

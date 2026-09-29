@@ -1,0 +1,4 @@
+# clangd lit labs/<lab>/build/compile_commands.json, créé par le premier ./praxis check du lab.
+# Avant cela, ces options servent de repli.
+CompileFlags:
+  Add: [-std=c++20, -Wall, -Wextra, -Wconversion, -Wshadow, -I../_commun/cpp]

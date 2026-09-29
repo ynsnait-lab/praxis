@@ -1,0 +1,350 @@
+id: cf13
+track: cpp
+title: Du C++ à l'Arduino et l'ESP32
+goal: Relire tes sketches avec des yeux de développeur C++ — types, millis(), interruptions, volatile — et savoir tester ta logique sur ton Mac.
+level: fondations
+requires: [cf12]
+concepts: [arduino, millis, volatile, isr, portabilite]
+lesson:
+  minutes: 18
+  intro: |
+    Dernier cours des Fondations : on relie tout à ce que tu fais déjà sur ESP32. Un firmware, c'est du C++ soumis à des contraintes particulières : pas d'écran pour déboguer, peu de mémoire, du temps réel, des interruptions qui surgissent au milieu de ton code. Les pièges de ce cours ne se voient pas sur un banc de test de dix minutes ; ils se révèlent au bout de 49 jours, ou une fois sur dix mille.
+  steps:
+    - level: 1
+      title: Ton sketch, vu par le compilateur
+      body: |
+        Un sketch Arduino, c'est ceci :
+
+        ```cpp
+        #include <Arduino.h>          // ajouté automatiquement par l'IDE Arduino
+
+        void setup() {                // appelée une fois par le main() caché
+            Serial.begin(115200);
+            pinMode(LED_BUILTIN, OUTPUT);
+        }
+
+        void loop() {                 // appelée en boucle, sans fin
+            digitalWrite(LED_BUILTIN, HIGH);
+            delay(500);
+            digitalWrite(LED_BUILTIN, LOW);
+            delay(500);
+        }
+        ```
+
+        Rien de magique : `setup` et `loop` sont des fonctions `void` ; `Serial` est un **objet** d'une classe (`HardwareSerial`), `Serial.begin(...)` un appel de méthode ; `HIGH`, `OUTPUT` sont des constantes. Avec PlatformIO, c'est un vrai `main.cpp` compilé par `xtensa-esp32-elf-g++` (ou `riscv32-esp-elf-g++` pour les puces RISC-V comme l'ESP32-C3) : tout le C++ des cours précédents s'applique.
+    - level: 2
+      title: Arrêter de bloquer avec delay()
+      body: |
+        `delay(500)` **bloque tout** pendant 500 ms : pas de lecture de capteur, pas de réponse sur la liaison série, un bouton pressé est manqué. Dès qu'un programme fait deux choses, il faut le rythmer avec l'horloge, `millis()`, qui renvoie le nombre de millisecondes depuis le démarrage.
+
+        Le motif universel : « si le temps écoulé depuis la dernière fois dépasse la période, agis et note l'instant » :
+      code: |
+        #include <cstdint>
+        #include <iostream>
+
+        // Simulation sur PC : on fait avancer une fausse horloge.
+        uint32_t horloge_ms = 0;
+        uint32_t millis() { return horloge_ms; }
+
+        int main() {
+            const uint32_t PERIODE_LED = 500, PERIODE_MESURE = 200;
+            uint32_t t_led = 0, t_mesure = 0;
+            int bascules = 0, mesures = 0;
+            for (horloge_ms = 0; horloge_ms <= 2000; horloge_ms += 10) {   // loop()
+                if (millis() - t_led >= PERIODE_LED) {
+                    t_led += PERIODE_LED;
+                    ++bascules;                 // digitalWrite(LED, !etat)
+                }
+                if (millis() - t_mesure >= PERIODE_MESURE) {
+                    t_mesure += PERIODE_MESURE;
+                    ++mesures;                  // lire le capteur
+                }
+            }
+            std::cout << bascules << " bascules, " << mesures << " mesures en 2 s\n";
+        }
+      out: |
+        4 bascules, 10 mesures en 2 s
+      after: |
+        Deux tâches avancent à leur rythme, sans jamais s'attendre. C'est le principe de toutes les boucles de contrôle non bloquantes. (Sur l'ESP32, on peut aussi utiliser les tâches de FreeRTOS, mais ce motif reste la base.)
+    - level: 3
+      title: Pourquoi millis() - debut, et pas millis() > debut + periode
+      body: |
+        `millis()` renvoie un `uint32_t` (sur ESP32 comme sur AVR, un `unsigned long` de 32 bits). Il **déborde** au bout de 2³² ms ≈ **49,7 jours** et repasse à 0.
+
+        - La comparaison `if (millis() >= debut + periode)` **casse** au débordement : si `debut + periode` fait le tour du compteur, la condition devient vraie immédiatement (ou reste fausse pendant 49 jours selon les cas).
+        - La soustraction `if (millis() - debut >= periode)` **marche toujours**, car l'arithmétique non signée est modulo 2³² : même si `millis()` a fait le tour, la différence reste égale au temps réellement écoulé.
+      code: |
+        #include <cstdint>
+        #include <iostream>
+
+        int main() {
+            uint32_t debut = 4294967000u;          // 296 ms avant le débordement
+            uint32_t periode = 1000u;
+            uint32_t maintenant = debut + 100u;     // 100 ms plus tard
+            std::cout << (maintenant - debut) << '\n';                 // 100 : correct
+            std::cout << (maintenant - debut >= periode) << '\n';      // 0 : pas encore, correct
+            std::cout << (maintenant >= debut + periode) << '\n';      // 1 : FAUX, déclenché trop tôt
+        }
+      out: |
+        100
+        0
+        1
+      after: |
+        `debut + periode` a débordé : il vaut 704. N'importe quel instant situé avant le tour du compteur lui est supérieur, donc la mauvaise comparaison se déclenche immédiatement, 900 ms trop tôt. Un bug qui n'apparaît qu'au bout de 49,7 jours de fonctionnement continu : invisible en test, garanti en production.
+    - level: 4
+      title: Interruptions et volatile
+      body: |
+        Une **interruption** (*ISR*, routine de service d'interruption) est une fonction appelée par le matériel **au milieu** de ton code : front sur une broche, fin de conversion ADC, timer. Trois règles :
+
+        1. **Une ISR est courte** : elle note l'événement (un compteur, un drapeau), et le travail est fait dans `loop()`. Pas de `Serial.print`, pas de `delay`, pas d'allocation.
+        2. **Une variable partagée entre une ISR et `loop()` est `volatile`**. Sinon, le compilateur peut garder sa valeur dans un registre dans `loop()` et ne jamais voir les modifications faites par l'ISR.
+        3. **La lecture d'une valeur de plus d'un mot doit être atomique.** Sur un AVR 8 bits, lire un `uint32_t` prend 4 instructions : l'ISR peut survenir au milieu et on lit un mélange de l'ancienne et de la nouvelle valeur. On désactive brièvement les interruptions (ou, sur ESP32, on utilise une section critique ou `std::atomic`).
+
+        ```cpp
+        volatile uint32_t impulsions = 0;           // partagée avec l'ISR
+
+        void IRAM_ATTR sur_impulsion() {            // IRAM_ATTR : en RAM sur ESP32
+            impulsions = impulsions + 1;
+        }
+
+        void setup() {
+            attachInterrupt(digitalPinToInterrupt(4), sur_impulsion, RISING);
+        }
+
+        void loop() {
+            noInterrupts();                         // lecture cohérente
+            uint32_t n = impulsions;
+            interrupts();
+            // ... utiliser n
+        }
+        ```
+
+        Attention : `volatile` garantit que chaque accès a bien lieu en mémoire, **pas** qu'il est atomique. Ce sont deux problèmes distincts.
+    - level: 5
+      title: Tester ta logique sur ton Mac
+      body: |
+        Le secret des firmwares fiables : **séparer la logique du matériel**. Le décodage d'une trame, le filtre, la machine à états, le PID ne dépendent pas des broches : écris-les en C++ pur, dans des fichiers sans `#include <Arduino.h>`. Tu peux alors les **compiler et les tester sur ton Mac**, avec les sanitizers, en quelques secondes, sans téléverser quoi que ce soit.
+
+        ```text
+        firmware/
+        ├── lib/logique/     ← filtre.hpp/.cpp, trame.hpp/.cpp : C++ pur, testable sur PC
+        ├── src/main.cpp     ← setup/loop : lit les broches, appelle la logique
+        └── test/            ← tests exécutés sur PC (pio test -e native)
+        ```
+
+        C'est exactement ce que font les labs C++ de Praxis : du C++ pur, vérifié par des tests, que tu pourras ensuite intégrer tel quel dans un projet PlatformIO.
+
+        Et quelques différences de plateforme à garder en tête :
+
+        | | Arduino Uno (AVR) | ESP32 | Mac M4 |
+        | --- | --- | --- | --- |
+        | `int` | **16 bits** | 32 bits | 32 bits |
+        | `double` | = `float` (32 bits) ! | 64 bits (émulé, lent) | 64 bits |
+        | calcul flottant | logiciel | FPU simple précision | matériel |
+        | RAM | 2 ko | ~320 ko | 24 Go |
+  recap:
+    - "`setup()`/`loop()` sont des fonctions appelées par un `main()` caché ; `Serial` est un objet."
+    - "Pas de `delay()` dès qu'il y a deux choses à faire : `if (millis() - t0 >= periode) { t0 += periode; ... }`."
+    - "`millis()` déborde au bout de 49,7 jours : la soustraction non signée reste correcte, l'addition non."
+    - "ISR courte ; variable partagée `volatile` ; lecture multi-octets protégée (sections critiques ou `std::atomic`)."
+    - "Sépare la logique (C++ pur, testée sur PC) du matériel (broches, bus)."
+  pieges: [cpp-millis-debordement, cpp-volatile-isr, cpp-delay-bloquant, cpp-int-16-bits]
+exercises:
+  - id: cf13.1
+    type: qcm
+    level: 1
+    q: "Que sont `setup()` et `loop()` pour le compilateur C++ ?"
+    choices:
+      - t: "Deux fonctions ordinaires, appelées par un `main()` fourni par le framework."
+        ok: true
+      - t: "Des mots-clés spéciaux du langage Arduino."
+        why: "Il n'y a pas de « langage Arduino » : c'est du C++ avec une bibliothèque."
+      - t: "Des threads qui s'exécutent en parallèle."
+        why: "`loop()` est appelée en boucle, séquentiellement, par `main()`."
+    e: "Sur ESP32 avec le framework Arduino, `loop()` tourne même dans une tâche FreeRTOS (`loopTask`) créée par le `main` caché."
+  - id: cf13.2
+    type: qcm
+    level: 2
+    q: "Quelle condition est correcte pour exécuter une action toutes les `periode` millisecondes, même après le débordement de `millis()` ?"
+    piege: cpp-millis-debordement
+    choices:
+      - t: "`if (millis() - t0 >= periode)`"
+        ok: true
+      - t: "`if (millis() >= t0 + periode)`"
+        piege: true
+        why: "`t0 + periode` peut déborder : la comparaison devient fausse (déclenchements anticipés) autour des 49,7 jours."
+      - t: "`if (millis() % periode == 0)`"
+        why: "Rate l'instant exact si `loop()` est un peu lente, et se déclenche plusieurs fois dans la même milliseconde si elle est rapide."
+    e: "La soustraction de deux `uint32_t` est calculée modulo 2³² : elle donne le temps réellement écoulé, même à cheval sur le débordement."
+  - id: cf13.3
+    type: predict
+    level: 3
+    q: "Qu'affiche ce programme ? (`uint32_t` sur 32 bits)"
+    code: |
+      #include <cstdint>
+      #include <iostream>
+
+      int main() {
+          uint32_t t0 = 4294967290u;
+          uint32_t maintenant = 4u;
+          std::cout << maintenant - t0 << " " << (maintenant > t0) << '\n';
+      }
+    answer: 10 0
+    trap_answers: ["-4294967286 0"]
+    piege: cpp-millis-debordement
+    e: "`maintenant - t0` vaut 4 − 4 294 967 290 modulo 2³² = 10 : exactement le temps écoulé (6 ms avant le débordement + 4 après). Mais `maintenant > t0` est faux : les comparaisons directes d'horodatages cassent au débordement, pas les différences."
+  - id: cf13.4
+    type: bug
+    level: 2
+    q: "Le compteur d'impulsions reste parfois bloqué à 0 dans `loop()` quand on compile en optimisé, alors que l'interruption se déclenche bien. Quelle ligne corriger ?"
+    lang: cpp
+    code: |
+      uint32_t impulsions = 0;
+
+      void IRAM_ATTR isr_capteur() {
+          impulsions++;
+      }
+
+      void loop() {
+          while (impulsions < 100) {
+              // attente
+          }
+          // ...
+      }
+    bad: 1
+    fix: "volatile uint32_t impulsions = 0;"
+    piege: cpp-volatile-isr
+    e: "Sans `volatile`, le compilateur voit que la boucle ne modifie jamais `impulsions` : il a le droit de lire la variable une seule fois et de boucler sur un registre, pour toujours. `volatile` l'oblige à relire la mémoire à chaque tour. (Et une attente active comme celle-ci reste une mauvaise idée : préfère tester la condition à chaque passage de `loop()`.)"
+  - id: cf13.5
+    type: qcm
+    level: 2
+    q: "Que doit faire une routine d'interruption (ISR) bien écrite ?"
+    choices:
+      - t: "Le strict minimum : noter l'événement (compteur, drapeau, horodatage) et sortir."
+        ok: true
+      - t: "Traiter complètement l'événement, y compris l'afficher sur `Serial`."
+        why: "`Serial.print` peut bloquer et utiliser des interruptions : dans une ISR, c'est un plantage ou un blocage garanti tôt ou tard."
+      - t: "Attendre avec `delay()` que le signal se stabilise."
+        why: "`delay()` dépend lui-même des interruptions : il ne fonctionne pas dans une ISR."
+    e: "Pendant qu'une ISR s'exécute, le reste du système attend (et d'autres interruptions peuvent être retardées). Le traitement se fait dans `loop()`, en testant le drapeau."
+  - id: cf13.6
+    type: code
+    level: 2
+    lang: cpp
+    q: |
+      Écris la classe `Minuterie` utilisée comme ceci dans un firmware :
+
+      ```cpp
+      Minuterie led(500, millis());   // période en ms, instant de départ
+      if (led.echue(millis())) { ... }
+      ```
+
+      `echue(maintenant)` renvoie `true` quand au moins une période s'est écoulée depuis la dernière échéance (la première a lieu une période après le départ), et **doit rester correcte au débordement** de `millis()`.
+    start: |
+      #include <cstdint>
+
+      class Minuterie {
+      public:
+          Minuterie(uint32_t periode_ms, uint32_t depart_ms) : periode_(periode_ms), derniere_(depart_ms) {}
+          bool echue(uint32_t maintenant) {
+              return false;  // à compléter
+          }
+      private:
+          uint32_t periode_;
+          uint32_t derniere_;
+      };
+    sol: |
+      #include <cstdint>
+
+      class Minuterie {
+      public:
+          Minuterie(uint32_t periode_ms, uint32_t depart_ms) : periode_(periode_ms), derniere_(depart_ms) {}
+          bool echue(uint32_t maintenant) {
+              if (maintenant - derniere_ >= periode_) {
+                  derniere_ += periode_;
+                  return true;
+              }
+              return false;
+          }
+      private:
+          uint32_t periode_;
+          uint32_t derniere_;
+      };
+    tests: |
+      #include <cassert>
+      #include <iostream>
+      int main() {
+          Minuterie m(500, 0);
+          assert(!m.echue(100));
+          assert(m.echue(500));
+          assert(!m.echue(700));
+          assert(m.echue(1000));
+          // à cheval sur le débordement de millis() : départ 96 ms avant le tour
+          const uint32_t depart = 4294967200u;
+          Minuterie w(100, depart);
+          int n = 0;
+          for (uint32_t k = 0; k <= 300; k += 10) {
+              if (w.echue(depart + k)) ++n;     // depart + k fait le tour du compteur
+          }
+          assert(n == 3 && "échéances à +100, +200, +300 ms, même après le débordement");
+          std::cout << "OK\n";
+      }
+    hint: "Compare `maintenant - derniere_` à la période. Quand c'est échu, avance `derniere_` d'une période (plutôt que de le mettre à `maintenant`, pour ne pas dériver)."
+    piege: cpp-millis-debordement
+    e: "`derniere_ += periode_` (et non `derniere_ = maintenant`) garde un rythme exact, sans dérive, même si `loop()` a pris un peu de retard. La soustraction non signée gère le débordement ; la version `maintenant >= derniere_ + periode_` échoue au dernier test, car `derniere_ + periode_` fait le tour du compteur."
+  - id: cf13.7
+    type: flash
+    level: 2
+    q: "`volatile` rend-il un accès atomique ? Explique la différence."
+    back: |
+      Non.
+      - `volatile` : chaque lecture ou écriture a réellement lieu en mémoire, dans l'ordre du code (pas de mise en registre ni de suppression par l'optimiseur).
+      - **Atomique** : l'accès ne peut pas être coupé en deux par une interruption ou un autre cœur. Un `uint32_t` sur AVR 8 bits se lit en 4 instructions : il faut une section critique (`noInterrupts()`) ou `std::atomic`.
+    e: "Sur ESP32 (32 bits), lire un `uint32_t` aligné est atomique, mais un `uint64_t`, une `struct` ou une séquence « lire puis écrire » (`x++`) ne le sont pas, et l'ESP32 a deux cœurs."
+  - id: cf13.8
+    type: qcm
+    level: 2
+    q: "Sur un Arduino Uno, `double` est-il plus précis que `float` ?"
+    piege: cpp-int-16-bits
+    choices:
+      - t: "Non : sur AVR, `double` est un alias de `float` (32 bits, ~7 chiffres)."
+        ok: true
+      - t: "Oui, 64 bits comme sur PC."
+        piege: true
+        why: "C'est vrai sur ESP32 et sur PC, pas sur AVR."
+      - t: "Non, `double` n'existe pas sur Arduino."
+        why: "Le type existe, il a juste la même précision que `float` sur AVR."
+    e: "Un calcul mis au point sur PC en `double` peut perdre de la précision une fois porté sur Uno. Encore une raison de connaître sa cible, et de tester sur PC avec les mêmes types."
+  - id: cf13.9
+    type: predict
+    level: 2
+    q: "Ce programme simule une `loop()` appelée toutes les 10 ms pendant 1 seconde. Qu'affiche-t-il ?"
+    code: |
+      #include <cstdint>
+      #include <iostream>
+
+      int main() {
+          uint32_t t0 = 0;
+          int n = 0;
+          for (uint32_t t = 0; t <= 1000; t += 10) {
+              if (t - t0 >= 250) {
+                  t0 = t;
+                  ++n;
+              }
+          }
+          std::cout << n << '\n';
+      }
+    answer: "4"
+    e: "Échéances à 250, 500, 750 et 1000 ms : 4 déclenchements. Le motif `t - t0 >= periode` est exactement celui de `millis()`."
+  - id: cf13.10
+    type: qcm
+    level: 3
+    q: "Pourquoi séparer la logique d'un firmware (décodage de trames, filtres, machine à états) des appels matériels ?"
+    choices:
+      - t: "Pour pouvoir la compiler et la tester sur PC, vite, avec les sanitizers, sans matériel."
+        ok: true
+      - t: "Parce que le compilateur de l'ESP32 ne compile pas plusieurs fichiers."
+        why: "Il en compile autant que tu veux."
+      - t: "Pour que le firmware soit plus rapide."
+        why: "La vitesse n'est pas l'objectif : c'est la testabilité."
+    e: "Tester sur la cible est lent (téléversement), limité (pas de sanitizers) et peu reproductible. Une logique pure testée sur PC arrive sur la carte déjà vérifiée : seules les interactions matérielles restent à valider."

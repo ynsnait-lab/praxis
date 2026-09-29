@@ -1,0 +1,24 @@
+{
+  "name": "praxis",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Entraînement Python, C++ et culture d'ingénieur : cours en crescendo, exercices, pièges, révision espacée.",
+  "type": "module",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "build:rapide": "node tools/build.mjs --no-pyodide",
+    "validate": "python3 tools/validate.py",
+    "check:pyodide": "python3 tools/check_pyodide.py",
+    "serve": "python3 -m http.server 8000 --bind 127.0.0.1 --directory dist"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ynsnait-lab/praxis.git"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "pyodide": "^314.0.7",
+    "temml": "^0.13.5"
+  }
+}

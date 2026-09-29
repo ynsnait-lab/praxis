@@ -1,0 +1,293 @@
+id: cf12
+track: cpp
+title: "Mémoire : pile, tas et RAII"
+goal: Savoir où vivent tes variables et combien de temps, éviter fuites et double libération, et laisser les destructeurs faire le ménage.
+level: fondations
+requires: [cf11]
+concepts: [pile, tas, new-delete, destructeur, raii, unique_ptr]
+lesson:
+  minutes: 18
+  intro: |
+    Python gère la mémoire à ta place (un ramasse-miettes libère ce qui ne sert plus). C++ te donne le contrôle — et la responsabilité. La bonne nouvelle : le C++ moderne a une technique, le **RAII**, qui rend la gestion de mémoire (et de toute ressource : fichiers, ports, verrous) presque automatique. C'est l'idée la plus importante du langage ; elle est aussi très utile en embarqué, pour ne jamais oublier de relâcher une ligne `CS` de bus SPI.
+  steps:
+    - level: 1
+      title: Le bureau et l'entrepôt
+      body: |
+        Ton programme dispose de deux zones de mémoire :
+
+        - **La pile** (*stack*) est ton **bureau** : quand une fonction démarre, ses variables locales sont posées dessus ; quand elle se termine, tout est débarrassé **automatiquement**. C'est rapide, mais petit (quelques Mo sur un PC, quelques ko par tâche sur un ESP32).
+        - **Le tas** (*heap*) est un **entrepôt** : on y réserve de la place à la demande, de n'importe quelle taille, et elle reste réservée **jusqu'à ce qu'on la rende**. Si on oublie de rendre, l'entrepôt se remplit : c'est une **fuite mémoire**.
+
+        Une variable locale ordinaire (`int n = 0;`, `std::array<double, 8> t;`) vit sur la pile. Les données d'un `std::vector` ou d'une `std::string` vivent sur le tas, mais c'est l'objet qui s'occupe de réserver et de rendre la place.
+    - level: 2
+      title: Durée de vie et destructeur
+      body: |
+        Un objet sur la pile vit **jusqu'à la fin du bloc `{ }`** où il a été créé. À ce moment-là, C++ appelle automatiquement son **destructeur** : une méthode spéciale nommée `~NomDeLaClasse()`, où l'objet libère ce qu'il possède.
+      code: |
+        #include <iostream>
+        #include <string>
+
+        class Trace {
+        public:
+            explicit Trace(std::string nom) : nom_(std::move(nom)) { std::cout << "début " << nom_ << '\n'; }
+            ~Trace() { std::cout << "fin " << nom_ << '\n'; }
+        private:
+            std::string nom_;
+        };
+
+        int main() {
+            Trace a("a");
+            {
+                Trace b("b");
+                std::cout << "dans le bloc\n";
+            }                               // b est détruit ici
+            std::cout << "après le bloc\n";
+        }                                   // a est détruit ici
+      out: |
+        début a
+        début b
+        dans le bloc
+        fin b
+        après le bloc
+        fin a
+      after: |
+        Les destructions se font dans l'ordre inverse des constructions, **automatiquement**, y compris si le bloc est quitté par un `return`, un `break` ou une exception.
+    - level: 3
+      title: RAII, la ressource attachée à un objet
+      body: |
+        RAII (*Resource Acquisition Is Initialization*, « l'acquisition d'une ressource est une initialisation ») : **toute ressource est possédée par un objet** ; le constructeur l'acquiert, le destructeur la rend. Comme le destructeur est appelé automatiquement, la ressource ne peut plus être oubliée.
+
+        Pour la mémoire du tas, le C++ moderne fournit **`std::unique_ptr`** : un pointeur qui **possède** l'objet et le détruit quand il disparaît. On le crée avec `std::make_unique`. Plus besoin de `delete` à la main.
+      code: |
+        #include <iostream>
+        #include <memory>
+
+        struct Filtre {
+            double alpha;
+            double etat = 0.0;
+            double appliquer(double x) { etat += alpha * (x - etat); return etat; }
+            ~Filtre() { std::cout << "filtre libéré\n"; }
+        };
+
+        int main() {
+            auto f = std::make_unique<Filtre>(Filtre{0.5});   // alloué sur le tas
+            f->appliquer(10.0);                                // -> : accès via un pointeur
+            std::cout << f->appliquer(10.0) << '\n';
+            std::cout << "fin du main\n";
+        }                                                      // libéré ici, automatiquement
+      out: |
+        filtre libéré
+        7.5
+        fin du main
+        filtre libéré
+      after: |
+        Tu vois deux fois « filtre libéré » : le `Filtre{0.5}` temporaire passé à `make_unique` est copié puis détruit immédiatement (d'où le premier message), et l'objet sur le tas est détruit à la fin de `main`. Écrire `std::make_unique<Filtre>()` puis régler `f->alpha = 0.5;` éviterait ce temporaire.
+
+        Et le même principe s'applique au matériel : une classe `TransactionSpi` dont le constructeur baisse la ligne `CS` et dont le destructeur la remonte garantit que le bus est relâché, même si la fonction sort par un `return` au milieu (le module avancé *RAII & durée de vie* le détaille).
+    - level: 4
+      title: Ce qui se passe sans RAII
+      body: |
+        Avec `new` et `delete` écrits à la main, quatre erreurs classiques guettent :
+
+        | Erreur | Ce qui se passe |
+        | --- | --- |
+        | **fuite** : `new` sans `delete` (souvent à cause d'un `return` anticipé) | la mémoire n'est jamais rendue ; sur un firmware qui tourne des mois, elle finit par manquer |
+        | **double libération** : deux `delete` du même pointeur | corruption du tas, plantage aléatoire plus tard |
+        | **utilisation après libération** (*use after free*) | on lit ou écrit une mémoire rendue, peut-être réattribuée |
+        | `new[]` libéré par `delete` (au lieu de `delete[]`) | comportement indéfini |
+
+        Et côté pile : **déclarer un énorme tableau local** (`double buffer[1'000'000];`, 8 Mo) dépasse la taille de la pile : *stack overflow*, plantage immédiat. Même effet avec une récursion trop profonde. Sur un ESP32, la pile d'une tâche fait souvent 4 à 8 ko : un simple tampon de 2 ko en variable locale peut suffire à la faire déborder.
+
+        Les sanitizers détectent les trois premières erreurs (`-fsanitize=address`) ; le RAII les **empêche**.
+    - level: 5
+      title: Règles d'hygiène mémoire
+      body: |
+        1. **Pas de `new` ni de `delete` dans ton code.** Utilise des conteneurs (`std::vector`, `std::string`, `std::array`) et, pour un objet seul sur le tas, `std::make_unique`.
+        2. **La pile par défaut**, le tas quand l'objet est gros, de taille inconnue à la compilation, ou doit survivre à la fonction.
+        3. **Une ressource = un objet propriétaire** (fichier, port série, verrou, transaction de bus, ligne d'alimentation d'un chauffage).
+        4. **En embarqué** : allocations dynamiques au démarrage uniquement, puis mémoire fixe (`std::array`, objets statiques). Et surveille la pile de chaque tâche (`uxTaskGetStackHighWaterMark` sous FreeRTOS).
+  recap:
+    - "Pile : variables locales, libérées automatiquement à la fin du bloc. Tas : réservé à la demande, à rendre."
+    - "Le destructeur `~Classe()` est appelé automatiquement à la fin de vie de l'objet, dans l'ordre inverse des constructions."
+    - "RAII : une ressource = un objet qui l'acquiert dans son constructeur et la rend dans son destructeur."
+    - "`std::make_unique<T>(...)` au lieu de `new` ; plus jamais de `delete` à la main."
+    - "Erreurs : fuite, double libération, use-after-free, débordement de pile. Les sanitizers les détectent."
+  pieges: [cpp-fuite-memoire, cpp-double-delete, cpp-grand-tableau-pile]
+exercises:
+  - id: cf12.1
+    type: predict
+    level: 2
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+
+      struct T {
+          int id;
+          ~T() { std::cout << "~" << id << " "; }
+      };
+
+      int main() {
+          T a{1};
+          {
+              T b{2};
+              T c{3};
+          }
+          T d{4};
+          std::cout << "| ";
+      }
+    answer: "~3 ~2 | ~4 ~1"
+    trap_answers: ["~2 ~3 | ~1 ~4"]
+    e: "À la fin du bloc intérieur, `c` puis `b` sont détruits (ordre inverse de création). À la fin de `main`, `d` puis `a`. L'ordre inverse garantit qu'un objet est détruit avant ceux dont il pourrait dépendre."
+  - id: cf12.2
+    type: qcm
+    level: 1
+    q: "Où vit une variable locale `int compteur = 0;` déclarée dans une fonction ?"
+    choices:
+      - t: "Sur la pile, libérée automatiquement à la fin de son bloc."
+        ok: true
+      - t: "Sur le tas, jusqu'à la fin du programme."
+        why: "Seules les allocations explicites (`new`, `make_unique`, conteneurs) vont sur le tas."
+      - t: "Dans un registre, jamais en mémoire."
+        why: "Le compilateur peut la placer dans un registre pour optimiser, mais conceptuellement c'est une variable locale (automatique)."
+    e: "Les variables locales sont dites « automatiques » : leur mémoire est gérée par l'entrée et la sortie des blocs, sans rien faire."
+  - id: cf12.3
+    type: bug
+    level: 2
+    q: "Cette fonction fuit de la mémoire une fois sur deux. Quelle ligne est en cause ?"
+    code: |
+      #include <cstddef>
+
+      bool traiter(std::size_t n, bool valide) {
+          double* tampon = new double[n];
+          if (!valide) {
+              return false;
+          }
+          tampon[0] = 1.0;
+          delete[] tampon;
+          return true;
+      }
+    bad: 6
+    fix: "        return false;   // fuite ! mieux : std::vector<double> tampon(n); en ligne 4"
+    piege: cpp-fuite-memoire
+    e: "Le `return false` anticipé quitte la fonction sans exécuter le `delete[]` : la mémoire est perdue. Le vrai remède n'est pas d'ajouter un `delete[]` avant chaque `return`, mais de remplacer le tableau brut par `std::vector<double> tampon(n);`, libéré automatiquement quel que soit le chemin de sortie."
+  - id: cf12.4
+    type: qcm
+    level: 2
+    q: "Pourquoi le RAII est-il plus sûr que d'appeler `delete` (ou `fermer()`, `liberer()`) à la main ?"
+    choices:
+      - t: "Le destructeur est appelé automatiquement sur tous les chemins de sortie, y compris `return` anticipé et exception."
+        ok: true
+      - t: "Parce que `delete` est lent."
+        why: "La vitesse n'est pas le sujet : c'est l'oubli qui pose problème."
+      - t: "Parce que le RAII libère la mémoire plus tôt."
+        why: "Il la libère au bon moment (la fin de vie de l'objet), ni plus tôt ni plus tard."
+    e: "Un code avec un seul chemin de sortie peut libérer à la main. Mais dès qu'il y a des `return`, des `break`, des exceptions, l'oubli devient inévitable. Le destructeur, lui, n'oublie jamais."
+  - id: cf12.5
+    type: cloze
+    level: 1
+    q: "Complète pour allouer un `Capteur` sur le tas avec un pointeur intelligent, puis appeler sa méthode `lire()`."
+    lang: cpp
+    tpl: |
+      #include <memory>
+
+      struct Capteur {
+          double lire() const { return 21.5; }
+      };
+
+      int main() {
+          auto c = std::⟦0⟧<Capteur>();
+          double v = c⟦1⟧lire();
+          return v > 0 ? 0 : 1;
+      }
+    blanks:
+      - [make_unique]
+      - ["->"]
+    verify: compile
+    e: "`std::make_unique<T>()` crée l'objet et renvoie un `std::unique_ptr<T>`. On accède aux membres avec `->` (comme pour un pointeur brut). Pas de `delete` : il est libéré à la fin de `main`."
+  - id: cf12.6
+    type: qcm
+    level: 2
+    q: "Une tâche FreeRTOS sur ESP32 a une pile de 4 096 octets. Elle déclare `uint8_t trame[8192];` en variable locale. Que se passe-t-il ?"
+    piege: cpp-grand-tableau-pile
+    choices:
+      - t: "Débordement de pile : plantage ou corruption mémoire dès que la fonction s'exécute."
+        ok: true
+      - t: "Le tableau est automatiquement placé sur le tas."
+        piege: true
+        why: "Un tableau local reste sur la pile, quelle que soit sa taille."
+      - t: "Rien : le tableau est réduit à la taille disponible."
+        why: "Aucun mécanisme ne fait cela."
+    e: "Pour de gros tampons en embarqué : variable `static` ou globale (mémoire réservée au démarrage), ou allocation unique à l'initialisation. FreeRTOS signale souvent l'incident par un *stack overflow detected*… quand il a le temps."
+  - id: cf12.7
+    type: flash
+    level: 1
+    q: "Que signifie RAII, et quelle en est l'idée en une phrase ?"
+    back: "*Resource Acquisition Is Initialization* : chaque ressource (mémoire, fichier, verrou, transaction de bus) est possédée par un objet qui l'acquiert dans son constructeur et la libère dans son destructeur, appelé automatiquement en fin de vie."
+    e: "`std::vector`, `std::string`, `std::unique_ptr`, `std::lock_guard`, `std::ifstream` sont tous des objets RAII."
+  - id: cf12.8
+    type: predict
+    level: 3
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+      #include <memory>
+
+      struct R {
+          ~R() { std::cout << "libéré "; }
+      };
+
+      int main() {
+          auto p = std::make_unique<R>();
+          auto q = std::move(p);          // transfert de propriété
+          std::cout << (p == nullptr) << " ";
+          q.reset();                      // libère maintenant
+          std::cout << "fin\n";
+      }
+    answer: 1 libéré fin
+    e: "Un `unique_ptr` ne se copie pas, il se **déplace** avec `std::move` : `q` devient propriétaire, `p` devient nul. `reset()` libère immédiatement l'objet. À la fin de `main`, il n'y a plus rien à libérer."
+  - id: cf12.9
+    type: code
+    level: 3
+    lang: cpp
+    q: |
+      Écris une classe RAII `CompteurActif` : son constructeur incrémente un compteur global `int actifs`, son destructeur le décrémente. Ainsi, `actifs` dit toujours combien d'objets sont en vie (utile pour vérifier qu'aucune ressource n'est oubliée).
+    start: |
+      int actifs = 0;
+
+      class CompteurActif {
+      public:
+          // à compléter
+      };
+    sol: |
+      int actifs = 0;
+
+      class CompteurActif {
+      public:
+          CompteurActif() { ++actifs; }
+          ~CompteurActif() { --actifs; }
+          CompteurActif(const CompteurActif&) { ++actifs; }
+          CompteurActif& operator=(const CompteurActif&) = default;
+      };
+    tests: |
+      #include <cassert>
+      #include <iostream>
+      #include <vector>
+      int main() {
+          {
+              CompteurActif a;
+              assert(actifs == 1);
+              {
+                  CompteurActif b;
+                  assert(actifs == 2);
+              }
+              assert(actifs == 1);
+          }
+          assert(actifs == 0);
+          {
+              std::vector<CompteurActif> v(3);
+              assert(actifs == 3);
+          }
+          assert(actifs == 0);
+          std::cout << "OK\n";
+      }
+    e: "Le constructeur et le destructeur encadrent la vie de l'objet. La solution définit aussi le constructeur de **copie**, sinon une copie (par exemple dans un vecteur qui s'agrandit) serait détruite sans avoir été comptée. C'est un avant-goût de la « règle de 3/5 » du module avancé."

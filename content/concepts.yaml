@@ -1,0 +1,118 @@
+noms-objets: Noms & objets
+types: Types
+truthiness: Valeurs vraies/fausses
+operateurs: Opérateurs
+mutabilite: Mutabilité
+copie: Copie superficielle/profonde
+args-defaut: Arguments par défaut
+sequences: Séquences
+slicing: Slicing
+unpacking: Unpacking
+str-bytes: str vs bytes
+dict: Dictionnaires
+set: Ensembles
+hash: Hachage
+collections: Module collections
+signature: Signatures
+legb: Portée LEGB
+closure: Closures
+first-class: Fonctions objets
+iterable: Itérables
+generateur: Générateurs
+comprehension: Comprehensions
+itertools: itertools
+exceptions: Exceptions
+eafp: EAFP
+context-manager: Context managers
+assertions: Assertions
+classes: Classes
+dunder: Méthodes spéciales
+dataclass: dataclass
+property: property
+heritage: Héritage & MRO
+typing: Annotations de type
+enum: Enum
+pathlib: pathlib
+lint: Lint & format
+pytest: pytest
+fixtures: Fixtures
+parametrize: Paramétrage
+mock: Doublures
+imports: Imports
+package: Packages
+venv: Environnements
+pyproject: pyproject.toml
+complexite: Complexité
+profilage: Profilage
+numpy: NumPy
+vectorisation: Vectorisation
+fichiers: Fichiers
+csv-json: CSV / JSON
+serie: Liaison série
+logging: logging
+argparse: argparse
+gil: GIL
+threads: Threads
+asyncio: asyncio
+multiprocessing: Multiprocessing
+compilation: Chaîne de compilation
+odr: ODR
+entiers: Types entiers
+promotions: Promotions & conversions
+auto: auto
+valeur-ref: Valeur vs référence
+const: const
+const-correctness: Const-correctness
+init: Initialisation
+pointeurs: Pointeurs
+pile-tas: Pile & tas
+tableaux: Tableaux
+decay: Décroissance en pointeur
+nullptr: nullptr
+raii: RAII
+destructeur: Destructeurs
+unique_ptr: unique_ptr
+scope: Portée & durée de vie
+copie-cpp: Constructeur de copie
+move: Sémantique de déplacement
+rule-of-five: Règle de 0/3/5
+value-semantics: Sémantique de valeur
+vector: std::vector
+array-span: array & span
+map-set: map & set
+invalidation: Invalidation d’itérateurs
+algorithmes: <algorithm>
+lambda: Lambdas
+capture: Captures
+ranges: Ranges
+templates: Templates
+deduction: Déduction de types
+constexpr: constexpr
+concepts: Concepts
+ub: Comportement indéfini
+overflow: Débordement
+dangling: Références pendouillantes
+ordre-eval: Ordre d’évaluation
+aliasing: Aliasing
+exceptions-cpp: Exceptions
+optional: std::optional
+expected: expected / attendu
+noexcept: noexcept
+volatile: volatile
+registres: Registres mappés
+bitfields: Champs de bits
+isr: Interruptions
+no-alloc: Sans allocation dynamique
+masques: Masques
+shifts: Décalages
+fixed-point: Virgule fixe
+saturation: Saturation
+headers: En-têtes
+cmake: CMake
+linker: Édition de liens
+sanitizers: Sanitizers
+warnings: Avertissements
+cache: Cache & localité
+alignement: Alignement
+cout-abstraction: Coût des abstractions
+mesure: Mesure & benchmark

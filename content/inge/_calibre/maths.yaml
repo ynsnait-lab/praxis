@@ -1,0 +1,287 @@
+domain: maths
+exercises:
+- id: ig.mth01
+  type: qcm
+  level: 1
+  q: 'La dérivée de sin(ωt) par rapport au temps est :'
+  choices:
+  - t: −ω·cos(ωt)
+    ok: false
+  - t: cos(ωt)
+    ok: false
+  - t: ω·cos(ωt)
+    ok: true
+  - t: ω·sin(ωt)
+    ok: false
+  e: 'ω·cos(ωt) : la dérivation en chaîne fait sortir le facteur ω. C''est exactement pourquoi dériver amplifie les hautes fréquences — le gain d''un dérivateur est proportionnel à la pulsation, d''où le bruit qu''introduit l''action D d''un PID.'
+  src: calibre
+- id: ig.mth02
+  type: qcm
+  level: 2
+  q: 'Transformée de Laplace de l''échelon unité :'
+  choices:
+  - t: 1/p²
+    ok: false
+  - t: 1/p
+    ok: true
+  - t: p
+    ok: false
+  - t: '1'
+    ok: false
+  e: '1/p pour l''échelon, 1 pour l''impulsion de Dirac, 1/p² pour la rampe. Ces trois-là suffisent à traiter la quasi-totalité des exercices d''automatique : on multiplie la transformée de l''entrée par la fonction de transfert, puis on revient au temporel.'
+  src: calibre
+- id: ig.mth03
+  type: qcm
+  level: 2
+  q: 'Dans le domaine de Laplace, dériver un signal temporel (conditions initiales nulles) correspond à :'
+  choices:
+  - t: Multiplier par 1/p²
+    ok: false
+  - t: Ajouter p
+    ok: false
+  - t: Multiplier par p
+    ok: true
+  - t: Diviser par p
+    ok: false
+  e: 'Dériver ↔ multiplier par p, intégrer ↔ diviser par p. C''est toute la puissance de Laplace : une équation différentielle devient une équation algébrique. D''où l''écriture d''un intégrateur comme 1/p et d''un dérivateur comme p.'
+  src: calibre
+- id: ig.mth04
+  type: qcm
+  level: 2
+  q: 'La solution d''une équation différentielle linéaire du premier ordre à coefficients constants, sans second membre, est :'
+  choices:
+  - t: Un polynôme du second degré
+    ok: false
+  - t: Une sinusoïde
+    ok: false
+  - t: Une exponentielle
+    ok: true
+  - t: Une fonction linéaire
+    ok: false
+  e: Une exponentielle en e^(−t/τ). C'est la signature universelle du premier ordre, qu'il s'agisse d'un circuit RC, du refroidissement d'une pièce ou de la vidange d'un réservoir — la même équation gouverne les trois, et la même constante de temps les décrit.
+  src: calibre
+- id: ig.mth05
+  type: qcm
+  level: 2
+  q: 'Pour de petits angles exprimés en radians, on peut approcher sin θ par :'
+  choices:
+  - t: 1 − θ
+    ok: false
+  - t: θ
+    ok: true
+  - t: '1'
+    ok: false
+  - t: θ²
+    ok: false
+  e: 'sin θ ≈ θ (et cos θ ≈ 1 − θ²/2) : l''erreur reste sous 1 % jusqu''à environ 14°. C''est cette linéarisation qui rend le pendule simple harmonique et qui permet de linéariser un modèle non linéaire autour d''un point de fonctionnement — la base de tout l''asservissement classique. Attention : uniquement en RADIANS.'
+  src: calibre
+- id: ig.mth06
+  type: qcm
+  level: 2
+  q: 'Le produit vectoriel de deux vecteurs est nul lorsque :'
+  choices:
+  - t: Ils ont la même norme
+    ok: false
+  - t: Ils sont orthogonaux
+    ok: false
+  - t: Ils sont colinéaires
+    ok: true
+  - t: Leur produit scalaire est nul
+    ok: false
+  e: Le produit vectoriel s'annule pour des vecteurs COLINÉAIRES, et sa norme vaut |a||b|sin θ. C'est le produit SCALAIRE qui s'annule pour des vecteurs orthogonaux. En mécanique, cela dit qu'une force dont la ligne d'action passe par le point de réduction ne crée aucun moment.
+  src: calibre
+- id: ig.mth07
+  type: qcm
+  level: 2
+  q: 'Un système linéaire de n équations à n inconnues dont le déterminant de la matrice est nul :'
+  choices:
+  - t: A toujours exactement deux solutions
+    ok: false
+  - t: N'a pas de solution unique (aucune ou une infinité)
+    ok: true
+  - t: Est toujours impossible
+    ok: false
+  - t: A une solution unique
+    ok: false
+  e: 'Déterminant nul = matrice singulière = équations non indépendantes : soit aucune solution, soit une infinité. En mécanique, c''est exactement la signature d''un système hyperstatique ou d''un mécanisme : les équations d''équilibre seules ne suffisent plus, il faut introduire les déformations.'
+  src: calibre
+- id: ig.mth08
+  type: qcm
+  level: 3
+  q: 'En analyse vibratoire d''une structure discrétisée, les valeurs propres du système correspondent :'
+  choices:
+  - t: Aux amplitudes de vibration
+    ok: false
+  - t: Aux carrés des pulsations propres
+    ok: true
+  - t: Aux forces appliquées
+    ok: false
+  - t: Aux déformations statiques
+    ok: false
+  e: 'On résout (K − ω²M)X = 0 : les valeurs propres donnent les ω² (donc les fréquences propres) et les vecteurs propres donnent les déformées modales. C''est ce que calcule un solveur éléments finis en analyse modale. En automatique, l''analogue est que les valeurs propres de la matrice d''état sont les pôles du système.'
+  src: calibre
+- id: ig.mth09
+  type: qcm
+  level: 2
+  q: 'L''impédance d''un condensateur C à la pulsation ω s''écrit :'
+  choices:
+  - t: jωC
+    ok: false
+  - t: R + jωC
+    ok: false
+  - t: 1/(jωC)
+    ok: true
+  - t: jωL
+    ok: false
+  e: 'Z = 1/(jωC) : module 1/(ωC), phase −90° (le courant est en avance). Pour une inductance c''est jωL, phase +90°. Ces deux expressions, combinées à la loi d''Ohm complexe, remplacent toute résolution d''équation différentielle en régime sinusoïdal permanent.'
+  src: calibre
+- id: ig.mth10
+  type: qcm
+  level: 2
+  q: Pour une variable suivant une loi normale, quelle proportion des valeurs se situe dans l'intervalle ±2σ autour de la moyenne ?
+  choices:
+  - t: ≈ 99,7 %
+    ok: false
+  - t: ≈ 68 %
+    ok: false
+  - t: ≈ 95 %
+    ok: true
+  - t: ≈ 50 %
+    ok: false
+  e: ≈ 95 % à ±2σ (précisément ±1,96σ), 68 % à ±1σ, 99,7 % à ±3σ. C'est la base du contrôle statistique de production et des barres d'incertitude à 95 % (facteur d'élargissement k = 2) exigées par les certificats d'étalonnage.
+  src: calibre
+- id: ig.mth11
+  type: qcm
+  level: 2
+  q: 'Relation entre variance et écart-type :'
+  choices:
+  - t: Ils sont égaux
+    ok: false
+  - t: L'écart-type est la racine carrée de la variance
+    ok: true
+  - t: L'écart-type est le carré de la variance
+    ok: false
+  - t: L'écart-type est la moyenne des variances
+    ok: false
+  e: σ = √variance. L'écart-type a l'avantage d'être dans la même unité que la grandeur mesurée, donc directement interprétable. La variance, elle, a la propriété d'être additive pour des variables indépendantes — c'est précisément ce qui justifie la composition QUADRATIQUE des incertitudes.
+  src: calibre
+- id: ig.mth12
+  type: qcm
+  level: 3
+  q: 'Un coefficient de détermination R² = 0,99 sur une régression linéaire garantit :'
+  choices:
+  - t: Que les résidus sont nuls
+    ok: false
+  - t: Que 99 % de la variance des données est expliquée par le modèle, sans garantir sa validité physique
+    ok: true
+  - t: Que le modèle linéaire est le bon modèle physique
+    ok: false
+  - t: Que l'incertitude est de 1 %
+    ok: false
+  e: 'R² mesure la part de variance expliquée, rien de plus. Un R² excellent est parfaitement compatible avec un modèle faux : un nuage franchement courbe sur un intervalle étroit affiche souvent R² > 0,99. Le vrai diagnostic est l''examen des RÉSIDUS — s''ils présentent une structure, le modèle est inadapté.'
+  src: calibre
+- id: ig.mth13
+  type: qcm
+  level: 2
+  q: 'Comparée à la méthode d''Euler explicite, la méthode de Runge-Kutta d''ordre 4 :'
+  choices:
+  - t: Ne nécessite aucun calcul de dérivée
+    ok: false
+  - t: Ne s'applique qu'aux systèmes linéaires
+    ok: false
+  - t: Est moins précise mais plus rapide
+    ok: false
+  - t: Est beaucoup plus précise pour un même pas de temps
+    ok: true
+  e: 'RK4 évalue la dérivée quatre fois par pas : l''erreur locale est en h⁵ au lieu de h². On peut donc prendre un pas bien plus grand pour une précision donnée, ce qui compense largement le surcoût par pas. Euler reste utile pour sa simplicité en temps réel embarqué, à condition d''un pas très petit.'
+  src: calibre
+- id: ig.mth14
+  type: qcm
+  level: 3
+  q: 'Une matrice mal conditionnée dans un calcul numérique signifie que :'
+  choices:
+  - t: Son déterminant est exactement nul
+    ok: false
+  - t: De petites erreurs sur les données provoquent de grandes erreurs sur la solution
+    ok: true
+  - t: Elle n'est pas symétrique
+    ok: false
+  - t: Elle est trop grande pour la mémoire
+    ok: false
+  e: 'Le conditionnement mesure l''amplification des erreurs : un conditionnement de 10⁸ fait perdre 8 chiffres significatifs, ce qui anéantit la double précision. En éléments finis, cela arrive avec des raideurs d''ordres de grandeur très différents dans le même modèle — d''où l''adimensionnement et le préconditionnement.'
+  src: calibre
+- id: ig.mth15
+  type: qcm
+  level: 2
+  q: 'Sur un diagramme de Bode, une décade correspond à :'
+  choices:
+  - t: Un facteur 2 en fréquence
+    ok: false
+  - t: Un facteur 20 en gain
+    ok: false
+  - t: 10 Hz
+    ok: false
+  - t: Un facteur 10 en fréquence
+    ok: true
+  e: Une décade = facteur 10 en fréquence ; une octave = facteur 2. D'où l'équivalence −20 dB/décade = −6 dB/octave pour un premier ordre. L'échelle logarithmique permet de couvrir six décades sur une seule feuille et de transformer les produits de fonctions de transfert en simples additions de courbes.
+  src: calibre
+- id: ig.mth16
+  type: qcm
+  level: 2
+  q: 'Le gradient d''un champ scalaire (température, pression) est :'
+  choices:
+  - t: Une matrice
+    ok: false
+  - t: Toujours nul en régime permanent
+    ok: false
+  - t: Un vecteur pointant dans la direction de plus forte croissance
+    ok: true
+  - t: Un scalaire
+    ok: false
+  e: 'C''est un vecteur, dont la norme mesure le taux de variation le plus raide. En thermique, la loi de Fourier s''écrit q = −λ∇T : le flux suit l''opposé du gradient, donc descend la pente des températures. Le signe moins traduit simplement le sens physique de l''écoulement de chaleur.'
+  src: calibre
+- id: ig.mth17
+  type: qcm
+  level: 3
+  q: Un collègue te propose la formule f = (1/2π)·√(m/k) pour la fréquence propre d'un système masse-ressort. Comment détectes-tu immédiatement l'erreur ?
+  choices:
+  - t: En calculant un cas numérique
+    ok: false
+  - t: En comparant à une mesure expérimentale
+    ok: false
+  - t: 'Par l''analyse dimensionnelle : √(m/k) a la dimension d''un temps, pas d''une fréquence'
+    ok: true
+  - t: Il n'y a pas d'erreur
+    ok: false
+  e: 'k est en N/m, m en kg, donc m/k est en s² : la racine donne des secondes. Or f doit être en s⁻¹ — c''est donc √(k/m) qu''il faut. L''analyse dimensionnelle est le contrôle le plus rapide et le plus fiable d''une formule, et ce réflexe distingue nettement un ingénieur d''un utilisateur de formules.'
+  src: calibre
+- id: ig.mth18
+  type: qcm
+  level: 2
+  q: 'Une grandeur augmente de 20 %, puis diminue de 20 %. Par rapport à sa valeur initiale, elle est :'
+  choices:
+  - t: Inférieure de 40 %
+    ok: false
+  - t: Revenue à sa valeur initiale
+    ok: false
+  - t: Inférieure de 4 %
+    ok: true
+  - t: Supérieure de 4 %
+    ok: false
+  e: '1,2 × 0,8 = 0,96, soit −4 %. Les variations relatives se MULTIPLIENT, elles ne s''additionnent pas. Même logique pour les rendements en cascade : trois étages à 90 % donnent 0,9³ = 73 %, pas 70 %.'
+  src: calibre
+- id: ig.mth19
+  type: qcm
+  level: 3
+  q: 'La méthode de Newton pour résoudre f(x) = 0 :'
+  choices:
+  - t: Converge très vite (quadratiquement) près de la solution, mais peut diverger si le point de départ est mal choisi
+    ok: true
+  - t: Ne fonctionne que sur des fonctions linéaires
+    ok: false
+  - t: Converge toujours, quelle que soit l'initialisation
+    ok: false
+  - t: Ne nécessite pas la dérivée de f
+    ok: false
+  e: 'Elle double le nombre de chiffres exacts à chaque itération près de la racine, mais peut osciller ou partir à l''infini si la dérivée s''annule ou si l''on démarre loin. En pratique on la combine à une méthode robuste mais lente (dichotomie) : sûreté d''abord, vitesse ensuite.'
+  src: calibre

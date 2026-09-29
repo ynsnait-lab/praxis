@@ -1,0 +1,774 @@
+id: thermique
+title: Thermique
+en: Heat transfer
+desc: Chaleur et température, conduction, convection, rayonnement, refroidissement de l'électronique et dilatation.
+intro: |
+  Tout ce qui consomme de l'énergie finit par la transformer en chaleur. La thermique répond à deux questions pratiques : **combien de chaleur** faut-il évacuer, et **à quelle température** cela va-t-il monter ?
+
+  Elle touche aussi la précision : une pièce qui chauffe se dilate, et quelques degrés suffisent à ruiner un réglage au micromètre.
+notions:
+  # ------------------------------------------------------------------ chaleur
+  - id: th-chaleur
+    title: Chaleur, température et chaleur latente
+    en: Heat, temperature and latent heat
+    goal: Distinguer chaleur et température, calculer une énergie de chauffage, l'échauffement d'un circuit d'eau et une évaporation d'azote liquide.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: La baignoire et la tasse
+          body: |
+            Une tasse de thé à 80 °C est plus chaude qu'une baignoire à 38 °C. Pourtant, la baignoire contient bien plus de **chaleur** : il a fallu beaucoup plus d'énergie pour la remplir d'eau tiède que pour chauffer la tasse.
+
+            La **température** dit à quel point c'est chaud. La **chaleur** est une quantité d'énergie, qui dépend aussi de la quantité de matière.
+        - level: 2
+          title: Chauffer, c'est stocker de l'énergie
+          body: |
+            Pour élever la température d'un objet, il faut lui apporter de l'énergie. Combien ? Cela dépend de sa masse, de l'élévation voulue, et du matériau : l'eau demande beaucoup d'énergie pour chauffer (elle a une grande **capacité thermique massique**), les métaux beaucoup moins.
+
+            Quand un corps **change d'état** (fondre, bouillir, s'évaporer), il absorbe de l'énergie **sans changer de température** : c'est la **chaleur latente**. L'eau qui bout reste à 100 °C tant qu'il en reste ; l'azote liquide reste à −196 °C (77 K) tant qu'il s'évapore.
+          check:
+            q: Une casserole d'eau bout à gros bouillons. Tu montes le feu au maximum. La température de l'eau…
+            choices:
+              - t: reste à environ 100 °C, l'eau s'évapore juste plus vite
+                ok: true
+                why: L'énergie supplémentaire sert au changement d'état (chaleur latente), pas à monter en température.
+              - t: monte au-dessus de 100 °C
+                why: À pression atmosphérique, l'eau liquide ne dépasse pas 100 °C. Seule une cocotte (pression plus haute) monte plus.
+              - t: baisse
+                why: Aucune raison.
+        - level: 3
+          title: Les formules
+          body: |
+            $$Q = m\,c\,\Delta T \qquad P = \frac{Q}{t} \qquad Q_{latent} = m\,L$$
+
+            $Q$ : énergie (J), $m$ : masse (kg), $c$ : capacité thermique massique (J/(kg·K)), $\Delta T$ : écart de température (K ou °C, c'est le même écart), $L$ : chaleur latente (J/kg).
+
+            | Matériau | $c$ (J/(kg·K)) |
+            | --- | --- |
+            | eau | 4186 |
+            | air | ≈ 1005 |
+            | aluminium | ≈ 900 |
+            | acier | ≈ 470 |
+            | cuivre | ≈ 385 |
+
+            **Circuit de refroidissement** : un débit massique $\dot m$ (kg/s) qui s'échauffe de $\Delta T$ emporte une puissance
+            $$P = \dot m\,c\,\Delta T$$
+            1 L/min d'eau (1/60 kg/s) qui prend 10 K emporte environ 700 W.
+        - level: 4
+          title: Sous le capot
+          body: |
+            L'eau est un fluide caloporteur exceptionnel : par kilogramme, elle stocke environ 4 fois plus de chaleur que l'air, et par **litre**, environ 3500 fois plus (l'air est très léger). D'où le refroidissement à eau dès que les puissances deviennent sérieuses.
+
+            La chaleur latente est énorme par rapport à la chaleur « sensible ». Il faut 419 kJ pour chauffer 1 kg d'eau de 0 à 100 °C, mais 2257 kJ pour l'évaporer ensuite. Pour l'azote liquide, $L \approx 199$ kJ/kg et $\rho \approx 808$ kg/m³ : **1 W de chaleur qui entre dans un bain d'azote évapore environ 0,5 L par jour**.
+
+            L'énergie se conserve : dans un système isolé, la chaleur perdue par un corps est gagnée par l'autre. C'est la base de tous les bilans thermiques (et de la calorimétrie).
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Pour dimensionner un refroidissement, commence toujours par le **bilan de puissance** : combien de watts sont dissipés, et où ils vont.
+            - Sur un circuit d'eau, on mesure le débit et l'écart de température entrée/sortie : $P = \dot m\,c\,\Delta T$ donne directement la puissance réellement évacuée. Un ΔT qui monte à débit constant signale plus de puissance ; un débit qui baisse, un filtre qui s'encrasse.
+            - En **cryogénie**, la consommation d'azote ou d'hélium liquide est une mesure directe des pertes thermiques du cryostat. Chaque watt compte.
+      recap:
+        - "Température : à quel point c'est chaud ; chaleur : une énergie (J)."
+        - "Q = m·c·ΔT ; eau c ≈ 4186 J/(kg·K) ; un écart de 1 K = un écart de 1 °C."
+        - "Circuit d'eau : P = ṁ·c·ΔT (1 L/min et 10 K ≈ 700 W)."
+        - "Changement d'état : Q = m·L à température constante."
+        - "Azote liquide : 1 W ≈ 0,5 L évaporé par jour."
+    vocab:
+      - chaleur = heat
+      - température = temperature
+      - capacité thermique massique = specific heat capacity
+      - chaleur latente = latent heat
+      - changement d'état = phase change
+      - fluide caloporteur = coolant (heat-transfer fluid)
+      - azote liquide = liquid nitrogen (LN2)
+      - bilan thermique = heat balance
+    exercises:
+      - id: th-chaleur.1
+        type: numeric
+        level: 1
+        q: Énergie pour chauffer 2 L d'eau de 20 °C à 80 °C, en kJ ?
+        answer: 502.3
+        tol: 0.01
+        unit: kJ
+        calc: 2 * 4186 * 60 / 1000
+        trap_values:
+          - v: 669.8
+            why: Tu as pris 80 °C comme écart. L'écart de température vaut 80 − 20 = 60 K.
+        e: $Q = 2 \times 4186 \times 60 \approx 502$ kJ.
+      - id: th-chaleur.2
+        type: numeric
+        level: 1
+        q: Avec une bouilloire de 2 kW (sans pertes), combien de temps pour fournir ces 502 kJ, en secondes ?
+        answer: 251.2
+        tol: 0.01
+        unit: s
+        calc: 2 * 4186 * 60 / 2000
+        e: $t = Q/P = 502\,320/2000 \approx 251$ s, un peu plus de 4 minutes.
+      - id: th-chaleur.3
+        type: numeric
+        level: 2
+        q: Un équipement dissipe 5 kW dans un circuit d'eau de 5 L/min. De combien l'eau s'échauffe-t-elle entre l'entrée et la sortie ?
+        answer: 14.33
+        tol: 0.02
+        unit: K
+        calc: 5000 / ((5 / 60) * 4186)
+        trap_values:
+          - v: 0.239
+            why: Tu as oublié de convertir les minutes en secondes (le débit massique est en kg/s).
+        e: $\dot m = 5/60 = 0{,}0833$ kg/s ; $\Delta T = P/(\dot m\,c) = 5000/(0{,}0833 \times 4186) \approx 14$ K.
+      - id: th-chaleur.4
+        type: numeric
+        level: 3
+        q: "Un cryostat à azote liquide reçoit 10 W de pertes thermiques. Volume d'azote évaporé par jour (L = 199 kJ/kg, ρ = 808 kg/m³), en litres ?"
+        answer: 5.374
+        tol: 0.02
+        unit: L
+        calc: 10 * 86400 / 199000 / 0.808
+        trap_values:
+          - v: 4.342
+            why: C'est la masse en kg. Le volume se déduit avec la masse volumique (0,808 kg/L).
+        e: Énergie par jour, 10 × 86 400 = 864 kJ ; masse évaporée, 864/199 ≈ 4,34 kg ; volume, 4,34/0,808 ≈ 5,4 L.
+      - id: th-chaleur.5
+        type: qcm
+        level: 1
+        q: Un écart de température de 15 °C correspond à un écart de…
+        choices:
+          - t: 15 K
+            ok: true
+          - t: 288 K
+            why: 288 K (≈ 15 °C) est une température, pas un écart. Pour les écarts, °C et K sont identiques.
+          - t: 59 K
+            why: Ce serait une conversion en degrés Fahrenheit, et encore, fausse.
+        e: Le kelvin et le degré Celsius ont la même taille ; seules les origines diffèrent (0 °C = 273,15 K).
+      - id: th-chaleur.6
+        type: flash
+        level: 2
+        q: Pourquoi refroidit-on à l'eau plutôt qu'à l'air dès que les puissances sont élevées ?
+        back: |
+          Parce que l'eau stocke énormément de chaleur par unité de volume (environ 3500 fois plus que l'air) et échange bien mieux avec les parois (coefficients de convection des centaines de fois plus élevés). Un petit débit d'eau emporte des kilowatts avec un faible échauffement.
+        e: En contrepartie, il faut des tuyaux, des raccords étanches et une surveillance du débit.
+  # ------------------------------------------------------------------ conduction
+  - id: th-conduction
+    title: Conduction et résistance thermique
+    en: Conduction and thermal resistance
+    goal: Calculer une résistance thermique de conduction et raisonner avec l'analogie électrique.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: La cuillère dans la casserole
+          body: |
+            Une cuillère en métal laissée dans une casserole chaude devient brûlante jusqu'au manche. Une cuillère en bois, non. La chaleur **traverse** mieux le métal que le bois : c'est la **conduction**.
+
+            Et une doudoune isole parce qu'elle emprisonne de l'air immobile, un très mauvais conducteur.
+        - level: 2
+          title: Un courant de chaleur
+          body: |
+            La chaleur va toujours du chaud vers le froid. À travers un solide, elle circule d'autant mieux que :
+            - le matériau est bon conducteur (cuivre, aluminium) ;
+            - la section est grande ;
+            - le chemin est court.
+
+            Exactement comme un courant électrique dans un fil. On définit donc une **résistance thermique** : l'écart de température nécessaire pour faire passer 1 W. Cette analogie est l'outil numéro un du thermicien.
+          check:
+            q: On double la longueur d'une barre qui conduit la chaleur entre deux températures fixes. Le flux de chaleur…
+            choices:
+              - t: est divisé par 2
+                ok: true
+                why: La résistance thermique double, donc le flux est divisé par 2 à écart de température constant.
+              - t: double
+                why: C'est l'inverse, un chemin plus long résiste plus.
+              - t: ne change pas
+                why: La longueur intervient directement dans la résistance.
+        - level: 3
+          title: Les formules
+          body: |
+            $$R_{th} = \frac{e}{\lambda\,S} \qquad \Delta T = P \cdot R_{th}$$
+
+            $e$ : épaisseur ou longueur (m), $\lambda$ : conductivité thermique (W/(m·K)), $S$ : section (m²), $R_{th}$ en K/W. C'est la loi d'Ohm, avec $\Delta T$ à la place de la tension et $P$ à la place du courant.
+
+            | Matériau | $\lambda$ (W/(m·K)) |
+            | --- | --- |
+            | cuivre | ≈ 390 |
+            | aluminium (alliages) | ≈ 120 à 230 |
+            | acier | ≈ 50 |
+            | inox | ≈ 15 |
+            | verre | ≈ 1 |
+            | plastiques | ≈ 0,2 à 0,5 |
+            | air immobile | ≈ 0,026 |
+
+            **Exemple** : une tige en inox Ø10 mm, longue de 50 mm. $S = 7{,}85 \times 10^{-5}$ m², $R_{th} = 0{,}05/(15 \times 7{,}85 \times 10^{-5}) \approx 42$ K/W. Pour 100 K d'écart, elle laisse passer environ 2,4 W. En cuivre, 26 fois plus.
+        - level: 4
+          title: Sous le capot
+          body: |
+            Les résistances thermiques se combinent comme en électricité : **en série** elles s'additionnent (plusieurs couches traversées l'une après l'autre), **en parallèle** leurs inverses s'additionnent (plusieurs chemins côte à côte).
+
+            **La résistance de contact.** Deux surfaces métalliques serrées ne se touchent qu'en quelques points : entre eux, de l'air (ou du vide). Cette interface peut dominer tout le reste. On l'améliore avec la pression de serrage, un état de surface soigné, une graisse ou une pâte thermique, ou une feuille d'**indium** (courante en cryogénie et sous vide).
+
+            La conductivité varie avec la température. En cryogénie, l'écart est spectaculaire : le cuivre très pur conduit bien mieux à basse température, tandis que l'inox et les composites fibre de verre/époxy (G10) restent de mauvais conducteurs, d'où leur usage pour les supports qui doivent isoler.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Pour **isoler** un étage froid tout en le tenant mécaniquement : supports longs, fins, en inox, titane ou composite, et le moins de contacts possible.
+            - Pour **évacuer** de la chaleur : cuivre ou aluminium, sections généreuses, chemins courts, interfaces soignées.
+            - Les **tresses de cuivre** transmettent la chaleur tout en restant souples, pour ne pas transmettre d'efforts ni de vibrations (monochromateurs refroidis, porte-échantillons).
+      recap:
+        - "R_th = e/(λ·S) en K/W ; ΔT = P·R_th (loi d'Ohm thermique)."
+        - "Série : R s'additionnent ; parallèle : les 1/R s'additionnent."
+        - "Cuivre ≈ 390, alu ≈ 120-230, acier ≈ 50, inox ≈ 15, air ≈ 0,026 W/(m·K)."
+        - "Résistance de contact souvent dominante : serrage, pâte, indium."
+        - "Isoler : long, fin, inox ou composite ; évacuer : court, large, cuivre."
+      pieges: [ing-diametre-rayon]
+    vocab:
+      - conduction = conduction
+      - conductivité thermique = thermal conductivity
+      - résistance thermique = thermal resistance
+      - résistance de contact = thermal contact resistance
+      - pâte thermique = thermal paste (grease)
+      - tresse de cuivre = copper braid (thermal strap)
+      - isolation thermique = thermal insulation
+      - flux de chaleur = heat flow
+    exercises:
+      - id: th-conduction.1
+        type: numeric
+        level: 2
+        q: Résistance thermique d'une tige en inox (λ = 15 W/(m·K)) de Ø10 mm et de 50 mm de long ?
+        answer: 42.44
+        tol: 0.02
+        unit: K/W
+        calc: 0.05 / (15 * pi * 0.005**2)
+        trap_values:
+          - v: 10.61
+            why: Tu as pris le diamètre comme rayon.
+          - v: 0.04244
+            why: Tu as gardé des millimètres. Passe tout en mètres.
+        piege: ing-diametre-rayon
+        e: $S = \pi \times 0{,}005^2 = 7{,}85 \times 10^{-5}$ m² ; $R = 0{,}05/(15 \times 7{,}85 \times 10^{-5}) \approx 42$ K/W.
+      - id: th-conduction.2
+        type: numeric
+        level: 1
+        q: Cette tige relie une pièce à 20 °C et une pièce à −80 °C. Quel flux de chaleur la traverse ?
+        answer: 2.356
+        tol: 0.02
+        unit: W
+        calc: 100 / (0.05 / (15 * pi * 0.005**2))
+        e: $P = \Delta T / R = 100/42{,}4 \approx 2{,}4$ W.
+      - id: th-conduction.3
+        type: numeric
+        level: 2
+        q: Un composant dissipe 20 W à travers deux couches en série de 0,5 K/W et 1,5 K/W. Écart de température total ?
+        answer: 40
+        tol: 0.01
+        unit: K
+        calc: 20 * (0.5 + 1.5)
+        trap_values:
+          - v: 7.5
+            why: Tu as combiné les résistances comme en parallèle. En série, elles s'additionnent.
+        e: $R = 0{,}5 + 1{,}5 = 2$ K/W, donc $\Delta T = 20 \times 2 = 40$ K.
+      - id: th-conduction.4
+        type: numeric
+        level: 2
+        q: Une plateforme froide est tenue par 3 supports identiques de 42 K/W chacun. Résistance thermique équivalente ?
+        answer: 14
+        tol: 0.01
+        unit: K/W
+        calc: 42 / 3
+        trap_values:
+          - v: 126
+            why: Les supports sont côte à côte (en parallèle), pas en série.
+        e: En parallèle, $1/R = 3/42$, donc $R = 14$ K/W. Trois supports laissent passer trois fois plus de chaleur qu'un seul.
+      - id: th-conduction.5
+        type: qcm
+        level: 1
+        q: Pour tenir mécaniquement un étage froid en limitant les entrées de chaleur, quel matériau de support choisir ?
+        choices:
+          - t: Inox, titane ou composite fibre de verre/époxy, en pièces longues et fines
+            ok: true
+          - t: Cuivre massif, pour la rigidité
+            why: Le cuivre conduit très bien la chaleur, c'est l'inverse de ce qu'on veut.
+          - t: Aluminium
+            why: Conductivité élevée, ce serait un pont thermique.
+        e: On cherche une grande résistance thermique, donc faible λ, petite section et grande longueur, tout en gardant assez de rigidité.
+      - id: th-conduction.6
+        type: flash
+        level: 1
+        q: Écris l'analogie entre conduction thermique et loi d'Ohm.
+        back: |
+          Écart de température ΔT (K) ↔ tension U (V)
+          Flux de chaleur P (W) ↔ courant I (A)
+          Résistance thermique R_th (K/W) ↔ résistance R (Ω)
+
+          ΔT = P · R_th, comme U = R · I. Les règles série/parallèle sont les mêmes.
+        e: La capacité thermique (J/K) joue même le rôle d'un condensateur pour les régimes transitoires.
+  # ------------------------------------------------------------------ convection & rayonnement
+  - id: th-convection
+    title: Convection et rayonnement
+    en: Convection and radiation
+    goal: Estimer les pertes par convection et par rayonnement, et savoir ce qui change sous vide.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Souffler sur la soupe, se chauffer au soleil
+          body: |
+            Tu souffles sur ta soupe pour la refroidir : l'air qui bouge emporte la chaleur de la surface. C'est la **convection**.
+
+            Au soleil, tu as chaud alors que l'espace entre le Soleil et la Terre est vide : la chaleur voyage aussi sous forme de lumière, visible ou infrarouge. C'est le **rayonnement**. Un radiateur électrique rougeoyant te chauffe le visage même sans souffle d'air.
+        - level: 2
+          title: Trois modes, pas plus
+          body: |
+            La chaleur se transmet de trois façons :
+            - **conduction** : à travers la matière, de proche en proche ;
+            - **convection** : un fluide (air, eau) se réchauffe au contact d'une paroi et emporte la chaleur en se déplaçant. Naturelle si c'est l'air chaud qui monte tout seul, forcée avec un ventilateur ou une pompe ;
+            - **rayonnement** : tout corps émet de l'infrarouge, d'autant plus qu'il est chaud et que sa surface est « noire » (émissive).
+
+            **Sous vide, il n'y a plus de convection** : il ne reste que la conduction par les supports et le rayonnement. Un composant qui se refroidissait tranquillement à l'air peut surchauffer dans une enceinte sous vide.
+          check:
+            q: Une petite carte électronique fonctionne bien à l'air. Placée dans une enceinte sous vide, elle surchauffe. Pourquoi ?
+            choices:
+              - t: La convection a disparu ; il ne reste que la conduction par ses fixations et le rayonnement
+                ok: true
+              - t: Le vide conduit la chaleur vers la carte
+                why: Le vide ne conduit pas la chaleur.
+              - t: Les composants consomment plus sous vide
+                why: Leur consommation ne change pas ; c'est l'évacuation de la chaleur qui s'effondre.
+        - level: 3
+          title: Les formules
+          body: |
+            **Convection** :
+            $$P = h\,S\,(T_{paroi} - T_{fluide})$$
+
+            | Situation | $h$ (W/(m²·K)) |
+            | --- | --- |
+            | air, convection naturelle | ≈ 5 à 10 |
+            | air, ventilé | ≈ 20 à 100 |
+            | eau, circulation forcée | ≈ 500 à 10 000 |
+
+            **Rayonnement** (loi de Stefan-Boltzmann) :
+            $$P = \varepsilon\,\sigma\,S\,(T^4 - T_{env}^4) \qquad \sigma = 5{,}67 \times 10^{-8}\ \text{W/(m}^2\text{·K}^4)$$
+
+            **Les températures en kelvins**, obligatoirement. $\varepsilon$ : émissivité, de 0,02 à 0,1 pour un métal poli, 0,8 à 0,95 pour une peinture ou une anodisation noire.
+
+            **Exemple** : une plaque noire ($\varepsilon = 0{,}9$) de 0,1 m² à 60 °C dans une pièce à 20 °C rayonne $0{,}9 \times 5{,}67 \times 10^{-8} \times 0{,}1 \times (333{,}15^4 - 293{,}15^4) \approx 25$ W, et perd à peu près autant par convection naturelle ($h \approx 6$ : 24 W).
+        - level: 4
+          title: Sous le capot
+          body: |
+            Pourquoi $T^4$ ? L'énergie rayonnée par une surface croît très vite avec la température absolue : doubler $T$ (en kelvins) multiplie le rayonnement par 16. À température ambiante, le rayonnement est modeste ; à quelques centaines de degrés, il domine tout.
+
+            Pour de petits écarts autour de la température ambiante, on peut linéariser : $h_{rad} \approx 4\,\varepsilon\,\sigma\,T^3 \approx 6\,\varepsilon$ W/(m²·K), du même ordre que la convection naturelle.
+
+            **Réduire le rayonnement** : surfaces polies ou dorées (faible émissivité), **écrans thermiques** intermédiaires, et en cryogénie, la **super-isolation** (MLI, *multi-layer insulation*) : des dizaines de feuilles aluminisées très fines qui multiplient les écrans.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Pour refroidir à l'air : ailettes (plus de surface), ventilation (plus de $h$), surfaces noires si le rayonnement compte.
+            - **Sous vide** : prévoir des chemins de conduction (tresses, contacts serrés) vers une paroi ou un circuit d'eau ; le rayonnement seul évacue peu à basse température.
+            - **Cryostats** : écrans thermiques, MLI, surfaces polies ; une empreinte de doigt sur une surface polie augmente localement son émissivité.
+            - Une **caméra thermique** mesure le rayonnement : sur un métal poli (émissivité faible), elle affiche une température fausse, souvent celle des objets qui s'y reflètent.
+      recap:
+        - "Trois modes : conduction, convection, rayonnement. Sous vide : plus de convection."
+        - "Convection : P = h·S·ΔT ; air naturel h ≈ 5-10, eau forcée 500-10 000 W/(m²·K)."
+        - "Rayonnement : P = ε·σ·S·(T⁴ − T_env⁴), températures en K."
+        - "Métal poli ε ≈ 0,02-0,1 ; noir ε ≈ 0,8-0,95."
+        - "Réduire le rayonnement : poli, écrans, MLI."
+      pieges: [ing-kelvin-rayonnement, ing-vide-sans-convection]
+    vocab:
+      - convection naturelle = natural (free) convection
+      - convection forcée = forced convection
+      - coefficient d'échange = heat transfer coefficient
+      - rayonnement = radiation
+      - émissivité = emissivity
+      - écran thermique = thermal shield
+      - super-isolation = multi-layer insulation (MLI)
+      - ailette = fin
+    exercises:
+      - id: th-convection.1
+        type: numeric
+        level: 1
+        q: Une plaque de 0,1 m² à 50 °C dans l'air à 20 °C, convection naturelle h = 10 W/(m²·K). Puissance évacuée par convection ?
+        answer: 30
+        tol: 0.01
+        unit: W
+        calc: 10 * 0.1 * (50 - 20)
+        e: $P = h\,S\,\Delta T = 10 \times 0{,}1 \times 30 = 30$ W.
+      - id: th-convection.2
+        type: numeric
+        level: 3
+        q: "Une plaque noire (ε = 0,9) de 0,1 m² à 60 °C, dans une pièce à 20 °C. Puissance rayonnée nette ?"
+        answer: 25.17
+        tol: 0.03
+        unit: W
+        calc: 0.9 * 5.67e-8 * 0.1 * (333.15**4 - 293.15**4)
+        trap_values:
+          - v: 0.0653
+            why: Tu as utilisé des degrés Celsius. Stefan-Boltzmann exige des kelvins.
+          - v: 0.01306
+            why: Tu as élevé l'écart de température à la puissance 4 (40⁴). Il faut la différence des T⁴, en kelvins.
+        piege: ing-kelvin-rayonnement
+        e: $P = 0{,}9 \times 5{,}67 \times 10^{-8} \times 0{,}1 \times (333{,}15^4 - 293{,}15^4) \approx 25$ W.
+      - id: th-convection.3
+        type: numeric
+        level: 2
+        q: Quelle surface faut-il pour évacuer 20 W par convection naturelle (h = 10 W/(m²·K)) avec un écart de 40 K ? En cm².
+        answer: 500
+        tol: 0.01
+        unit: cm²
+        calc: 20 / (10 * 40) * 1e4
+        e: $S = P/(h\,\Delta T) = 20/400 = 0{,}05$ m² $= 500$ cm². D'où les ailettes des radiateurs.
+      - id: th-convection.4
+        type: qcm
+        level: 1
+        q: Dans une enceinte sous vide, par quels modes un composant peut-il évacuer sa chaleur ?
+        piege: ing-vide-sans-convection
+        choices:
+          - t: Conduction par ses fixations et rayonnement
+            ok: true
+          - t: Convection et rayonnement
+            piege: true
+            why: Sans gaz, pas de convection.
+          - t: Uniquement le rayonnement
+            why: La conduction à travers les fixations et les câbles reste souvent le chemin principal.
+        e: Il faut donc concevoir des chemins de conduction (tresses, contacts serrés) vers une paroi ou un circuit refroidi.
+      - id: th-convection.5
+        type: qcm
+        level: 2
+        q: Pour réduire les échanges par rayonnement entre une paroi à l'ambiante et un étage froid, les surfaces doivent être…
+        choices:
+          - t: polies ou dorées (faible émissivité), avec des écrans intermédiaires
+            ok: true
+          - t: peintes en noir mat
+            why: Le noir est le meilleur émetteur et absorbeur, c'est l'inverse de ce qu'on veut.
+          - t: Peu importe, le rayonnement est négligeable
+            why: Sous vide, c'est justement une des principales entrées de chaleur d'un étage froid.
+        e: C'est le principe de la bouteille thermos (parois argentées sous vide) et de la super-isolation (MLI).
+      - id: th-convection.6
+        type: flash
+        level: 2
+        q: Donne les ordres de grandeur du coefficient de convection h pour l'air calme, l'air ventilé et l'eau en circulation forcée.
+        back: |
+          Air calme (convection naturelle) : 5 à 10 W/(m²·K)
+          Air ventilé : 20 à 100 W/(m²·K)
+          Eau en circulation forcée : 500 à 10 000 W/(m²·K)
+        e: Un facteur 100 à 1000 entre l'air calme et l'eau, d'où l'efficacité du refroidissement liquide.
+  # ------------------------------------------------------------------ électronique
+  - id: th-dissipation
+    title: Refroidir l'électronique
+    en: Cooling electronics
+    goal: Calculer la température de jonction d'un composant et choisir un dissipateur.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Le chargeur qui chauffe
+          body: |
+            Un chargeur de téléphone tiédit, une alimentation de PC a un ventilateur, un gros amplificateur a des ailettes partout. Toute l'électronique transforme une partie de l'énergie en chaleur. Si cette chaleur ne part pas, les composants chauffent jusqu'à se dégrader, se couper ou griller.
+        - level: 2
+          title: Une chaîne de résistances thermiques
+          body: |
+            La chaleur naît dans la puce (la **jonction**), traverse le boîtier, l'interface (pâte ou isolant), le dissipateur, puis part dans l'air. Chaque étape est une **résistance thermique**, et elles sont en **série**.
+
+            La température de la puce vaut la température ambiante **plus** la puissance multipliée par la somme des résistances. Chaque composant a une température de jonction maximale (souvent 125 à 150 °C) à ne pas dépasser, avec une marge.
+
+            ```svg caption="Chaîne thermique d'un composant : jonction, boîtier, dissipateur, ambiance. Tj = Ta + P × (Rth j-c + Rth c-s + Rth s-a)."
+            <svg viewBox="0 0 460 130" width="460" role="img" aria-label="Résistances thermiques en série de la jonction à l'air ambiant">
+              <defs><marker id="ar-th1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="a"/></marker></defs>
+              <line class="s" x1="40" y1="55" x2="70" y2="55"/>
+              <rect class="hl" x="70" y="45" width="50" height="20"/>
+              <line class="s" x1="120" y1="55" x2="180" y2="55"/>
+              <rect class="hl" x="180" y="45" width="50" height="20"/>
+              <line class="s" x1="230" y1="55" x2="290" y2="55"/>
+              <rect class="hl" x="290" y="45" width="50" height="20"/>
+              <line class="s" x1="340" y1="55" x2="400" y2="55"/>
+              <circle class="ink" cx="40" cy="55" r="4"/>
+              <circle class="ink" cx="150" cy="55" r="4"/>
+              <circle class="ink" cx="260" cy="55" r="4"/>
+              <circle class="ink" cx="400" cy="55" r="4"/>
+              <text class="tb" x="40" y="35" text-anchor="middle">Tj</text>
+              <text class="tb" x="150" y="35" text-anchor="middle">Tc</text>
+              <text class="tb" x="260" y="35" text-anchor="middle">Ts</text>
+              <text class="tb" x="400" y="35" text-anchor="middle">Ta</text>
+              <text class="tm" x="95" y="84" text-anchor="middle">j-c</text>
+              <text class="tm" x="205" y="84" text-anchor="middle">c-s</text>
+              <text class="tm" x="315" y="84" text-anchor="middle">s-a</text>
+              <line class="as" x1="40" y1="108" x2="398" y2="108" marker-end="url(#ar-th1)"/>
+              <text class="ta" x="220" y="102" text-anchor="middle">P (W) de la puce vers l'air</text>
+            </svg>
+            ```
+          check:
+            q: Un composant a une jonction maximale de 150 °C. Il chauffe de 100 K au-dessus de l'ambiante. Dans une armoire à 55 °C…
+            choices:
+              - t: il dépasse sa limite (155 °C)
+                ok: true
+                why: Tj = 55 + 100 = 155 °C. Le calcul à 25 °C d'ambiante était trompeur.
+              - t: il est dans les clous
+                why: L'échauffement s'ajoute à la température ambiante réelle, pas à 25 °C.
+              - t: il chauffe moins car l'air est plus chaud
+                why: L'écart dépend de la puissance et des résistances thermiques, pas de l'ambiante.
+        - level: 3
+          title: Les formules
+          body: |
+            $$T_j = T_a + P \times (R_{th\,j\text{-}c} + R_{th\,c\text{-}s} + R_{th\,s\text{-}a})$$
+
+            Sans dissipateur, la fiche technique donne directement $R_{th\,j\text{-}a}$ (jonction-air).
+
+            **Puissances dissipées typiques** :
+            - régulateur linéaire : $P = (V_{in} - V_{out}) \times I$ ;
+            - MOSFET en conduction : $P = R_{DS(on)} \times I^2$ ;
+            - convertisseur à découpage : $P = P_{sortie}\,(1/\eta - 1)$.
+
+            **Exemple** : un régulateur 5 V alimenté en 12 V débite 0,5 A. $P = 7 \times 0{,}5 = 3{,}5$ W. En boîtier TO-220 sans dissipateur ($R_{th\,j\text{-}a} \approx 50$ K/W) à 25 °C : $T_j = 25 + 175 = 200$ °C. Impossible : il se mettra en protection thermique. Il faut un dissipateur, ou un convertisseur à découpage.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Choisir un dissipateur** : on part de la limite. $R_{th\,s\text{-}a}$ maximale $= \dfrac{T_{j\,max} - T_a}{P} - R_{th\,j\text{-}c} - R_{th\,c\text{-}s}$.
+
+            **L'interface** : la pâte thermique remplit les micro-vides d'air entre le boîtier et le dissipateur. Une couche **fine** suffit ; trop épaisse, elle ajoute de la résistance. Si le boîtier doit être isolé électriquement, un isolant (mica, silicone, céramique) ajoute sa propre résistance.
+
+            **Le régime transitoire** : la capacité thermique du dissipateur retarde l'échauffement (constante de temps de plusieurs minutes). Un test de 30 secondes ne dit rien de la température finale.
+
+            **Effet boule de neige** : la résistance $R_{DS(on)}$ d'un MOSFET augmente avec la température, donc ses pertes aussi, ce qui le chauffe encore plus.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Calcule avec la **température ambiante réelle** : l'intérieur d'une armoire électrique ou d'un rack est souvent à 40 ou 50 °C.
+            - Garde une marge : viser 20 à 30 K sous la jonction maximale allonge nettement la durée de vie. Règle usuelle pour les condensateurs électrolytiques : **10 °C de moins, durée de vie doublée**.
+            - Laisse de la place à la circulation d'air ; un ventilateur bouché ou un filtre encrassé fait monter toute l'armoire.
+            - Sous vide, l'électronique se refroidit par conduction : plaque de base refroidie, pads thermiques.
+      recap:
+        - "Tj = Ta + P·ΣRth (résistances en série de la puce à l'air)."
+        - "Régulateur linéaire : P = (Vin − Vout)·I ; MOSFET : P = R_DS(on)·I²."
+        - "Rth s-a max = (Tj max − Ta)/P − Rth j-c − Rth c-s."
+        - "Pâte thermique en couche fine ; l'ambiante réelle d'une armoire est chaude."
+        - "Marge de 20-30 K ; électrolytiques : −10 °C = durée de vie ×2."
+      pieges: [ing-dissipation-lineaire]
+    vocab:
+      - température de jonction = junction temperature
+      - boîtier = package (case)
+      - dissipateur = heatsink
+      - pâte thermique = thermal compound
+      - régulateur linéaire = linear regulator
+      - convertisseur à découpage = switching converter
+      - protection thermique = thermal shutdown
+      - déclassement = derating
+    exercises:
+      - id: th-dissipation.1
+        type: numeric
+        level: 1
+        q: Un régulateur linéaire 5 V est alimenté en 12 V et débite 0,5 A. Puissance dissipée ?
+        answer: 3.5
+        tol: 0.01
+        unit: W
+        calc: (12 - 5) * 0.5
+        trap_values:
+          - v: 2.5
+            why: C'est la puissance fournie à la charge. Le régulateur dissipe la chute de tension (12 − 5 V) multipliée par le courant.
+          - v: 6
+            why: C'est la puissance totale absorbée. Le régulateur n'en dissipe que la part liée à la chute de tension.
+        piege: ing-dissipation-lineaire
+        e: $P = (12 - 5) \times 0{,}5 = 3{,}5$ W, soit 58 % de la puissance absorbée perdue en chaleur.
+      - id: th-dissipation.2
+        type: numeric
+        level: 2
+        q: Ce régulateur, sans dissipateur (Rth j-a = 50 K/W) à 25 °C d'ambiante. Température de jonction ?
+        answer: 200
+        tol: 0.01
+        unit: °C
+        calc: 25 + 3.5 * 50
+        e: $T_j = 25 + 3{,}5 \times 50 = 200$ °C, bien au-delà du maximum (125 à 150 °C). Il faut un dissipateur ou un convertisseur à découpage.
+      - id: th-dissipation.3
+        type: numeric
+        level: 3
+        q: "On veut Tj < 125 °C dans une armoire à 40 °C, avec P = 3,5 W, Rth j-c = 5 K/W et Rth c-s = 0,5 K/W. Résistance thermique maximale du dissipateur ?"
+        answer: 18.79
+        tol: 0.02
+        unit: K/W
+        calc: (125 - 40) / 3.5 - 5 - 0.5
+        trap_values:
+          - v: 24.29
+            why: C'est la résistance totale admissible. Il faut en retirer celles du boîtier et de l'interface.
+          - v: 23.07
+            why: Tu as pris 25 °C d'ambiante au lieu des 40 °C de l'armoire.
+        e: $\dfrac{125 - 40}{3{,}5} = 24{,}3$ K/W au total, moins 5,5 K/W, donc un dissipateur d'au plus 18,8 K/W.
+      - id: th-dissipation.4
+        type: numeric
+        level: 2
+        q: Un MOSFET de R_DS(on) = 10 mΩ conduit 10 A en continu. Pertes par conduction ?
+        answer: 1
+        tol: 0.01
+        unit: W
+        calc: 0.010 * 10**2
+        trap_values:
+          - v: 0.1
+            why: Les pertes varient comme le carré du courant, P = R·I².
+        e: $P = 0{,}01 \times 100 = 1$ W. Et un peu plus en pratique, car R_DS(on) augmente quand il chauffe.
+      - id: th-dissipation.5
+        type: numeric
+        level: 2
+        q: Un convertisseur à découpage de rendement 90 % fournit 5 V sous 1 A. Puissance perdue en chaleur ?
+        answer: 0.5556
+        tol: 0.02
+        unit: W
+        calc: 5 * (1 / 0.9 - 1)
+        trap_values:
+          - v: 0.5
+            why: Les pertes valent P_sortie × (1/η − 1), pas P_sortie × (1 − η).
+        e: $P_{entrée} = 5/0{,}9 = 5{,}56$ W, pertes $= 0{,}56$ W. Un régulateur linéaire 24 V → 5 V sous 1 A en dissiperait 19.
+      - id: th-dissipation.6
+        type: qcm
+        level: 1
+        q: Quel est le rôle de la pâte thermique entre un boîtier et son dissipateur ?
+        choices:
+          - t: Remplir les micro-vides d'air entre les surfaces, en couche fine
+            ok: true
+          - t: Plus on en met, mieux la chaleur passe
+            why: Une couche épaisse ajoute de la résistance thermique ; la pâte conduit bien moins que le métal.
+          - t: Coller le composant
+            why: Ce n'est pas une colle ; la tenue est assurée par une vis ou un clip.
+        e: L'air est un très bon isolant ; la pâte le chasse des interstices.
+  # ------------------------------------------------------------------ dilatation
+  - id: th-dilatation
+    title: Dilatation thermique
+    en: Thermal expansion
+    goal: Calculer une dilatation, une contrainte thermique, et concevoir des montages qui la tolèrent.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: Le bocal qui ne s'ouvre pas
+          body: |
+            Un couvercle métallique de bocal coincé se desserre quand on le passe sous l'eau chaude : le métal se dilate plus que le verre. Les rails de chemin de fer et les ponts ont des joints de dilatation, sinon ils se déformeraient l'été.
+
+            Presque tout grandit en chauffant et rétrécit en refroidissant.
+        - level: 2
+          title: Peu, mais sur de grandes longueurs et avec de grandes forces
+          body: |
+            La dilatation est faible : un acier s'allonge d'environ 12 µm par mètre et par degré. Mais :
+            - sur une grande longueur ou un grand écart de température, cela fait des millimètres ;
+            - en **précision**, un seul degré sur une pièce de 100 mm fait plus d'un micromètre ;
+            - si on **empêche** une pièce de se dilater, elle pousse avec une force énorme ;
+            - deux matériaux différents assemblés se dilatent différemment, et l'assemblage se desserre, se serre ou se tord.
+          check:
+            q: Un roulement en acier est monté serré dans un logement en aluminium. On chauffe l'ensemble. L'ajustement…
+            choices:
+              - t: se desserre, car l'aluminium se dilate plus que l'acier
+                ok: true
+                why: L'alésage en aluminium grandit plus vite que la bague extérieure en acier.
+              - t: se serre davantage
+                why: Ce serait vrai si le logement se dilatait moins que le roulement.
+              - t: ne change pas
+                why: Les deux coefficients de dilatation sont très différents (23 contre 12 µm/(m·K)).
+        - level: 3
+          title: Les formules
+          body: |
+            $$\Delta L = \alpha\,L\,\Delta T \qquad \sigma = E\,\alpha\,\Delta T\ \ \text{(dilatation empêchée)}$$
+
+            | Matériau | $\alpha$ (10⁻⁶/K) |
+            | --- | --- |
+            | aluminium | ≈ 23 |
+            | laiton | ≈ 19 |
+            | cuivre | ≈ 17 |
+            | inox austénitique | ≈ 16 |
+            | acier | ≈ 12 |
+            | titane | ≈ 9 |
+            | invar (Fe-Ni 36 %) | ≈ 1 |
+            | plastiques | ≈ 50 à 200 |
+
+            **Exemples** :
+            - 1 m d'aluminium chauffé de 20 K s'allonge de $23 \times 10^{-6} \times 1000 \times 20 = 0{,}46$ mm ;
+            - une barre d'acier bloquée entre deux murs et chauffée de 50 K : $\sigma = 210\,000 \times 12 \times 10^{-6} \times 50 \approx 126$ MPa, la moitié de la limite élastique d'un acier courant, sans aucune charge extérieure.
+        - level: 4
+          title: Sous le capot
+          body: |
+            La contrainte d'une dilatation empêchée ne dépend **pas** de la longueur : une barre courte et une barre longue, bloquées, subissent la même contrainte. Seuls le matériau et l'écart de température comptent. Une pièce longue et fine bloquée peut aussi **flamber**.
+
+            **Référence métrologique** : les cotes des dessins sont définies à **20 °C** (norme ISO 1). Mesurer une pièce chaude sortie d'usinage donne une cote fausse.
+
+            **Cryogénie** : entre l'ambiante et 77 K, les métaux se contractent de quelques dixièmes de pourcent (de l'ordre de 0,3 % pour l'inox et le cuivre, 0,4 % pour l'aluminium). Sur 500 mm, cela fait environ 2 mm : les tuyauteries cryogéniques ont des soufflets ou des boucles pour l'absorber.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - **Montage isostatique** : un **point fixe** et des **appuis glissants** laissent la pièce se dilater sans contrainte. Une pièce bridée rigidement à ses deux extrémités se déforme ou pousse sur ses fixations.
+            - Pour la **stabilité** : invar ou matériaux à faible dilatation, symétrie thermique, température régulée (les halls expérimentaux des synchrotrons sont régulés à quelques dixièmes de degré près).
+            - Un réglage fait à chaud peut être faux à froid : laisse les équipements atteindre leur équilibre thermique avant les alignements fins.
+      recap:
+        - "ΔL = α·L·ΔT ; acier ≈ 12, alu ≈ 23, inox ≈ 16, invar ≈ 1 (×10⁻⁶/K)."
+        - "1 K sur 100 mm d'acier ≈ 1,2 µm."
+        - "Dilatation empêchée : σ = E·α·ΔT, indépendante de la longueur."
+        - "Cotes définies à 20 °C ; cryogénie : contraction de quelques ‰."
+        - "Point fixe + appuis glissants pour laisser dilater."
+      pieges: [ing-dilatation-bloquee, ing-dilatation-differentielle]
+    vocab:
+      - dilatation thermique = thermal expansion
+      - coefficient de dilatation = coefficient of thermal expansion (CTE)
+      - contrainte thermique = thermal stress
+      - point fixe = fixed point (anchor)
+      - appui glissant = sliding support
+      - joint de dilatation = expansion joint
+      - soufflet = bellows
+      - équilibre thermique = thermal equilibrium
+    exercises:
+      - id: th-dilatation.1
+        type: numeric
+        level: 1
+        q: Allongement d'une barre d'aluminium de 1 m chauffée de 20 K (α = 23·10⁻⁶ /K), en mm ?
+        answer: 0.46
+        tol: 0.01
+        unit: mm
+        calc: 23e-6 * 1000 * 20
+        e: $\Delta L = 23 \times 10^{-6} \times 1000 \times 20 = 0{,}46$ mm.
+      - id: th-dilatation.2
+        type: numeric
+        level: 2
+        q: Une pièce en acier de 100 mm passe de 20 °C à 21 °C (α = 12·10⁻⁶ /K). Allongement en µm ?
+        answer: 1.2
+        tol: 0.01
+        unit: µm
+        calc: 12e-6 * 100 * 1 * 1000
+        trap_values:
+          - v: 0.0012
+            why: C'est la valeur en mm.
+        e: 1,2 µm pour un seul degré, du même ordre que les tolérances de précision. D'où les mesures à 20 °C.
+      - id: th-dilatation.3
+        type: numeric
+        level: 2
+        q: Une barre d'acier (E = 210 000 MPa, α = 12·10⁻⁶ /K) est bloquée à ses deux extrémités et chauffée de 50 K. Contrainte ?
+        answer: 126
+        tol: 0.01
+        unit: MPa
+        calc: 210000 * 12e-6 * 50
+        piege: ing-dilatation-bloquee
+        e: $\sigma = E\,\alpha\,\Delta T = 210\,000 \times 12 \times 10^{-6} \times 50 = 126$ MPa, sans aucune force extérieure.
+      - id: th-dilatation.4
+        type: qcm
+        level: 2
+        q: Un support en aluminium de 500 mm est refroidi de l'ambiante à 77 K. Il raccourcit d'environ…
+        choices:
+          - t: 2 mm (≈ 0,4 %)
+            ok: true
+          - t: 0,02 mm
+            why: C'est 100 fois trop peu ; entre 293 K et 77 K, l'écart est de plus de 200 K.
+          - t: 20 mm
+            why: C'est 10 fois trop ; les métaux se contractent de quelques dixièmes de pourcent jusqu'à 77 K.
+        e: Le coefficient α diminue quand on refroidit, mais la contraction totale reste de l'ordre de 0,3 à 0,4 % pour les métaux courants.
+      - id: th-dilatation.5
+        type: qcm
+        level: 2
+        q: Une platine en aluminium est vissée rigidement aux deux bouts sur un bâti en acier. Que se passe-t-il quand la température varie ?
+        piege: ing-dilatation-differentielle
+        choices:
+          - t: La platine se déforme (flexion, flambement) ou force sur ses vis, faute de pouvoir se dilater librement
+            ok: true
+          - t: Rien, les deux se dilatent pareil
+            why: L'aluminium se dilate presque deux fois plus que l'acier.
+          - t: Les vis se desserrent simplement
+            why: Elles peuvent glisser, mais la platine subit d'abord des contraintes et des déformations.
+        e: Solution, une fixation fixe d'un côté et des trous oblongs ou un appui glissant de l'autre, ou des matériaux de dilatations proches.
+      - id: th-dilatation.6
+        type: flash
+        level: 1
+        q: Qu'est-ce que l'invar et à quoi sert-il ?
+        back: |
+          Un alliage fer-nickel (36 % de nickel) dont le coefficient de dilatation est environ 10 fois plus faible que celui de l'acier (≈ 1·10⁻⁶ /K autour de l'ambiante). On l'utilise pour les pièces qui doivent garder leurs dimensions malgré les variations de température : étalons, montures d'optique, supports de précision, lignes cryogéniques.
+        e: Contrepartie, il est cher, lourd et moins facile à usiner que l'acier.

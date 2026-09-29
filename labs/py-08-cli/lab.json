@@ -1,0 +1,11 @@
+{
+  "id": "py-08",
+  "ordre": 8,
+  "lang": "python",
+  "genre": "lab",
+  "niveau": "avancé",
+  "minutes": 60,
+  "titre": "Un outil en ligne de commande",
+  "modules": ["py11", "py13"],
+  "resume": "Un vrai petit outil : argparse, lecture CSV tolérante, journal avec logging, résumé JSON, codes de retour, et une fonction main testable."
+}

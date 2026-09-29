@@ -1,0 +1,27 @@
+# Construction de l'app
+node_modules/
+dist/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# C++ : dossiers de build des labs
+labs/*/build/
+build/
+
+# Progression locale des labs (./praxis)
+.praxis/
+
+# Systèmes et éditeurs
+.DS_Store
+*.swp
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/tasks.json

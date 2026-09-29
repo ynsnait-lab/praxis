@@ -1,0 +1,18 @@
+{
+  "id": "d6",
+  "ordre": 26,
+  "lang": "cpp",
+  "genre": "defi",
+  "niveau": "avancé",
+  "minutes": 180,
+  "titre": "Machine à états d'acquisition",
+  "modules": ["cpp08", "cpp09", "cpp11"],
+  "resume": "Un cycle purge, stabilisation, mesure : transitions dans une fonction constexpr pure, testée à la compilation et à l'exécution, sans allocation.",
+  "requis": [
+    {"fichier": "etats.hpp", "motif": "static_assert", "message": "vérifie au moins une transition à la compilation avec static_assert"}
+  ],
+  "interdits": [
+    {"fichier": "etats.hpp", "motif": "\\bdefault\\s*:", "message": "pas de default: fourre-tout, traite chaque état (-Wswitch veille)"},
+    {"fichier": "etats.cpp", "motif": "\\bdefault\\s*:", "message": "pas de default: fourre-tout, traite chaque état (-Wswitch veille)"}
+  ]
+}

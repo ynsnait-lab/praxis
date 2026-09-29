@@ -1,0 +1,335 @@
+id: pf01
+track: python
+title: Premier contact
+goal: Écrire un script, le lancer, et comprendre ce que Python fait de chaque ligne.
+level: fondations
+requires: []
+concepts: [script, print, traceback]
+lesson:
+  minutes: 12
+  intro: |
+    Avant les variables, les boucles et le reste, il faut une image claire de **ce qui se passe quand tu lances un programme Python**. C'est cette image qui te permettra plus tard de prédire ce que fait un code sans l'exécuter — la compétence qui sépare quelqu'un qui tâtonne de quelqu'un qui maîtrise.
+  steps:
+    - level: 1
+      title: Une recette lue de haut en bas
+      body: |
+        Un programme Python, c'est un **fichier texte** (extension `.py`) qui contient des instructions. Quand tu le lances, un programme appelé **l'interpréteur** (`python3`) lit ce fichier **ligne par ligne, de haut en bas**, et exécute chaque instruction avant de passer à la suivante.
+
+        Pense à une recette de cuisine lue par quelqu'un de très obéissant et totalement dépourvu de bon sens : il fait exactement ce qui est écrit, dans l'ordre, et s'arrête net à la première instruction qu'il ne comprend pas.
+
+        Deux conséquences qu'il faut garder en tête dès maintenant :
+        - **l'ordre compte** : on ne peut pas utiliser quelque chose avant de l'avoir défini ;
+        - **une erreur arrête tout** : les lignes suivantes ne sont jamais exécutées.
+      check:
+        q: Un script contient 10 lignes. La ligne 4 provoque une erreur. Que se passe-t-il ?
+        choices:
+          - t: Les lignes 1 à 3 s'exécutent, puis le programme s'arrête avec un message d'erreur.
+            ok: true
+            why: Exactement. Tout ce qui précède a déjà eu lieu ; rien de ce qui suit n'aura lieu.
+          - t: Python saute la ligne 4 et continue.
+            why: Non, Python ne « saute » jamais une erreur de lui-même. Il faut le lui demander explicitement (on verra `try` plus tard).
+          - t: Rien ne s'exécute, Python vérifie tout avant de commencer.
+            why: Python vérifie la **syntaxe** avant de commencer (une parenthèse oubliée bloque tout), mais les erreurs d'exécution n'apparaissent qu'en arrivant sur la ligne.
+    - level: 2
+      title: Afficher avec print
+      body: |
+        La première instruction à connaître est `print(...)` : elle **affiche** dans le terminal ce que tu lui donnes entre parenthèses.
+
+        - Du **texte** s'écrit entre guillemets (simples `'...'` ou doubles `"..."`, c'est pareil). On appelle ça une **chaîne de caractères** (*string*).
+        - Un **nombre** s'écrit tel quel : `42`, `3.14` (avec un **point**, pas une virgule).
+        - Tu peux donner plusieurs choses à `print`, séparées par des virgules : il les affiche séparées par **un espace**.
+        - Tout ce qui suit un `#` sur une ligne est un **commentaire** : Python l'ignore, c'est pour les humains.
+      code: |
+        # Mon premier script
+        print("Bonjour Ada")
+        print("Température :", 21.5, "°C")
+        print(2 + 3)
+        print("2 + 3")
+      run: true
+      out: |
+        Bonjour Ada
+        Température : 21.5 °C
+        5
+        2 + 3
+      after: |
+        Regarde les deux dernières lignes : `print(2 + 3)` calcule d'abord `2 + 3`, puis affiche le résultat. `print("2 + 3")` affiche le **texte** tel quel, parce que les guillemets disent à Python « ceci est du texte, ne le calcule pas ».
+    - level: 3
+      title: Ton premier vrai script
+      body: |
+        Une **variable** est un nom que tu donnes à une valeur pour la réutiliser (on y revient en détail au cours suivant). Et une **f-string** — un texte précédé de `f` — permet d'insérer des valeurs dans du texte avec des accolades `{...}`.
+
+        Voici un petit script complet qui convertit une température. Exécute-le, puis clique sur **Modifier** et change la valeur de `celsius` : c'est la meilleure façon d'apprendre.
+      code: |
+        celsius = 21.5
+        kelvin = celsius + 273.15
+        print(f"{celsius} °C = {kelvin} K")
+        print("Fin du script")
+      run: true
+      out: |
+        21.5 °C = 294.65 K
+        Fin du script
+      check:
+        q: Que se passerait-il si on écrivait `print(kelvin)` **avant** la ligne `kelvin = celsius + 273.15` ?
+        choices:
+          - t: Une erreur `NameError` : le nom `kelvin` n'existe pas encore à ce moment-là.
+            ok: true
+            why: Python lit de haut en bas. Au moment du `print`, la ligne qui crée `kelvin` n'a pas encore été exécutée.
+          - t: Python affiche 294.65 parce qu'il trouve la définition plus bas.
+            why: Python ne « cherche » jamais plus bas dans le fichier. Il n'a que ce qui a déjà été exécuté.
+          - t: Python affiche 0.
+            why: Aucune variable n'a de valeur par défaut en Python. Un nom qui n'a jamais reçu de valeur n'existe tout simplement pas.
+    - level: 4
+      title: Console interactive ou script ?
+      body: |
+        Il y a deux façons de parler à Python :
+
+        1. **Le script** : tu écris un fichier `mesures.py`, puis tu le lances avec `python3 mesures.py`. Python exécute tout le fichier et s'arrête.
+        2. **La console interactive** (le *REPL*, invite `>>>`) : tu tapes `python3` seul, et Python attend tes instructions une par une. Pratique pour tester une idée en deux secondes.
+
+        Différence piège : dans la console, quand tu tapes une **expression** (un calcul, un nom de variable), Python **affiche automatiquement** sa valeur. Dans un script, **non** : sans `print`, le résultat est calculé puis jeté.
+
+        ```text
+        >>> 2 + 3
+        5
+        >>> celsius = 21.5
+        >>> celsius * 2
+        43.0
+        ```
+
+        Si tu écris `2 + 3` seul dans un fichier `.py` et que tu le lances, il ne s'affiche **rien**. C'est l'une des surprises les plus fréquentes du débutant.
+
+        > [!note] Ce que fait vraiment « lancer »
+        > `python3 fichier.py` commence par vérifier la syntaxe de tout le fichier et le traduire en *bytecode* (une forme compacte d'instructions), puis une machine virtuelle exécute ce bytecode instruction par instruction. C'est pour ça qu'une parenthèse manquante ligne 50 empêche même la ligne 1 de s'exécuter : c'est une erreur de **syntaxe**, détectée avant de commencer.
+      check:
+        q: Un fichier `essai.py` contient une seule ligne, `21.5 * 2`. Tu le lances. Qu'est-ce qui s'affiche ?
+        choices:
+          - t: Rien du tout.
+            ok: true
+            why: Le calcul est fait puis oublié. Dans un script, seul `print` affiche.
+          - t: "`43.0`"
+            why: C'est ce que ferait la console interactive `>>>`, pas un script.
+          - t: Une erreur, car il manque print.
+            why: Ce n'est pas une erreur, une expression seule est parfaitement valide. Elle est juste inutile.
+    - level: 5
+      title: Lire un message d'erreur comme un pro
+      body: |
+        Quand ça plante, Python affiche un **traceback** (« trace de la pile d'appels »). Il faut le lire **de bas en haut** :
+
+        ```text
+        Traceback (most recent call last):
+          File "mesures.py", line 3, in <module>
+            print(temperatur)
+                  ^^^^^^^^^^
+        NameError: name 'temperatur' is not defined. Did you mean: 'temperature'?
+        ```
+
+        - La **dernière ligne** donne le **type d'erreur** (`NameError`) et l'explication. Python propose même la correction (`Did you mean`).
+        - Au-dessus : **le fichier et la ligne** où ça s'est passé (`line 3`), puis la ligne de code fautive, avec des `^` sous l'endroit précis.
+
+        Les erreurs que tu croiseras le plus au début :
+
+        | Erreur | Ce qu'elle veut dire |
+        | --- | --- |
+        | `SyntaxError` | Python ne comprend pas la phrase : parenthèse, guillemet ou `:` oublié |
+        | `IndentationError` | décalage (espaces en début de ligne) incohérent |
+        | `NameError` | un nom utilisé n'existe pas (faute de frappe, ou utilisé trop tôt) |
+        | `TypeError` | opération impossible entre ces types, par exemple texte + nombre |
+        | `ValueError` | le type est bon mais la valeur non, par exemple `int("abc")` |
+
+        **Sur ton Mac** : ouvre le Terminal, va dans le dossier (`cd chemin/du/dossier`), puis `python3 mon_script.py`. Dans VS Code, le bouton ▶ en haut à droite fait la même chose. Et dans les labs de Praxis, `./praxis check` lance les tests pour toi.
+  recap:
+    - Python lit et exécute un fichier **de haut en bas**, une ligne après l'autre ; une erreur arrête tout.
+    - "`print(a, b)` affiche ses arguments séparés par un espace ; le texte va entre guillemets, les nombres s'écrivent avec un point."
+    - Dans un **script**, seul `print` affiche. La console `>>>` affiche toute expression automatiquement.
+    - Un traceback se lit **de bas en haut** : type d'erreur, puis fichier et numéro de ligne.
+  pieges: [py-repl-affichage, py-indentation]
+exercises:
+  - id: pf01.1
+    type: predict
+    level: 1
+    q: Qu'affiche ce script ?
+    code: |
+      print("A")
+      print("B", "C")
+      print(1 + 1, "1 + 1")
+    answer: |
+      A
+      B C
+      2 1 + 1
+    e: |
+      Chaque `print` produit une ligne. Plusieurs arguments sont séparés par **un espace**.
+
+      `1 + 1` sans guillemets est **calculé** (2) ; `"1 + 1"` entre guillemets est du **texte**, affiché tel quel.
+  - id: pf01.2
+    type: qcm
+    level: 1
+    q: Tu écris `3 * 7` seul dans un fichier `calcul.py` et tu lances `python3 calcul.py`. Que se passe-t-il ?
+    piege: py-repl-affichage
+    choices:
+      - t: Rien ne s'affiche.
+        ok: true
+      - t: "`21` s'affiche."
+        piege: true
+        why: C'est le comportement de la console interactive `>>>`, pas d'un script.
+      - t: "Une `SyntaxError`."
+        why: Une expression seule est valide, elle est juste inutile.
+      - t: "`3 * 7` s'affiche."
+        why: Il faudrait `print("3 * 7")` pour ça.
+    e: |
+      Dans un script, une expression est calculée puis **jetée**. Pour voir un résultat, il faut `print(3 * 7)`.
+
+      La console interactive (`>>>`) est plus bavarde : elle affiche automatiquement la valeur de chaque expression tapée. C'est pratique pour tester, mais ça crée de mauvaises habitudes.
+  - id: pf01.3
+    type: predict
+    level: 1
+    q: Qu'affiche ce script ? (s'il plante, écris ce qui s'affiche avant l'erreur, puis le **type** d'erreur sur la dernière ligne)
+    code: |
+      print("début")
+      print(vitesse)
+      vitesse = 12
+      print("fin")
+    answer: |
+      début
+      NameError
+    accept:
+      - |
+        début
+        nameerror
+    expect_error: true
+    norun: true
+    e: |
+      Python exécute ligne 1 (affiche `début`), puis arrive ligne 2 : `vitesse` n'existe **pas encore**, la ligne 3 n'a pas été exécutée. `NameError`, arrêt immédiat : `fin` ne s'affiche jamais.
+
+      L'ordre des lignes est l'ordre des événements.
+  - id: pf01.4
+    type: qcm
+    level: 1
+    q: Où se trouve l'information la plus importante dans un traceback Python ?
+    choices:
+      - t: Sur la dernière ligne (type d'erreur et message), puis juste au-dessus (fichier, numéro de ligne).
+        ok: true
+      - t: Sur la première ligne, `Traceback (most recent call last)`.
+        why: Cette ligne ne dit rien de l'erreur, elle annonce juste le début de la trace.
+      - t: Nulle part, il faut relire tout le code.
+        why: Le traceback te donne le type d'erreur ET la ligne exacte. Le lire te fait gagner un temps énorme.
+    e: |
+      Un traceback se lit **de bas en haut**. La dernière ligne donne le type (`NameError`, `TypeError`…) et une explication, souvent avec une suggestion (`Did you mean…`). Juste au-dessus : le fichier, la ligne, et même des `^^^` sous la partie fautive.
+  - id: pf01.5
+    type: cloze
+    level: 1
+    q: Complète pour afficher `Pression : 1.013 bar`.
+    tpl: |
+      pression = 1.013
+      ⟦0⟧("Pression :", ⟦1⟧, "bar")
+    blanks:
+      - [print]
+      - [pression]
+    run: true
+    out: "Pression : 1.013 bar"
+    e: |
+      `print` affiche ses arguments séparés par des espaces. On passe le **nom** de la variable (sans guillemets) pour afficher sa **valeur**. Avec des guillemets, `"pression"`, on afficherait le mot « pression ».
+  - id: pf01.6
+    type: bug
+    level: 1
+    q: Ce script plante avec une `SyntaxError`. Clique sur la ligne fautive.
+    code: |
+      nom = "capteur_1"
+      print("Capteur :", nom)
+      print("Mesure OK)
+      print("fin")
+    bad: 3
+    fix: |
+      print("Mesure OK")
+    syntax_bug: true
+    e: |
+      Le guillemet fermant manque ligne 3 : Python lit `"Mesure OK)` puis cherche la fin du texte… qui n'arrive jamais. Message typique : `SyntaxError: unterminated string literal`.
+
+      Remarque : à cause de cette erreur de **syntaxe**, même les lignes 1 et 2 ne s'exécutent pas. Python vérifie la syntaxe de tout le fichier avant de commencer.
+  - id: pf01.7
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      a = 5
+      print(a)
+      a = a + 2
+      print(a)
+      print("a")
+    answer: |
+      5
+      7
+      a
+    e: |
+      `a = a + 2` se lit « calcule `a + 2` avec la valeur **actuelle** de `a` (5), puis colle l'étiquette `a` sur le résultat (7) ». Ce n'est pas une équation mathématique.
+
+      `print("a")` affiche la **lettre** a, pas la variable.
+  - id: pf01.8
+    type: qcm
+    level: 2
+    q: Ton script contient une erreur de syntaxe (une parenthèse non fermée) à la ligne 40. Les lignes 1 à 39 sont correctes et contiennent des `print`. Que vois-tu en le lançant ?
+    choices:
+      - t: Seulement le message `SyntaxError`, aucun print ne s'exécute.
+        ok: true
+      - t: Les print des lignes 1 à 39, puis `SyntaxError`.
+        why: Ce serait le cas pour une erreur d'**exécution** (comme `NameError`). Mais la syntaxe est vérifiée avant le démarrage.
+      - t: Python corrige la parenthèse tout seul.
+        why: Python ne corrige jamais ton code.
+    e: |
+      Avant d'exécuter quoi que ce soit, Python traduit tout le fichier en bytecode. Une erreur de **syntaxe** bloque cette traduction : rien ne démarre.
+
+      À l'inverse, une erreur d'**exécution** (`NameError`, `TypeError`, `ValueError`…) ne se déclenche qu'en arrivant sur la ligne concernée : tout ce qui précède a déjà eu lieu.
+  - id: pf01.9
+    type: parsons
+    level: 1
+    q: Remets les lignes dans l'ordre pour que le script affiche `Tension : 3.3 V` puis `Courant : 0.02 A`. Il y a un intrus.
+    lang: python
+    lines:
+      - tension = 3.3
+      - courant = 0.02
+      - 'print("Tension :", tension, "V")'
+      - 'print("Courant :", courant, "A")'
+    extra:
+      - 'print("Tension :", "tension", "V")'
+    e: |
+      Les variables doivent exister **avant** d'être utilisées, et les `print` s'exécutent dans l'ordre où ils apparaissent.
+
+      L'intrus affiche le mot « tension » au lieu de sa valeur : les guillemets transforment le nom en simple texte.
+  - id: pf01.10
+    type: code
+    level: 1
+    q: |
+      Crée une variable `message` qui contient exactement le texte `Praxis démarre`, et une variable `annee` qui contient le nombre `2026`.
+    start: |
+      # écris tes deux lignes ici
+    sol: |
+      message = "Praxis démarre"
+      annee = 2026
+    tests: |
+      assert message == "Praxis démarre", f"message vaut {message!r}"
+      assert annee == 2026, "annee doit être le nombre 2026, pas du texte"
+      assert isinstance(annee, int), "sans guillemets : 2026 est un nombre, \"2026\" est du texte"
+      print("OK")
+    e: |
+      Un texte entre guillemets, un nombre sans. `annee = "2026"` serait du texte : ça ressemble à un nombre, mais Python ne pourra pas faire de calcul avec.
+  - id: pf01.11
+    type: flash
+    level: 1
+    q: Quelle différence entre la console interactive (`>>>`) et un script `.py` pour l'affichage ?
+    back: |
+      Dans la **console**, toute expression tapée voit sa valeur affichée automatiquement.
+
+      Dans un **script**, rien ne s'affiche sans `print(...)`.
+    e: La console sert à tester vite une idée ; le script est ce que tu gardes et relances.
+  - id: pf01.12
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      print("x", 2 * 3, "y")
+      # print("caché")
+      print(10 - 2 - 3)
+    answer: |
+      x 6 y
+      5
+    e: |
+      La ligne 2 est un commentaire : ignorée. `10 - 2 - 3` se calcule de gauche à droite : `(10 - 2) - 3 = 5`.

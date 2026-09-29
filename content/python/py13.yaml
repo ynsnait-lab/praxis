@@ -1,0 +1,685 @@
+id: py13
+track: python
+title: I/O, instrumentation, CLI
+goal: Lire un capteur en série, logger proprement, exposer une CLI utilisable.
+level: avance
+requires:
+- py07
+- py11
+concepts:
+- fichiers
+- csv-json
+- serie
+- logging
+- argparse
+lesson:
+  minutes: 18
+  intro: |
+    Un vrai outil d'acquisition parle à un instrument, écrit des fichiers qu'on relira dans six mois, tient un journal de ce qui s'est passé, et se pilote en ligne de commande. Ce module rassemble les briques de la bibliothèque standard (`csv`, `json`, `logging`, `argparse`) et `pyserial` pour le port série, avec les réglages qui évitent les nuits perdues.
+  steps:
+    - level: 1
+      title: Le téléphone, le cahier de labo et le tableau de bord
+      body: |
+        - Parler à un instrument par **port série**, c'est un appel téléphonique avec un interlocuteur lent : on pose une question en octets, on attend la réponse, et il faut décider **combien de temps** attendre avant de raccrocher (le *timeout*).
+        - Le **journal** (*logging*), c'est le cahier de labo : chaque événement horodaté, avec sa gravité (information, avertissement, erreur), écrit au fil de l'eau pour pouvoir reconstituer une nuit de mesures.
+        - La **ligne de commande** (CLI), c'est le tableau de bord du programme : des réglages nommés, avec des valeurs par défaut et une aide (`--help`), au lieu de constantes à modifier dans le code.
+    - level: 2
+      title: Les briques standard
+      body: |
+        - **Fichiers** : `with open(chemin, "w", encoding="utf-8", newline="")`. Modes : `"r"` lire, `"w"` écrire (**efface** le fichier existant), `"a"` ajouter à la fin, `"rb"`/`"wb"` en octets.
+        - **CSV** : `csv.writer`/`csv.reader`, ou `csv.DictWriter`/`csv.DictReader` avec des en-têtes. Toujours `newline=""` à l'ouverture.
+        - **JSON** pour les configurations : `json.dump(config, f, indent=2)` et `json.load(f)`. Les clés redeviennent toujours des chaînes.
+        - **logging** : niveaux `DEBUG` < `INFO` < `WARNING` < `ERROR` < `CRITICAL`. Chaque module crée son `log = logging.getLogger(__name__)` ; le programme principal configure **une seule fois** la sortie (`basicConfig`, ou des *handlers* : console, fichier tournant). Écris `log.info("v=%s", v)` : le message n'est formaté que s'il est vraiment affiché.
+        - **argparse** : arguments positionnels (`port`), options (`-n/--echantillons`, avec `type=int` et `default`), interrupteurs (`action="store_true"`). L'aide `--help` est générée automatiquement.
+        - **pyserial** : `serial.Serial(port, 115200, timeout=0.5)`. `read(n)` renvoie **au plus** n octets : moins si le délai expire. `write()` n'accepte que des `bytes`.
+      check:
+        q: "Port ouvert avec `timeout=1.0`. Que peut renvoyer `ser.read(8)` ?"
+        choices:
+          - t: Entre 0 et 8 octets
+            ok: true
+            why: Si les 8 octets n'arrivent pas dans la seconde, `read` rend ce qu'il a reçu, éventuellement rien. À toi de vérifier la longueur.
+          - t: Toujours 8 octets
+            why: Ce serait le cas sans timeout… au risque d'attendre indéfiniment.
+          - t: 8 octets ou une exception TimeoutError
+            why: pyserial ne lève pas d'exception à l'expiration du délai en lecture : il renvoie un résultat plus court.
+    - level: 3
+      title: CLI, CSV, journal et configuration
+      body: |
+        L'instrument est remplacé par une liste de lignes, et le fichier par `io.StringIO`, pour que tout tourne ici. Le journal sort sur la console avec son niveau et son nom.
+      code: |
+        import argparse
+        import csv
+        import io
+        import json
+        import logging
+        import sys
+
+        logging.basicConfig(stream=sys.stdout, level=logging.INFO,
+                            format="%(levelname)s %(name)s: %(message)s", force=True)
+        log = logging.getLogger("acquisition")
+
+        def construire_parseur():
+            p = argparse.ArgumentParser(description="Acquisition de températures")
+            p.add_argument("port", help="port série, ex. /dev/cu.usbserial-0001")
+            p.add_argument("-n", "--echantillons", type=int, default=100)
+            p.add_argument("-v", "--verbeux", action="store_true")
+            return p
+
+        args = construire_parseur().parse_args(["/dev/ttyUSB0", "-n", "3"])
+        print(args)
+
+        lignes = ["T1;20.5", "T1;21.0", "T1;abc", "T1;21.4"]
+        sortie = io.StringIO()
+        w = csv.writer(sortie, delimiter=";", lineterminator="\n")
+        w.writerow(["capteur", "valeur_C"])
+        for brut in lignes[: args.echantillons]:
+            capteur, texte = brut.split(";")
+            try:
+                w.writerow([capteur, float(texte)])
+            except ValueError:
+                log.warning("valeur illisible ignorée : %r", texte)
+        log.debug("jamais affiché au niveau INFO")
+        log.info("%d lignes de données écrites", sortie.getvalue().count("\n") - 1)
+        print(sortie.getvalue(), end="")
+
+        config = {"port": args.port, "gains": [1.0, 0.98]}
+        print(json.dumps(config))
+        print(json.loads(json.dumps({1: "a"})))
+      run: true
+      out: |
+        Namespace(port='/dev/ttyUSB0', echantillons=3, verbeux=False)
+        WARNING acquisition: valeur illisible ignorée : 'abc'
+        INFO acquisition: 2 lignes de données écrites
+        capteur;valeur_C
+        T1;20.5
+        T1;21.0
+        {"port": "/dev/ttyUSB0", "gains": [1.0, 0.98]}
+        {'1': 'a'}
+      after: |
+        `parse_args` reçoit ici une liste pour la démonstration ; dans un vrai script, on l'appelle sans argument et il lit la ligne de commande. `-n 3` limite la lecture aux trois premières lignes, et la clé `1` revient de JSON sous la forme `"1"`.
+    - level: 4
+      title: Le port série sous le capot
+      body: |
+        Un port série transmet un **flux d'octets**, sans notion de message : c'est à toi de retrouver le début et la fin de chaque trame (entête, longueur fixe, fin de ligne, somme de contrôle), et de te **resynchroniser** après une trame abîmée. Réglages du `timeout` : `None` attend indéfiniment (dangereux), `0` rend immédiatement ce qui est déjà arrivé, une durée en secondes fixe l'attente maximale.
+
+        Côté fichiers, ce que tu écris passe d'abord par un **tampon** en mémoire. En cas de coupure de courant, le contenu du tampon est perdu : pour un enregistrement long, appelle régulièrement `f.flush()` puis `os.fsync(f.fileno())`, ou écris dans un fichier temporaire que tu renommes à la fin (opération atomique).
+
+        Ce code demande un vrai port et `pip install pyserial` : il ne tourne pas dans l'app.
+      code: |
+        import logging
+        import struct
+
+        import serial                                    # pip install pyserial
+
+        log = logging.getLogger(__name__)
+        TRAME = struct.Struct("<BhhB")                   # entête, 2 mesures int16, somme
+
+        def lire_trame(ser: serial.Serial) -> tuple[int, int] | None:
+            brut = ser.read(TRAME.size)                  # jusqu'à 6 octets, moins si timeout
+            if len(brut) < TRAME.size:
+                log.warning("trame incomplète (%d octets)", len(brut))
+                return None
+            entete, v1, v2, somme = TRAME.unpack(brut)
+            if entete != 0xAA or sum(brut[:-1]) % 256 != somme:
+                log.warning("trame invalide : %s", brut.hex(" "))
+                ser.reset_input_buffer()                 # on jette le reste et on repart
+                return None
+            return v1, v2
+
+        with serial.Serial("/dev/cu.usbserial-0001", 115200, timeout=0.5) as ser:
+            ser.write(b"START\n")                        # des bytes, jamais du str
+            for _ in range(100):
+                mesure = lire_trame(ser)
+                if mesure is not None:
+                    log.info("v1=%d v2=%d", *mesure)
+      verify: false
+      after: |
+        Sur macOS, les ports USB-série apparaissent sous `/dev/cu.usbserial-…` ou `/dev/cu.usbmodem…` ; `python -m serial.tools.list_ports` les liste tous.
+    - level: 5
+      title: Sur le terrain
+      body: |
+        - Journal : console au niveau `INFO`, fichier tournant (`logging.handlers.RotatingFileHandler`) au niveau `DEBUG`, avec l'heure (`%(asctime)s`). En cas de plantage, `log.exception("…")` écrit le traceback complet.
+        - Fichiers de mesures : en-têtes avec les unités (`valeur_C`, `pression_mbar`), horodatage ISO 8601 (`datetime.now().astimezone().isoformat()`), encodage `utf-8` explicite.
+        - Une option `--simule` qui remplace l'instrument par un simulateur : le programme se teste et se démontre sans matériel.
+        - Écris `main(argv=None)` qui appelle `parse_args(argv)` : les tests peuvent l'appeler avec `main(["COM3", "-n", "5"])`.
+        - Arrêt propre : `except KeyboardInterrupt` au niveau le plus haut, et un `finally` qui ferme le port et met l'instrument au repos.
+        - Gros volumes (millions de points) : HDF5 avec `h5py`, pas du CSV.
+  recap:
+    - "`open(..., encoding=\"utf-8\", newline=\"\")` pour les CSV ; `\"w\"` efface le fichier."
+    - "logging : un logger par module, configuration unique dans le programme principal."
+    - "argparse : positionnels, options typées avec défaut, interrupteurs, `--help` gratuit."
+    - "pyserial : toujours un timeout ; `read(n)` peut rendre moins de n octets."
+    - "Flux série = octets sans frontières : entête, taille, somme de contrôle, resynchronisation."
+  pieges: [py-serie-timeout, py-csv-newline, py-mode-w, py-str-bytes]
+exercises:
+- id: py13.1
+  type: qcm
+  level: 2
+  concepts:
+  - serie
+  q: Tu lis une trame de 8 octets sur un port série. `ser.read(8)` renvoie parfois 5 octets. Pourquoi ?
+  choices:
+  - t: '`read(n)` renvoie ce qui est disponible avant expiration du `timeout`'
+    ok: true
+    why: 'C’est le comportement documenté de pyserial : la lecture est bornée en temps, pas en quantité.'
+  - t: Le capteur est défaillant
+    ok: false
+    why: Possible, mais c’est d’abord le comportement normal de l’API.
+  - t: Il faut augmenter le baudrate
+    ok: false
+    why: Ça change le débit, pas la sémantique de `read`.
+  - t: '`read` est bogué'
+    ok: false
+    why: 'Non : ce comportement est spécifié. C’est à l’appelant de reboucler jusqu’à avoir le compte.'
+  e: |-
+    Le motif correct :
+
+    ```python
+    import serial
+    with serial.Serial(port, 115200, timeout=0.2) as ser:
+        trame = ser.read(8)
+        if len(trame) != 8:
+            raise TimeoutError(f"trame courte : {len(trame)} octets")
+    ```
+
+    Alternatives : `ser.read_until(b"\n")` pour du texte, ou `ser.readinto(buf)`.
+
+    **Vérifie toujours `len()`** avant de décoder. Une trame courte décodée par `struct.unpack` lève ; une trame courte découpée par slicing renvoie du silence.
+- id: py13.2
+  type: cloze
+  level: 3
+  concepts:
+  - serie
+  - str-bytes
+  q: 'Décode une trame binaire : entête (1 octet), 2 mesures 16 bits signées **little-endian**, checksum (1 octet).'
+  tpl: |-
+    import ⟦0⟧
+
+    ENTETE = 0xAA
+    def decoder(trame: bytes):
+        if len(trame) != 6:
+            raise ValueError("longueur invalide")
+        entete, m1, m2, crc = ⟦0⟧.⟦1⟧("<BhhB", trame)
+        if entete != ENTETE:
+            raise ValueError("entête inattendu")
+        return m1, m2
+  blanks:
+  - - struct
+  - - unpack
+  e: |-
+    `struct` traduit octets ↔ types C. Le format se lit caractère par caractère :
+
+    | code | type | octets |
+    | --- | --- | --- |
+    | `B` / `b` | uint8 / int8 | 1 |
+    | `H` / `h` | uint16 / int16 | 2 |
+    | `I` / `i` | uint32 / int32 | 4 |
+    | `f` / `d` | float / double | 4 / 8 |
+
+    Le **premier caractère** fixe l’endianness et l’alignement : `<` little-endian sans padding, `>` big-endian (ordre réseau), `=` natif. **Mets-le toujours** — sans lui, Python utilise l’alignement natif et ajoute des octets de bourrage.
+
+    `struct.calcsize("<BhhB")` → 6. Utilise-le au lieu d’écrire la taille en dur.
+- id: py13.3
+  type: qcm
+  level: 2
+  concepts:
+  - logging
+  q: Pourquoi `logging` plutôt que `print` dans un script d’acquisition ?
+  choices:
+  - t: Niveaux, horodatage, redirection fichier et activation par module — sans toucher au code
+    ok: true
+    why: Tout ça gratuitement, configurable au lancement.
+  - t: C’est plus rapide
+    ok: false
+    why: Non, `print` est plus rapide. Ce n’est pas le critère.
+  - t: '`print` ne marche pas dans un thread'
+    ok: false
+    why: Si, mais les lignes peuvent s’entremêler.
+  - t: C’est une obligation PEP 8
+    ok: false
+    why: PEP 8 ne parle pas de ça.
+  e: |-
+    Configuration minimale, une fois, dans le point d’entrée :
+
+    ```python
+    import logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)-7s %(name)s: %(message)s",
+    )
+    log = logging.getLogger(__name__)
+    log.info("connexion %s à %d bauds", port, bauds)
+    ```
+
+    Trois réflexes :
+    - `getLogger(__name__)` par module → tu peux activer le debug d’**un seul** module.
+    - Passe les arguments en **paramètres** (`log.info("x=%s", x)`), pas en f-string : le formatage n’a lieu que si le niveau est actif.
+    - `log.exception("échec")` dans un `except` ajoute la traceback complète.
+- id: py13.4
+  type: parsons
+  level: 2
+  concepts:
+  - argparse
+  q: Reconstitue une CLI d’acquisition propre.
+  lang: python
+  lines:
+  - import argparse
+  - ''
+  - 'def main(argv=None):'
+  - '    p = argparse.ArgumentParser(description="Acquisition capteur")'
+  - '    p.add_argument("port", help="ex. /dev/ttyUSB0")'
+  - '    p.add_argument("-n", "--echantillons", type=int, default=100)'
+  - '    p.add_argument("-o", "--sortie", type=Path, default=Path("mesures.csv"))'
+  - '    p.add_argument("-v", "--verbeux", action="store_true")'
+  - '    args = p.parse_args(argv)'
+  - '    return acquerir(args.port, args.echantillons, args.sortie)'
+  - ''
+  - 'if __name__ == "__main__":'
+  - '    raise SystemExit(main())'
+  extra:
+  - '    args = p.parse_args(sys.argv)'
+  - '    exit(main())'
+  e: |-
+    Détails qui font la différence :
+    - `main(argv=None)` → `parse_args(argv)` rend la CLI **testable** : `main(["/dev/null", "-n", "5"])`.
+    - `type=int`, `type=Path` : argparse convertit et refuse les valeurs invalides avec un message correct.
+    - `action="store_true"` pour un drapeau.
+    - `raise SystemExit(main())` propage le code de retour au shell — un script qui renvoie toujours 0 est inutilisable en CI ou dans un script bash.
+- id: py13.5
+  type: bug
+  level: 2
+  concepts:
+  - csv-json
+  - fichiers
+  q: Ce code écrit un CSV qui contient une ligne vide sur deux sous Windows. Clique sur la ligne fautive.
+  code: |-
+    import csv
+
+    with open("mesures.csv", "w") as f:
+        w = csv.writer(f)
+        w.writerow(["t", "valeur"])
+        for t, v in donnees:
+            w.writerow([t, v])
+  bad: 3
+  fix: 'with open("mesures.csv", "w", newline="", encoding="utf-8") as f:'
+  e: |-
+    `csv.writer` écrit déjà `\r\n`. Sans `newline=""`, le mode texte de Windows retraduit le `\n` en `\r\n` → `\r\r\n` → ligne vide entre chaque ligne.
+
+    C’est **documenté** dans le module csv et systématiquement oublié.
+
+    Ajoute aussi `encoding="utf-8"` : l’encodage par défaut dépend de la locale du système (cp1252 sur beaucoup de Windows), donc ton fichier n’est pas portable. Depuis 3.15, UTF-8 devient le défaut, mais l’expliciter reste la bonne habitude.
+- id: py13.6
+  type: code
+  level: 3
+  concepts:
+  - fichiers
+  - csv-json
+  q: 'Écris `parser_ligne(ligne)` : à partir de `"2026-09-07T10:00:00;T1;20.5;C"` renvoie le dict `{"horodatage": ..., "capteur": "T1", "valeur": 20.5, "unite": "C"}`. Renvoie `None` si la ligne est vide, un commentaire (`#`), mal formée ou si la valeur n’est pas un nombre.'
+  lang: python
+  start: |-
+    def parser_ligne(ligne):
+        ...
+  sol: |-
+    def parser_ligne(ligne):
+        ligne = ligne.strip()
+        if not ligne or ligne.startswith("#"):
+            return None
+        champs = ligne.split(";")
+        if len(champs) != 4:
+            return None
+        horodatage, capteur, valeur, unite = champs
+        try:
+            valeur = float(valeur)
+        except ValueError:
+            return None
+        return {"horodatage": horodatage, "capteur": capteur,
+                "valeur": valeur, "unite": unite}
+  tests: |-
+    ok = parser_ligne("2026-09-07T10:00:00;T1;20.5;C")
+    assert ok == {"horodatage": "2026-09-07T10:00:00", "capteur": "T1", "valeur": 20.5, "unite": "C"}, ok
+    assert parser_ligne("") is None
+    assert parser_ligne("   ") is None
+    assert parser_ligne("# commentaire") is None
+    assert parser_ligne("a;b;c") is None
+    assert parser_ligne("t;T1;pas_un_nombre;C") is None
+    assert parser_ligne("  t;T1;3;C  ")["valeur"] == 3.0
+    print("OK")
+  e: |-
+    Un parseur de log doit être **total** : toute entrée donne une sortie, jamais une exception.
+
+    Les quatre rejets testés (vide, commentaire, mauvais nombre de champs, valeur non numérique) sont exactement ceux qu’on rencontre sur un vrai fichier — surtout la dernière ligne tronquée quand l’acquisition a été coupée.
+
+    Renvoyer `None` plutôt que lever permet à l’appelant de compter les rejets :
+    ```python
+    lignes = (parser_ligne(l) for l in f)
+    valides = [x for x in lignes if x is not None]
+    ```
+- id: py13.7
+  type: predict
+  level: 3
+  concepts:
+  - str-bytes
+  - serie
+  q: Sortie ?
+  code: |-
+    import struct
+    trame = struct.pack("<BhhB", 0xAA, -300, 1024, 0x7F)
+    print(len(trame), trame.hex(" "))
+    print(struct.unpack("<BhhB", trame))
+    print(struct.calcsize("<BhhB"), struct.calcsize("BhhB"))
+  answer: |-
+    6 aa d4 fe 00 04 7f
+    (170, -300, 1024, 127)
+    6 7
+  e: |-
+    Regarde la dernière ligne : `"<BhhB"` fait **6 octets**, `"BhhB"` en fait **7**.
+
+    Sans préfixe d'endianness, `struct` utilise l'alignement **natif** et insère des octets de bourrage pour aligner les `h` (16 bits) sur des adresses paires. Ta trame gagne un octet fantôme et ne correspond plus à ce qu'envoie le microcontrôleur.
+
+    **Mets toujours `<` (little-endian, sans padding) ou `>` (big-endian / ordre réseau).** C'est l'erreur n°1 sur les protocoles binaires.
+
+    Note aussi `-300` encodé `d4 fe` : complément à deux, octet de poids faible en premier.
+- id: py13.8
+  type: qcm
+  level: 2
+  concepts:
+  - fichiers
+  q: Tu écris un fichier de mesures qui doit survivre à une coupure de courant. Quelle stratégie ?
+  choices:
+  - t: Écrire dans un fichier temporaire, `flush` + `os.fsync`, puis `os.replace` vers le nom final
+    ok: true
+    why: '`os.replace` est atomique sur le même système de fichiers : le lecteur voit l’ancien fichier complet ou le nouveau complet, jamais un mélange.'
+  - t: Écrire directement dans le fichier final
+    ok: false
+    why: Une coupure au milieu laisse un fichier tronqué, et l’ancien est déjà perdu.
+  - t: Écrire puis vérifier la taille
+    ok: false
+    why: La vérification arrive après le risque.
+  - t: Utiliser `pickle`
+    ok: false
+    why: Le format ne change rien à l’atomicité.
+  e: |-
+    ```python
+    tmp = chemin.with_suffix(".tmp")
+    with open(tmp, "w", encoding="utf-8", newline="") as f:
+        ecrire(f)
+        f.flush()
+        os.fsync(f.fileno())      # force l'écriture physique
+    os.replace(tmp, chemin)       # atomique
+    ```
+
+    Trois niveaux à distinguer :
+    1. `write()` → tampon Python.
+    2. `flush()` → tampon du système.
+    3. `fsync()` → disque physique. **Seul `fsync` protège d'une coupure.**
+
+    `os.replace` écrase la cible atomiquement (contrairement à `os.rename` sous Windows, qui échoue si la cible existe).
+
+    Pour une acquisition longue, écris en **ajout** ligne par ligne avec un `flush` périodique : tu perds au pire la dernière seconde.
+- id: py13.9
+  type: bug
+  level: 3
+  concepts:
+  - logging
+  q: Ce logging coûte 15 % du temps CPU de la boucle d’acquisition. Clique sur la ligne fautive.
+  code: |-
+    import logging
+    log = logging.getLogger(__name__)
+
+    for echantillon in flux:
+        log.debug(f"reçu {echantillon!r} à {time.time()} depuis {port}")
+        traiter(echantillon)
+  bad: 5
+  fix: '    log.debug("reçu %r à %s depuis %s", echantillon, time.time(), port)'
+  e: |-
+    La f-string est évaluée **avant** l'appel : le formatage a lieu même si le niveau DEBUG est désactivé et que le message part à la poubelle.
+
+    Avec le style `%s`, `logging` ne formate que si l'enregistrement est réellement émis. Sur une boucle à 10 kHz, la différence est massive.
+
+    Pour un calcul vraiment coûteux dans le message :
+    ```python
+    if log.isEnabledFor(logging.DEBUG):
+        log.debug("spectre : %s", calcul_couteux())
+    ```
+
+    Autres réflexes `logging` :
+    - `log.exception("échec")` dans un `except` ajoute la traceback.
+    - `extra={"canal": 3}` attache des champs structurés.
+    - Configure **une seule fois**, dans le point d'entrée, jamais dans un module de bibliothèque.
+- id: py13.10
+  type: cloze
+  level: 2
+  concepts:
+  - csv-json
+  q: Lis un CSV avec en-têtes et écris-en un autre, proprement.
+  tpl: |-
+    import csv
+
+    with open("in.csv", newline="", encoding="utf-8") as f:
+        for ligne in csv.⟦0⟧(f):
+            print(ligne["capteur"], float(ligne["valeur"]))
+
+    with open("out.csv", "w", newline="", encoding="utf-8") as f:
+        w = csv.⟦1⟧(f, fieldnames=["t", "capteur", "valeur"])
+        w.⟦2⟧()
+        w.writerows(lignes)
+  blanks:
+  - - DictReader
+  - - DictWriter
+  - - writeheader
+  e: |-
+    `DictReader` renvoie un dict par ligne, indexé par les en-têtes : le code ne dépend plus de l'**ordre** des colonnes. Si quelqu'un insère une colonne, ton parseur continue de marcher.
+
+    `newline=""` est **obligatoire** dans les deux sens (voir l'exercice sur les lignes vides sous Windows), et `encoding="utf-8"` évite la dépendance à la locale.
+
+    Attention : `DictReader` renvoie toujours des **chaînes**. La conversion (`float`, `int`, `datetime.fromisoformat`) est à ta charge — c'est aussi là que tu valides.
+
+    Pour un séparateur `;` (Excel français) : `csv.DictReader(f, delimiter=";")`.
+- id: py13.11
+  type: qcm
+  level: 3
+  concepts:
+  - serie
+  q: Quel réglage `pyserial` faut-il impérativement fixer pour une boucle de lecture qui ne doit jamais se bloquer ?
+  choices:
+  - t: '`timeout` — sans lui, `read()` peut bloquer indéfiniment'
+    ok: true
+    why: Avec `timeout=0.2`, `read(n)` rend la main au bout de 200 ms avec ce qu’il a.
+  - t: '`baudrate`'
+    ok: false
+    why: Indispensable pour communiquer, mais il ne borne pas le temps d’attente.
+  - t: '`bytesize`'
+    ok: false
+    why: Paramètre de trame (8 bits en général), sans effet sur le blocage.
+  - t: '`xonxoff`'
+    ok: false
+    why: Contrôle de flux logiciel, rarement utilisé et sans rapport.
+  e: |-
+    ```python
+    ser = serial.Serial(port, 115200, timeout=0.2, write_timeout=1.0)
+    ```
+
+    | `timeout` | Comportement de `read(n)` |
+    | --- | --- |
+    | `None` | bloque jusqu'à avoir n octets — **fige ton programme** |
+    | `0` | non bloquant : rend ce qui est déjà là |
+    | `0.2` | attend au plus 200 ms |
+
+    N'oublie pas `write_timeout` : si l'autre bout n'accepte plus rien (contrôle de flux matériel), `write()` peut bloquer aussi.
+
+    Autres réglages qui comptent en pratique : `rtscts`/`dsrdtr` (contrôle de flux matériel), et le fait que l'ouverture du port **réinitialise** beaucoup de cartes Arduino/ESP32 via DTR — d'où les 2 premières secondes de silence.
+- id: py13.12
+  type: code
+  level: 3
+  concepts:
+  - argparse
+  q: 'Écris `construire_parseur()` qui renvoie un `ArgumentParser` avec : `port` (positionnel), `-n/--echantillons` (int, défaut 100), `-v/--verbeux` (drapeau).'
+  lang: python
+  start: |-
+    import argparse
+
+    def construire_parseur():
+        ...
+  sol: |-
+    import argparse
+
+    def construire_parseur():
+        p = argparse.ArgumentParser(prog="acquisition",
+                                    description="Acquisition capteur")
+        p.add_argument("port", help="ex. /dev/ttyUSB0")
+        p.add_argument("-n", "--echantillons", type=int, default=100)
+        p.add_argument("-v", "--verbeux", action="store_true")
+        return p
+  tests: |-
+    p = construire_parseur()
+    a = p.parse_args(["/dev/ttyUSB0"])
+    assert a.port == "/dev/ttyUSB0"
+    assert a.echantillons == 100 and a.verbeux is False
+    b = p.parse_args(["/dev/x", "-n", "5", "-v"])
+    assert b.echantillons == 5 and isinstance(b.echantillons, int)
+    assert b.verbeux is True
+    try:
+        p.parse_args([])
+        assert False, "port est obligatoire"
+    except SystemExit:
+        pass
+    try:
+        p.parse_args(["/dev/x", "-n", "abc"])
+        assert False, "n doit etre un entier"
+    except SystemExit:
+        pass
+    print("OK")
+  e: |-
+    Trois choses que le test vérifie et que beaucoup oublient :
+    - `type=int` : argparse **convertit et valide**. Sans lui, `args.echantillons` serait la chaîne `"5"` et `range(args.echantillons)` lèverait bien plus loin, avec un message incompréhensible.
+    - Un argument manquant ou invalide fait sortir argparse avec `SystemExit(2)` **et** un message d'usage — comportement standard des outils Unix.
+    - Séparer la **construction** du parseur de son **utilisation** rend la CLI testable sans sous-processus.
+
+    Pour aller plus loin : `choices=[9600, 115200]`, `type=Path`, `nargs="+"`, `add_subparsers()` pour des sous-commandes façon `git`.
+- id: py13.13
+  type: predict
+  level: 2
+  concepts:
+  - fichiers
+  q: Sortie ?
+  code: |-
+    import io
+    f = io.StringIO("a\nb\n\nc\n")
+    print(repr(f.readline()))
+    print([l.rstrip("\n") for l in f])
+    f.seek(0)
+    print(len(f.read().splitlines()))
+  answer: |-
+    'a\n'
+    ['b', '', 'c']
+    4
+  e: |-
+    Trois points :
+    - `readline()` conserve le `\n` final. C'est pour ça qu'on écrit `ligne.rstrip("\n")` ou `.strip()`.
+    - Itérer un fichier **reprend là où on en est** : `readline()` a consommé la première ligne, donc l'itération donne les suivantes. La ligne vide est bien présente dans le flux.
+    - `splitlines()` sur `"a\nb\n\nc\n"` donne 4 éléments (dont la chaîne vide) : le `\n` final ne crée pas d'élément supplémentaire.
+
+    `io.StringIO` / `io.BytesIO` sont des fichiers en mémoire : parfaits pour **tester** du code de parsing sans créer de fichier.
+- id: py13.14
+  type: qcm
+  level: 3
+  concepts:
+  - csv-json
+  q: Tu enregistres 10 millions d’échantillons. Quel format choisir ?
+  choices:
+  - t: 'Un format binaire : `.npy`, HDF5 ou Parquet'
+    ok: true
+    why: 5 à 10× plus petit, ~50× plus rapide à relire, et le type des données est conservé exactement.
+  - t: CSV
+    ok: false
+    why: Lisible, universel — mais volumineux, lent, et tout redevient du texte à la relecture.
+  - t: JSON
+    ok: false
+    why: Encore plus verbeux que le CSV pour des données tabulaires.
+  - t: pickle
+    ok: false
+    why: Rapide, mais illisible par un autre langage et **non sûr** à charger depuis une source non fiable.
+  e: |-
+    | Format | Taille (10⁷ float64) | Relecture | Interopérable |
+    | --- | --- | --- | --- |
+    | CSV | ~200 Mo | lente | partout |
+    | `.npy` | 80 Mo | très rapide | NumPy |
+    | HDF5 | ~80 Mo | rapide, partiel | tout l'écosystème scientifique |
+    | Parquet | ~40 Mo | rapide, colonnaire | pandas, Arrow, Spark |
+
+    Dans les grands instruments scientifiques comme dans les laboratoires, **HDF5** est le standard : hiérarchie de groupes, métadonnées attachées (unités, date, conditions), lecture partielle sans tout charger, compression intégrée. C'est la base du format NeXus.
+
+    Règle pratique : **binaire pour les données brutes, CSV pour les résumés** que tu vas ouvrir dans un tableur ou coller dans un rapport.
+
+    Et n'utilise jamais `pickle.load` sur un fichier reçu de l'extérieur : il exécute du code arbitraire.
+- id: py13.15
+  type: parsons
+  level: 3
+  concepts:
+  - serie
+  - logging
+  q: 'Reconstitue une boucle d’acquisition robuste : ressource fermée, arrêt propre au Ctrl-C, trames invalides comptées.'
+  lang: python
+  lines:
+  - 'def acquerir(port, n, sortie):'
+  - '    rejets = 0'
+  - '    log.info("acquisition de %d échantillons sur %s", n, port.name)'
+  - '    try:'
+  - '        with open(sortie, "w", newline="", encoding="utf-8") as f:'
+  - '            w = csv.writer(f)'
+  - '            w.writerow(["t", "valeur"])'
+  - '            for i in range(n):'
+  - '                trame = port.read(6)'
+  - '                if len(trame) != 6:'
+  - '                    rejets += 1'
+  - '                    continue'
+  - '                w.writerow([time.time(), decoder(trame)])'
+  - '    except KeyboardInterrupt:'
+  - '        log.warning("interrompu après %d/%d", i, n)'
+  - '    log.info("terminé, %d rejets", rejets)'
+  - '    return rejets'
+  extra:
+  - '        f = open(sortie, "w")'
+  - '                valeur = decoder(trame)  # sans verifier la longueur'
+  e: |-
+    Cinq propriétés d'une boucle d'acquisition qui tient la nuit :
+    1. Le `with` garantit la fermeture du fichier — même sur Ctrl-C, même sur exception.
+    2. **Vérifier `len(trame)`** avant de décoder : un timeout renvoie une trame courte, et `struct.unpack` lèverait au milieu de la nuit.
+    3. `KeyboardInterrupt` attrapé **autour** de la boucle : Ctrl-C termine proprement et conserve ce qui a déjà été écrit.
+    4. Les rejets sont **comptés et retournés** : « 9 987/10 000 » est une information de qualité, pas un détail.
+    5. Un log au début et à la fin : sans horodatage de début, un fichier de mesures est inexploitable trois mois plus tard.
+
+    ⚠️ `KeyboardInterrupt` hérite de `BaseException`, pas d'`Exception` : un `except Exception` ne l'attrape pas. Ici c'est explicite, donc correct.
+- id: py13.16
+  type: flash
+  level: 2
+  concepts:
+  - fichiers
+  - logging
+  q: 'Configuration `logging` type pour un script d’acquisition : console + fichier tournant.'
+  back: |-
+    ```python
+    import logging
+    from logging.handlers import RotatingFileHandler
+
+    def configurer(verbeux: bool, fichier="acquisition.log"):
+        fmt = "%(asctime)s %(levelname)-7s %(name)s: %(message)s"
+        racine = logging.getLogger()
+        racine.setLevel(logging.DEBUG if verbeux else logging.INFO)
+
+        console = logging.StreamHandler()
+        console.setLevel(logging.INFO)
+        console.setFormatter(logging.Formatter(fmt))
+
+        disque = RotatingFileHandler(fichier, maxBytes=5_000_000, backupCount=3)
+        disque.setLevel(logging.DEBUG)
+        disque.setFormatter(logging.Formatter(fmt))
+
+        racine.handlers = [console, disque]
+    ```
+  e: |-
+    Le principe : le **logger** décide quoi émettre, chaque **handler** décide quoi il garde. Ici la console reste lisible (INFO) pendant que le fichier enregistre tout (DEBUG) pour l'analyse post-mortem.
+
+    `RotatingFileHandler` évite le fichier de 40 Go après trois semaines de manip.
+
+    Appelle `configurer()` **une seule fois**, dans le point d'entrée. Un module de bibliothèque ne fait que `log = logging.getLogger(__name__)` et n'ajoute jamais de handler.

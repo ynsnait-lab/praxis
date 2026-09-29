@@ -1,0 +1,703 @@
+id: cpp13
+track: cpp
+title: Build, headers, outils
+goal: Découper un projet CMake propre et lire ce que crache le compilateur.
+level: avance
+requires:
+- cpp01
+concepts:
+- headers
+- cmake
+- linker
+- sanitizers
+- warnings
+lesson:
+  minutes: 18
+  intro: |
+    Au-delà de trois fichiers, taper la commande `g++` à la main devient intenable : quels fichiers compiler, avec quelles options, dans quel ordre lier les bibliothèques, comment lancer les tests ? **CMake** décrit tout cela une fois, pour n'importe quelle machine. Ce module te donne un projet type (bibliothèque, programme, tests), les options de compilation qui attrapent les bugs, et la lecture des erreurs du linker. C'est exactement la structure des labs C++ de Praxis.
+  steps:
+    - level: 1
+      title: La nomenclature et la gamme de fabrication
+      body: |
+        Pour fabriquer un ensemble mécanique, on a une **nomenclature** (quelles pièces composent quels sous-ensembles) et une **gamme** (les opérations, les réglages). CMake joue ce rôle pour un programme : le fichier `CMakeLists.txt` dit quels fichiers forment quelle **cible** (une bibliothèque, un exécutable, un test), de quoi chaque cible dépend, et avec quelles options la compiler.
+
+        À partir de cette description, CMake génère les instructions concrètes pour l'outil de fabrication de ta machine (Ninja, Make, Xcode), comme une maquette de CAO dont on sort les plans pour un atelier donné.
+    - level: 2
+      title: Cibles, dépendances, options
+      body: |
+        - `add_library(capteur src/capteur.cpp)` : une bibliothèque, qui contient la logique testable. `add_executable(banc src/main.cpp)` : un programme.
+        - `target_link_libraries(banc PRIVATE capteur)` : `banc` utilise `capteur`. CMake transmet alors la bibliothèque **et** ses exigences marquées `PUBLIC` (dossiers d'en-têtes, options).
+        - `target_include_directories(capteur PUBLIC include)` : où trouver les `.hpp`, pour la cible et pour ceux qui la lient. `PRIVATE` : pour la cible seulement. `INTERFACE` : pour ceux qui la lient seulement.
+        - `target_compile_options(capteur PRIVATE -Wall -Wextra …)` et `set(CMAKE_CXX_STANDARD 20)`.
+        - Compilation **hors source** : `cmake -S . -B build` (configurer), `cmake --build build` (compiler), `ctest --test-dir build` (tester). Le dossier `build/` se supprime sans risque.
+        - Types de compilation : `Debug` (`-O0 -g`), `Release` (`-O3 -DNDEBUG`), `RelWithDebInfo` (`-O2 -g -DNDEBUG`), choisis avec `-DCMAKE_BUILD_TYPE=Debug`.
+        - **En-têtes** : `#pragma once` en première ligne, uniquement des déclarations (plus `inline`, `constexpr` et templates), et jamais de `using namespace` : il se propagerait à tous les fichiers qui incluent l'en-tête.
+      check:
+        q: "`undefined reference to 'Capteur::lire()'` au link. Cause la plus probable ?"
+        choices:
+          - t: Le fichier qui définit `Capteur::lire` n'est pas compilé ou pas lié (absent de la cible, ou bibliothèque non liée)
+            ok: true
+            why: Le compilateur a vu la déclaration (sinon il aurait refusé l'appel), mais le linker ne trouve le code nulle part.
+          - t: Il manque un `#include "capteur.hpp"`
+            why: Sans l'en-tête, c'est le **compilateur** qui protesterait (`'Capteur' was not declared`), pas le linker.
+          - t: Une faute de syntaxe dans `capteur.cpp`
+            why: La compilation de `capteur.cpp` aurait échoué avant même l'édition de liens.
+    - level: 3
+      title: Un projet type
+      body: |
+        L'arborescence : `include/capteur.hpp`, `src/capteur.cpp`, `src/main.cpp`, `tests/test_capteur.cpp`, et à la racine ce `CMakeLists.txt` :
+      code: |
+        cmake_minimum_required(VERSION 3.20)
+        project(banc LANGUAGES CXX)
+
+        set(CMAKE_CXX_STANDARD 20)
+        set(CMAKE_CXX_STANDARD_REQUIRED ON)
+        set(CMAKE_EXPORT_COMPILE_COMMANDS ON)          # pour VS Code et clang-tidy
+
+        add_library(capteur src/capteur.cpp)            # la logique, dans une bibliothèque
+        target_include_directories(capteur PUBLIC include)
+        target_compile_options(capteur PRIVATE -Wall -Wextra -Wpedantic -Wconversion)
+
+        add_executable(banc src/main.cpp)               # le programme
+        target_link_libraries(banc PRIVATE capteur)
+
+        enable_testing()
+        add_executable(test_capteur tests/test_capteur.cpp)
+        target_link_libraries(test_capteur PRIVATE capteur)
+        add_test(NAME capteur COMMAND test_capteur)     # un test = un programme qui renvoie 0
+      lang: cmake
+      verify: false
+      after: |
+        Et la boucle de travail, avec sa sortie réelle :
+
+        ```text
+        $ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
+        -- Build files have been written to: …/banc/build
+        $ cmake --build build
+        [1/6] Building CXX object CMakeFiles/banc.dir/src/main.cpp.o
+        [2/6] Building CXX object CMakeFiles/capteur.dir/src/capteur.cpp.o
+        [3/6] Building CXX object CMakeFiles/test_capteur.dir/tests/test_capteur.cpp.o
+        [4/6] Linking CXX static library libcapteur.a
+        [5/6] Linking CXX executable banc
+        [6/6] Linking CXX executable test_capteur
+        $ ctest --test-dir build
+        1/1 Test #1: capteur ..........................   Passed    0.00 sec
+        100% tests passed, 0 tests failed out of 1
+        $ ./build/banc
+        25.0625 °C
+        ```
+
+        Expérience instructive : commente la ligne `target_link_libraries(banc PRIVATE capteur)`. L'erreur n'est pas celle du linker qu'on attendait, mais `fatal error: capteur.hpp: No such file or directory` : c'est aussi ce lien qui transmettait le dossier `include` marqué `PUBLIC`.
+    - level: 4
+      title: Ce que voit le linker
+      body: |
+        Le linker ne connaît pas les fonctions C++, il manipule des **symboles**. Pour permettre la surcharge, le compilateur **décore** chaque nom avec les types de ses paramètres (*name mangling*). `nm` liste les symboles d'un fichier objet, `nm -C` les traduit :
+
+        ```text
+        $ nm noms.o
+        0000000000000030 T _Z9somme_cppdd       ← somme_cpp(double, double)
+        0000000000000018 T _Z9somme_cppii       ← somme_cpp(int, int)
+        0000000000000000 T somme_c              ← extern "C" : nom brut
+        ```
+
+        `extern "C"` supprime la décoration : c'est ce qui permet d'appeler une bibliothèque C depuis du C++ (et réciproquement). Les en-têtes C bien faits entourent leurs déclarations d'un `extern "C"` quand ils sont inclus en C++.
+
+        Deux autres règles utiles : avec des bibliothèques statiques, le linker lit la ligne **de gauche à droite**, donc une bibliothèque doit venir **après** ceux qui l'utilisent (`-lcapteur -lmaths` si `capteur` utilise `maths`) ; CMake gère cet ordre pour toi à partir de `target_link_libraries`. Et la configuration de compilation se voit dans le code, par exemple à travers `NDEBUG`, qui désactive les `assert`.
+      code: |
+        #include <cassert>
+        #include <cstdio>
+
+        extern "C" int somme_c(int a, int b) { return a + b; }    // appelable depuis du C
+        int somme_cpp(int a, int b) { return a + b; }             // symbole _Z9somme_cppii
+
+        int main() {
+            std::printf("C++ %ld\n", __cplusplus);                 // version du langage
+        #ifdef NDEBUG
+            std::printf("NDEBUG défini : les assert sont désactivés\n");
+        #else
+            std::printf("mise au point : les assert sont actifs\n");
+        #endif
+            assert(somme_c(2, 2) == 4 && "somme_c cassée");
+            std::printf("%d, depuis %s ligne %d\n", somme_cpp(20, 22), __func__, __LINE__);
+        }
+      out: |
+        C++ 202002
+        mise au point : les assert sont actifs
+        42, depuis main ligne 15
+    - level: 5
+      title: Sur le terrain
+      body: |
+        - **Deux configurations** : `build-debug` avec `-DCMAKE_BUILD_TYPE=Debug` et les sanitizers (`-fsanitize=address,undefined`), `build-release` avec `-DCMAKE_BUILD_TYPE=Release`. AddressSanitizer et ThreadSanitizer ne se combinent pas : une configuration chacun.
+        - Avertissements à activer : `-Wall -Wextra -Wpedantic -Wconversion -Wshadow`, et `-Werror` en intégration continue.
+        - `CMAKE_EXPORT_COMPILE_COMMANDS` produit `compile_commands.json`, que lisent VS Code (extension clangd ou C/C++), clang-tidy (analyse statique) et clang-format (mise en forme).
+        - Temps de compilation : inclure le minimum dans les en-têtes, déclarer à l'avance (`class Capteur;`) plutôt qu'inclure quand un pointeur ou une référence suffit, compiler avec Ninja (`-G Ninja`), et `ccache` pour réutiliser les compilations précédentes.
+        - Sur ESP32 avec PlatformIO, le même esprit : options dans `platformio.ini` (`build_flags = -Wall -Wextra`), logique dans une bibliothèque testable, et tests sur PC avec `pio test -e native`.
+        - Sur ton Mac : `brew install cmake ninja`, et le compilateur vient des *Command Line Tools* d'Apple (`xcode-select --install`).
+  recap:
+    - "`add_library`, `add_executable`, `target_link_libraries` : des cibles et leurs dépendances."
+    - "`PUBLIC` se transmet à ceux qui lient la cible, `PRIVATE` non."
+    - "`cmake -S . -B build`, `cmake --build build`, `ctest --test-dir build`."
+    - "Le linker voit des symboles décorés ; `extern \"C\"` pour dialoguer avec du C."
+    - "Debug avec sanitizers, Release optimisé ; avertissements au maximum, `-Werror` en CI."
+  pieges: [cpp-warnings-ignores, cpp-undefined-reference, cpp-using-namespace-header, cpp-definition-dans-header]
+exercises:
+- id: cpp13.1
+  type: qcm
+  level: 2
+  concepts:
+  - linker
+  q: '`undefined reference to "Capteur::lire()"` — cause la plus probable ?'
+  choices:
+  - t: La méthode est déclarée dans le .h mais son .cpp n’est pas compilé/lié
+    ok: true
+    why: Fichier oublié dans CMakeLists, ou définition jamais écrite.
+  - t: Erreur de syntaxe dans le .h
+    ok: false
+    why: Ce serait une erreur de **compilation**, pas de link.
+  - t: Il manque un `#include`
+    ok: false
+    why: 'Même remarque : ça casserait à la compilation.'
+  - t: Le compilateur est trop ancien
+    ok: false
+    why: 'Rien à voir : le message vient du linker, qui ne connaît que des symboles, pas des versions de langage.'
+  e: |-
+    Le message te dit **à quelle étape** ça casse — c’est l’information la plus utile.
+
+    `undefined reference` = le linker a une **déclaration** mais pas de **définition**. Causes, par fréquence :
+    1. Le `.cpp` n’est pas dans la liste des sources.
+    2. Le corps de la fonction n’a jamais été écrit.
+    3. Signature différente entre déclaration et définition (`const` oublié, `Capteur::` oublié).
+    4. Une bibliothèque n’est pas liée (`-lpthread`, `-lm`).
+    5. Un template défini dans un `.cpp`.
+    6. `extern "C"` manquant en liant du C avec du C++.
+
+    `nm -C mon.o | grep lire` te dit si le symbole est défini (`T`) ou seulement référencé (`U`).
+- id: cpp13.2
+  type: qcm
+  level: 2
+  concepts:
+  - headers
+  q: '`#pragma once` vs les gardes `#ifndef/#define/#endif` ?'
+  choices:
+  - t: '`#pragma once` est plus simple et supporté partout en pratique, mais non standard'
+    ok: true
+    why: GCC, Clang, MSVC, ARM, IAR le gèrent. Le risque théorique concerne les liens symboliques et les copies de fichiers.
+  - t: Les gardes sont obsolètes
+    ok: false
+    why: Toujours parfaitement valides, et strictement portables.
+  - t: '`#pragma once` est plus lent'
+    ok: false
+    why: Généralement plus rapide (le compilateur peut sauter la lecture du fichier).
+  - t: Les deux sont équivalents et standards
+    ok: false
+    why: '`#pragma once` n’est pas dans le standard.'
+  e: |-
+    Sans protection, un `.h` inclus deux fois donne `redefinition of 'struct X'`.
+
+    En pratique : `#pragma once` en tête de chaque en-tête. Si tu écris du code destiné à des compilateurs exotiques, les gardes classiques avec un nom unique (`PROJET_MODULE_H`).
+
+    Autres bonnes pratiques d’en-tête :
+    - **Inclure ce que tu utilises**, ne pas compter sur les inclusions transitives.
+    - Préférer une **déclaration anticipée** (`class Capteur;`) à un `#include` quand seul un pointeur/une référence est nécessaire → temps de compilation réduit.
+    - Jamais de `using namespace std;` dans un `.h` : tu l’imposes à tous ceux qui incluent.
+- id: cpp13.3
+  type: parsons
+  level: 2
+  concepts:
+  - cmake
+  q: Reconstitue un `CMakeLists.txt` minimal et correct.
+  lang: text
+  lines:
+  - cmake_minimum_required(VERSION 3.20)
+  - project(acquisition LANGUAGES CXX)
+  - ''
+  - set(CMAKE_CXX_STANDARD 17)
+  - set(CMAKE_CXX_STANDARD_REQUIRED ON)
+  - ''
+  - add_executable(acquisition src/main.cpp src/capteur.cpp)
+  - target_include_directories(acquisition PRIVATE include)
+  - target_compile_options(acquisition PRIVATE -Wall -Wextra -Wpedantic)
+  extra:
+  - include_directories(include)
+  - add_library(acquisition src/main.cpp)
+  e: |-
+    Le CMake moderne est **orienté cibles** : tout ce qui configure passe par `target_*`, jamais par les commandes globales (`include_directories`, `add_definitions`) qui polluent tout le projet.
+
+    `PRIVATE` = seulement pour compiler cette cible. `PUBLIC` = aussi propagé à ceux qui la lient. `INTERFACE` = seulement pour eux.
+
+    Boucle de travail :
+    ```bash
+    cmake -B build -DCMAKE_BUILD_TYPE=Debug
+    cmake --build build -j
+    ./build/acquisition
+    ```
+    Ajoute `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON` : ça génère `compile_commands.json`, ce dont clangd (donc l’autocomplétion de VS Code) a besoin.
+- id: cpp13.4
+  type: cloze
+  level: 2
+  concepts:
+  - warnings
+  - sanitizers
+  q: La ligne de compilation à utiliser pendant le développement.
+  lang: shell
+  verify: skip
+  tpl: g++ -std=c++17 -Wall -⟦0⟧ -Wpedantic -Wshadow -Wconversion     -fsanitize=address,⟦1⟧ -g -O1 main.cpp -o app
+  blanks:
+  - - Wextra
+  - - undefined
+  e: |-
+    - `-Wall -Wextra` : le socle. `-Wpedantic` refuse les extensions non standard.
+    - `-Wshadow` : une variable locale qui en masque une autre — source de bugs discrets.
+    - `-Wconversion` : toute conversion implicite qui perd de l’information. Bruyant au début, précieux en embarqué.
+    - `-fsanitize=address` (ASan) : dépassements, use-after-free, fuites.
+    - `-fsanitize=undefined` (UBSan) : débordement signé, décalage invalide, déréférencement nul.
+    - `-g` pour les symboles, `-O1` parce que les sanitizers ont besoin d’un minimum d’optimisation pour être précis.
+
+    En CI, ajoute `-Werror` : un avertissement devient une erreur. C’est la seule façon d’empêcher la dette de s’accumuler.
+- id: cpp13.5
+  type: qcm
+  level: 3
+  concepts:
+  - linker
+  q: '`multiple definition of "compteur"` au link. Quelle est la cause ?'
+  choices:
+  - t: Une **variable** (non `inline`, non `static`) est définie dans un en-tête inclus par plusieurs .cpp
+    ok: true
+    why: 'Chaque unité de traduction produit son propre symbole : violation de l’ODR.'
+  - t: Le même .cpp est compilé deux fois
+    ok: false
+    why: Possible mais rare, et le message serait le même pour toutes les fonctions.
+  - t: Il manque un `#pragma once`
+    ok: false
+    why: Le garde protège contre la double inclusion **dans une même** unité, pas entre unités.
+  - t: Le fichier est trop gros
+    ok: false
+    why: Aucun rapport.
+  e: |-
+    C'est le point que `#pragma once` **ne** résout pas : il empêche d'inclure deux fois dans le **même** .cpp, pas dans plusieurs.
+
+    Solutions, par ordre de préférence :
+    ```cpp
+    inline int compteur = 0;        // C++17 : une seule instance, dans le .h
+    // ou
+    extern int compteur;            // .h : déclaration
+    int compteur = 0;               // UN seul .cpp : définition
+    // ou
+    static int compteur = 0;        // une copie PAR unité — rarement voulu
+    ```
+
+    Même règle pour les fonctions : celles définies dans un `.h` doivent être `inline` (les méthodes définies dans la classe, les templates et les `constexpr` le sont implicitement).
+
+    Diagnostic : `nm -C fichier.o | grep compteur` — un `B`/`D` majuscule signifie « défini ici ». Si tu le vois dans deux .o, tu as trouvé.
+- id: cpp13.6
+  type: cloze
+  level: 2
+  concepts:
+  - cmake
+  q: Ajoute une bibliothèque et des tests à un projet CMake moderne.
+  lang: cmake
+  verify: skip
+  tpl: |-
+    add_library(protocole src/protocole.cpp)
+    target_include_directories(protocole ⟦0⟧ include)
+    target_compile_features(protocole PUBLIC cxx_std_17)
+
+    add_executable(acquisition src/main.cpp)
+    target_⟦1⟧_libraries(acquisition PRIVATE protocole)
+
+    enable_testing()
+    add_executable(tests tests/test_protocole.cpp)
+    target_link_libraries(tests PRIVATE protocole)
+    add_⟦2⟧(NAME protocole COMMAND tests)
+  blanks:
+  - - PUBLIC
+  - - link
+  - - test
+  e: |-
+    `PUBLIC` sur `target_include_directories` : le dossier `include` est ajouté **pour la bibliothèque et pour tous ceux qui la lient**. Avec `PRIVATE`, `acquisition` ne trouverait pas les en-têtes.
+
+    La règle des trois portées :
+    | Mot-clé | Pour compiler la cible | Pour les consommateurs |
+    | --- | --- | --- |
+    | `PRIVATE` | oui | non |
+    | `PUBLIC` | oui | oui |
+    | `INTERFACE` | non | oui |
+
+    `target_compile_features(... cxx_std_17)` est préférable à `set(CMAKE_CXX_STANDARD 17)` : l'exigence voyage avec la cible.
+
+    Boucle de travail :
+    ```bash
+    cmake -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+    cmake --build build -j
+    ctest --test-dir build --output-on-failure
+    ```
+    Le `compile_commands.json` est ce dont clangd (donc l'autocomplétion de VS Code) a besoin.
+- id: cpp13.7
+  type: qcm
+  level: 3
+  concepts:
+  - headers
+  q: Comment réduire le temps de compilation d’un gros projet C++ ?
+  choices:
+  - t: Déclarations anticipées, moins d’includes dans les .h, PIMPL, unités précompilées
+    ok: true
+    why: 'Le coût vient du texte que chaque unité doit avaler : `<iostream>` seul fait ~40 000 lignes après préprocesseur.'
+  - t: Réduire le nombre de fichiers
+    ok: false
+    why: Moins de fichiers = moins de parallélisme, souvent plus lent.
+  - t: Enlever les commentaires
+    ok: false
+    why: Le préprocesseur les supprime en premier, coût nul.
+  - t: Passer en `-O3`
+    ok: false
+    why: Cela **augmente** le temps de compilation.
+  e: |-
+    Le C++ recompile le contenu de chaque en-tête dans chaque unité qui l'inclut. `g++ -E main.cpp | wc -l` sur un fichier avec `<iostream>` : ~40 000 lignes.
+
+    Les leviers, du plus rentable au moins :
+    1. **Déclaration anticipée** au lieu d'`#include` : si tu n'utilises que `Capteur*` ou `Capteur&`, écris `class Capteur;`.
+    2. **Inclure dans le .cpp**, pas dans le .h, chaque fois que possible.
+    3. **PIMPL** : cache l'implémentation derrière un pointeur, les clients ne recompilent plus quand elle change.
+    4. **En-têtes précompilés** (`target_precompile_headers`) pour `<vector>`, `<string>`, etc.
+    5. **ccache** : réutilise les objets déjà compilés.
+    6. **Unity builds** : concatène les .cpp — gain massif, mais fragile.
+
+    Mesure d'abord : `-ftime-report` (GCC) ou `-ftime-trace` (Clang, visualisable dans Chrome).
+
+    Les **modules** C++20 règlent le problème à la racine, mais leur support par les outils reste partiel en 2026.
+- id: cpp13.8
+  type: flash
+  level: 2
+  concepts:
+  - warnings
+  q: Les avertissements GCC/Clang à activer, et ce qu’ils attrapent.
+  back: |-
+    ```
+    -Wall -Wextra -Wpedantic     le socle
+    -Wshadow                     variable qui en masque une autre
+    -Wconversion                 conversion implicite avec perte
+    -Wsign-compare               comparaison signé / non signé
+    -Wold-style-cast             cast à la C dans du C++
+    -Wnon-virtual-dtor           base polymorphe sans destructeur virtuel
+    -Wnull-dereference           déréférencement potentiellement nul
+    -Wdouble-promotion           float promu en double (crucial en embarqué)
+    -Wswitch-enum                cas d'enum manquant dans un switch
+    -Werror                      transforme tout en erreur (en CI)
+    ```
+  e: |-
+    `-Wconversion` et `-Wdouble-promotion` sont bruyants au début et **précieux** en embarqué : le premier attrape les troncatures silencieuses, le second les `0.1` écrits au lieu de `0.1f` (qui font passer un Cortex-M4F en émulation logicielle).
+
+    `-Wswitch-enum` transforme l'ajout d'un état en machine à états en **erreur de compilation** dans tous les `switch` incomplets. C'est le meilleur filet de sécurité pour du code d'automate.
+
+    Mets `-Werror` **en CI seulement**, pas en développement local : sinon un avertissement bénin bloque ton itération.
+
+    Un avertissement non traité est une dette. Traite-les tous, ou désactive explicitement la règle avec un commentaire justifiant pourquoi.
+- id: cpp13.9
+  type: qcm
+  level: 3
+  concepts:
+  - sanitizers
+  q: Peut-on combiner AddressSanitizer et ThreadSanitizer dans la même compilation ?
+  choices:
+  - t: 'Non : ils sont incompatibles, il faut deux exécutions séparées'
+    ok: true
+    why: Chacun réimplémente l’allocateur et l’instrumentation mémoire.
+  - t: Oui, c’est recommandé
+    ok: false
+    why: Le compilateur refuse la combinaison.
+  - t: Oui, mais seulement avec Clang
+    ok: false
+    why: Ni GCC ni Clang ne l’acceptent.
+  - t: Seulement en `-O0`
+    ok: false
+    why: Le niveau d’optimisation n’y change rien.
+  e: |-
+    Trois passes distinctes en CI :
+    ```bash
+    g++ -fsanitize=address,undefined -g -O1 …   # mémoire + UB
+    g++ -fsanitize=thread -g -O1 …               # courses de données
+    valgrind --tool=memcheck ./app               # alternative plus lente, sans recompilation
+    ```
+
+    ASan+UBSan sont compatibles entre eux — c'est la combinaison par défaut.
+
+    Coûts : ASan ≈ ×2 en temps et ×3 en mémoire ; TSan ≈ ×5 à ×15. Acceptable sur une suite de tests, jamais en production.
+
+    Variables d'environnement utiles :
+    ```bash
+    ASAN_OPTIONS=detect_leaks=1:abort_on_error=1
+    UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1
+    ```
+    Sans `halt_on_error`, UBSan **affiche et continue** — tu peux rater un message dans le bruit.
+
+    Sur cible embarquée, aucun sanitizer ne tourne : d'où l'intérêt de tester la logique pure sur PC.
+- id: cpp13.10
+  type: bug
+  level: 3
+  concepts:
+  - headers
+  - linker
+  q: Ce header ralentit la compilation de tout le projet. Clique sur la ligne à supprimer.
+  lang: cpp
+  code: |-
+    #pragma once
+    #include <vector>
+    #include <iostream>
+    #include "capteur.hpp"
+
+    class Journal {
+        std::vector<double> v_;
+    public:
+        void ajouter(double x);
+        void afficher() const;      // implémentée dans le .cpp
+    };
+  bad: 3
+  fix: '// <iostream> n''est utilisé que dans le .cpp : l''y déplacer'
+  e: |-
+    `<iostream>` n'est utilisé par aucune déclaration de cet en-tête — seulement par l'implémentation d'`afficher()`, qui vit dans le `.cpp`. Il est donc inclus, et donc recompilé, dans **toutes** les unités qui incluent `Journal`.
+
+    `<iostream>` est particulièrement coûteux : ~40 000 lignes après préprocesseur, **et** il injecte un objet statique (`std::ios_base::Init`) dans chaque unité de traduction.
+
+    Deux règles :
+    1. **Inclure ce que tu utilises, dans le fichier où tu l'utilises.** Les includes d'implémentation vont dans le `.cpp`.
+    2. **Déclaration anticipée** quand un pointeur ou une référence suffit :
+    ```cpp
+    class Capteur;                 // au lieu de #include "capteur.hpp"
+    void enregistrer(const Capteur& c);
+    ```
+    (`<vector>` est en revanche nécessaire ici : `std::vector<double>` est un **membre**, sa taille doit être connue.)
+
+    Outil : `include-what-you-use` analyse et propose les corrections automatiquement.
+- id: cpp13.11
+  type: predict
+  level: 3
+  concepts:
+  - cmake
+  - linker
+  q: Dans quel ordre le linker traite-t-il `g++ main.o -lA -lB` si A dépend de B ? Et si on écrit `-lB -lA` ?
+  lang: cpp
+  code: |-
+    # A dépend de B
+    g++ main.o -lA -lB      # ?
+    g++ main.o -lB -lA      # ?
+  answer: la première fonctionne, la seconde échoue
+  accept:
+  - la premiere fonctionne, la seconde echoue
+  - ok puis undefined reference
+  - la 1re marche, la 2e echoue
+  norun: true
+  e: |-
+    Le linker traite les bibliothèques **de gauche à droite, en une seule passe**. Quand il rencontre `-lB`, il n'extrait que les objets résolvant des symboles **déjà** indéfinis.
+
+    Avec `-lB -lA` : au moment de lire B, aucun symbole de B n'est encore demandé → rien n'est extrait. Puis A demande des symboles de B → `undefined reference`.
+
+    **Règle : les dépendances viennent après ceux qui en dépendent.**
+
+    C'est une des sources les plus déroutantes d'`undefined reference` sur du code parfaitement correct.
+
+    Solutions :
+    - ordre correct manuel ;
+    - `-Wl,--start-group -lA -lB -Wl,--end-group` pour les dépendances circulaires (coûteux : plusieurs passes) ;
+    - **CMake** : `target_link_libraries` calcule l'ordre topologique tout seul. C'est la vraie réponse.
+
+    Note : cette règle ne s'applique qu'aux bibliothèques **statiques** (`.a`). Les partagées (`.so`) sont résolues différemment.
+- id: cpp13.12
+  type: parsons
+  level: 3
+  concepts:
+  - cmake
+  q: Reconstitue un CMakeLists de projet embarqué avec tests sur PC.
+  lang: text
+  lines:
+  - cmake_minimum_required(VERSION 3.20)
+  - project(capteur LANGUAGES CXX)
+  - ''
+  - '# La logique pure : compilable et testable sur PC comme sur cible'
+  - add_library(logique src/protocole.cpp src/pid.cpp)
+  - target_include_directories(logique PUBLIC include)
+  - target_compile_features(logique PUBLIC cxx_std_17)
+  - target_compile_options(logique PRIVATE -Wall -Wextra -Wconversion)
+  - ''
+  - if(BUILD_TESTING)
+  - '  enable_testing()'
+  - '  add_executable(tests tests/test_protocole.cpp)'
+  - '  target_link_libraries(tests PRIVATE logique)'
+  - '  target_compile_options(tests PRIVATE -fsanitize=address,undefined)'
+  - '  target_link_options(tests PRIVATE -fsanitize=address,undefined)'
+  - '  add_test(NAME protocole COMMAND tests)'
+  - endif()
+  extra:
+  - include_directories(include)
+  - set(CMAKE_CXX_FLAGS "-Wall")
+  e: |-
+    L'architecture qui rend l'embarqué testable : **séparer la logique de l'accès matériel**.
+
+    `logique` ne contient aucun accès registre, aucun `volatile` — uniquement du décodage de trames, du calcul, des machines à états. Elle compile pour PC **et** pour la cible.
+
+    Les tests ne tournent que sur PC (`BUILD_TESTING`), avec sanitizers : c'est là que tu attrapes les débordements et les UB, impossibles à détecter sur MCU.
+
+    Les intrus sont les commandes **globales** de l'ancien CMake : `include_directories` et `CMAKE_CXX_FLAGS` s'appliquent à tout le projet, y compris aux dépendances externes que tu ne veux pas modifier. Le CMake moderne est **orienté cibles**.
+
+    Note `target_link_options` en plus de `target_compile_options` : les sanitizers doivent être passés aux **deux** étapes, sinon le link échoue.
+- id: cpp13.13
+  type: code
+  level: 3
+  concepts:
+  - warnings
+  - sanitizers
+  q: 'Ce code déclenche `-Wconversion` et un dépassement sous ASan. Écris `uint8_t moyenne8(const uint8_t* t, std::size_t n)` correct : moyenne arrondie, `0` si `n == 0`.'
+  lang: cpp
+  start: |-
+    #include <cstdint>
+    #include <cstddef>
+
+    uint8_t moyenne8(const uint8_t* t, std::size_t n) {
+        // ton code
+    }
+  sol: |-
+    #include <cstdint>
+    #include <cstddef>
+
+    uint8_t moyenne8(const uint8_t* t, std::size_t n) {
+        if (t == nullptr || n == 0) return 0;
+        uint32_t total = 0;
+        for (std::size_t i = 0; i < n; ++i) total += t[i];
+        return static_cast<uint8_t>((total + n / 2) / n);
+    }
+  tests: |-
+    #include <cassert>
+    #include <iostream>
+    int main() {
+        uint8_t a[3] = {10, 20, 30};
+        assert(moyenne8(a, 3) == 20);
+        uint8_t b[4] = {255, 255, 255, 255};
+        assert(moyenne8(b, 4) == 255 && "pas de debordement de la somme");
+        uint8_t c[2] = {1, 2};
+        assert(moyenne8(c, 2) == 2 && "arrondi au plus proche : 1.5 -> 2");
+        assert(moyenne8(nullptr, 0) == 0);
+        assert(moyenne8(a, 0) == 0);
+        uint8_t d[1] = {7};
+        assert(moyenne8(d, 1) == 7);
+        std::cout << "OK\n";
+    }
+  e: |-
+    Trois exigences, trois lignes :
+    1. **Accumuler dans un type large** : quatre `uint8_t` à 255 font 1020, qui déborde un `uint8_t` et même un `uint16_t` au-delà de 257 éléments. `uint32_t` couvre 16 millions d'échantillons.
+    2. **Arrondi au plus proche** : `(total + n/2) / n` au lieu de `total / n` qui tronque. Sur `{1, 2}`, la troncature donnerait 1 au lieu de 2.
+    3. **Gardes** `n == 0` (division par zéro) et `t == nullptr`.
+
+    Le `static_cast<uint8_t>` final documente la troncature voulue et fait taire `-Wconversion` — un cast explicite dit « je sais ce que je fais », un cast implicite dit « je n'ai pas regardé ».
+
+    C'est la moyenne d'un tampon d'ADC 8 bits : exactement le calcul que tu écris dans une boucle d'acquisition.
+- id: cpp13.14
+  type: qcm
+  level: 2
+  concepts:
+  - linker
+  q: À quoi sert `extern "C"` autour d’une déclaration ?
+  choices:
+  - t: Désactiver la décoration de nom C++ pour que le symbole soit trouvable depuis du C
+    ok: true
+    why: Indispensable pour les vecteurs d’interruption, les callbacks d’API C et les bibliothèques C.
+  - t: Compiler la fonction en C au lieu de C++
+    ok: false
+    why: Le corps reste du C++ ; seule la convention de nommage change.
+  - t: Rendre la fonction plus rapide
+    ok: false
+    why: Aucun effet sur le code généré.
+  - t: Exporter la fonction d’une bibliothèque
+    ok: false
+    why: C’est le rôle de la visibilité des symboles.
+  e: |-
+    Le C++ **décore** les noms pour encoder les types des paramètres (nécessaire à la surcharge) : `void f(int)` devient `_Z1fi`. Un fichier C qui cherche `f` ne le trouvera jamais.
+
+    ```cpp
+    extern "C" void TIM2_IRQHandler() { … }    // le vecteur d'interruption cherche ce nom exact
+    ```
+    Sans `extern "C"`, ton gestionnaire d'interruption est compilé, lié, et **jamais appelé**. Le symptôme : l'interruption ne se déclenche pas, sans le moindre message.
+
+    Motif standard pour un en-tête utilisable des deux côtés :
+    ```c
+    #ifdef __cplusplus
+    extern "C" {
+    #endif
+    void init_capteur(void);
+    #ifdef __cplusplus
+    }
+    #endif
+    ```
+
+    Conséquence : une fonction `extern "C"` ne peut pas être **surchargée** (un seul nom disponible).
+
+    Vérifie avec `nm -C` : le nom doit apparaître non décoré.
+- id: cpp13.15
+  type: qcm
+  level: 3
+  concepts:
+  - headers
+  q: Qu’est-ce que l’idiome PIMPL et quel problème résout-il ?
+  choices:
+  - t: 'Cacher l’implémentation derrière un pointeur opaque : les clients ne recompilent plus quand elle change'
+    ok: true
+    why: Et l’ABI reste stable — crucial pour une bibliothèque partagée.
+  - t: Accélérer l’exécution
+    ok: false
+    why: Il ajoute au contraire une indirection et une allocation.
+  - t: Permettre l’héritage multiple
+    ok: false
+    why: Aucun rapport.
+  - t: Éviter les fuites mémoire
+    ok: false
+    why: C’est RAII, et PIMPL en dépend plutôt qu’il ne le remplace.
+  e: |-
+    ```cpp
+    // capteur.hpp — ne change presque jamais
+    class Capteur {
+        struct Impl;
+        std::unique_ptr<Impl> p_;
+    public:
+        Capteur();
+        ~Capteur();                 // DOIT être défini dans le .cpp
+        double lire() const;
+    };
+    ```
+
+    Ajouter un membre privé à `Impl` ne recompile que `capteur.cpp`, pas les 200 fichiers qui incluent l'en-tête.
+
+    Piège classique : le destructeur **doit** être déclaré dans le `.h` et **défini** dans le `.cpp`. S'il est implicite, il est instancié là où `Impl` est incomplet → erreur de compilation.
+
+    Coût : une allocation, une indirection à chaque appel, pas d'inlining. À réserver aux **frontières de bibliothèque**, pas aux classes internes ni au code chaud.
+
+    En embarqué, l'allocation dynamique le disqualifie généralement — sauf à l'initialisation.
+- id: cpp13.16
+  type: flash
+  level: 2
+  concepts:
+  - cmake
+  - sanitizers
+  q: La boucle de développement C++ complète, en commandes.
+  back: |-
+    ```bash
+    # configuration (une fois)
+    cmake -B build -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+    # à chaque modification
+    cmake --build build -j
+    ctest --test-dir build --output-on-failure
+
+    # avant de pousser
+    cmake -B rel -DCMAKE_BUILD_TYPE=Release && cmake --build rel -j
+    clang-format -i src/*.cpp include/*.hpp
+    clang-tidy -p build src/*.cpp
+    ```
+
+    `compile_commands.json` alimente clangd, clang-tidy et l'autocomplétion de VS Code.
+  e: |-
+    Deux dossiers de build (`build` en Debug avec sanitizers, `rel` en Release) évitent de reconfigurer sans arrêt, et te permettent de vérifier que le code passe dans les deux modes — un bug qui n'apparaît qu'en Release est presque toujours un UB.
+
+    `clang-tidy` va bien plus loin que les avertissements du compilateur : usage après déplacement, `std::move` inutile, boucles qui copient, conversions dangereuses, conformité aux Core Guidelines.
+
+    Ajoute un `.clang-format` à la racine et formate automatiquement : les débats de style disparaissent, et les diffs ne contiennent que du sens.
+
+    Enfin, mets **tout ça en CI** : build Debug + tests sous sanitizers, build Release, clang-tidy. C'est une trentaine de lignes de YAML et ça change la qualité d'un projet du tout au tout.

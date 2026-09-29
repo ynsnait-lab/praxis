@@ -1,0 +1,287 @@
+domain: embarque
+exercises:
+- id: ig.emb01
+  type: qcm
+  level: 1
+  q: 'En C, une variable modifiée dans une interruption et lue dans la boucle principale doit être déclarée :'
+  choices:
+  - t: static
+    ok: false
+  - t: register
+    ok: false
+  - t: volatile
+    ok: true
+  - t: const
+    ok: false
+  e: 'volatile interdit au compilateur de mettre la variable en cache dans un registre : il la relit en mémoire à chaque accès. Sans ce mot-clé, une optimisation légitime peut transformer la boucle d''attente en boucle infinie. Bug redoutable, car il n''apparaît souvent qu''en compilation optimisée (-O2), jamais en debug.'
+  src: calibre
+- id: ig.emb02
+  type: qcm
+  level: 2
+  q: 'Bonne pratique dans une routine d''interruption :'
+  choices:
+  - t: Y désactiver définitivement les autres interruptions
+    ok: false
+  - t: Y placer les affichages de debug
+    ok: false
+  - t: Y placer les calculs longs pour gagner du temps
+    ok: false
+  - t: Rester le plus court possible, lever un drapeau et traiter dans la boucle principale
+    ok: true
+  e: 'Pendant une ISR, les interruptions de priorité égale ou inférieure sont bloquées : tout ce qui traîne augmente la latence et fait perdre des événements. On y fait le strict minimum — lire un registre, empiler une donnée, lever un drapeau. Et surtout jamais de printf, d''attente active ou de malloc dedans.'
+  src: calibre
+- id: ig.emb03
+  type: qcm
+  level: 2
+  q: 'Convertisseur analogique-numérique 10 bits, pleine échelle 0-5 V. Quantum (LSB) :'
+  choices:
+  - t: ≈ 0,5 mV
+    ok: false
+  - t: ≈ 4,9 mV
+    ok: true
+  - t: ≈ 1,2 mV
+    ok: false
+  - t: ≈ 5 mV
+    ok: false
+  e: '5 V / 2¹⁰ = 5/1024 ≈ 4,88 mV. Méthode générale : pleine échelle divisée par 2ⁿ. Attention à ne pas diviser par 2ⁿ−1 : le nombre de NIVEAUX est 1024, la valeur maximale lue 1023.'
+  src: calibre
+- id: ig.emb04
+  type: qcm
+  level: 2
+  q: 'Sur un timer 16 bits cadencé à 16 MHz, augmenter la fréquence de la PWM :'
+  choices:
+  - t: Réduit la résolution disponible sur le rapport cyclique
+    ok: true
+  - t: N'a aucun effet sur la résolution
+    ok: false
+  - t: Augmente la résolution du rapport cyclique
+    ok: false
+  - t: Augmente la tension de sortie
+    ok: false
+  e: 'La résolution vaut f_timer/f_PWM : à 16 MHz, une PWM à 1 kHz offre 16 000 pas, mais à 100 kHz seulement 160 pas, soit moins de 8 bits. C''est l''arbitrage central du pilotage de moteur — une PWM inaudible (>20 kHz) coûte de la finesse de commande.'
+  src: calibre
+- id: ig.emb05
+  type: qcm
+  level: 2
+  q: 'Le bus I2C nécessite :'
+  choices:
+  - t: 2 fils (SDA, SCL) avec résistances de tirage, et un adressage logiciel des esclaves
+    ok: true
+  - t: 4 fils et une horloge par esclave
+    ok: false
+  - t: 3 fils sans résistances
+    ok: false
+  - t: Un fil par périphérique
+    ok: false
+  e: Deux fils quel que soit le nombre d'esclaves, grâce à l'adressage sur 7 bits. Les sorties étant à drain ouvert, les pull-ups (typiquement 4,7 kΩ) sont OBLIGATOIRES — sans elles, rien ne remonte au niveau haut et le bus reste muet. C'est la panne numéro un sur un montage I2C câblé à la main.
+  src: calibre
+- id: ig.emb06
+  type: qcm
+  level: 2
+  q: 'Avantage principal du SPI sur l''I2C :'
+  choices:
+  - t: Il permet plus de périphériques sans fil supplémentaire
+    ok: false
+  - t: Il utilise moins de fils
+    ok: false
+  - t: Il est bien plus rapide et fonctionne en full duplex
+    ok: true
+  - t: Il ne nécessite pas d'horloge
+    ok: false
+  e: 'SPI monte à plusieurs dizaines de MHz et échange dans les deux sens simultanément, là où l''I2C plafonne à 400 kHz-3,4 MHz en half duplex. Le prix à payer : un fil de sélection par esclave, donc un nombre de broches qui grimpe. SPI pour un écran ou une mémoire rapide, I2C pour une nuée de petits capteurs.'
+  src: calibre
+- id: ig.emb07
+  type: qcm
+  level: 2
+  q: 'Une liaison UART entre deux cartes fonctionne, mais les caractères reçus sont incohérents. Cause la plus probable :'
+  choices:
+  - t: Il manque une résistance de tirage
+    ok: false
+  - t: Le protocole exige une horloge partagée
+    ok: false
+  - t: Le câble est trop court
+    ok: false
+  - t: Les masses ne sont pas reliées ou les vitesses (baudrate) diffèrent
+    ok: true
+  e: 'L''UART est asynchrone : chaque côté génère sa propre horloge à partir du baudrate configuré. Un écart supérieur à 2-3 % désynchronise la trame et produit des octets faux mais réguliers. Autre suspect classique : l''absence de masse commune, ou une inversion TX/RX — qui, elle, donne un silence total plutôt que des caractères erronés.'
+  src: calibre
+- id: ig.emb08
+  type: qcm
+  level: 3
+  q: Sur un bus CAN, à quoi servent les résistances de 120 Ω aux deux extrémités ?
+  choices:
+  - t: À adapter l'impédance de la ligne et éviter les réflexions de signal
+    ok: true
+  - t: À limiter le courant des nœuds
+    ok: false
+  - t: À polariser le bus au niveau haut
+    ok: false
+  - t: À alimenter les capteurs
+    ok: false
+  e: 'La paire torsadée a une impédance caractéristique de 120 Ω : sans terminaison aux DEUX bouts, le signal se réfléchit et corrompt les trames, d''autant plus que le bus est long et rapide. Symptôme typique : un bus qui fonctionne sur l''établi et déraille dès qu''on allonge le câble ou qu''on monte à 500 kbit/s.'
+  src: calibre
+- id: ig.emb09
+  type: qcm
+  level: 2
+  q: 'Le rôle d''un chien de garde (watchdog) est :'
+  choices:
+  - t: De surveiller la température du processeur
+    ok: false
+  - t: De protéger contre les surtensions
+    ok: false
+  - t: De réinitialiser le système si le programme cesse de le rafraîchir dans le délai imparti
+    ok: true
+  - t: De sauvegarder les données en mémoire
+    ok: false
+  e: 'Un compteur qui déclenche un reset s''il arrive à échéance : le programme doit le remettre à zéro périodiquement. Si le code se bloque, le système redémarre au lieu de rester figé. Piège classique de mise en œuvre : rafraîchir le watchdog dans une interruption périodique — il ne surveille alors plus rien, puisque le timer continue de tourner même si la boucle principale est morte.'
+  src: calibre
+- id: ig.emb10
+  type: qcm
+  level: 2
+  q: 'L''intérêt d''un transfert par DMA est :'
+  choices:
+  - t: De compresser les données
+    ok: false
+  - t: De remplacer les interruptions
+    ok: false
+  - t: De déplacer des données entre périphérique et mémoire sans occuper le processeur
+    ok: true
+  - t: D'augmenter la fréquence d'horloge
+    ok: false
+  e: 'Le contrôleur DMA accède directement à la mémoire, laissant le CPU libre pour autre chose. Indispensable pour une acquisition rapide, un écran ou une liaison série à haut débit. Attention en revanche à la cohérence des caches et aux buffers partagés : le CPU et le DMA écrivent en parallèle, donc l''usage de volatile et le double buffering sont de rigueur.'
+  src: calibre
+- id: ig.emb11
+  type: qcm
+  level: 3
+  q: 'Dans un RTOS, l''inversion de priorité se produit lorsque :'
+  choices:
+  - t: Deux tâches ont la même priorité
+    ok: false
+  - t: L'ordonnanceur est désactivé
+    ok: false
+  - t: Les priorités sont mal numérotées
+    ok: false
+  - t: Une tâche de haute priorité est bloquée par une tâche de basse priorité détenant un mutex qu'elle attend
+    ok: true
+  e: 'La tâche prioritaire attend une ressource verrouillée par une tâche de faible priorité, laquelle est elle-même préemptée par une tâche intermédiaire : la priorité n''est plus respectée dans les faits. Remède : héritage de priorité ou protocole à plafond de priorité, proposés par tout RTOS sérieux. C''est ce bug qui a failli condamner la mission Mars Pathfinder.'
+  src: calibre
+- id: ig.emb12
+  type: qcm
+  level: 2
+  q: Quelle mémoire conserve les données après coupure de l'alimentation et supporte un grand nombre de réécritures ciblées ?
+  choices:
+  - t: EEPROM
+    ok: true
+  - t: RAM
+    ok: false
+  - t: Flash
+    ok: false
+  - t: Registres
+    ok: false
+  e: 'L''EEPROM accepte l''écriture octet par octet et supporte typiquement 10⁶ cycles : idéale pour des paramètres de configuration. La Flash est non volatile aussi mais s''efface par blocs et tolère bien moins de cycles (≈ 10⁴-10⁵) : elle stocke le programme. La RAM est volatile, les registres aussi.'
+  src: calibre
+- id: ig.emb13
+  type: qcm
+  level: 2
+  q: 'Un compteur 16 bits non signé incrémenté toutes les millisecondes déborde au bout de :'
+  choices:
+  - t: ≈ 65 s
+    ok: true
+  - t: ≈ 6,5 s
+    ok: false
+  - t: ≈ 655 s
+    ok: false
+  - t: ≈ 18 h
+    ok: false
+  e: '2¹⁶ = 65 536 ms ≈ 65,5 s. Savoir ce chiffre évite des bugs redoutables : un test du type « if (millis() > debut + delai) » casse au débordement, alors que « if (millis() − debut > delai) » reste correct grâce à l''arithmétique modulaire des entiers non signés. Sur 32 bits, le débordement arrive après 49 jours — d''où des bugs qui ne se révèlent qu''en production.'
+  src: calibre
+- id: ig.emb14
+  type: qcm
+  level: 3
+  q: 'Sur un microcontrôleur dépourvu d''unité de calcul flottant (FPU), utiliser des float dans une boucle d''asservissement :'
+  choices:
+  - t: Coûte beaucoup de cycles, car les opérations sont émulées en logiciel
+    ok: true
+  - t: Est sans conséquence
+    ok: false
+  - t: Est impossible à compiler
+    ok: false
+  - t: Améliore la précision sans surcoût
+    ok: false
+  e: 'Chaque opération flottante devient un appel à une bibliothèque logicielle : facilement 50 à 100 fois plus lent qu''une opération entière. Sur une boucle à 10 kHz, cela suffit à saturer le processeur. La solution classique est l''arithmétique en virgule fixe (entiers avec facteur d''échelle), qui garde la précision utile pour une fraction du coût.'
+  src: calibre
+- id: ig.emb15
+  type: qcm
+  level: 2
+  q: Pourquoi éviter delay() dans un programme embarqué qui doit gérer plusieurs tâches ?
+  choices:
+  - t: Parce qu'il désactive les interruptions
+    ok: false
+  - t: Parce qu'il bloque totalement l'exécution pendant toute sa durée
+    ok: true
+  - t: Parce qu'il est imprécis
+    ok: false
+  - t: Parce qu'il consomme trop de mémoire
+    ok: false
+  e: 'Le processeur tourne à vide pendant le délai : aucun autre traitement n''avance. On le remplace par une machine à états non bloquante comparant un horodatage (millis()) à une échéance, ou par un RTOS. C''est LE premier réflexe à acquérir pour passer d''un code de prototype à un code exploitable.'
+  src: calibre
+- id: ig.emb16
+  type: qcm
+  level: 3
+  q: 'Tu lis une variable 32 bits mise à jour par une interruption, sur un microcontrôleur 8 bits. Précaution nécessaire :'
+  choices:
+  - t: Aucune, la lecture est atomique
+    ok: false
+  - t: Désactiver brièvement les interruptions pendant la lecture, ou lire deux fois pour vérifier la cohérence
+    ok: true
+  - t: Déclarer la variable en const
+    ok: false
+  - t: Utiliser un float
+    ok: false
+  e: 'Sur 8 bits, la lecture se fait en quatre accès : si l''interruption tombe au milieu, on obtient un mélange de l''ancienne et de la nouvelle valeur — un compteur de temps qui saute brutalement, par exemple. volatile ne protège PAS de cela : il garantit la relecture, pas l''atomicité. Il faut une section critique.'
+  src: calibre
+- id: ig.emb17
+  type: qcm
+  level: 2
+  q: 'Un bouton-poussoir relié entre une broche d''entrée et la masse nécessite :'
+  choices:
+  - t: Une résistance de tirage vers le haut (pull-up), interne ou externe
+    ok: true
+  - t: Un condensateur de 100 nF uniquement
+    ok: false
+  - t: Une résistance de tirage vers la masse
+    ok: false
+  - t: Aucune résistance
+    ok: false
+  e: 'Bouton relâché, l''entrée serait flottante : le pull-up impose le niveau haut, et l''appui la tire à la masse. La logique est donc inversée — appui = 0. La plupart des microcontrôleurs proposent un pull-up interne activable par logiciel, ce qui évite le composant externe.'
+  src: calibre
+- id: ig.emb18
+  type: qcm
+  level: 2
+  q: 'L''antirebond (debounce) d''un contact mécanique est nécessaire parce que :'
+  choices:
+  - t: La tension est instable
+    ok: false
+  - t: Le contact est trop lent
+    ok: false
+  - t: Le contact génère plusieurs transitions parasites pendant quelques millisecondes
+    ok: true
+  - t: Le signal est trop faible
+    ok: false
+  e: 'Les lames métalliques rebondissent physiquement : un seul appui produit typiquement 5 à 50 transitions sur 1 à 20 ms, et un microcontrôleur les compte toutes. Traitement soit logiciel (ignorer les transitions pendant un délai après la première), soit matériel (RC + trigger de Schmitt).'
+  src: calibre
+- id: ig.emb19
+  type: qcm
+  level: 3
+  q: 'Un débordement de pile (stack overflow) sur un microcontrôleur se manifeste typiquement par :'
+  choices:
+  - t: Un comportement erratique ou un plantage, la pile écrasant les variables globales
+    ok: true
+  - t: Un message d'erreur clair du compilateur
+    ok: false
+  - t: Une hausse de la consommation
+    ok: false
+  - t: Un ralentissement progressif
+    ok: false
+  e: 'La pile descend et finit par recouvrir le tas ou les données statiques : des variables changent sans raison, le programme part n''importe où. Aucun diagnostic n''est fourni sans MPU ou canari de pile. D''où les règles de l''embarqué : pas de récursion, pas de gros tableaux locaux, et surveillance du high-water mark quand l''RTOS l''offre.'
+  src: calibre

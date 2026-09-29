@@ -1,0 +1,287 @@
+domain: dynamique
+exercises:
+- id: ig.dyn01
+  type: qcm
+  level: 1
+  q: 'Unité du moment d''inertie J d''un solide en rotation :'
+  choices:
+  - t: kg·m²
+    ok: true
+  - t: kg/m²
+    ok: false
+  - t: kg·m
+    ok: false
+  - t: N·m·s
+    ok: false
+  e: 'J s''exprime en kg·m². Il joue en rotation le rôle que la masse joue en translation : C = J·dω/dt est l''équivalent de F = m·a. Une erreur d''unité ici fausse tout dimensionnement de motorisation.'
+  src: calibre
+- id: ig.dyn02
+  type: qcm
+  level: 1
+  q: 'Système masse-ressort. Tu quadruples la raideur k sans toucher à la masse. La fréquence propre est :'
+  choices:
+  - t: Multipliée par 2
+    ok: true
+  - t: Inchangée
+    ok: false
+  - t: Multipliée par 4
+    ok: false
+  - t: Multipliée par 1,41
+    ok: false
+  e: 'f₀ = (1/2π)√(k/m) : la fréquence varie comme la racine de la raideur, donc ×√4 = ×2. Conséquence pratique : pour doubler une fréquence propre il faut une structure 4 fois plus rigide — c''est cher, et c''est pourquoi on préfère souvent jouer sur la masse ou sur l''amortissement.'
+  src: calibre
+- id: ig.dyn03
+  type: qcm
+  level: 2
+  q: 'Moment d''inertie d''un cylindre plein homogène (masse m, rayon R) autour de son axe de révolution :'
+  choices:
+  - t: 2mR²/5
+    ok: false
+  - t: mR²/3
+    ok: false
+  - t: mR²/2
+    ok: true
+  - t: mR²
+    ok: false
+  e: 'J = mR²/2. À mémoriser avec : anneau mince mR², sphère pleine 2mR²/5, tige autour de son milieu mL²/12. Le R² explique pourquoi un volant d''inertie se conçoit avec de la matière en périphérie, jamais au centre.'
+  src: calibre
+- id: ig.dyn04
+  type: qcm
+  level: 2
+  q: 'Système du 2ᵉ ordre avec ζ = 0,05, excité exactement à sa fréquence propre. Facteur d''amplification (surtension) atteint :'
+  choices:
+  - t: ≈ 10
+    ok: true
+  - t: ≈ 5
+    ok: false
+  - t: ≈ 20
+    ok: false
+  - t: ≈ 2
+    ok: false
+  e: 'Q ≈ 1/(2ζ) = 1/0,1 = 10 : l''amplitude est 10 fois celle du déplacement statique. Un système peu amorti est une bombe à retardement mécanique — c''est pourquoi on ne fait jamais tourner une machine durablement près d''une fréquence propre.'
+  src: calibre
+- id: ig.dyn05
+  type: qcm
+  level: 2
+  q: 'Pour isoler une machine vibrante de son bâti avec des plots élastiques, il faut que la fréquence d''excitation soit :'
+  choices:
+  - t: Très inférieure à la fréquence propre du montage
+    ok: false
+  - t: Égale à la fréquence propre du montage sur plots
+    ok: false
+  - t: Très supérieure à la fréquence propre du montage
+    ok: true
+  - t: Peu importe, seuls les plots comptent
+    ok: false
+  e: 'L''isolation ne commence qu''au-delà de f/f₀ = √2 et devient efficace vers f/f₀ > 3. D''où des plots SOUPLES pour abaisser f₀ bien en dessous de la fréquence de fonctionnement. Erreur classique : mettre des plots trop raides, qui placent f₀ dans la plage de travail et amplifient tout au lieu d''isoler.'
+  src: calibre
+- id: ig.dyn06
+  type: qcm
+  level: 2
+  q: 'Énergie cinétique d''un solide en rotation pure autour d''un axe fixe :'
+  choices:
+  - t: ½·J·ω
+    ok: false
+  - t: ½·J·ω²
+    ok: true
+  - t: ½·m·ω²
+    ok: false
+  - t: J·ω²
+    ok: false
+  e: 'Ec = ½Jω², exact analogue de ½mv². Le carré de la vitesse explique le stockage d''énergie des volants d''inertie : doubler la vitesse de rotation quadruple l''énergie stockée, mais quadruple aussi les contraintes centrifuges.'
+  src: calibre
+- id: ig.dyn07
+  type: qcm
+  level: 3
+  q: 'Un rotor présente un balourd résiduel. Tu doubles la vitesse de rotation. La force centrifuge parasite est :'
+  choices:
+  - t: Inchangée
+    ok: false
+  - t: Multipliée par 8
+    ok: false
+  - t: Multipliée par 4
+    ok: true
+  - t: Doublée
+    ok: false
+  e: 'F = m·e·ω² : en ω², donc ×4. C''est la raison pour laquelle l''équilibrage devient critique en haute vitesse — un balourd anodin à 1500 tr/min devient destructeur à 15 000 tr/min (×100). Les normes d''équilibrage (ISO 1940) sont d''ailleurs spécifiées en fonction de la vitesse de service.'
+  src: calibre
+- id: ig.dyn08
+  type: qcm
+  level: 3
+  q: 'La « vitesse critique » d''un arbre tournant correspond :'
+  choices:
+  - t: À la vitesse pour laquelle la fréquence de rotation coïncide avec une fréquence propre de flexion
+    ok: true
+  - t: À la vitesse où le couple s'annule
+    ok: false
+  - t: À sa vitesse de rupture par contrainte centrifuge
+    ok: false
+  - t: À la vitesse maximale admissible par les roulements
+    ok: false
+  e: 'C''est un phénomène de résonance : le balourd excite l''arbre à sa propre fréquence de flexion et la flèche s''emballe. On dimensionne soit en sous-critique (vitesse de service < 0,7·Nc), soit en surcritique en traversant rapidement la zone dangereuse au démarrage.'
+  src: calibre
+- id: ig.dyn09
+  type: qcm
+  level: 2
+  q: 'Accélération d''un point situé à un rayon R sur un disque tournant à vitesse angulaire ω constante :'
+  choices:
+  - t: ωR, tangentielle
+    ok: false
+  - t: ω²R², dirigée vers l'extérieur
+    ok: false
+  - t: Nulle, la vitesse est constante
+    ok: false
+  - t: ω²R, dirigée vers le centre
+    ok: true
+  e: a = ω²R = v²/R, centripète (vers le centre). La vitesse est constante en NORME mais pas en direction, donc l'accélération n'est pas nulle. La « force centrifuge » est l'effet perçu dans le repère tournant, qui n'est pas galiléen.
+  src: calibre
+- id: ig.dyn10
+  type: qcm
+  level: 2
+  q: 'Force développée par un amortisseur visqueux idéal :'
+  choices:
+  - t: Constante et opposée au mouvement
+    ok: false
+  - t: Proportionnelle à l'accélération
+    ok: false
+  - t: Proportionnelle au déplacement
+    ok: false
+  - t: Proportionnelle à la vitesse
+    ok: true
+  e: F = c·v pour un amortisseur visqueux. Une force constante opposée au mouvement caractérise le frottement sec (Coulomb) ; proportionnelle au déplacement, c'est un ressort ; à l'accélération, c'est une masse. Le frottement sec est bien plus difficile à modéliser en asservissement — il crée un cycle limite et une erreur de position résiduelle.
+  src: calibre
+- id: ig.dyn11
+  type: qcm
+  level: 3
+  q: 'À la résonance d''un système du 2ᵉ ordre, le déphasage entre l''excitation et la réponse vaut :'
+  choices:
+  - t: 180°
+    ok: false
+  - t: 90°
+    ok: true
+  - t: 0°
+    ok: false
+  - t: 45°
+    ok: false
+  e: Exactement 90° à la pulsation propre, quel que soit l'amortissement — et 180° bien au-delà. C'est ce passage par −90° qui sert à identifier expérimentalement une fréquence propre, et c'est aussi le mécanisme derrière la marge de phase en asservissement.
+  src: calibre
+- id: ig.dyn12
+  type: qcm
+  level: 3
+  q: 'Poutre console vibrant en flexion. Tu doubles sa longueur. Sa première fréquence propre est :'
+  choices:
+  - t: Divisée par 1,41
+    ok: false
+  - t: Divisée par 4
+    ok: true
+  - t: Divisée par 2
+    ok: false
+  - t: Divisée par 8
+    ok: false
+  e: 'f₁ ∝ √(EI/(ρA·L⁴)), donc en 1/L² : divisée par 4. Un porte-à-faux deux fois plus long est quatre fois plus « mou » en fréquence — d''où les problèmes de broutement sur les outils de coupe trop dépassants, où il faut réduire la longueur plutôt qu''augmenter la rigidité.'
+  src: calibre
+- id: ig.dyn13
+  type: qcm
+  level: 2
+  q: Un système mécanique possède n degrés de liberté. Combien de modes propres possède-t-il ?
+  choices:
+  - t: n
+    ok: true
+  - t: '1'
+    ok: false
+  - t: '2'
+    ok: false
+  - t: Une infinité
+    ok: false
+  e: 'Autant de modes que de ddl : n. Un système continu (poutre, plaque) a une infinité de ddl, donc une infinité de modes — en pratique on ne retient que les premiers, seuls excitables dans la bande de fréquence utile.'
+  src: calibre
+- id: ig.dyn14
+  type: qcm
+  level: 1
+  q: 'Un accéléromètre indique 3 g. Cela correspond à :'
+  choices:
+  - t: 3 m/s²
+    ok: false
+  - t: 30 m/s
+    ok: false
+  - t: ≈ 29,4 m/s²
+    ok: true
+  - t: ≈ 9,81 m/s²
+    ok: false
+  e: '1 g = 9,81 m/s², donc 3 g ≈ 29,4 m/s². Le g n''est pas une unité SI mais reste la référence en essais de choc et de vibration. Attention : un accéléromètre au repos sur une table indique déjà 1 g — il mesure l''accélération propre, pas le mouvement.'
+  src: calibre
+- id: ig.dyn15
+  type: qcm
+  level: 3
+  q: 'Une machine vibre à 50 Hz. Sa structure support a une fréquence propre mesurée à 52 Hz. La correction la plus efficace :'
+  choices:
+  - t: Augmenter la puissance du moteur
+    ok: false
+  - t: Ajouter un capteur de vibration
+    ok: false
+  - t: Réduire légèrement la raideur pour atteindre exactement 50 Hz
+    ok: false
+  - t: Ajouter de la masse ou de la raideur pour éloigner franchement f₀ des 50 Hz
+    ok: true
+  e: 'Le problème est la coïncidence : il faut désaccorder. Raidir monte f₀, alourdir la descend — l''essentiel est de s''écarter d''au moins 20-30 %. Viser exactement 50 Hz serait catastrophique. Si le désaccordage est impossible, on ajoute un amortisseur accordé.'
+  src: calibre
+- id: ig.dyn16
+  type: qcm
+  level: 2
+  q: 'Deux ressorts de raideur k montés en parallèle donnent une raideur équivalente de :'
+  choices:
+  - t: k²
+    ok: false
+  - t: k/2
+    ok: false
+  - t: k
+    ok: false
+  - t: 2k
+    ok: true
+  e: 'En parallèle les raideurs s''ajoutent : 2k. En série, c''est l''inverse des raideurs qui s''ajoute, donc k/2. C''est l''exact opposé de la règle des résistances électriques — piège classique, à vérifier plutôt qu''à deviner.'
+  src: calibre
+- id: ig.dyn17
+  type: qcm
+  level: 2
+  q: 'Théorème de l''énergie cinétique : la variation d''énergie cinétique d''un système est égale :'
+  choices:
+  - t: À la somme des forces appliquées
+    ok: false
+  - t: Au travail des seules forces extérieures
+    ok: false
+  - t: À la puissance dissipée
+    ok: false
+  - t: À la somme des travaux des forces extérieures et intérieures
+    ok: true
+  e: Toutes les forces travaillant comptent, intérieures comprises — c'est ce qui distingue le théorème de l'énergie cinétique du théorème de la résultante dynamique. Pour un solide indéformable, les efforts intérieurs ne travaillent pas, d'où la simplification habituelle.
+  src: calibre
+- id: ig.dyn18
+  type: qcm
+  level: 3
+  q: 'Théorème de Huygens (ou de Steiner) : le moment d''inertie autour d''un axe parallèle à l''axe central, distant de d, vaut :'
+  choices:
+  - t: J_G·d²
+    ok: false
+  - t: J_G + m·d²
+    ok: true
+  - t: J_G + m·d
+    ok: false
+  - t: J_G − m·d²
+    ok: false
+  e: 'J = J_G + m·d² : le terme de transport est toujours positif, donc l''inertie est minimale autour d''un axe passant par le centre de gravité. Indispensable pour une pièce excentrée ou un bras robotisé dont on ramène l''inertie à l''axe moteur.'
+  src: calibre
+- id: ig.dyn19
+  type: qcm
+  level: 2
+  q: 'Un système est dit « sur-amorti » lorsque :'
+  choices:
+  - t: ζ > 1
+    ok: true
+  - t: ζ = 0
+    ok: false
+  - t: ζ < 1
+    ok: false
+  - t: ζ = 1
+    ok: false
+  e: 'ζ > 1 : la réponse rejoint sa valeur finale sans dépassement, mais lentement. ζ = 1 est le régime critique (le plus rapide sans dépassement), ζ < 1 le régime oscillatoire amorti, ζ = 0 l''oscillation entretenue. En pratique on vise ζ ≈ 0,7, meilleur compromis rapidité/dépassement.'
+  src: calibre

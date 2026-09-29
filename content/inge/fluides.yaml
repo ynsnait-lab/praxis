@@ -1,0 +1,803 @@
+id: fluides
+title: Mécanique des fluides et vide
+en: Fluid mechanics and vacuum
+desc: Pression, débit, Bernoulli, pertes de charge, puissance hydraulique et pneumatique, et technique du vide.
+intro: |
+  Les fluides sont partout dans une installation : eau de refroidissement, air comprimé des vérins, huile hydraulique, azote liquide, et le **vide**, qui est lui aussi une affaire de gaz et de pression.
+
+  Quelques relations simples (pression = force/surface, débit = section × vitesse, conservation de l'énergie) suffisent à éviter la plupart des erreurs de conception.
+notions:
+  # ------------------------------------------------------------------ pression
+  - id: flu-pression
+    title: Pression et hydrostatique
+    en: Pressure and hydrostatics
+    goal: Manier les unités de pression, distinguer absolue et relative, calculer une pression en profondeur et une presse hydraulique.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: Les oreilles au fond de la piscine
+          body: |
+            Au fond d'une piscine, tes oreilles te font mal : l'eau au-dessus de toi pèse, et ce poids appuie sur tout ton corps, dans toutes les directions.
+
+            Et nous vivons nous-mêmes au fond d'un « océan » d'air de plusieurs dizaines de kilomètres : il appuie sur tout avec environ 1 kg par cm². On ne le sent pas parce qu'il appuie autant de l'intérieur que de l'extérieur.
+        - level: 2
+          title: Une force répartie
+          body: |
+            La **pression**, c'est une force répartie sur une surface. Dans un fluide au repos, elle agit dans toutes les directions et elle augmente avec la profondeur, parce qu'il y a plus de fluide au-dessus.
+
+            Deux façons de la mesurer :
+            - **pression absolue** : par rapport au vide parfait (0 = aucune molécule) ;
+            - **pression relative** (ou effective) : par rapport à l'atmosphère. C'est ce que lit le manomètre d'un pneu : « 2 bar » veut dire 2 bar **de plus** que l'air ambiant, soit environ 3 bar absolus.
+          check:
+            q: Un capteur de pression relative branché sur une enceinte sous vide poussé affiche environ…
+            choices:
+              - t: −1 bar
+                ok: true
+                why: Il mesure l'écart avec l'atmosphère, qui est d'environ 1 bar au-dessus du vide.
+              - t: 0 bar
+                why: 0 bar relatif, c'est la pression atmosphérique.
+              - t: 1 bar
+                why: 1 bar serait l'écart dans l'autre sens (une surpression).
+        - level: 3
+          title: Les formules et les unités
+          body: |
+            $$p = \frac{F}{S} \qquad p(h) = p_0 + \rho\,g\,h$$
+
+            $\rho$ : masse volumique (1000 kg/m³ pour l'eau), $g = 9{,}81$ m/s², $h$ : profondeur (m). À retenir : **10 m d'eau ≈ 1 bar**.
+
+            | Unité | Valeur |
+            | --- | --- |
+            | 1 bar | 100 000 Pa = 0,1 MPa = 0,1 N/mm² |
+            | 1 atm | 1,013 bar = 1013 mbar |
+            | 1 mbar | 100 Pa = 1 hPa |
+            | 1 Torr (1 mmHg) | ≈ 1,33 mbar |
+            | 1 psi | ≈ 69 mbar (14,5 psi ≈ 1 bar) |
+
+            **Exemple** : au fond d'une piscine de 3 m, la pression relative vaut $1000 \times 9{,}81 \times 3 \approx 29\,400$ Pa, soit environ 0,29 bar.
+        - level: 4
+          title: Sous le capot, le principe de Pascal
+          body: |
+            Une pression appliquée à un liquide enfermé se transmet **intégralement** partout. D'où la **presse hydraulique** : un petit piston de surface $S_1$ poussé avec $F_1$ crée une pression $p = F_1/S_1$, qui pousse un grand piston de surface $S_2$ avec :
+
+            $$F_2 = F_1 \frac{S_2}{S_1}$$
+
+            Rien n'est gratuit : le grand piston se déplace $S_2/S_1$ fois moins. Le travail est conservé, comme avec un levier.
+
+            Autre conséquence surprenante : la pression au fond ne dépend que de la **hauteur** de liquide, pas de la forme ni du volume du récipient (paradoxe hydrostatique). Un tube fin de 10 m rempli d'eau exerce 1 bar à sa base, comme un lac de 10 m.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Les fiches techniques précisent souvent **barg** (relatif, *gauge*) ou **bara** (absolu), **psig** ou **psia**. En vide, on parle toujours en **absolu** (mbar).
+            - Un appareil sous pression a une **pression de service** et une **pression d'épreuve** (typiquement 1,5 fois plus), à laquelle il a été testé.
+            - Pour un gaz, une pression enfermée stocke de l'énergie : un réservoir d'air comprimé ou une bouteille de gaz est bien plus dangereux qu'un circuit d'eau à la même pression. Pour tester l'étanchéité d'un circuit sous pression, on préfère donc souvent le remplir de liquide.
+      recap:
+        - "p = F/S ; hydrostatique : p = p₀ + ρ·g·h (10 m d'eau ≈ 1 bar)."
+        - "Absolue : par rapport au vide ; relative : par rapport à l'atmosphère."
+        - "1 bar = 10⁵ Pa = 0,1 N/mm² ; 1 atm = 1013 mbar ; 1 psi ≈ 69 mbar."
+        - "Pascal : F₂ = F₁·S₂/S₁ (et la course est divisée d'autant)."
+        - "Vide : toujours en pression absolue."
+      pieges: [ing-absolue-relative, ing-bar-pa]
+    vocab:
+      - pression = pressure
+      - pression absolue = absolute pressure
+      - pression relative = gauge pressure
+      - masse volumique = density
+      - manomètre = pressure gauge
+      - pression de service = working pressure
+      - pression d'épreuve = proof (test) pressure
+      - presse hydraulique = hydraulic press
+    exercises:
+      - id: flu-pression.1
+        type: numeric
+        level: 1
+        q: Pression relative au fond d'une piscine de 3 m de profondeur, en bar ?
+        answer: 0.2943
+        tol: 0.02
+        unit: bar
+        calc: 1000 * 9.81 * 3 / 1e5
+        trap_values:
+          - v: 29430
+            why: C'est la valeur en pascals. 1 bar = 100 000 Pa.
+          - v: 2.943
+            why: "1 bar vaut 100 000 Pa, pas 10 000."
+        e: $\rho g h = 1000 \times 9{,}81 \times 3 = 29\,430$ Pa $\approx 0{,}29$ bar.
+      - id: flu-pression.2
+        type: numeric
+        level: 2
+        q: Pression **absolue** à 10 m sous la surface de la mer (prends ρ = 1000 kg/m³ et 1,013 bar en surface) ?
+        answer: 1.994
+        tol: 0.01
+        unit: bar
+        calc: 1.013 + 1000 * 9.81 * 10 / 1e5
+        trap_values:
+          - v: 0.981
+            why: C'est la pression relative. En absolu, il faut ajouter l'atmosphère.
+        piege: ing-absolue-relative
+        e: $1{,}013 + 0{,}981 \approx 2$ bar absolus. D'où la règle des plongeurs, « 10 m = 1 bar de plus ».
+      - id: flu-pression.3
+        type: numeric
+        level: 2
+        q: Presse hydraulique. Petit piston Ø20 mm poussé avec 100 N, grand piston Ø200 mm. Force sur le grand piston ?
+        answer: 10000
+        tol: 0.01
+        unit: N
+        calc: 100 * (200 / 20)**2
+        trap_values:
+          - v: 1000
+            why: Le rapport des forces est le rapport des surfaces, donc des diamètres au carré.
+        piege: ing-diametre-rayon
+        e: $F_2 = F_1 (D_2/D_1)^2 = 100 \times 100 = 10\,000$ N. Le grand piston se déplace 100 fois moins que le petit.
+      - id: flu-pression.4
+        type: qcm
+        level: 1
+        q: Le manomètre d'un pneu indique 2 bar. Quelle est la pression absolue dans le pneu ?
+        piege: ing-absolue-relative
+        choices:
+          - t: Environ 3 bar
+            ok: true
+          - t: 2 bar
+            piege: true
+            why: Le manomètre lit la pression relative, l'écart avec l'atmosphère.
+          - t: Environ 1 bar
+            why: Ce serait si l'on retranchait l'atmosphère au lieu de l'ajouter.
+        e: p_abs = p_rel + p_atm ≈ 2 + 1 = 3 bar.
+      - id: flu-pression.5
+        type: numeric
+        level: 1
+        q: Une fiche technique américaine indique 100 psi maximum. Combien en bar ?
+        answer: 6.895
+        tol: 0.02
+        unit: bar
+        calc: 100 * 0.0689476
+        trap_values:
+          - v: 1450
+            why: Tu as multiplié par 14,5 au lieu de diviser. 14,5 psi ≈ 1 bar.
+        e: 1 psi ≈ 0,069 bar, donc 100 psi ≈ 6,9 bar.
+      - id: flu-pression.6
+        type: flash
+        level: 1
+        q: Donne 1 bar en Pa, 1 atm en mbar, et 1 Torr en mbar.
+        back: |
+          1 bar = 100 000 Pa ; 1 atm = 1013 mbar ; 1 Torr ≈ 1,33 mbar.
+        e: Le Torr (mmHg) est encore courant sur les jauges de vide anciennes ou américaines.
+  # ------------------------------------------------------------------ débit
+  - id: flu-debit
+    title: Débit, continuité et Bernoulli
+    en: Flow rate, continuity and Bernoulli
+    goal: Calculer une vitesse d'écoulement à partir d'un débit, appliquer la continuité et Bernoulli.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Le pouce sur le tuyau d'arrosage
+          body: |
+            Quand tu bouches à moitié la sortie d'un tuyau d'arrosage avec le pouce, l'eau sort plus vite et va plus loin. Le robinet envoie toujours la même quantité d'eau par seconde : pour passer par un trou plus petit, elle doit aller plus vite.
+
+            Dans une rivière, c'est pareil : le courant accélère dans les passages étroits.
+        - level: 2
+          title: Ce qui entre doit sortir
+          body: |
+            Le **débit** est le volume qui passe par seconde. Pour un liquide (incompressible), le débit est le même partout le long d'un tuyau : si la section diminue, la vitesse augmente. C'est la **continuité**.
+
+            Et si la vitesse augmente, où l'eau prend-elle cette énergie ? Dans sa **pression** : là où le fluide va plus vite, sa pression baisse. C'est le principe de **Bernoulli**, une conservation de l'énergie. Il explique le Venturi, les éjecteurs qui créent du vide avec de l'air comprimé, ou la portance.
+          check:
+            q: Dans le rétrécissement d'un tube de Venturi, la pression est…
+            choices:
+              - t: plus basse qu'en amont
+                ok: true
+                why: La vitesse y est plus grande, donc la pression plus faible (Bernoulli).
+              - t: plus haute, le fluide y est « comprimé »
+                why: C'est l'intuition fausse la plus courante. Un liquide ne se comprime pas, il accélère.
+              - t: identique
+                why: L'énergie cinétique a augmenté, il faut bien la prendre quelque part.
+        - level: 3
+          title: Les formules
+          body: |
+            $$Q = S \cdot v \qquad S_1 v_1 = S_2 v_2 \qquad p + \tfrac{1}{2}\rho v^2 + \rho g z = \text{constante}$$
+
+            $Q$ en m³/s, $S$ en m², $v$ en m/s. Conversion clé : **1 L/min = 1/60 000 m³/s**.
+
+            ```svg caption="Tube de Venturi : dans le rétrécissement, la vitesse augmente et la pression baisse, ce que montrent les colonnes de liquide."
+            <svg viewBox="0 0 460 210" width="460" role="img" aria-label="Tube de Venturi avec deux colonnes manométriques">
+              <defs><marker id="ar-flu1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="a"/></marker></defs>
+              <polyline class="s" points="20,90 170,90 210,115 250,115 290,90 440,90"/>
+              <polyline class="s" points="20,170 170,170 210,145 250,145 290,170 440,170"/>
+              <line class="as" x1="40" y1="130" x2="110" y2="130" marker-end="url(#ar-flu1)"/>
+              <line class="as" x1="190" y1="130" x2="275" y2="130" marker-end="url(#ar-flu1)"/>
+              <line class="as" x1="340" y1="130" x2="410" y2="130" marker-end="url(#ar-flu1)"/>
+              <rect class="soft" x="84" y="35" width="12" height="55"/>
+              <rect class="soft" x="224" y="75" width="12" height="40"/>
+              <line class="s2" x1="84" y1="15" x2="84" y2="90"/>
+              <line class="s2" x1="96" y1="15" x2="96" y2="90"/>
+              <line class="s2" x1="224" y1="15" x2="224" y2="115"/>
+              <line class="s2" x1="236" y1="15" x2="236" y2="115"/>
+              <line class="grid dash" x1="70" y1="35" x2="250" y2="35"/>
+              <line class="ws" x1="212" y1="37" x2="212" y2="73"/>
+              <text class="tw" x="186" y="60">Δh</text>
+              <text class="t" x="104" y="60">p₁</text>
+              <text class="tw" x="244" y="62">p₂ &lt; p₁</text>
+              <text class="t" x="60" y="195">S₁, v₁</text>
+              <text class="ta" x="160" y="195">S₂ &lt; S₁ → v₂ &gt; v₁</text>
+              <text class="t" x="350" y="195">S₁, v₁</text>
+            </svg>
+            ```
+
+            **Exemple** : 10 L/min dans un tuyau de diamètre intérieur 8 mm. $Q = 1{,}67 \times 10^{-4}$ m³/s, $S = \pi \times 0{,}004^2 = 5{,}03 \times 10^{-5}$ m², donc $v \approx 3{,}3$ m/s.
+
+            **Vidange d'un réservoir** (Torricelli) : un orifice à une profondeur $h$ sous la surface libre laisse sortir le liquide à $v = \sqrt{2 g h}$, comme un objet qui tomberait de la hauteur $h$.
+        - level: 4
+          title: Sous le capot
+          body: |
+            Bernoulli est un bilan d'énergie **par unité de volume** : $p$ est l'énergie de pression, $\tfrac{1}{2}\rho v^2$ l'énergie cinétique, $\rho g z$ l'énergie potentielle. Il ne vaut que le long d'un écoulement **sans pertes** (pas de frottement, pas de pompe entre les deux points). Dans un vrai tuyau, on ajoute un terme de **pertes de charge** (notion suivante).
+
+            Application : le **débitmètre à Venturi** ou à diaphragme mesure la chute de pression dans un rétrécissement. Comme $\Delta p \propto v^2 \propto Q^2$, la mesure est peu précise à faible débit (diviser le débit par 10 divise le signal par 100).
+
+            **Pour les gaz**, le volume dépend de la pression et de la température. On exprime donc les débits en **conditions normales** : Nl/min ou Nm³/h (normo-litres, ramenés à 0 °C et 1,013 bar selon la convention DIN, parfois d'autres références), ou en **sccm** (standard cm³/min) pour les régulateurs de débit massique.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Vitesses usuelles de l'eau dans les tuyauteries : de l'ordre de **1 à 3 m/s**. Au-delà : bruit, érosion, coups de bélier à la fermeture des vannes.
+            - Types de débitmètres : à turbine, électromagnétique (exige un liquide **conducteur**, il fonctionne mal avec l'eau déminéralisée des circuits de refroidissement), à ultrasons, Coriolis (débit massique direct), thermique massique pour les gaz.
+            - Les circuits de refroidissement des équipements sensibles (optiques, aimants, détecteurs) ont souvent un **contrôleur de débit** relié aux sécurités : s'il ne voit plus le débit minimal, l'équipement est coupé avant de surchauffer.
+      recap:
+        - "Q = S·v ; 1 L/min = 1/60 000 m³/s."
+        - "Continuité : S₁·v₁ = S₂·v₂ (liquide), la vitesse varie comme 1/D²."
+        - "Bernoulli : p + ½ρv² + ρgz = constante, sans pertes ni pompe."
+        - "Là où ça va plus vite, la pression baisse (Venturi, éjecteur)."
+        - "Gaz : débits en conditions normales (Nl/min, sccm)."
+      pieges: [ing-unites-debit, ing-diametre-rayon]
+    vocab:
+      - débit volumique = volumetric flow rate
+      - débit massique = mass flow rate
+      - vitesse d'écoulement = flow velocity
+      - continuité = continuity
+      - éjecteur = ejector (venturi vacuum generator)
+      - débitmètre = flow meter
+      - contrôleur de débit = flow switch
+      - coup de bélier = water hammer
+    exercises:
+      - id: flu-debit.1
+        type: numeric
+        level: 2
+        q: 10 L/min d'eau circulent dans un tuyau de diamètre intérieur 8 mm. Vitesse moyenne de l'eau ?
+        answer: 3.316
+        tol: 0.02
+        unit: m/s
+        calc: (10 / 60000) / (pi * 0.004**2)
+        trap_values:
+          - v: 0.829
+            why: Tu as pris le diamètre (8 mm) comme rayon dans πr².
+          - v: 198.9
+            why: Tu as oublié de convertir les minutes en secondes.
+          - v: 0.0553
+            why: Tu as divisé par 3600 (une heure) au lieu de 60.
+        piege: ing-unites-debit
+        e: $Q = 10/60\,000 = 1{,}67 \times 10^{-4}$ m³/s ; $S = \pi \times 0{,}004^2 = 5{,}03 \times 10^{-5}$ m² ; $v = Q/S \approx 3{,}3$ m/s.
+      - id: flu-debit.2
+        type: numeric
+        level: 1
+        q: De l'eau circule à 1 m/s dans un tuyau Ø20 mm qui se rétrécit à Ø10 mm. Vitesse dans la partie étroite ?
+        answer: 4
+        tol: 0.01
+        unit: m/s
+        calc: 1 * (20 / 10)**2
+        trap_values:
+          - v: 2
+            why: La vitesse varie comme l'inverse de la section, donc du diamètre au carré.
+        e: Diamètre divisé par 2, section divisée par 4, vitesse multipliée par 4.
+      - id: flu-debit.3
+        type: numeric
+        level: 2
+        q: Un réservoir ouvert se vide par un orifice situé 2 m sous la surface libre. Vitesse de sortie (sans pertes) ?
+        answer: 6.264
+        tol: 0.02
+        unit: m/s
+        calc: sqrt(2 * 9.81 * 2)
+        e: Torricelli, $v = \sqrt{2 g h} = \sqrt{2 \times 9{,}81 \times 2} \approx 6{,}3$ m/s. En réalité un peu moins, à cause des pertes à l'orifice.
+      - id: flu-debit.4
+        type: numeric
+        level: 3
+        q: Dans une conduite horizontale, de l'eau passe de 2 m/s à 6 m/s en traversant un rétrécissement. Chute de pression (sans pertes), en bar ?
+        answer: 0.16
+        tol: 0.01
+        unit: bar
+        calc: 0.5 * 1000 * (6**2 - 2**2) / 1e5
+        trap_values:
+          - v: 0.08
+            why: Tu as élevé au carré la différence des vitesses. Bernoulli fait la différence des carrés.
+          - v: 16000
+            why: C'est la valeur en pascals.
+        e: $\Delta p = \tfrac{1}{2}\rho(v_2^2 - v_1^2) = 500 \times (36 - 4) = 16\,000$ Pa $= 0{,}16$ bar.
+      - id: flu-debit.5
+        type: qcm
+        level: 2
+        q: Un éjecteur pneumatique (venturi) crée du vide pour une ventouse. D'où vient l'aspiration ?
+        choices:
+          - t: L'air comprimé accéléré dans un rétrécissement a une pression plus basse, qui aspire l'air de la ventouse
+            ok: true
+          - t: Une petite pompe cachée dans l'éjecteur
+            why: Un éjecteur n'a aucune pièce mobile.
+          - t: Le refroidissement de l'air qui se détend
+            why: La détente refroidit bien l'air, mais ce n'est pas ce qui crée l'aspiration.
+        e: C'est Bernoulli. Simple et sans pièce mobile, mais gourmand en air comprimé.
+      - id: flu-debit.6
+        type: flash
+        level: 2
+        q: Pourquoi exprime-t-on les débits de gaz en Nl/min ou en sccm plutôt qu'en L/min ?
+        back: |
+          Parce que le volume d'un gaz dépend de sa pression et de sa température. Un « litre » d'air à 6 bar contient environ 7 fois plus de gaz qu'un litre à la pression atmosphérique. En ramenant le volume à des conditions de référence (normales ou standard), le débit indique une quantité de gaz, indépendante des conditions de mesure.
+        e: Attention, les conditions de référence varient selon les normes et les fabricants (0 °C ou 20 °C, par exemple).
+  # ------------------------------------------------------------------ pertes de charge
+  - id: flu-pertes
+    title: Viscosité, Reynolds et pertes de charge
+    en: Viscosity, Reynolds number and pressure losses
+    goal: Déterminer le régime d'écoulement et estimer les pertes de charge d'un circuit.
+    minutes: 13
+    lesson:
+      steps:
+        - level: 1
+          title: La paille trop fine
+          body: |
+            Boire un milk-shake avec une paille fine et longue demande un gros effort : le liquide frotte sur les parois et sur lui-même. Avec une paille plus large et plus courte, ça passe tout seul.
+
+            De même, un long tuyau d'arrosage donne un jet moins puissant qu'un tuyau court branché sur le même robinet.
+        - level: 2
+          title: Frottements et régimes
+          body: |
+            Un fluide réel est **visqueux** : il frotte sur les parois et entre ses couches. Cette énergie perdue se paie en **pression** : elle baisse le long du tuyau. C'est la **perte de charge**.
+
+            L'écoulement peut être :
+            - **laminaire** : des filets bien parallèles, calmes (écoulement lent, fluide visqueux, tuyau fin) ;
+            - **turbulent** : des tourbillons qui mélangent tout (le cas habituel de l'eau dans les tuyauteries).
+
+            Le **nombre de Reynolds** dit dans quel régime on est. Il compare l'inertie du fluide (qui tend à créer des tourbillons) à sa viscosité (qui les calme).
+          check:
+            q: Dans un circuit de refroidissement, pourquoi un écoulement turbulent est-il souvent recherché ?
+            choices:
+              - t: Il mélange le fluide et transfère beaucoup mieux la chaleur des parois
+                ok: true
+                why: En laminaire, une couche de liquide chaud reste collée à la paroi et isole.
+              - t: Il crée moins de pertes de charge
+                why: C'est l'inverse, le turbulent coûte plus de pression.
+              - t: Il fait moins de bruit
+                why: Ce n'est pas le critère, et un écoulement turbulent est plutôt plus bruyant.
+        - level: 3
+          title: Les formules
+          body: |
+            $$Re = \frac{\rho\,v\,D}{\mu} = \frac{v\,D}{\nu}$$
+
+            $\mu$ : viscosité dynamique (Pa·s), $\nu = \mu/\rho$ : viscosité cinématique (m²/s ; eau à 20 °C : $\approx 10^{-6}$ m²/s).
+            - $Re < 2000$ environ : **laminaire** ;
+            - $Re > 4000$ environ : **turbulent** ; entre les deux, transition instable.
+
+            **Exemple** : eau à 1 m/s dans un tuyau Ø20 mm : $Re = 1 \times 0{,}02 / 10^{-6} = 20\,000$, turbulent.
+
+            Pertes de charge :
+            - **régulières** (le long d'un tuyau droit) : $\Delta p = \lambda \dfrac{L}{D} \cdot \dfrac{\rho v^2}{2}$, avec $\lambda \approx 0{,}02$ à $0{,}04$ en turbulent ;
+            - **singulières** (coudes, vannes, raccords) : $\Delta p = K \dfrac{\rho v^2}{2}$ ($K$ de 0,3 à plus de 2 selon l'accident).
+        - level: 4
+          title: Sous le capot, la puissance du diamètre
+          body: |
+            En **laminaire**, $\lambda = 64/Re$, et on obtient la loi de **Poiseuille** :
+
+            $$\Delta p = \frac{128\,\mu\,L\,Q}{\pi\,D^4}$$
+
+            À perte de charge donnée, le débit varie comme $D^4$ : un tuyau **deux fois plus fin laisse passer 16 fois moins**.
+
+            En **turbulent**, à débit donné, $\Delta p$ varie à peu près comme $Q^2$ et comme $1/D^5$. Doubler le débit dans un circuit existant quadruple (environ) les pertes, et donc la pression que la pompe doit fournir.
+
+            Le coefficient $\lambda$ en turbulent dépend de $Re$ et de la rugosité relative des parois ; on le lit sur le **diagramme de Moody** ou on le calcule (formule de Colebrook, ou Blasius $\lambda \approx 0{,}316\,Re^{-0{,}25}$ pour un tube lisse jusqu'à $Re \approx 10^5$).
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Dans un petit circuit, les **pertes singulières** (raccords rapides, coudes serrés, vannes, filtres) dépassent souvent celles des tuyaux droits. Un raccord rapide mal choisi peut à lui seul faire chuter le débit.
+            - Circuits en **série** : les pertes s'additionnent. En **parallèle** : le débit se répartit, et c'est la branche la moins résistante qui le prend. Une branche plus longue ou plus bouchée reçoit moins d'eau et refroidit moins bien.
+            - Même logique en pneumatique : un tuyau trop long et trop fin rend un vérin lent, parce que l'air n'arrive pas assez vite.
+      recap:
+        - "Re = ρ·v·D/μ = v·D/ν ; laminaire < 2000, turbulent > 4000."
+        - "Eau à 20 °C : ν ≈ 10⁻⁶ m²/s."
+        - "Pertes régulières λ·(L/D)·ρv²/2 ; singulières K·ρv²/2."
+        - "Laminaire (Poiseuille) : Q ∝ D⁴ à Δp donné."
+        - "Turbulent : Δp ∝ Q² environ ; série = pertes additionnées, parallèle = débit partagé."
+      pieges: [ing-diametre-d4]
+    vocab:
+      - viscosité = viscosity
+      - écoulement laminaire = laminar flow
+      - écoulement turbulent = turbulent flow
+      - nombre de Reynolds = Reynolds number
+      - perte de charge = pressure drop (head loss)
+      - rugosité = roughness
+      - coude = elbow (bend)
+      - raccord rapide = quick coupling
+    exercises:
+      - id: flu-pertes.1
+        type: numeric
+        level: 1
+        q: Nombre de Reynolds pour de l'eau (ν = 10⁻⁶ m²/s) à 1 m/s dans un tuyau Ø20 mm ?
+        answer: 20000
+        tol: 0.01
+        calc: 1 * 0.02 / 1e-6
+        trap_values:
+          - v: 20000000
+            why: Le diamètre doit être en mètres (0,02 m).
+        e: $Re = vD/\nu = 1 \times 0{,}02 / 10^{-6} = 20\,000$. Régime turbulent.
+      - id: flu-pertes.2
+        type: numeric
+        level: 3
+        q: En régime laminaire, un capillaire débite 1 mL/min. On le remplace par un capillaire de même longueur mais de diamètre deux fois plus petit, sous la même différence de pression. Nouveau débit, en mL/min ?
+        answer: 0.0625
+        tol: 0.01
+        unit: mL/min
+        calc: 1 * (1/2)**4
+        trap_values:
+          - v: 0.5
+            why: Le débit n'est pas proportionnel au diamètre.
+          - v: 0.25
+            why: Ce serait le cas s'il était proportionnel à la section. En laminaire, il varie comme D⁴.
+        piege: ing-diametre-d4
+        e: Poiseuille, $Q \propto D^4$ : $(1/2)^4 = 1/16$, soit 0,0625 mL/min.
+      - id: flu-pertes.3
+        type: numeric
+        level: 2
+        q: "Perte de charge régulière : eau à 2 m/s, tuyau droit de 10 m, Ø20 mm, λ = 0,03. Résultat en bar ?"
+        answer: 0.3
+        tol: 0.01
+        unit: bar
+        calc: 0.03 * (10 / 0.02) * (1000 * 2**2 / 2) / 1e5
+        trap_values:
+          - v: 30000
+            why: C'est la valeur en pascals.
+          - v: 0.6
+            why: Tu as oublié le 1/2 de ρv²/2.
+        e: $\Delta p = 0{,}03 \times 500 \times 2000 = 30\,000$ Pa $= 0{,}3$ bar.
+      - id: flu-pertes.4
+        type: numeric
+        level: 2
+        q: Même circuit, avec 6 coudes (K = 0,9 chacun) à 2 m/s. Perte de charge singulière totale des coudes, en bar ?
+        answer: 0.108
+        tol: 0.01
+        unit: bar
+        calc: 6 * 0.9 * 1000 * 2**2 / 2 / 1e5
+        e: $\Delta p = 6 \times 0{,}9 \times 2000 = 10\,800$ Pa $\approx 0{,}11$ bar, du même ordre que les 10 m de tuyau droit.
+      - id: flu-pertes.5
+        type: qcm
+        level: 2
+        q: En régime turbulent, on double le débit dans un circuit existant. La perte de charge…
+        choices:
+          - t: est multipliée par 4 environ
+            ok: true
+            why: Δp varie comme v², donc comme Q².
+          - t: double
+            why: Ce serait vrai en laminaire, où Δp est proportionnelle au débit.
+          - t: ne change pas
+            why: Les pertes dépendent de la vitesse.
+        e: C'est pourquoi augmenter le débit d'un circuit demande souvent une pompe nettement plus puissante.
+      - id: flu-pertes.6
+        type: flash
+        level: 2
+        q: Que compare physiquement le nombre de Reynolds ?
+        back: |
+          Les forces d'**inertie** du fluide (qui entretiennent les tourbillons) aux forces de **viscosité** (qui les amortissent). Grand Re : l'inertie domine, écoulement turbulent. Petit Re : la viscosité domine, écoulement laminaire.
+        e: Il est sans dimension, ce qui permet de comparer des écoulements d'échelles très différentes (maquette et réalité).
+  # ------------------------------------------------------------------ puissance
+  - id: flu-puissance
+    title: Pompes, hydraulique et pneumatique
+    en: Pumps, hydraulics and pneumatics
+    goal: Calculer une puissance hydraulique, une consommation d'air et comprendre le point de fonctionnement d'une pompe.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Nettoyeur haute pression et ventilateur
+          body: |
+            Un nettoyeur haute pression envoie **peu d'eau** mais à **très forte pression**. Un gros ventilateur déplace **énormément d'air** avec **très peu de pression**. Les deux peuvent consommer la même puissance.
+
+            Pour un fluide, la puissance, c'est pression **et** débit ensemble.
+        - level: 2
+          title: Pompe et circuit
+          body: |
+            Une pompe donne de l'énergie au fluide. Mais attention : une pompe fournit surtout un **débit**, et c'est le **circuit** (ses pertes de charge, sa hauteur) qui fixe la pression nécessaire.
+
+            Deux familles :
+            - **pompes volumétriques** (à engrenages, à pistons, à palettes) : chaque tour déplace un volume fixe. Si la sortie est bouchée, la pression monte jusqu'à ce que quelque chose casse, d'où le **limiteur de pression** obligatoire ;
+            - **pompes centrifuges** (circulateurs, pompes à eau) : la pression fournie baisse quand le débit augmente. Vanne fermée, la pression plafonne (mais l'eau chauffe si ça dure).
+
+            Le **point de fonctionnement** est l'intersection de la courbe de la pompe et de la courbe du circuit.
+          check:
+            q: On ferme la vanne de sortie d'une pompe à engrenages en marche, sans limiteur de pression. Que se passe-t-il ?
+            choices:
+              - t: La pression monte jusqu'à la rupture d'un élément ou le blocage du moteur
+                ok: true
+              - t: La pompe s'arrête proprement de débiter
+                why: Une pompe volumétrique continue à pousser son volume à chaque tour, quoi qu'il arrive.
+              - t: La pression reste égale à celle de service
+                why: Rien ne la limite, le liquide étant incompressible.
+        - level: 3
+          title: Les formules
+          body: |
+            $$P = p \cdot Q \qquad P_{moteur} = \frac{P_{hydraulique}}{\eta}$$
+
+            En unités SI, Pa × m³/s = W. Formule pratique : $P\,(\text{kW}) = \dfrac{p\,(\text{bar}) \times Q\,(\text{L/min})}{600}$.
+
+            **Exemple** : une centrale hydraulique à 200 bar et 20 L/min fournit $200 \times 20 / 600 \approx 6{,}7$ kW au fluide. Avec un rendement global de 0,8, le moteur électrique doit fournir environ 8,3 kW.
+
+            **Vitesse d'un vérin** : $v = Q / S$. Un vérin hydraulique Ø50 mm alimenté à 10 L/min sort à environ 85 mm/s.
+
+            **Consommation d'air d'un vérin pneumatique** : le volume du vérin est rempli à la pression d'alimentation, donc en air libre :
+            $$V_{air} = S \times \text{course} \times \frac{p_{rel} + p_{atm}}{p_{atm}}$$
+            Vérin Ø32, course 100 mm, 6 bar relatifs : $0{,}080 \text{ L} \times 7 \approx 0{,}56$ L d'air libre par sortie.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **L'air comprimé coûte cher.** Entre l'électricité du compresseur et le travail utile d'un vérin, le rendement global est faible (souvent de l'ordre de 10 %) : l'essentiel part en chaleur à la compression, en détente et en **fuites**. Les fuites sont la première source de gaspillage d'un réseau d'air.
+
+            **La cavitation.** Si la pression à l'aspiration d'une pompe descend sous la pression de vapeur du liquide, des bulles de vapeur se forment puis implosent en arrivant dans les zones de plus haute pression. Bruit de « gravier », vibrations, érosion rapide des roues. Causes : aspiration trop longue ou trop fine, filtre encrassé, liquide trop chaud, pompe trop haute au-dessus du réservoir.
+
+            **L'énergie stockée.** Un gaz comprimé stocke de l'énergie. En hydraulique, les accumulateurs aussi. Un circuit « arrêté » peut rester sous pression : on purge avant d'intervenir.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Un réseau d'air comprimé industriel est typiquement à **6-7 bar**, avec un ensemble **filtre-régulateur** (et parfois lubrificateur) avant les équipements. Pour des équipements liés au vide ou à l'optique, on veut un air **sec et sans huile**.
+            - **Sécurité hydraulique** : ne jamais chercher une fuite avec la main. Un jet fin d'huile à haute pression peut traverser la peau (injection), une urgence médicale.
+            - Ne jamais débrancher un flexible sous pression ; consigner et purger d'abord.
+            - Sur un circuit de refroidissement, surveille le **débit** et la **température de retour** : une baisse de débit est souvent le premier signe d'un filtre bouché ou d'une pompe fatiguée.
+      recap:
+        - "P = p·Q ; P(kW) = p(bar)·Q(L/min)/600."
+        - "Volumétrique : débit imposé, limiteur de pression obligatoire. Centrifuge : pression qui baisse avec le débit."
+        - "Point de fonctionnement = courbe pompe ∩ courbe circuit."
+        - "Vérin : v = Q/S ; air consommé = volume × (p_rel + 1 bar)/1 bar."
+        - "Cavitation, fuites d'air, énergie stockée : purger avant d'intervenir."
+      pieges: [ing-conso-air-absolue, ing-pompe-volumetrique]
+    vocab:
+      - pompe volumétrique = positive displacement pump
+      - pompe centrifuge = centrifugal pump
+      - limiteur de pression = pressure relief valve
+      - point de fonctionnement = operating point
+      - centrale hydraulique = hydraulic power unit
+      - air comprimé = compressed air
+      - cavitation = cavitation
+      - accumulateur = accumulator
+    exercises:
+      - id: flu-puissance.1
+        type: numeric
+        level: 2
+        q: Puissance hydraulique d'une centrale qui débite 20 L/min sous 200 bar, en kW ?
+        answer: 6.667
+        tol: 0.02
+        unit: kW
+        calc: 200e5 * (20 / 60000) / 1000
+        trap_values:
+          - v: 4000
+            why: Les bars et les L/min ne se multiplient pas directement. Convertis en Pa et en m³/s, ou divise par 600.
+          - v: 400
+            why: Tu as oublié la conversion des minutes (divise encore par 60).
+        e: $P = 200 \times 10^5 \times 20/60\,000 \approx 6667$ W, soit environ 6,7 kW (ou $200 \times 20/600$).
+      - id: flu-puissance.2
+        type: numeric
+        level: 3
+        q: Vérin pneumatique Ø32 mm, course 100 mm, alimenté à 6 bar relatifs. Volume d'air libre (à pression atmosphérique) consommé par une sortie, en litres ?
+        answer: 0.563
+        tol: 0.02
+        unit: L
+        calc: pi * 16**2 * 100 / 1e6 * (6 + 1)
+        trap_values:
+          - v: 0.4825
+            why: Tu as multiplié par la pression relative. Il faut le rapport des pressions absolues, (6 + 1)/1.
+          - v: 0.0804
+            why: C'est le volume géométrique du vérin. Il est rempli d'air à 7 bar absolus, soit 7 fois plus d'air libre.
+        piege: ing-conso-air-absolue
+        e: $V = \pi \times 16^2 \times 100 = 80\,400$ mm³ $= 0{,}080$ L, × 7 ≈ 0,56 L d'air libre. Et autant pour la rentrée (un peu moins, à cause de la tige).
+      - id: flu-puissance.3
+        type: numeric
+        level: 2
+        q: Un vérin hydraulique de diamètre 50 mm est alimenté à 10 L/min. Vitesse de sortie de la tige, en mm/s ?
+        answer: 84.88
+        tol: 0.02
+        unit: mm/s
+        calc: (10 / 60000) / (pi * 0.025**2) * 1000
+        trap_values:
+          - v: 21.22
+            why: Tu as pris le diamètre comme rayon.
+        e: $v = Q/S = 1{,}67 \times 10^{-4} / 1{,}96 \times 10^{-3} \approx 0{,}085$ m/s.
+      - id: flu-puissance.4
+        type: qcm
+        level: 2
+        q: Pourquoi une pompe volumétrique doit-elle toujours être protégée par un limiteur de pression ?
+        piege: ing-pompe-volumetrique
+        choices:
+          - t: Parce qu'elle impose son débit ; si la sortie se bouche, la pression n'a pas de limite naturelle
+            ok: true
+          - t: Pour régler sa vitesse
+            why: La vitesse se règle par le moteur ; le limiteur protège le circuit.
+          - t: Pour éviter la cavitation
+            why: La cavitation se joue à l'aspiration, le limiteur est au refoulement.
+        e: Le limiteur renvoie le débit au réservoir au-delà d'une pression réglée.
+      - id: flu-puissance.5
+        type: flash
+        level: 2
+        q: Qu'est-ce que la cavitation, et comment la reconnaître ?
+        back: |
+          La formation de bulles de vapeur dans le liquide là où la pression tombe sous sa pression de vapeur (souvent à l'aspiration d'une pompe), puis leur implosion brutale plus loin. On la reconnaît à un bruit de gravier ou de crépitement, des vibrations, une baisse de débit, et à terme une érosion des roues ou des hélices.
+        e: Remèdes typiques, aspiration plus courte et plus large, filtre propre, liquide moins chaud, pompe plus basse que le réservoir.
+  # ------------------------------------------------------------------ vide
+  - id: flu-vide
+    title: Technique du vide
+    en: Vacuum technology
+    goal: Situer un niveau de vide, calculer un effort atmosphérique, une vitesse de pompage effective et une pression limite.
+    minutes: 14
+    lesson:
+      steps:
+        - level: 1
+          title: Le vide n'aspire pas
+          body: |
+            Une ventouse tient sur une vitre, un paquet de café sous vide est dur comme une brique. On dit que le vide « aspire », mais c'est faux : c'est l'**air extérieur qui pousse**, avec environ 1 kg par cm², et plus rien ne pousse de l'autre côté.
+
+            Faire le vide, c'est retirer des molécules de gaz d'une enceinte fermée.
+        - level: 2
+          title: Pourquoi et jusqu'où
+          body: |
+            On fait le vide pour que des particules (électrons d'un anneau de stockage, rayons X, faisceaux d'ions) voyagent sans heurter de molécules d'air, pour isoler thermiquement (cryostats, bouteilles thermos), pour garder des surfaces propres, ou pour certains procédés (dépôts, soudage par faisceau d'électrons).
+
+            On mesure le vide par la **pression absolue** qui reste. La plage est immense : de 1013 mbar (l'atmosphère) à $10^{-10}$ mbar et moins, soit plus de 13 ordres de grandeur. Aucune pompe ni aucune jauge ne couvre tout : on les combine, et on raisonne en **puissances de 10**.
+
+            ```svg caption="Échelle du vide (pression absolue en mbar, échelle logarithmique). Les limites entre domaines sont indicatives."
+            <svg viewBox="0 0 460 150" width="460" role="img" aria-label="Échelle des domaines de vide de 1000 à 10⁻¹¹ mbar">
+              <rect class="gd" x="20" y="30" width="90" height="26"/>
+              <rect class="soft" x="110" y="30" width="90" height="26"/>
+              <rect class="hl" x="200" y="30" width="120" height="26"/>
+              <rect class="soft" x="320" y="30" width="120" height="26"/>
+              <text class="t" x="65" y="48" text-anchor="middle">primaire</text>
+              <text class="t" x="155" y="48" text-anchor="middle">moyen</text>
+              <text class="t" x="260" y="48" text-anchor="middle">poussé</text>
+              <text class="t" x="380" y="48" text-anchor="middle">ultra-vide</text>
+              <line class="s" x1="20" y1="66" x2="440" y2="66"/>
+              <line class="s" x1="20" y1="62" x2="20" y2="70"/>
+              <line class="s" x1="110" y1="62" x2="110" y2="70"/>
+              <line class="s" x1="200" y1="62" x2="200" y2="70"/>
+              <line class="s" x1="320" y1="62" x2="320" y2="70"/>
+              <line class="s" x1="440" y1="62" x2="440" y2="70"/>
+              <text class="tm" x="20" y="84" text-anchor="start">10³</text>
+              <text class="tm" x="110" y="84" text-anchor="middle">1</text>
+              <text class="tm" x="200" y="84" text-anchor="middle">10⁻³</text>
+              <text class="tm" x="320" y="84" text-anchor="middle">10⁻⁷</text>
+              <text class="tm" x="440" y="84" text-anchor="end">10⁻¹¹</text>
+              <text class="ta" x="20" y="110" text-anchor="start">atmosphère</text>
+              <text class="ta" x="20" y="126" text-anchor="start">1013 mbar</text>
+              <text class="t" x="200" y="110" text-anchor="middle">pompe à palettes</text>
+              <text class="t" x="200" y="126" text-anchor="middle">≈ 10⁻² … 10⁻³</text>
+              <text class="tw" x="440" y="110" text-anchor="end">anneau de stockage</text>
+              <text class="tw" x="440" y="126" text-anchor="end">≈ 10⁻⁹ … 10⁻¹⁰</text>
+            </svg>
+            ```
+          check:
+            q: Une enceinte est à 10⁻⁶ mbar. Combien de fois moins de gaz qu'à l'air libre, environ ?
+            choices:
+              - t: Environ un milliard de fois moins (10⁹)
+                ok: true
+                why: 1000 mbar / 10⁻⁶ mbar = 10⁹.
+              - t: Environ un million de fois moins
+                why: L'atmosphère vaut 10³ mbar, pas 1 mbar.
+              - t: Mille fois moins
+                why: Compte les puissances de 10 de 10³ à 10⁻⁶.
+        - level: 3
+          title: Les grandeurs du vide
+          body: |
+            **Effort atmosphérique** sur une paroi : $F = \Delta p \times S$. Une bride pleine de Ø100 mm sous vide subit $0{,}1 \text{ N/mm}^2 \times 7854 \text{ mm}^2 \approx 785$ N, le poids d'environ 80 kg. Un hublot de Ø300 mm : plus de 7 kN.
+
+            **Libre parcours moyen** $\lambda$ : la distance moyenne qu'une molécule parcourt entre deux chocs. Pour l'air à 20 °C :
+            $$\lambda\,(\text{m}) \approx \frac{6{,}6 \times 10^{-5}}{p\,(\text{mbar})}$$
+            À 1 mbar : 66 µm ; à $10^{-3}$ mbar : 6,6 cm ; à $10^{-6}$ mbar : 66 m. Quand $\lambda$ devient plus grand que les tuyaux, les molécules ne se heurtent plus entre elles, seulement contre les parois : c'est le **régime moléculaire**.
+
+            **Pompage** : une pompe a une **vitesse de pompage** $S$ (en L/s, un volume par seconde). Le **flux de gaz** vaut $Q = p \cdot S$ (en mbar·L/s). À l'équilibre, la pression limite est
+            $$p = \frac{Q_{gaz}}{S_{eff}}$$
+            où $Q_{gaz}$ regroupe les fuites et le **dégazage** des parois.
+        - level: 4
+          title: Sous le capot, la conductance
+          body: |
+            Entre la pompe et l'enceinte, le tuyau freine le gaz. On le décrit par une **conductance** $C$ (L/s), qui se combine comme des résistances électriques en série :
+
+            $$\frac{1}{S_{eff}} = \frac{1}{S_{pompe}} + \frac{1}{C}$$
+
+            En régime moléculaire, pour un tube long (air, 20 °C) : $C \approx 12{,}1\,\dfrac{D^3}{L}$ (L/s, avec $D$ et $L$ en cm).
+
+            **Exemple** : une pompe turbomoléculaire de 300 L/s derrière un tube Ø4 cm de 50 cm de long. $C = 12{,}1 \times 64/50 \approx 15{,}5$ L/s, donc $S_{eff} \approx 14{,}7$ L/s. La grosse pompe ne sert presque à rien : c'est le tube qui commande. D'où la règle : **tuyaux courts et larges**, pompe au plus près de l'enceinte.
+
+            **Dégazage** : en vide poussé, le gaz qui reste ne vient plus du volume d'origine, mais des **parois** (surtout de la vapeur d'eau adsorbée), des joints et des matériaux. Pour l'ultra-vide, on **étuve** l'enceinte (chauffage à 120-250 °C pendant des heures ou des jours sous pompage) pour chasser cette eau.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - **Pompes** : primaire (à palettes lubrifiée, ou sèche type scroll) pour partir de l'atmosphère ; **turbomoléculaire** pour le vide poussé, qui a besoin d'un vide primaire au refoulement ; **ioniques** et **getters NEG** pour l'ultra-vide, sans pièce mobile, qu'on démarre une fois le vide déjà poussé.
+            - **Jauges** : Pirani (de l'atmosphère à ~10⁻³ mbar, lecture dépendante du gaz), à cathode froide (Penning) ou à ionisation (Bayard-Alpert) pour le vide poussé et l'ultra-vide.
+            - **Étanchéité** : joints élastomère (Viton) pour le vide poussé ; brides **CF** à joint cuivre pour l'ultra-vide et l'étuvage. Recherche de fuites au **détecteur hélium**.
+            - **Propreté et matériaux** : gants, pas d'empreintes de doigts, pas de laiton ni de cadmium ou zinc, pas de graisse ordinaire, pas de volumes piégés (vis ventilées).
+      recap:
+        - "Le vide se mesure en pression absolue (mbar), sur plus de 13 décades."
+        - "F = Δp·S : 1 bar sur une bride Ø100 ≈ 785 N."
+        - "Libre parcours moyen λ(m) ≈ 6,6·10⁻⁵/p(mbar) ; régime moléculaire quand λ > tuyaux."
+        - "1/S_eff = 1/S_pompe + 1/C ; tube long moléculaire C ≈ 12,1·D³/L (cm, L/s)."
+        - "Pression limite p = Q_gaz/S_eff ; dégazage des parois → étuvage."
+      pieges: [ing-conductance, ing-pirani-gaz, ing-fuite-virtuelle]
+    vocab:
+      - vide = vacuum
+      - ultra-vide = ultra-high vacuum (UHV)
+      - vitesse de pompage = pumping speed
+      - conductance = conductance
+      - dégazage = outgassing
+      - étuvage = bakeout
+      - pompe turbomoléculaire = turbomolecular pump
+      - libre parcours moyen = mean free path
+      - détecteur de fuite à hélium = helium leak detector
+    exercises:
+      - id: flu-vide.1
+        type: numeric
+        level: 1
+        q: Une bride pleine expose un disque de Ø100 mm au vide, l'autre face à l'atmosphère. Effort sur la bride (prends Δp = 1 bar) ?
+        answer: 785.4
+        tol: 0.02
+        unit: N
+        calc: 0.1 * pi * 50**2
+        trap_values:
+          - v: 7854
+            why: "1 bar = 0,1 N/mm², pas 1 N/mm²."
+          - v: 3141.6
+            why: Tu as pris le diamètre comme rayon.
+        piege: ing-bar-pa
+        e: $F = 0{,}1 \times \pi \times 50^2 \approx 785$ N, l'équivalent de 80 kg posés dessus.
+      - id: flu-vide.2
+        type: numeric
+        level: 3
+        q: Pompe turbomoléculaire de 300 L/s reliée à l'enceinte par un tube Ø4 cm, long de 50 cm (régime moléculaire, C ≈ 12,1·D³/L). Vitesse de pompage effective sur l'enceinte ?
+        answer: 14.73
+        tol: 0.02
+        unit: L/s
+        calc: 1 / (1 / 300 + 1 / (12.1 * 4**3 / 50))
+        trap_values:
+          - v: 300
+            why: Tu as ignoré le tube. C'est lui qui limite le pompage.
+          - v: 315.5
+            why: Les conductances et vitesses de pompage se combinent comme des résistances en série (inverses additionnés), pas en s'additionnant.
+        piege: ing-conductance
+        e: $C = 12{,}1 \times 64/50 \approx 15{,}5$ L/s ; $1/S_{eff} = 1/300 + 1/15{,}5$, $S_{eff} \approx 14{,}7$ L/s. Moins de 5 % de la pompe est utilisé.
+      - id: flu-vide.3
+        type: numeric
+        level: 2
+        q: Libre parcours moyen d'une molécule d'air à 10⁻⁶ mbar (λ ≈ 6,6·10⁻⁵ / p, λ en m) ?
+        answer: 66
+        tol: 0.03
+        unit: m
+        calc: 6.6e-5 / 1e-6
+        e: 66 m, bien plus que la taille de l'enceinte. Les molécules ne se rencontrent quasiment plus, elles vont de paroi en paroi.
+      - id: flu-vide.4
+        type: numeric
+        level: 2
+        q: Le dégazage d'une enceinte vaut 10⁻⁶ mbar·L/s et la vitesse de pompage effective 100 L/s. Pression limite, en mbar ?
+        answer: 1e-8
+        tol: 0.02
+        unit: mbar
+        calc: 1e-6 / 100
+        e: $p = Q/S = 10^{-6}/100 = 10^{-8}$ mbar. Pour descendre plus bas, il faut réduire le dégazage (étuvage, matériaux) ou augmenter le pompage effectif.
+      - id: flu-vide.5
+        type: qcm
+        level: 2
+        q: Laquelle de ces pompes peut démarrer à la pression atmosphérique et y rejeter le gaz ?
+        choices:
+          - t: Une pompe primaire à palettes ou sèche
+            ok: true
+          - t: Une pompe turbomoléculaire
+            why: Elle a besoin d'un vide primaire à son refoulement. Ses pales tournent à des dizaines de milliers de tours par minute et ne supportent pas de travailler à haute pression.
+          - t: Une pompe ionique
+            why: Elle ne se démarre qu'en vide déjà poussé, et elle piège le gaz au lieu de le rejeter.
+        e: Une installation classique enchaîne pompe primaire puis turbomoléculaire, et éventuellement pompes ioniques ou getters pour l'ultra-vide.
+      - id: flu-vide.6
+        type: qcm
+        level: 3
+        q: Pourquoi étuve-t-on une enceinte destinée à l'ultra-vide ?
+        choices:
+          - t: Pour chasser la vapeur d'eau adsorbée sur les parois, qui dégaze sinon pendant des semaines
+            ok: true
+          - t: Pour dilater les joints et améliorer l'étanchéité
+            why: L'étuvage peut au contraire fatiguer certains joints ; ce n'est pas son but.
+          - t: Pour stériliser l'enceinte
+            why: La propreté biologique n'est pas l'enjeu du vide.
+        e: Chauffer accélère énormément la désorption. Après étuvage et refroidissement, la pression limite peut gagner plusieurs décades.

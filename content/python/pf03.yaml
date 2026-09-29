@@ -1,0 +1,333 @@
+id: pf03
+track: python
+title: Opérateurs et calculs
+goal: Calculer juste — divisions, restes, puissances, priorités, comparaisons — et connaître les pièges numériques.
+level: fondations
+requires: [pf02]
+concepts: [operateurs, division, modulo, math]
+lesson:
+  minutes: 14
+  intro: |
+    Python est une excellente calculatrice d'ingénieur, à condition de connaître ses conventions. Trois opérateurs de division, une puissance qui ne s'écrit pas `^`, un arrondi qui ne fait pas ce que tu crois, des fonctions trigonométriques en radians : chacun de ces points a déjà coûté des heures de débogage à quelqu'un.
+  steps:
+    - level: 1
+      title: La calculatrice
+      body: |
+        Les opérations de base s'écrivent comme sur papier : `+`, `-`, `*` (multiplier), `/` (diviser). Les parenthèses forcent l'ordre des calculs.
+
+        Deux opérations moins connues, mais que tu utiliseras tout le temps :
+        - `//` : la **division entière** (combien de fois ça rentre) ;
+        - `%` : le **reste** de cette division (ce qui dépasse), qu'on appelle *modulo*.
+
+        Image : tu as 17 mesures à ranger par paquets de 5. `17 // 5` = 3 paquets complets, `17 % 5` = 2 mesures qui restent.
+      code: |
+        print(17 / 5)    # division « normale »
+        print(17 // 5)   # combien de paquets complets
+        print(17 % 5)    # combien il en reste
+        print(2 ** 10)   # puissance
+      run: true
+      out: |
+        3.4
+        3
+        2
+        1024
+    - level: 2
+      title: Priorités et types des résultats
+      body: |
+        Les priorités sont celles des maths : d'abord `**`, puis `*` `/` `//` `%`, puis `+` `-`. À priorité égale, de gauche à droite (sauf `**`, qui va de droite à gauche : `2 ** 3 ** 2` = `2 ** 9` = 512).
+
+        Le **type du résultat** suit des règles simples :
+        - `/` donne **toujours** un `float`, même quand ça tombe juste : `6 / 3` vaut `2.0`.
+        - `//`, `%`, `+`, `-`, `*` entre deux `int` donnent un `int`.
+        - Dès qu'un `float` est impliqué, le résultat est un `float`.
+
+        Raccourcis d'affectation : `n += 1` veut dire `n = n + 1` ; de même `-=`, `*=`, `/=`.
+      check:
+        q: "Que vaut `10 - 4 / 2 * 3` ?"
+        choices:
+          - t: "`4.0`"
+            ok: true
+            why: "D'abord `4 / 2 = 2.0`, puis `2.0 * 3 = 6.0`, enfin `10 - 6.0 = 4.0` (un `float`, à cause de `/`)."
+          - t: "`9.0`"
+            why: "Ce serait `(10 - 4) / 2 * 3`. La soustraction passe après la division et la multiplication."
+          - t: "`4`"
+            why: "Le calcul est bon, mais `/` produit toujours un `float` : le résultat s'écrit `4.0`."
+    - level: 3
+      title: Calculs utiles au quotidien
+      body: |
+        Deux usages très courants de `//` et `%` : **découper une durée** et **faire tourner un compteur** (un index qui revient à 0, comme une aiguille).
+
+        Et le module `math` apporte les fonctions scientifiques : racine, trigonométrie, exponentielle, logarithme, π.
+      code: |
+        import math
+
+        duree_s = 7384
+        h = duree_s // 3600
+        m = (duree_s % 3600) // 60
+        s = duree_s % 60
+        print(f"{h} h {m:02d} min {s:02d} s")
+
+        # vitesse de rotation : tr/min -> rad/s
+        n_tr_min = 1500
+        omega = n_tr_min * 2 * math.pi / 60
+        print(f"{omega:.1f} rad/s")
+
+        # index circulaire sur un buffer de 8 cases
+        print([i % 8 for i in range(6, 12)])
+      run: true
+      out: |
+        2 h 03 min 04 s
+        157.1 rad/s
+        [6, 7, 0, 1, 2, 3]
+      check:
+        q: "Un moteur tourne à 3000 tr/min. Que vaut ω en rad/s (arrondi) ?"
+        choices:
+          - t: "314 rad/s"
+            ok: true
+            why: "ω = 3000 × 2π / 60 = 100π ≈ 314 rad/s. Un tour = 2π radians, une minute = 60 secondes."
+          - t: "50 rad/s"
+            why: "C'est la fréquence en tours par seconde (3000 / 60 = 50 tr/s). Il manque le facteur 2π."
+          - t: "18 850 rad/s"
+            why: "Tu as multiplié par 2π sans diviser par 60 : ce serait des rad/min."
+    - level: 4
+      title: Là où ça surprend
+      body: |
+        **Division entière de nombres négatifs.** `//` arrondit **vers le bas** (vers moins l'infini), pas vers zéro. Donc `-7 // 2` vaut `-4`, et `-7 % 2` vaut `1` (le reste a le signe du diviseur). C'est différent du C et du C++, où `-7 / 2` vaut `-3`.
+
+        **`round` arrondit au pair.** Quand on est pile au milieu, Python arrondit vers le chiffre **pair** le plus proche (« arrondi bancaire », norme IEEE-754) : `round(2.5)` vaut `2`, `round(3.5)` vaut `4`. En plus, `round(2.675, 2)` donne `2.67`, car 2.675 est en réalité stocké comme 2.67499999…
+
+        **`^` n'est pas la puissance.** C'est le « OU exclusif » bit à bit : `2 ^ 3` vaut `1`. La puissance, c'est `**`.
+
+        **La trigo est en radians.** `math.sin(90)` ne vaut pas 1 : 90 est pris comme 90 radians. Il faut `math.sin(math.radians(90))`.
+      code: |
+        import math
+        print(-7 // 2, -7 % 2)
+        print(round(2.5), round(3.5), round(2.675, 2))
+        print(2 ^ 3, 2 ** 3)
+        print(round(math.sin(90), 3), math.sin(math.radians(90)))
+      run: true
+      out: |
+        -4 1
+        2 4 2.67
+        1 8
+        0.894 1.0
+    - level: 5
+      title: Comparaisons et logique
+      body: |
+        Les **comparaisons** produisent un booléen (`True` ou `False`) : `==` (égal), `!=` (différent), `<`, `<=`, `>`, `>=`.
+
+        Python autorise l'**encadrement** direct, très lisible pour tester une plage de mesure :
+
+        ```python
+        if 0 <= temp_c < 60:
+            ...
+        ```
+
+        On combine avec `and`, `or`, `not`. Et, sur le terrain, garde ces réflexes :
+        - **Ne mélange pas les unités** : convertis tout en SI (m, s, kg, Pa, rad) au début du calcul, et reconvertis à l'affichage.
+        - **Ne compare pas des `float` avec `==`** (vu au cours précédent) : `math.isclose`.
+        - Pour les très grands entiers, Python ne déborde **jamais** (`2 ** 100` est exact). Ce n'est pas le cas en C++ ni sur un microcontrôleur : garde-le en tête quand tu transposes un calcul.
+  recap:
+    - "`/` donne toujours un `float` ; `//` est la division entière (vers le bas), `%` le reste."
+    - "`**` est la puissance ; `^` est un OU exclusif bit à bit."
+    - "`round` arrondit au pair quand on est pile au milieu : `round(2.5) == 2`."
+    - "`math.sin`, `math.cos`… prennent des **radians** : `math.radians(deg)`."
+    - "tr/min → rad/s : multiplier par 2π/60."
+  pieges: [py-division, py-round-bancaire, py-chapeau-puissance, py-degres-radians]
+exercises:
+  - id: pf03.1
+    type: predict
+    level: 1
+    q: Qu'affiche ce script ?
+    code: |
+      print(9 / 3)
+      print(9 // 2)
+      print(9 % 2)
+    answer: |
+      3.0
+      4
+      1
+    trap_answers:
+      - |
+        3
+        4
+        1
+    piege: py-division
+    e: |
+      `/` renvoie **toujours** un `float`, même quand la division tombe juste : `3.0`, pas `3`.
+
+      `9 // 2` = 4 (paquets complets de 2), `9 % 2` = 1 (le reste). `n % 2 == 0` est le test classique « n est pair ».
+  - id: pf03.2
+    type: qcm
+    level: 1
+    q: "Comment écrit-on « 3 au carré » en Python ?"
+    piege: py-chapeau-puissance
+    choices:
+      - t: "`3 ** 2`"
+        ok: true
+      - t: "`3 ^ 2`"
+        piege: true
+        why: "`^` est le OU exclusif bit à bit : `3 ^ 2` vaut `1`. Aucune erreur n'est levée, le résultat est juste faux."
+      - t: "`3²`"
+        why: "`²` n'est pas un opérateur : `SyntaxError`."
+      - t: "`pow2(3)`"
+        why: "Cette fonction n'existe pas. Il existe `pow(3, 2)` et `math.pow(3, 2)`."
+    e: "La puissance s'écrit `**`. Le piège `^` est redoutable car il ne provoque aucune erreur : il donne un nombre, juste pas le bon."
+  - id: pf03.3
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      print(-7 // 2)
+      print(-7 % 2)
+      print(7 // -2)
+    answer: |
+      -4
+      1
+      -4
+    trap_answers:
+      - |
+        -3
+        -1
+        -3
+    piege: py-division
+    e: |
+      En Python, `//` arrondit **vers le bas** (vers −∞) : −3.5 devient −4. Et le reste `%` a le signe du **diviseur**, de sorte que `(a // b) * b + a % b == a` reste toujours vrai.
+
+      En C, C++ et sur Arduino, la division entière **tronque vers zéro** : `-7 / 2` vaut `-3` et `-7 % 2` vaut `-1`. Même calcul, résultat différent selon le langage.
+  - id: pf03.4
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      print(round(0.5), round(1.5), round(2.5))
+    answer: 0 2 2
+    trap_answers: ["1 2 3"]
+    piege: py-round-bancaire
+    e: |
+      Pile au milieu, Python arrondit vers le **pair** le plus proche : 0.5 → 0, 1.5 → 2, 2.5 → 2. C'est « l'arrondi bancaire » de la norme IEEE-754 : sur un grand nombre de valeurs, il ne biaise pas la moyenne vers le haut.
+
+      Si tu as besoin de l'arrondi « scolaire », utilise `math.floor(x + 0.5)` pour des positifs, ou le module `decimal` avec `ROUND_HALF_UP`.
+  - id: pf03.5
+    type: qcm
+    level: 2
+    q: "Que vaut `math.cos(180)` ?"
+    piege: py-degres-radians
+    choices:
+      - t: "Environ −0,598 : 180 est interprété comme 180 radians."
+        ok: true
+      - t: "−1"
+        piege: true
+        why: "Ce serait `math.cos(math.radians(180))`, ou `math.cos(math.pi)`."
+      - t: "Une erreur, 180 est hors limites."
+        why: "Le cosinus accepte n'importe quel nombre."
+    e: |
+      Toutes les fonctions trigonométriques de `math` travaillent en **radians**. Convertis avec `math.radians(deg)` à l'entrée et `math.degrees(rad)` à la sortie.
+
+      Même règle en C++ (`std::cos`), dans Excel, dans NumPy… et dans la quasi-totalité des bibliothèques de calcul.
+  - id: pf03.6
+    type: cloze
+    level: 1
+    q: Complète pour découper `duree` (en secondes) en minutes et secondes.
+    tpl: |
+      duree = 135
+      minutes = duree ⟦0⟧ 60
+      secondes = duree ⟦1⟧ 60
+      print(minutes, secondes)
+    blanks:
+      - ["//"]
+      - ["%"]
+    run: true
+    out: 2 15
+    e: "`135 // 60` = 2 minutes complètes, `135 % 60` = 15 secondes restantes. Ce duo `//` et `%` sert partout : heures/minutes, lignes/colonnes d'une grille, index circulaire."
+  - id: pf03.7
+    type: numeric
+    level: 1
+    q: "Un arbre tourne à 1450 tr/min. Quelle est sa vitesse angulaire ω, en rad/s ?"
+    answer: 151.84
+    tol: 0.01
+    unit: rad/s
+    calc: 1450 * 2 * pi / 60
+    trap_values:
+      - v: 24.17
+        why: "Ça, c'est en tours par seconde (1450/60). Un tour vaut 2π rad."
+      - v: 9110.6
+        why: "Tu as oublié de diviser par 60 : ce sont des rad/min."
+    piege: ing-tr-min-rad-s
+    e: |
+      $\omega = N \cdot \dfrac{2\pi}{60} = 1450 \times \dfrac{2\pi}{60} \approx 151{,}8\ \text{rad/s}$
+
+      Un tour = $2\pi$ radians et une minute = 60 s. Ce facteur $2\pi/60 \approx 0{,}1047$ revient dans tous les calculs de puissance ($P = C\,\omega$).
+  - id: pf03.8
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      n = 10
+      n += 5
+      n *= 2
+      n //= 4
+      print(n)
+    answer: "7"
+    e: "`n` passe par 15, puis 30, puis `30 // 4` = 7. Les opérateurs `+=`, `*=`, `//=` sont des raccourcis de `n = n + …`, `n = n * …`, etc."
+  - id: pf03.9
+    type: code
+    level: 2
+    q: |
+      Écris `vers_hms(secondes)` qui renvoie un texte `"H:MM:SS"`, minutes et secondes sur 2 chiffres. Exemple : `vers_hms(3725)` renvoie `"1:02:05"`.
+    start: |
+      def vers_hms(secondes):
+          ...
+    sol: |
+      def vers_hms(secondes):
+          h = secondes // 3600
+          m = (secondes % 3600) // 60
+          s = secondes % 60
+          return f"{h}:{m:02d}:{s:02d}"
+    tests: |
+      assert vers_hms(3725) == "1:02:05", vers_hms(3725)
+      assert vers_hms(0) == "0:00:00"
+      assert vers_hms(59) == "0:00:59"
+      assert vers_hms(3600) == "1:00:00"
+      assert vers_hms(86399) == "23:59:59"
+      print("OK")
+    hint: "Heures : `// 3600`. Ce qui reste après les heures : `% 3600`. Dans ce reste, les minutes : `// 60`. `{m:02d}` écrit un entier sur 2 chiffres avec un zéro devant."
+    e: |
+      `% 3600` isole ce qui reste après les heures complètes ; `// 60` y compte les minutes. Le format `02d` complète avec un zéro : `5` devient `05`.
+  - id: pf03.10
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      t = 45
+      print(0 <= t < 60)
+      print(t > 50 or t < 50)
+      print(not t == 45)
+    answer: |
+      True
+      True
+      False
+    e: |
+      L'encadrement `0 <= t < 60` se lit comme en maths. `or` est vrai si l'un des deux côtés l'est. `not t == 45` est lu `not (t == 45)` : l'égalité passe avant le `not`.
+  - id: pf03.11
+    type: flash
+    level: 2
+    q: "Donne les résultats en Python ET en C++ de `-7 // 2` (en C++ : `-7 / 2`) et `-7 % 2`."
+    back: |
+      Python : `-7 // 2 == -4` et `-7 % 2 == 1` (arrondi vers −∞, reste du signe du diviseur).
+
+      C/C++ : `-7 / 2 == -3` et `-7 % 2 == -1` (troncature vers 0, reste du signe du dividende).
+    e: Utile dès que tu calcules un index circulaire avec des nombres négatifs, ou que tu portes un calcul d'un langage à l'autre.
+  - id: pf03.12
+    type: bug
+    level: 2
+    q: "Ce calcul de moyenne affiche `20.0` au lieu de `15.0`. Clique sur la ligne fautive."
+    code: |
+      a = 10
+      b = 20
+      moyenne = a + b / 2
+      print(moyenne)
+    bad: 3
+    fix: |
+      moyenne = (a + b) / 2
+    e: "La division passe **avant** l'addition : `a + b / 2` vaut `10 + 10.0 = 20.0`. Sans parenthèses, `/` s'applique seulement à `b`. Il faut `(a + b) / 2`."

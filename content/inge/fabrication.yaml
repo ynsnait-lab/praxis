@@ -1,0 +1,698 @@
+id: fabrication
+title: Fabrication et cotation
+en: Manufacturing and tolerancing
+desc: Tolérances et ajustements, spécifications géométriques, usinage, choix d'un procédé et assemblages vissés.
+intro: |
+  Un plan ne décrit pas une pièce parfaite, qui n'existe pas : il décrit **ce qui est acceptable**. Chaque tolérance a un coût, et chaque procédé a ses limites. Un bon concepteur sait ce que la fonction exige, ce que l'atelier sait faire, et comment le dire sans ambiguïté sur un plan.
+notions:
+  # ------------------------------------------------------------------ tolérances
+  - id: fab-ajustements
+    title: Tolérances et ajustements
+    en: Tolerances and fits
+    goal: Lire une cote tolérancée, calculer un jeu ou un serrage, et choisir un ajustement (H7/g6, H7/p6…).
+    minutes: 14
+    lesson:
+      steps:
+        - level: 1
+          title: Rien n'est à la cote exacte
+          body: |
+            Aucune machine ne fabrique une pièce exactement à 20,000 mm. Il y aura toujours quelques micromètres d'écart. La question n'est donc pas « comment faire exactement 20 mm », mais « **quel écart est acceptable** pour que la pièce fonctionne ».
+
+            Quand un arbre doit entrer dans un trou (un **alésage**), tout dépend de ces écarts : s'il reste de la place, l'arbre tourne ou coulisse (il y a du **jeu**) ; si l'arbre est plus gros que le trou, il faut forcer pour l'emmancher (il y a du **serrage**).
+        - level: 2
+          title: Le système ISO
+          body: |
+            Une **tolérance** est un intervalle autorisé : cote minimale, cote maximale. Pour les assemblages arbre/alésage, on utilise un code normalisé (ISO 286), par exemple **Ø20 H7** pour un alésage ou **Ø20 g6** pour un arbre :
+            - la **lettre** donne la **position** de l'intervalle par rapport à la cote nominale. **Majuscule = alésage**, **minuscule = arbre**. H signifie que l'alésage commence pile à la cote nominale et va au-dessus ;
+            - le **chiffre** donne la **qualité** (IT) : la largeur de l'intervalle. Plus le chiffre est petit, plus c'est précis (et cher).
+
+            Un **ajustement** associe les deux : **H7/g6** (glissant, avec un petit jeu), **H7/p6** (serré, à monter à la presse).
+          check:
+            q: Dans l'ajustement Ø25 H7/k6, que désigne « k6 » ?
+            choices:
+              - t: La tolérance de l'arbre
+                ok: true
+                why: Minuscule = arbre, majuscule = alésage.
+              - t: La tolérance de l'alésage
+                why: L'alésage, c'est H7 (majuscule).
+              - t: La rugosité de surface
+                why: La rugosité s'indique autrement (Ra).
+        - level: 3
+          title: Calculer un jeu
+          body: |
+            Largeurs des qualités IT (en µm) pour les diamètres courants :
+
+            | Diamètre | IT6 | IT7 | IT8 | IT9 |
+            | --- | --- | --- | --- | --- |
+            | 10 à 18 mm | 11 | 18 | 27 | 43 |
+            | 18 à 30 mm | 13 | 21 | 33 | 52 |
+
+            **Exemple : Ø20 H7/g6.**
+            - Alésage H7 : de 20,000 à 20,021 mm (écart inférieur 0, largeur 21 µm).
+            - Arbre g6 : de 19,980 à 19,993 mm (écart supérieur −7 µm, largeur 13 µm).
+            - **Jeu mini** = alésage mini − arbre maxi = 20,000 − 19,993 = 0,007 mm.
+            - **Jeu maxi** = alésage maxi − arbre mini = 20,021 − 19,980 = 0,041 mm.
+
+            Si le jeu mini est négatif, c'est un serrage. Si le jeu est positif dans un cas et négatif dans l'autre, l'ajustement est **incertain**.
+
+            | Ajustement (alésage H7) | Type | Usage |
+            | --- | --- | --- |
+            | H7/f7 | jeu net | palier lisse, pièce tournante |
+            | H7/g6 | petit jeu | guidage précis, glissant |
+            | H7/h6 | glissant juste | centrage, positionnement démontable |
+            | H7/k6 | incertain | bague de roulement, centrage serré |
+            | H7/p6 | serré | emmanchement à la presse, sans démontage |
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Pourquoi l'alésage est presque toujours en H.** C'est le système « alésage normal » : un alésage précis se réalise avec des outils de dimension fixe (alésoirs, outils calibrés) et se contrôle avec des tampons, alors qu'un arbre se tourne ou se rectifie facilement à n'importe quelle cote. On fixe donc l'alésage, et on joue sur l'arbre.
+
+            **Chaîne de cotes.** Quand plusieurs pièces s'empilent, leurs tolérances s'additionnent. En **pire cas**, on additionne toutes les tolérances : c'est sûr, mais sévère. En approche **statistique**, on prend la racine de la somme des carrés (les pires cas se produisent rarement tous en même temps), ce qui suppose une production maîtrisée et un risque accepté.
+
+            **Qualité et procédé** : IT6-IT7, rectification ou alésage à l'alésoir ; IT8-IT9, tournage et fraisage soignés ; IT11 à IT13, ébauche, découpe, tôlerie.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - **Roulements** : la bague qui tourne par rapport à la charge se monte serrée (arbre en k6 ou m6 par exemple), l'autre glissante. Les catalogues des fabricants donnent les ajustements recommandés.
+            - **Goupilles de positionnement** : trou en H7, goupille en m6 : c'est ce qui permet de démonter et remonter une pièce exactement au même endroit, les vis ne faisant que serrer.
+            - **Tolérances générales** : les cotes sans tolérance écrite suivent la norme indiquée dans le cartouche (souvent ISO 2768-m). Ne mets une tolérance serrée que là où la fonction l'exige : chaque micromètre gagné se paie en temps d'usinage et en contrôle.
+      recap:
+        - "Majuscule = alésage, minuscule = arbre ; la lettre donne la position, le chiffre (IT) la largeur."
+        - "Jeu mini = alésage mini − arbre maxi ; jeu maxi = alésage maxi − arbre mini."
+        - "IT7 ≈ 21 µm et IT6 ≈ 13 µm vers Ø20 mm."
+        - "H7/g6 glissant, H7/h6 centrage, H7/k6 incertain, H7/p6 serré."
+        - "Chaîne de cotes : pire cas (somme) ou statistique (racine de la somme des carrés)."
+      pieges: [ing-alesage-arbre]
+    vocab:
+      - tolérance = tolerance
+      - ajustement = fit
+      - jeu = clearance
+      - serrage = interference
+      - alésage = bore (hole)
+      - arbre = shaft
+      - cote nominale = nominal size
+      - chaîne de cotes = tolerance stack-up
+    exercises:
+      - id: fab-ajustements.1
+        type: numeric
+        level: 2
+        q: "Ajustement Ø20 H7/g6 : alésage de 20,000 à 20,021 mm, arbre de 19,980 à 19,993 mm. Quel est le jeu maximal, en mm ?"
+        answer: 0.041
+        tol: 0.01
+        unit: mm
+        calc: 20.021 - 19.980
+        trap_values:
+          - v: 0.007
+            why: C'est le jeu minimal (alésage mini − arbre maxi).
+          - v: 0.028
+            why: "Tu as pris alésage maxi − arbre maxi. Le jeu maxi combine le plus grand alésage et le plus petit arbre."
+        e: Jeu maxi = alésage maxi − arbre mini = 20,021 − 19,980 = 0,041 mm. Jeu mini = 20,000 − 19,993 = 0,007 mm.
+      - id: fab-ajustements.2
+        type: qcm
+        level: 1
+        q: Que désigne la lettre H dans « Ø20 H7 » ?
+        piege: ing-alesage-arbre
+        choices:
+          - t: Un alésage dont la cote minimale est exactement la cote nominale
+            ok: true
+          - t: Un arbre de haute précision
+            piege: true
+            why: Les arbres s'écrivent en minuscule (h, g, k…). La majuscule désigne un alésage.
+          - t: Un traitement de durcissement
+            why: Ce n'est pas un traitement, c'est une position de tolérance.
+        e: "H : écart inférieur nul, l'alésage va de 20,000 à 20,000 + IT. C'est la base du système « alésage normal »."
+      - id: fab-ajustements.3
+        type: qcm
+        level: 2
+        q: Tu dois monter un axe qui ne doit jamais bouger ni se démonter dans une pièce en acier. Quel ajustement choisir ?
+        choices:
+          - t: H7/p6
+            ok: true
+            why: Serrage garanti, montage à la presse.
+          - t: H7/g6
+            why: Il y a du jeu, l'axe glisserait.
+          - t: H7/f7
+            why: Ajustement tournant, jeu important.
+        e: Un ajustement serré transmet des efforts par adhérence sans vis ni clavette. Au-delà, pour des serrages plus forts, on monte en dilatant l'alésage (chauffage) ou en contractant l'arbre (azote liquide).
+      - id: fab-ajustements.4
+        type: numeric
+        level: 2
+        q: "Trois cales de 10 ± 0,05 mm sont empilées. En pire cas, quelle est l'épaisseur maximale de l'empilement ?"
+        answer: 30.15
+        tol: 0.0005
+        unit: mm
+        calc: 3 * (10 + 0.05)
+        trap_values:
+          - v: 30.05
+            why: En pire cas, les trois tolérances s'additionnent, ± 0,15 mm au total.
+          - v: 30.087
+            why: C'est l'approche statistique (0,05 × √3). Le pire cas, lui, additionne tout.
+        e: Pire cas, 3 × 10,05 = 30,15 mm (et 29,85 au minimum). En statistique, on aurait ± 0,05 × √3 ≈ ± 0,087 mm.
+      - id: fab-ajustements.5
+        type: flash
+        level: 1
+        q: Que signifie le chiffre dans « H7 », et comment varie la précision avec lui ?
+        back: |
+          C'est la **qualité IT** (tolérance internationale) : elle fixe la **largeur** de l'intervalle, en fonction du diamètre.
+
+          Plus le chiffre est petit, plus l'intervalle est étroit : IT6 est plus précis (et plus cher) qu'IT7, lui-même plus précis qu'IT9.
+        e: Vers Ø20, IT6 ≈ 13 µm, IT7 ≈ 21 µm, IT9 ≈ 52 µm.
+  # ------------------------------------------------------------------ GPS
+  - id: fab-gps
+    title: Tolérances géométriques et état de surface
+    en: Geometric tolerancing and surface finish
+    goal: Lire un cadre de tolérance géométrique, connaître les grandes familles (forme, orientation, position) et la rugosité Ra.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Juste en taille, mais tordue
+          body: |
+            Une pièce peut avoir toutes ses cotes justes et être inutilisable : une plaque bien à la bonne épaisseur mais voilée, un trou au bon diamètre mais percé de travers, deux alésages bien calibrés mais pas alignés.
+
+            Les tolérances de dimension ne disent rien de la **forme** ni de la **position**. Il faut un autre langage : les **tolérances géométriques**.
+        - level: 2
+          title: Trois familles
+          body: |
+            - **Forme** (sans référence) : planéité, rectitude, circularité, cylindricité.
+            - **Orientation** (par rapport à une référence) : parallélisme, perpendicularité, inclinaison.
+            - **Position** (par rapport à des références) : localisation, coaxialité, symétrie. Et le **battement**, qui mesure ce qu'on voit au comparateur en faisant tourner la pièce.
+
+            Les **références** (A, B, C…) sont des surfaces de la pièce choisies comme base, en général celles qui la positionnent dans l'assemblage.
+          check:
+            q: À quelle famille appartient la perpendicularité ?
+            choices:
+              - t: Orientation
+                ok: true
+                why: Elle dit comment une surface est orientée par rapport à une référence.
+              - t: Forme
+                why: Une tolérance de forme ne fait appel à aucune référence.
+              - t: Position
+                why: La position fixe aussi l'emplacement, pas seulement l'angle.
+        - level: 3
+          title: Lire un cadre de tolérance
+          body: |
+            Un cadre se lit de gauche à droite : **symbole**, **valeur** (et Ø si la zone est cylindrique), puis **références**.
+
+            - « planéité 0,02 » : la surface doit tenir entre deux plans parallèles distants de 0,02 mm.
+            - « perpendicularité 0,05 | A » : la surface (ou l'axe) doit tenir dans une zone de 0,05 mm, perpendiculaire à la référence A.
+            - « localisation Ø0,1 | A | B | C » : l'axe du trou doit se trouver dans un cylindre de Ø0,1 mm centré sur la position théorique, définie à partir des références A, B et C par des cotes encadrées (cotes théoriquement exactes).
+
+            **État de surface.** La rugosité $Ra$ est l'écart moyen du profil par rapport à sa ligne moyenne, en µm. Ordres de grandeur :
+
+            | Procédé | $Ra$ typique (µm) |
+            | --- | --- |
+            | fraisage | 0,8 à 6,3 |
+            | tournage | 0,8 à 3,2 |
+            | rectification | 0,1 à 0,8 |
+            | rodage, polissage | 0,025 à 0,2 |
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Le système de références.** Une pièce posée est positionnée en 3-2-1 : un plan primaire (3 points), un plan secondaire (2 points), un plan tertiaire (1 point). C'est exactement l'idée du montage isostatique, appliquée à la mesure : les références A, B, C reproduisent la façon dont la pièce sera montée.
+
+            **Le modificateur Ⓜ (maximum de matière).** Quand un trou sert seulement au passage d'une vis, on peut autoriser plus d'écart de position si le trou est fabriqué plus grand que son minimum : c'est la tolérance « bonus ». Elle garantit le montage tout en réduisant les rebuts.
+
+            **Ra ne dit pas tout.** Deux surfaces de même $Ra$ peuvent se comporter très différemment (pics isolés, rayures). On complète parfois par $Rz$ (hauteur des pics) ou par l'orientation des stries.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Spécifie ce dont la **fonction** a besoin : la planéité d'une plaque qui porte des rails de guidage, la perpendicularité d'un axe par rapport à sa face d'appui, la coaxialité de deux portées de roulements.
+            - Les pièces se contrôlent sur **machine à mesurer tridimensionnelle** (MMT) ; une tolérance qu'on ne sait pas mesurer ne sert à rien.
+            - **Surfaces d'étanchéité** : une portée de joint torique statique demande typiquement un $Ra$ de l'ordre de 0,8 à 1,6 µm, sans rayure radiale (une rayure qui traverse la portée est une fuite). En vide, les surfaces de brides et les couteaux se manipulent avec un soin extrême.
+      recap:
+        - "Forme (planéité, rectitude, circularité, cylindricité), sans référence."
+        - "Orientation (parallélisme, perpendicularité, inclinaison) et position (localisation, coaxialité, symétrie), par rapport à des références."
+        - "Cadre : symbole | valeur (Ø si zone cylindrique) | références A, B, C."
+        - "Ra : écart moyen du profil (µm) ; fraisage ≈ 1,6, rectification ≈ 0,4."
+        - "Ne spécifier que ce que la fonction exige, et ce qu'on sait mesurer."
+    vocab:
+      - tolérance géométrique = geometric tolerance (GD&T)
+      - planéité = flatness
+      - perpendicularité = perpendicularity
+      - parallélisme = parallelism
+      - localisation = position
+      - coaxialité = coaxiality
+      - référence = datum
+      - rugosité = surface roughness
+      - machine à mesurer tridimensionnelle = coordinate measuring machine (CMM)
+    exercises:
+      - id: fab-gps.1
+        type: qcm
+        level: 1
+        q: Que signifie « planéité 0,02 » sur une surface ?
+        choices:
+          - t: La surface doit tenir entre deux plans parallèles distants de 0,02 mm
+            ok: true
+          - t: La surface doit être à 0,02 mm de la référence A
+            why: La planéité est une tolérance de forme, sans référence.
+          - t: La rugosité de la surface doit être de 0,02 µm
+            why: La rugosité est une autre spécification (Ra).
+        e: Toutes les tolérances géométriques définissent une **zone** dans laquelle l'élément doit se trouver.
+      - id: fab-gps.2
+        type: qcm
+        level: 2
+        q: Deux portées de roulement sur un même arbre doivent être bien alignées. Quelle spécification utiliser ?
+        choices:
+          - t: Une coaxialité (ou un battement) par rapport à l'axe commun des deux portées
+            ok: true
+          - t: Une planéité
+            why: La planéité concerne une surface plane, pas l'alignement de deux cylindres.
+          - t: Une tolérance de diamètre plus serrée
+            why: Les deux diamètres peuvent être parfaits et les portées quand même décalées.
+        e: Le défaut d'alignement de deux portées charge anormalement les roulements. On le spécifie par une coaxialité ou un battement, et on le mesure en faisant tourner l'arbre entre pointes.
+      - id: fab-gps.3
+        type: qcm
+        level: 1
+        q: Quel procédé donne naturellement la rugosité la plus faible ?
+        choices:
+          - t: La rectification
+            ok: true
+          - t: Le fraisage d'ébauche
+            why: L'ébauche laisse des surfaces grossières (Ra de plusieurs µm).
+          - t: La découpe au jet d'eau
+            why: La tranche d'une découpe au jet d'eau est plutôt rugueuse.
+        e: Rectification, Ra ≈ 0,1 à 0,8 µm ; tournage et fraisage de finition, ≈ 0,8 à 3,2 µm.
+      - id: fab-gps.4
+        type: flash
+        level: 2
+        q: Pourquoi une rayure radiale sur une portée de joint torique est-elle si grave ?
+        back: Parce qu'elle traverse la zone d'étanchéité d'un côté à l'autre, ce qui crée un chemin de fuite continu que le joint ne peut pas combler. Une rayure concentrique (le long de la portée) est bien moins gênante.
+        e: D'où l'importance de l'orientation des stries d'usinage sur les surfaces d'étanchéité, et du soin à la manipulation.
+  # ------------------------------------------------------------------ usinage
+  - id: fab-usinage
+    title: "Usinage : tournage, fraisage, perçage"
+    en: "Machining: turning, milling, drilling"
+    goal: Calculer une vitesse de rotation et une avance, et dessiner des pièces faciles à usiner.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Deux grandes façons d'enlever de la matière
+          body: |
+            - **Tournage** : c'est la **pièce qui tourne**, l'outil avance le long d'elle. Parfait pour les pièces de révolution : axes, bagues, entretoises.
+            - **Fraisage** : c'est l'**outil qui tourne** (la fraise), la pièce se déplace sous lui. Parfait pour les pièces prismatiques : plaques, poches, rainures.
+            - **Perçage** : un foret tourne et descend pour faire un trou, que l'on peut ensuite tarauder, aléser ou chambrer.
+        - level: 2
+          title: La vitesse de coupe
+          body: |
+            Ce qui compte pour l'outil, c'est la vitesse à laquelle son arête défile contre la matière : la **vitesse de coupe** $V_c$, en mètres par minute. Chaque couple outil/matière a sa plage : trop vite, l'outil chauffe et s'use en quelques minutes ; trop lentement, la coupe est mauvaise et la matière colle à l'outil.
+
+            Pour une même vitesse de coupe, **un petit diamètre doit tourner plus vite** qu'un grand : l'arête d'une petite fraise parcourt moins de chemin par tour.
+
+            S'y ajoutent l'**avance** (de combien l'outil progresse par dent ou par tour) et la **profondeur de passe**.
+        - level: 3
+          title: Les formules d'atelier
+          body: |
+            $$N = \frac{1000 \times V_c}{\pi \times D} \qquad V_f = N \times z \times f_z$$
+
+            $N$ en tr/min, $V_c$ en m/min, $D$ en mm ; $V_f$ l'avance en mm/min, $z$ le nombre de dents, $f_z$ l'avance par dent (mm).
+
+            | Matière | $V_c$ outil carbure (m/min) |
+            | --- | --- |
+            | aluminium | 300 à 1000 |
+            | acier de construction | 150 à 250 |
+            | inox austénitique | 80 à 150 |
+            | titane | 40 à 80 |
+
+            (Outils en acier rapide HSS : environ 4 à 8 fois moins.)
+
+            **Exemple.** Fraise carbure Ø10, 3 dents, dans de l'alu à $V_c = 300$ m/min : $N = 1000 \times 300 / (\pi \times 10) \approx 9550$ tr/min. Avec $f_z = 0{,}05$ mm : $V_f \approx 9550 \times 3 \times 0{,}05 \approx 1430$ mm/min.
+          check:
+            q: Même matière, même vitesse de coupe. Tu passes d'une fraise Ø20 à une fraise Ø10. La fréquence de rotation doit…
+            choices:
+              - t: doubler
+                ok: true
+                why: "N = 1000·Vc/(π·D) : diamètre divisé par 2, fréquence de rotation multipliée par 2."
+              - t: être divisée par deux
+                why: C'est l'inverse, le petit diamètre doit tourner plus vite.
+              - t: rester la même
+                why: Ce serait vrai à fréquence de rotation constante, mais la vitesse de coupe changerait alors.
+        - level: 4
+          title: Sous le capot
+          body: |
+            L'arête de l'outil cisaille la matière et forme un **copeau**. Presque toute l'énergie de coupe se transforme en chaleur, emportée en grande partie par le copeau : c'est pourquoi l'évacuation des copeaux et la lubrification comptent autant.
+
+            **Matériaux d'outils**, du moins dur au plus dur : acier rapide (HSS), carbure de tungstène (le standard), céramiques, CBN (nitrure de bore) pour les aciers trempés, diamant (PCD) pour l'aluminium et les composites (jamais pour l'acier, le carbone y diffuse).
+
+            **Pourquoi l'inox est pénible** : il s'écrouit sous l'outil (la surface durcit si l'outil frotte au lieu de couper) et conduit mal la chaleur, qui reste concentrée à la pointe. Il faut des arêtes vives, une avance franche et de la lubrification.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            Dessiner une pièce « usinable » :
+            - **Les angles intérieurs d'une poche fraisée ont toujours un rayon**, au moins celui de la fraise. Un angle vif intérieur est impossible à fraiser (il faudrait de l'électroérosion). Mets un rayon, ou des dégagements aux coins si une pièce carrée doit s'y loger.
+            - Poches et rainures pas trop profondes : au-delà de 3 à 4 fois le diamètre de la fraise, l'outil fléchit et vibre.
+            - Utilise des **diamètres de perçage standards**, des taraudages normalisés, et évite les trous au fond arrondi quand un fond plat n'est pas indispensable.
+            - Limite le nombre de **prises de pièce** (retournements) : chacune coûte du temps et de la précision.
+            - Un trou précis (H7) se fait en perçant un peu en dessous puis en **alésant** (alésoir ou outil d'alésage).
+      recap:
+        - "Tournage : la pièce tourne ; fraisage : l'outil tourne."
+        - "N = 1000·Vc/(π·D) ; Vf = N·z·fz."
+        - "Vc carbure : alu 300–1000, acier 150–250, inox 80–150 m/min."
+        - "Angles intérieurs de poche : rayon ≥ rayon de fraise, jamais d'angle vif."
+        - "Trou H7 : perçage puis alésage."
+      pieges: [ing-angle-vif-poche, ing-vc-n]
+    vocab:
+      - tournage = turning
+      - fraisage = milling
+      - perçage = drilling
+      - alésage (opération) = reaming / boring
+      - taraudage = tapping
+      - vitesse de coupe = cutting speed
+      - avance par dent = feed per tooth
+      - copeau = chip
+      - fraise = end mill (milling cutter)
+    exercises:
+      - id: fab-usinage.1
+        type: numeric
+        level: 1
+        q: Fraise carbure de Ø10 mm dans de l'aluminium, vitesse de coupe 300 m/min. Quelle fréquence de rotation ?
+        answer: 9549
+        tol: 0.01
+        unit: tr/min
+        calc: 1000 * 300 / (pi * 10)
+        trap_values:
+          - v: 9.55
+            why: "Tu as oublié le facteur 1000 : Vc est en m/min et D en mm."
+          - v: 30000
+            why: Tu as oublié de diviser par π.
+        piege: ing-vc-n
+        e: $N = \dfrac{1000 \times 300}{\pi \times 10} \approx 9550$ tr/min.
+      - id: fab-usinage.2
+        type: numeric
+        level: 2
+        q: "Même fraise : 9550 tr/min, 3 dents, avance par dent 0,05 mm. Quelle vitesse d'avance ?"
+        answer: 1432.5
+        tol: 0.01
+        unit: mm/min
+        calc: 9550 * 3 * 0.05
+        trap_values:
+          - v: 477.5
+            why: Tu as oublié le nombre de dents. Chaque dent enlève son copeau à chaque tour.
+        e: $V_f = N \times z \times f_z = 9550 \times 3 \times 0{,}05 \approx 1430$ mm/min.
+      - id: fab-usinage.3
+        type: qcm
+        level: 1
+        q: Tu dessines une poche rectangulaire fraisée qui doit recevoir une pièce parfaitement carrée. Que faut-il prévoir aux coins ?
+        piege: ing-angle-vif-poche
+        choices:
+          - t: Des dégagements (petits perçages ou encoches) dans les coins, car la fraise laisse un rayon
+            ok: true
+          - t: Des angles vifs à 90°
+            piege: true
+            why: Une fraise est ronde, elle laisse forcément un rayon dans les angles intérieurs. Un angle vif demanderait de l'électroérosion.
+          - t: Rien, l'usineur s'adaptera
+            why: Il devra choisir entre un rayon qui empêche la pièce d'entrer et une opération coûteuse. Mieux vaut le prévoir.
+        e: Règle, un angle intérieur a un rayon au moins égal au rayon de la fraise (et idéalement un peu plus grand pour que la fraise ne travaille pas en pleine prise dans le coin).
+      - id: fab-usinage.4
+        type: qcm
+        level: 2
+        q: Comment réalise-t-on un trou Ø8 H7 dans une plaque d'acier ?
+        choices:
+          - t: Perçage à un diamètre un peu inférieur (par exemple 7,8 mm), puis alésage à l'alésoir Ø8 H7
+            ok: true
+          - t: Perçage direct avec un foret de Ø8
+            why: Un foret ne tient pas une tolérance H7 (18 µm) ni un bon état de surface.
+          - t: Taraudage
+            why: Le taraudage crée un filetage, pas un alésage lisse.
+        e: Le foret dégrossit, l'alésoir calibre. Les tolérances IT7 et mieux demandent une opération de finition.
+      - id: fab-usinage.5
+        type: flash
+        level: 2
+        q: Pourquoi l'inox austénitique est-il réputé difficile à usiner ?
+        back: |
+          - Il **s'écrouit** : si l'outil frotte au lieu de couper, la surface durcit et la passe suivante devient encore plus difficile.
+          - Il **conduit mal la chaleur** : elle reste concentrée à la pointe de l'outil, qui s'use vite.
+          - Il est **collant** : la matière se soude sur l'arête.
+
+          Remède : outils bien affûtés, avance franche (ne jamais laisser frotter), vitesse modérée, lubrification abondante.
+        e: C'est aussi pour ça que les pièces en inox coûtent nettement plus cher à usiner que les mêmes pièces en aluminium.
+  # ------------------------------------------------------------------ procédés
+  - id: fab-procedes
+    title: Choisir un procédé de fabrication
+    en: Choosing a manufacturing process
+    goal: Comparer usinage, impression 3D, découpe, pliage et soudage selon la précision, la quantité et la géométrie.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: Retirer, ajouter, déformer, assembler
+          body: |
+            Une pièce peut naître de quatre façons :
+            - on **retire** de la matière d'un bloc (usinage, découpe) ;
+            - on **ajoute** de la matière couche par couche (impression 3D) ;
+            - on **déforme** une matière (pliage de tôle, forge, emboutissage) ;
+            - on **assemble** des morceaux (soudage, vissage, collage), ou on coule du métal liquide dans un moule (fonderie).
+        - level: 2
+          title: Les critères de choix
+          body: |
+            Le bon procédé dépend de :
+            - la **quantité** (une pièce, dix, dix mille) ;
+            - la **matière** ;
+            - la **complexité** de la forme (canaux internes, formes libres) ;
+            - la **précision** et l'état de surface exigés ;
+            - le **coût** et le **délai**.
+
+            Pour un prototype unique en plastique, l'impression 3D gagne presque toujours. Pour une pièce métallique précise, l'usinage. Pour un capot en tôle, la découpe laser et le pliage. Pour dix mille pièces, le moulage ou l'emboutissage.
+        - level: 3
+          title: Ordres de grandeur
+          body: |
+            | Procédé | Précision typique | Usage type |
+            | --- | --- | --- |
+            | fraisage, tournage | ± 0,01 à 0,05 mm (mieux en finition) | pièces précises, toutes séries |
+            | découpe laser (tôle) | ± 0,1 mm | flancs, capots, platines |
+            | découpe jet d'eau | ± 0,1 à 0,2 mm | tous matériaux, sans échauffement |
+            | pliage | ± 0,2 à 0,5 mm | carters, supports en tôle |
+            | impression FDM (fil) | ± 0,2 à 0,5 mm | prototypes, gabarits, supports |
+            | impression résine (SLA) | ± 0,05 à 0,1 mm | petites pièces détaillées |
+            | fusion laser métal (LPBF) | ± 0,1 mm, surface rugueuse | formes complexes, canaux internes |
+            | soudage | déformations à corriger | mécano-soudure, bâtis |
+
+            Une pièce imprimée en métal doit presque toujours être **reprise en usinage** sur ses surfaces fonctionnelles.
+        - level: 4
+          title: L'impression FDM de près
+          body: |
+            L'impression par dépôt de fil fond un filament plastique et le dépose en couches. Conséquences :
+            - **anisotropie** : la pièce est bien plus faible dans la direction de l'empilement des couches (Z), où seules les soudures entre couches tiennent ;
+            - **surplombs** : au-delà d'environ 45° par rapport à la verticale, il faut des supports ;
+            - **retrait et voilage** (surtout ABS, ASA) : les grandes pièces se relèvent aux coins ;
+            - les **trous** sortent souvent un peu sous-dimensionnés : on les reprend au foret ou on les compense ;
+            - le **remplissage** (infill) fait varier la masse et la résistance ; les parois (périmètres) comptent souvent plus que le taux de remplissage.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Oriente une pièce imprimée pour que les efforts principaux soient **dans le plan des couches**, pas en travers.
+            - Utilise l'impression pour ce qu'elle fait de mieux : prototypes, gabarits de montage et de perçage, supports de câbles, pièces de forme complexe peu sollicitées.
+            - Sous **ultravide**, les plastiques imprimés sont en général proscrits (porosité, dégazage). La fusion laser métal permet en revanche des pièces complexes (canaux de refroidissement internes) compatibles vide après traitement.
+            - Pense **assemblage** dès la conception : une tôle pliée et deux vis remplacent souvent une pièce usinée dans la masse, pour une fraction du prix.
+      recap:
+        - "Retirer (usinage, découpe), ajouter (impression 3D), déformer (pliage), assembler (soudage)."
+        - "Critères : quantité, matière, complexité, précision, coût, délai."
+        - "Usinage ± 0,01–0,05 mm ; laser ± 0,1 ; FDM ± 0,2–0,5."
+        - "FDM : pièce faible entre les couches (Z), surplombs > 45° à supporter, trous sous-dimensionnés."
+        - "Métal imprimé : reprise d'usinage sur les surfaces fonctionnelles."
+      pieges: [ing-fdm-anisotropie]
+    vocab:
+      - procédé de fabrication = manufacturing process
+      - fabrication additive = additive manufacturing
+      - découpe laser = laser cutting
+      - pliage = sheet metal bending
+      - soudage = welding
+      - fonderie = casting
+      - remplissage = infill
+      - gabarit = jig
+      - surplomb = overhang
+    exercises:
+      - id: fab-procedes.1
+        type: qcm
+        level: 1
+        q: Une pièce imprimée en FDM casse à chaque essai. Les couches sont perpendiculaires à l'effort principal. Que faire en premier ?
+        piege: ing-fdm-anisotropie
+        choices:
+          - t: Réorienter la pièce à l'impression pour que l'effort soit dans le plan des couches
+            ok: true
+          - t: Augmenter le remplissage à 100 %
+            piege: true
+            why: Plus de matière n'aide guère si ce sont les liaisons entre couches qui cèdent.
+          - t: Imprimer plus vite
+            why: Imprimer plus vite dégrade plutôt l'adhésion entre couches.
+        e: L'adhésion entre couches est le point faible d'une pièce FDM. L'orientation d'impression est le premier levier de résistance.
+      - id: fab-procedes.2
+        type: qcm
+        level: 2
+        q: Tu as besoin de 5 pièces en acier inoxydable avec des canaux de refroidissement internes courbes. Quel procédé ?
+        choices:
+          - t: Fusion laser sur lit de poudre métallique, puis reprise d'usinage des surfaces fonctionnelles
+            ok: true
+          - t: Fraisage dans la masse
+            why: Un canal interne courbe est impossible à fraiser d'un seul tenant.
+          - t: Impression FDM en PLA
+            why: Le matériau ne convient pas (inox demandé).
+        e: Les canaux internes libres sont le cas d'usage typique de la fabrication additive métal. En petite série, c'est aussi compétitif en coût.
+      - id: fab-procedes.3
+        type: qcm
+        level: 1
+        q: Quel procédé choisir pour un capot en tôle d'alu de 2 mm, avec des découpes et deux plis, en 3 exemplaires ?
+        choices:
+          - t: Découpe laser puis pliage
+            ok: true
+          - t: Fraisage dans un bloc
+            why: Beaucoup de matière perdue et de temps pour une simple tôle pliée.
+          - t: Fonderie
+            why: Un moule pour 3 pièces n'est jamais rentable.
+        e: La tôlerie (découpe laser et pliage) est rapide et économique pour les carters, capots et supports.
+      - id: fab-procedes.4
+        type: flash
+        level: 2
+        q: Cite quatre règles de conception pour l'impression FDM.
+        back: |
+          1. Orienter la pièce pour que les efforts soient dans le plan des couches.
+          2. Éviter les surplombs de plus de 45° (ou prévoir des supports).
+          3. Prévoir les trous légèrement plus grands, ou les reprendre au foret.
+          4. Soigner les parois (nombre de périmètres) plutôt que monter le remplissage.
+        e: Et penser au retrait des matériaux techniques (ABS, ASA, nylon) sur les grandes pièces.
+  # ------------------------------------------------------------------ assemblages vissés
+  - id: fab-vissage
+    title: Assemblages vissés
+    en: Bolted joints
+    goal: Lire une classe de vis, choisir un taraudage, estimer un couple de serrage et éviter le grippage.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Une vis est un ressort
+          body: |
+            Quand tu serres une vis, tu ne la « bloques » pas simplement : tu **l'étires** comme un ressort très raide, et elle **comprime** les pièces entre sa tête et l'écrou. C'est cette force de serrage, la **précharge**, qui tient l'assemblage.
+
+            Une vis bien serrée travaille peu quand l'assemblage est chargé ; une vis mal serrée voit tous les efforts, se desserre et finit par casser.
+        - level: 2
+          title: Classes et précharge
+          body: |
+            La **classe** d'une vis acier (marquée sur la tête) donne sa résistance : pour **8.8**, $R_m = 8 \times 100 = 800$ MPa et $R_e = 0{,}8 \times 800 = 640$ MPa. Pour 10.9 : 1000 et 900 MPa. Pour 12.9 : 1200 et 1080 MPa. Les vis inox **A2-70** ou **A4-70** ont $R_m = 700$ MPa (A2 ≈ 304, A4 ≈ 316).
+
+            On serre en général pour obtenir une précharge de l'ordre de 60 à 80 % de la limite élastique de la vis. Mais on ne mesure pas la précharge : on mesure un **couple** à la clé dynamométrique, et le lien entre les deux dépend énormément du **frottement**.
+          check:
+            q: Quelle est la limite élastique d'une vis de classe 10.9 ?
+            choices:
+              - t: 900 MPa
+                ok: true
+                why: "Rm = 10 × 100 = 1000 MPa, et Re = 0,9 × 1000 = 900 MPa."
+              - t: 1090 MPa
+                why: Les deux chiffres ne s'additionnent pas, ils se multiplient.
+              - t: 109 MPa
+                why: Ce serait une vis en plastique.
+        - level: 3
+          title: Le couple de serrage
+          body: |
+            Formule d'estimation courante :
+
+            $$C \approx K \times F \times d$$
+
+            $C$ : couple (N·m), $F$ : précharge (N), $d$ : diamètre nominal (m), $K$ : coefficient de couple, de l'ordre de 0,2 à sec et 0,15 lubrifié.
+
+            **Exemple : M8, classe 8.8.** Section résistante $A_s = 36{,}6$ mm². Précharge visée à 70 % de $R_e$ : $F = 0{,}7 \times 640 \times 36{,}6 \approx 16{,}4$ kN. Couple : $C \approx 0{,}2 \times 16\,400 \times 0{,}008 \approx 26$ N·m, cohérent avec les tables des fabricants.
+
+            **Taraudage** : diamètre de perçage ≈ diamètre nominal − pas. Pas gros ISO : M3 × 0,5 ; M4 × 0,7 ; M5 × 0,8 ; M6 × 1 ; M8 × 1,25 ; M10 × 1,5 ; M12 × 1,75. Donc M6 → foret de 5, M8 → foret de 6,8.
+        - level: 4
+          title: Où part le couple
+          body: |
+            Sur le couple que tu appliques, environ **50 %** se perd en frottement sous la tête (ou l'écrou), environ **40 %** en frottement dans le filet, et seulement **10 %** environ sert réellement à étirer la vis. C'est pourquoi une petite variation du frottement (filet gras ou sec, rondelle, état de surface) change beaucoup la précharge : à la clé dynamométrique, la dispersion est couramment de ± 25 %.
+
+            Serrer un filet **lubrifié** avec le couple prévu pour un filet sec peut donc surcharger la vis, voire la rompre ou arracher le taraudage.
+
+            **Longueur en prise** : pour que le filet de la pièce ne s'arrache pas avant la vis, on vise environ 1 × d dans l'acier et 2 × d dans l'aluminium. Dans l'alu ou les matériaux tendres, un **filet rapporté** (type Helicoil) renforce et protège le taraudage.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - **Inox sur inox** : une vis inox dans un taraudage inox **grippe** facilement (les surfaces se soudent localement en frottant). Lubrifie le filet ou, sous vide, utilise des vis argentées ou un lubrifiant sec.
+            - **Freinage** : la plupart des rondelles « frein » classiques (Grower, éventail) servent peu ; une précharge correcte est le meilleur frein. Contre les vibrations : colle frein (hors vide), rondelles à cames type Nord-Lock, écrous autofreinés.
+            - **Vide** : pas de colle frein, pas de graisse ordinaire, vis ventilées dans les trous borgnes.
+            - Note sur le plan ou dans la procédure le **couple de serrage** et l'**état de lubrification** prévus : sans lui, le couple ne veut rien dire.
+      recap:
+        - "Classe 8.8 : Rm = 800, Re = 640 MPa ; 10.9 : 1000/900 ; A2-70 et A4-70 : Rm = 700 MPa."
+        - "Couple ≈ K·F·d, K ≈ 0,2 à sec, 0,15 lubrifié ; seulement ~10 % du couple étire la vis."
+        - "Perçage de taraudage ≈ d − pas : M6 → 5 mm, M8 → 6,8 mm."
+        - "Longueur en prise : ~1·d dans l'acier, ~2·d dans l'alu (ou filet rapporté)."
+        - "Inox sur inox : grippage, il faut lubrifier ou utiliser des vis argentées."
+      pieges: [ing-grippage-inox, ing-couple-lubrifie]
+    vocab:
+      - vis = screw (bolt)
+      - écrou = nut
+      - précharge = preload
+      - couple de serrage = tightening torque
+      - classe de qualité = property class
+      - taraudage = tapped thread
+      - filet rapporté = thread insert
+      - grippage = galling
+      - rondelle = washer
+    exercises:
+      - id: fab-vissage.1
+        type: numeric
+        level: 1
+        q: Quelle est la limite élastique d'une vis de classe 8.8, en MPa ?
+        answer: 640
+        tol: 0.001
+        unit: MPa
+        calc: 0.8 * 800
+        trap_values:
+          - v: 800
+            why: C'est la résistance à la rupture Rm. La limite élastique est 0,8 × Rm.
+          - v: 88
+            why: "Les chiffres de la classe ne se lisent pas ainsi : 8 × 100 = Rm, puis 0,8 × Rm = Re."
+        e: "Premier chiffre × 100 = Rm (800 MPa) ; second chiffre / 10 × Rm = Re (0,8 × 800 = 640 MPa)."
+      - id: fab-vissage.2
+        type: numeric
+        level: 1
+        q: Quel diamètre de foret pour tarauder un M8 au pas gros (1,25 mm) ?
+        answer: 6.75
+        tol: 0.01
+        unit: mm
+        calc: 8 - 1.25
+        trap_values:
+          - v: 8
+            why: Un trou de 8 mm ne laisse rien à tarauder, la vis passerait librement.
+          - v: 6.5
+            why: Trop petit, le taraud forcerait et risquerait de casser. La règle est nominal − pas.
+        e: Règle, diamètre de perçage ≈ nominal − pas, soit 8 − 1,25 = 6,75, arrondi au foret standard 6,8 mm.
+      - id: fab-vissage.3
+        type: numeric
+        level: 2
+        q: "Estime le couple de serrage d'une vis M8 (d = 8 mm) pour une précharge de 16 400 N, filet sec (K = 0,2)."
+        answer: 26.24
+        tol: 0.02
+        unit: N·m
+        calc: 0.2 * 16400 * 0.008
+        trap_values:
+          - v: 26240
+            why: "Tu as laissé d en mm : le résultat est en N·mm. En N·m, c'est 26,2."
+          - v: 19.7
+            why: C'est avec K = 0,15 (filet lubrifié). Ici le filet est sec.
+        e: $C \approx 0{,}2 \times 16\,400 \times 0{,}008 \approx 26$ N·m.
+      - id: fab-vissage.4
+        type: qcm
+        level: 2
+        q: Tu serres une vis M8 inox dans un taraudage inox, à sec, et elle se bloque à mi-course sans pouvoir ni avancer ni reculer. Que s'est-il passé ?
+        piege: ing-grippage-inox
+        choices:
+          - t: Grippage, les filets inox se sont soudés localement par frottement
+            ok: true
+          - t: Le taraudage était trop petit
+            why: Possible, mais le cas typique de l'inox sur inox sec, c'est le grippage.
+          - t: La vis était trop longue
+            why: Une vis trop longue bute au fond, elle ne se bloque pas à mi-course.
+        e: Les inox austénitiques ont tendance à se souder à froid sous frottement. Lubrifier (graisse adaptée, pâte anti-grippage) ou utiliser des vis argentées sous vide.
+      - id: fab-vissage.5
+        type: qcm
+        level: 2
+        q: Le couple prescrit (26 N·m) a été établi pour un filet sec. Tu graisses le filet et tu serres à 26 N·m. La précharge obtenue est…
+        piege: ing-couple-lubrifie
+        choices:
+          - t: nettement plus élevée que prévu, au risque de surcharger la vis
+            ok: true
+            why: Moins de frottement, donc une plus grande part du couple étire la vis.
+          - t: identique, le couple est le même
+            piege: true
+            why: Le lien entre couple et précharge dépend du frottement. Le couple seul ne garantit rien.
+          - t: plus faible
+            why: C'est l'inverse, le lubrifiant réduit les pertes par frottement.
+        e: Seuls 10 % environ du couple étirent la vis. Si les pertes par frottement baissent, cette part augmente beaucoup. Toujours préciser l'état de lubrification avec le couple.

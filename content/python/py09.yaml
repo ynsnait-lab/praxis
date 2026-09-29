@@ -1,0 +1,669 @@
+id: py09
+track: python
+title: Typage & outillage moderne
+goal: Annoter un module et le faire passer sous mypy/ruff sans bruit.
+level: avance
+requires:
+- py08
+concepts:
+- typing
+- enum
+- pathlib
+- lint
+lesson:
+  minutes: 16
+  intro: |
+    Un script de 50 lignes se relit d'un coup d'œil. Un outil d'acquisition de 3000 lignes, repris six mois plus tard par quelqu'un d'autre, non. Les **annotations de type** et deux outils, **mypy** et **ruff**, attrapent une grosse partie des bugs **avant** l'exécution : un `None` oublié, un texte passé à la place d'un nombre, un import inutile. Ce module te montre aussi `Enum` et `pathlib`, qui remplacent les chaînes magiques et les chemins bricolés.
+  steps:
+    - level: 1
+      title: Les étiquettes de l'armoire électrique
+      body: |
+        Dans une armoire électrique, chaque bornier porte une étiquette : « 24 V DC », « 4-20 mA ». L'étiquette n'empêche pas physiquement de brancher le mauvais câble ; mais un contrôleur qui passe **avant la mise sous tension**, plans en main, repère toutes les incohérences.
+
+        En Python, les annotations (`v: float`, `-> float`) sont ces étiquettes. Python ne les vérifie **pas** pendant l'exécution. Le contrôleur, c'est **mypy** : il lit le code sans l'exécuter et signale chaque branchement douteux. **ruff** est l'autre inspecteur, celui de la check-list : imports inutiles, `except` nus, arguments par défaut modifiables, style.
+    - level: 2
+      title: Annoter, vérifier, nommer
+      body: |
+        - **Syntaxe** : `def moyenne(v: Sequence[float]) -> float:`. Types courants : `int`, `float`, `str`, `bool`, `list[float]`, `dict[str, float]`, `tuple[int, int]`, `float | None` (valeur ou rien, Python 3.10+), `Callable[[float], float]` (une fonction). Depuis `collections.abc` : `Iterable`, `Sequence`, `Mapping`, plus généraux que `list` et `dict`.
+        - **Rien n'est vérifié à l'exécution** : les annotations sont rangées dans `f.__annotations__`, c'est tout. `mypy fichier.py` fait la vérification, sans lancer le programme.
+        - **Rétrécissement** (*narrowing*) : après `if x is None: return`, mypy sait que `x` n'est plus `None`. C'est le mécanisme qui force à traiter les cas « pas de valeur ».
+        - **`Enum`** remplace les chaînes magiques (`"mesure"`, `"arret"`) par des constantes nommées : une faute de frappe devient une erreur immédiate. **`IntFlag`** décode un registre d'état où chaque bit a un sens.
+        - **`pathlib.Path`** manipule les chemins comme des objets : `Path("data") / "essai.csv"`, `.stem`, `.suffix`, `.exists()`, `.glob("*.csv")`, `.read_text()`.
+      check:
+        q: "`def double(x: int) -> int: return x * 2`. Que donne `double(\"ab\")` à l'exécution ?"
+        choices:
+          - t: "`\"abab\"`"
+            ok: true
+            why: Python ignore les annotations à l'exécution ; `"ab" * 2` répète le texte. Seul mypy aurait signalé l'appel.
+          - t: TypeError
+            why: Aucune vérification n'a lieu à l'exécution ; l'opération `"ab" * 2` est d'ailleurs valide.
+          - t: "`4`"
+            why: Python ne convertit pas l'argument selon l'annotation.
+    - level: 3
+      title: Annotations, Enum, IntFlag, pathlib
+      body: |
+        Chaque bloc illustre une notion du niveau précédent. Remarque surtout la deuxième ligne affichée : Python laisse passer un appel que mypy aurait refusé.
+      code: |
+        from collections.abc import Sequence
+        from enum import Enum, IntFlag
+        from pathlib import PurePosixPath
+
+        def moyenne(v: Sequence[float]) -> float:
+            return sum(v) / len(v)
+
+        def double(x: int) -> int:
+            return x * 2
+
+        print(moyenne([20.0, 22.0]), moyenne((1.5, 2.5)))   # liste ou tuple : Sequence
+        print(double("ab"))                                 # aucune vérification à l'exécution
+        print(double.__annotations__)
+
+        class Mode(Enum):
+            ARRET = 0
+            MESURE = 1
+            DEFAUT = 2
+
+        m = Mode(1)                                 # depuis la valeur lue dans un registre
+        print(m, m.name, m.value, m is Mode.MESURE)
+
+        class Statut(IntFlag):
+            PRET = 1
+            MESURE = 2
+            ERREUR = 4
+
+        s = Statut(0b101)                           # mot d'état lu sur l'automate
+        print(Statut.ERREUR in s, Statut.MESURE in s, sorted(f.name for f in s))
+
+        chemin = PurePosixPath("data") / "essai_07.csv"
+        print(chemin, chemin.stem, chemin.suffix, chemin.with_suffix(".json"))
+      run: true
+      out: |
+        21.0 2.0
+        abab
+        {'x': <class 'int'>, 'return': <class 'int'>}
+        Mode.MESURE MESURE 1 True
+        True False ['ERREUR', 'PRET']
+        data/essai_07.csv essai_07 .csv data/essai_07.json
+      after: |
+        `PurePosixPath` sert ici à avoir le même affichage partout ; dans tes scripts, utilise `Path`, qui s'adapte au système (barres obliques inverses sous Windows) et sait lire et écrire les fichiers.
+    - level: 4
+      title: Ce que mypy vérifie vraiment
+      body: |
+        mypy **déduit** le type de chaque expression et vérifie que tout s'emboîte. Son apport principal au quotidien : les `None`. Une fonction qui renvoie `float | None` oblige l'appelant à traiter le cas `None` avant tout calcul.
+
+        Deuxième outil : `typing.Protocol`, le typage « canard » vérifié. Un `Protocol` décrit une capacité (« a une méthode `lire()` qui renvoie un float ») ; toute classe qui a cette méthode convient, sans hériter de rien. Idéal pour brancher un capteur simulé à la place du vrai.
+      code: |
+        from typing import Protocol
+
+        class Lisible(Protocol):                    # « tout ce qui a une méthode lire() »
+            def lire(self) -> float: ...
+
+        class CapteurSimule:                        # n'hérite de rien
+            def lire(self) -> float:
+                return 4.2
+
+        def acquerir(capteur: Lisible, n: int) -> list[float]:
+            return [capteur.lire() for _ in range(n)]
+
+        print(acquerir(CapteurSimule(), 3))
+
+        def trouver(seuils: dict[str, float], nom: str) -> float | None:
+            return seuils.get(nom)
+
+        s = trouver({"T1": 25.0}, "T2")
+        # print(s + 1) : mypy refuse, s peut valoir None
+        if s is None:                               # après ce test, s est forcément un float
+            print("pas de seuil")
+        else:
+            print(s + 1)
+      run: true
+      out: |
+        [4.2, 4.2, 4.2]
+        pas de seuil
+      after: |
+        Sur la ligne commentée, mypy aurait répondu :
+
+        ```text
+        capteurs.py:19: error: Unsupported operand types for + ("None" and "int")  [operator]
+        capteurs.py:19: note: Left operand is of type "float | None"
+        ```
+    - level: 5
+      title: Sur le terrain
+      body: |
+        Une configuration de départ, dans le `pyproject.toml` du projet :
+
+        ```toml
+        [tool.ruff]
+        line-length = 100
+
+        [tool.ruff.lint]
+        select = ["E", "F", "B", "I", "UP"]   # erreurs, bugs probables, imports triés, syntaxe moderne
+
+        [tool.mypy]
+        strict = true
+        ```
+
+        Sur un fichier qui cumule trois défauts classiques, `ruff check` répond en une fraction de seconde :
+
+        ```text
+        $ ruff check --output-format concise outils.py
+        outils.py:1:8: F401 [*] `os` imported but unused
+        outils.py:4:27: B006 Do not use mutable data structures for argument defaults
+        outils.py:7:5: E722 Do not use bare `except`
+        Found 3 errors.
+        ```
+
+        - Routine avant chaque commit : `ruff check --fix .`, `ruff format .`, `mypy src`. Automatise-la avec pre-commit ou l'intégration continue (module Git et labs).
+        - Dans VS Code, l'extension Python (Pylance) souligne les erreurs de type en direct : garde-la activée.
+        - Annote les **signatures** des fonctions publiques ; mypy déduit le reste. En paramètre, le type le plus général (`Sequence`, `Iterable`, `Mapping`) ; en retour, le plus précis (`list[float]`).
+        - États et modes : `Enum`. Mots d'état d'automate ou de variateur : `IntFlag`. Chemins : `pathlib`, jamais de concaténation de chaînes.
+  recap:
+    - "Les annotations ne sont pas vérifiées à l'exécution : c'est mypy qui les exploite."
+    - "`float | None` force à traiter le cas None ; `if x is None` rétrécit le type."
+    - "Paramètres généraux (`Sequence`, `Iterable`), retours précis (`list[float]`)."
+    - "`Enum` pour les modes, `IntFlag` pour les registres d'état, `Path` pour les chemins."
+    - "ruff (lint et format) et mypy (types) avant chaque commit."
+  pieges: [py-annotations-ignorees, py-str-plus-int]
+exercises:
+- id: py09.1
+  type: qcm
+  level: 2
+  concepts:
+  - typing
+  q: 'Que fait `def f(v: list[float]) -> float:` à l’exécution ?'
+  choices:
+  - t: Rien — les annotations ne sont pas vérifiées à l’exécution
+    ok: true
+    why: Elles sont stockées dans `f.__annotations__`. Seul un vérificateur statique (mypy, pyright) les exploite.
+  - t: Python lève `TypeError` si on passe autre chose
+    ok: false
+    why: Non. Python reste dynamique.
+  - t: Python convertit automatiquement
+    ok: false
+    why: Aucune conversion.
+  - t: Ça ralentit l’appel
+    ok: false
+    why: Coût nul à l’appel (l’annotation est évaluée une fois à la définition).
+  e: |-
+    Les annotations servent trois publics : **mypy/pyright**, ton **éditeur** (autocomplétion, refactoring) et **toi dans six mois**.
+
+    À installer une fois pour toutes :
+    ```bash
+    pip install mypy ruff
+    mypy --strict src/
+    ruff check src/ && ruff format src/
+    ```
+
+    Pour une validation **à l’exécution** (données externes, config, réponse d’instrument), c’est `pydantic` ou `dataclasses` + vérifications manuelles.
+- id: py09.2
+  type: cloze
+  level: 3
+  concepts:
+  - typing
+  q: Annote correctement (Python 3.10+).
+  tpl: |-
+    from collections.abc import Sequence, Callable
+
+    def calibrer(
+        brut: Sequence[float],
+        coeffs: tuple[float, float],
+        filtre: ⟦0⟧[[float], float] | None = None,
+    ) -> list[⟦1⟧]:
+        a, b = coeffs
+        out = [a * x + b for x in brut]
+        return [filtre(x) for x in out] if filtre else out
+  blanks:
+  - - Callable
+  - - float
+  e: |-
+    Bonnes pratiques :
+    - **Paramètre** : type le plus **large** (`Sequence[float]` accepte list, tuple, array).
+    - **Retour** : type le plus **précis** (`list[float]`), pour que l’appelant sache ce qu’il peut faire.
+    - `Callable[[float], float]` = fonction d’un float vers un float.
+    - `X | None` remplace `Optional[X]` depuis 3.10.
+
+    Depuis 3.9 on écrit `list[float]`, plus `List[float]`. `from __future__ import annotations` permet la syntaxe moderne même sur des versions plus anciennes.
+- id: py09.3
+  type: predict
+  level: 2
+  concepts:
+  - enum
+  q: Sortie ?
+  code: |-
+    from enum import Enum, IntEnum, auto
+
+    class Etat(Enum):
+        IDLE = auto()
+        MESURE = auto()
+
+    class Code(IntEnum):
+        OK = 0
+        ERR = 1
+
+    print(Etat.IDLE.name, Etat.IDLE.value)
+    print(Code.OK == 0, Etat.IDLE == 1)
+  answer: |-
+    IDLE 1
+    True False
+  e: |-
+    `Enum` crée des constantes **typées** : `Etat.IDLE == 1` est `False`, ce qui t’empêche de comparer un état à un entier au hasard.
+
+    `IntEnum` **est** un entier : pratique pour un protocole binaire ou un code de retour, mais tu perds la protection.
+
+    `auto()` numérote automatiquement. `Flag`/`IntFlag` gèrent les combinaisons de bits (registres de statut) : `Statut.PRET | Statut.ERREUR`.
+
+    Une machine à états écrite avec `Enum` + `match` est infiniment plus lisible qu’avec des chaînes.
+- id: py09.4
+  type: qcm
+  level: 1
+  concepts:
+  - pathlib
+  q: Équivalent `pathlib` de `os.path.join(dossier, "data", nom + ".csv")` ?
+  choices:
+  - t: '`Path(dossier) / "data" / f"{nom}.csv"`'
+    ok: true
+    why: L’opérateur `/` compose les chemins, portable Windows/Linux.
+  - t: '`Path(dossier) + "/data/" + nom`'
+    ok: false
+    why: '`+` n’est pas défini sur Path.'
+  - t: '`Path.join(dossier, "data", nom)`'
+    ok: false
+    why: Pas de méthode `join` de classe.
+  - t: '`Path(dossier).append("data")`'
+    ok: false
+    why: N’existe pas.
+  e: |-
+    `pathlib` remplace la moitié d’`os.path` :
+
+    | besoin | pathlib |
+    | --- | --- |
+    | extension | `p.suffix`, `p.with_suffix(".json")` |
+    | nom sans ext | `p.stem` |
+    | créer l’arbo | `p.mkdir(parents=True, exist_ok=True)` |
+    | lire/écrire | `p.read_text()`, `p.write_bytes(b)` |
+    | lister | `p.glob("*.csv")`, `p.rglob("**/*.h5")` |
+
+    Un `Path` s’accepte partout où une chaîne de chemin est attendue.
+- id: py09.5
+  type: bug
+  level: 3
+  concepts:
+  - lint
+  - typing
+  q: mypy signale une erreur sur ce code. Clique sur la ligne qui la déclenche.
+  code: |-
+    def moyenne(v: list[float]) -> float:
+        if not v:
+            return None
+        return sum(v) / len(v)
+  bad: 3
+  fix: '        raise ValueError("liste vide")   # ou : -> float | None'
+  e: |-
+    `-> float` promet un flottant ; renvoyer `None` viole le contrat. mypy : *Incompatible return value type (got "None", expected "float")*.
+
+    Deux corrections, et le choix est une décision de conception :
+    - **Lever** `ValueError` : la moyenne d’un ensemble vide n’a pas de sens, autant le dire fort.
+    - **Annoncer** `-> float | None` : l’appelant est alors **obligé** par mypy de traiter le cas `None`.
+
+    Le pire choix serait de renvoyer `0.0` : ça ressemble à une mesure valide et ça pollue les statistiques en aval.
+- id: py09.6
+  type: qcm
+  level: 3
+  concepts:
+  - typing
+  q: 'Pourquoi `def f(v: list[float])` est-il un moins bon paramètre que `def f(v: Sequence[float])` ?'
+  choices:
+  - t: '`list[float]` refuse un tuple, un `array`, une vue — alors que la fonction s’en contenterait'
+    ok: true
+    why: 'Principe : accepte le plus large, renvoie le plus précis.'
+  - t: '`list[float]` est plus lent'
+    ok: false
+    why: 'Aucun impact à l’exécution : les annotations ne sont pas évaluées.'
+  - t: '`Sequence` autorise la modification'
+    ok: false
+    why: 'C’est l’inverse : `Sequence` est en lecture seule, `MutableSequence` autorise `append`.'
+  - t: '`list[float]` n’existe qu’en 3.12+'
+    ok: false
+    why: La syntaxe générique intégrée est disponible depuis 3.9.
+  e: |-
+    La hiérarchie à connaître (`collections.abc`) :
+
+    ```
+    Iterable → Collection → Sequence → MutableSequence → list
+    ```
+
+    | Ce dont tu as besoin | Annotation |
+    | --- | --- |
+    | parcourir une fois | `Iterable[T]` |
+    | `len()` + `in` | `Collection[T]` |
+    | indexer, parcourir plusieurs fois | `Sequence[T]` |
+    | `append` | `MutableSequence[T]` ou `list[T]` |
+    | clé/valeur en lecture | `Mapping[K, V]` |
+
+    Bonus : annoter `Sequence[float]` fait **refuser par mypy** un `v.append(...)` dans ton corps — la documentation devient une garantie.
+
+    En **retour**, sois précis : `-> list[float]`, pas `-> Sequence[float]`, sinon l'appelant ne peut rien faire de plus.
+- id: py09.7
+  type: predict
+  level: 3
+  concepts:
+  - typing
+  q: Sortie ? (Python 3.11+)
+  code: |-
+    from typing import get_type_hints
+    def f(a: int, b: "list[str]" = []) -> float:
+        return 0.0
+    print(f.__annotations__["a"], get_type_hints(f)["b"])
+    print(f.__annotations__["return"])
+  answer: |-
+    <class 'int'> list[str]
+    <class 'float'>
+  e: |-
+    Les annotations sont stockées dans `__annotations__`. Une annotation **entre guillemets** (« forward reference ») y reste une chaîne : c'est `typing.get_type_hints()` qui la résout.
+
+    À quoi servent les guillemets :
+    - référencer une classe pas encore définie (`def f(self) -> "Noeud"`) ;
+    - éviter un import circulaire, avec `if TYPE_CHECKING:`.
+
+    `from __future__ import annotations` rend **toutes** les annotations paresseuses : plus de coût au démarrage, et la syntaxe moderne utilisable sur d'anciennes versions. En contrepartie, les bibliothèques qui lisent les annotations à l'exécution doivent appeler `get_type_hints`.
+- id: py09.8
+  type: code
+  level: 3
+  concepts:
+  - enum
+  q: Écris `Statut(IntFlag)` avec `PRET=1`, `MESURE=2`, `ERREUR=4`, plus `decoder(registre)` qui renvoie la liste triée des noms actifs.
+  lang: python
+  start: |-
+    from enum import IntFlag
+
+    class Statut(IntFlag):
+        ...
+
+    def decoder(registre: int) -> list[str]:
+        ...
+  sol: |-
+    from enum import IntFlag
+
+    class Statut(IntFlag):
+        PRET = 1
+        MESURE = 2
+        ERREUR = 4
+
+    def decoder(registre: int) -> list[str]:
+        actifs = Statut(registre & 0b111)
+        return sorted(d.name for d in Statut if d in actifs)
+  tests: |-
+    assert decoder(0) == []
+    assert decoder(1) == ["PRET"]
+    assert decoder(5) == ["ERREUR", "PRET"], decoder(5)
+    assert decoder(7) == ["ERREUR", "MESURE", "PRET"]
+    assert decoder(0b1000) == [], "les bits inconnus sont ignores"
+    assert (Statut.PRET | Statut.ERREUR) == 5
+    assert Statut.PRET in Statut(5)
+    print("OK")
+  e: |-
+    `IntFlag` est fait pour les **registres de statut** : chaque membre est une puissance de 2, l'union se fait avec `|`, le test avec `in`.
+
+    Le masque `& 0b111` élimine les bits non déclarés — sans lui, le comportement dépend de la version de Python. Masquer explicitement rend le code portable.
+
+    `for d in Statut` itère les membres **canoniques**, pas les combinaisons.
+
+    C'est exactement ce dont tu as besoin pour décoder un octet de statut d'un capteur I²C, et infiniment plus lisible qu'une série de `if registre & 0x04:`.
+- id: py09.9
+  type: predict
+  level: 2
+  concepts:
+  - pathlib
+  q: Sortie ?
+  code: |-
+    from pathlib import Path
+    p = Path("/data/2026/mesures_t1.csv")
+    print(p.name, p.stem, p.suffix)
+    print(p.parent, p.parts[-2])
+    print(p.with_suffix(".json").name)
+  answer: |-
+    mesures_t1.csv mesures_t1 .csv
+    /data/2026 2026
+    mesures_t1.json
+  e: |-
+    Les accesseurs à connaître :
+
+    | Attribut | Valeur |
+    | --- | --- |
+    | `.name` | `mesures_t1.csv` |
+    | `.stem` | `mesures_t1` (nom sans extension) |
+    | `.suffix` | `.csv` (avec le point) |
+    | `.suffixes` | `['.csv']` — utile pour `.tar.gz` |
+    | `.parent` | le dossier |
+    | `.parts` | tuple des composants |
+
+    `with_suffix`, `with_name`, `with_stem` (3.9+) renvoient un **nouveau** chemin : `Path` est immuable.
+
+    Un `Path` s'accepte partout où une chaîne de chemin est attendue — inutile de faire `str(p)`.
+- id: py09.10
+  type: cloze
+  level: 3
+  concepts:
+  - typing
+  q: Annote une fonction générique qui marche pour tout type numérique, en forçant les trois arguments au même type.
+  tpl: |-
+    from typing import ⟦0⟧
+
+    T = ⟦0⟧("T", int, float)
+
+    def borner(x: T, lo: T, hi: T) -> ⟦1⟧:
+        return max(lo, min(hi, x))
+  blanks:
+  - - TypeVar
+  - - T
+  e: |-
+    `TypeVar("T", int, float)` est **contraint** : `T` sera soit `int`, soit `float`, et les trois paramètres devront être du **même** type. `borner(1, 0.0, 2)` est refusé par mypy.
+
+    Variantes :
+    - `TypeVar("T")` — libre, n'importe quel type.
+    - `TypeVar("T", bound=Number)` — n'importe quel sous-type de `Number`.
+
+    En Python 3.12, la syntaxe devient native :
+    ```python
+    def borner[T: (int, float)](x: T, lo: T, hi: T) -> T: ...
+    ```
+
+    Sans `TypeVar`, tu écrirais `x: int | float` — mais alors rien n'oblige les trois arguments à s'accorder, et le type de retour est perdu.
+- id: py09.11
+  type: qcm
+  level: 2
+  concepts:
+  - lint
+  q: Que fait `ruff` que `mypy` ne fait pas ?
+  choices:
+  - t: Analyse de style et de bugs syntaxiques (imports inutiles, `except` nu, défaut mutable) et formatage
+    ok: true
+    why: 'Deux outils complémentaires : ruff = linter et formateur, mypy = vérificateur de types.'
+  - t: Vérifier la cohérence des types
+    ok: false
+    why: C’est le rôle de mypy ou pyright ; ruff ne fait pas d’inférence de types.
+  - t: Exécuter les tests
+    ok: false
+    why: C’est pytest ; ruff n’exécute jamais ton code.
+  - t: Rien, ruff remplace mypy
+    ok: false
+    why: Leurs périmètres ne se recouvrent presque pas.
+  e: |-
+    La panoplie minimale d'un projet Python sérieux :
+
+    ```toml
+    # pyproject.toml
+    [tool.ruff.lint]
+    select = ["E", "F", "B", "SIM", "UP", "I"]
+    #          style bugs bugbear simplif moderniser imports
+
+    [tool.mypy]
+    strict = true
+    ```
+
+    `ruff check --fix .` corrige tout seul les imports mal triés et les f-strings sans champ.
+
+    Les règles `B` (bugbear) attrapent précisément les pièges de ce parcours : `B006` défaut mutable, `B012` `return` dans un `finally`, `B023` closure dans une boucle.
+
+    Un seul binaire Rust, ~100× plus rapide que flake8.
+- id: py09.12
+  type: bug
+  level: 3
+  concepts:
+  - typing
+  q: mypy refuse ce code. Clique sur la ligne à corriger.
+  code: |-
+    from typing import Optional
+
+    def chercher(capteurs: dict[str, float], nom: str) -> Optional[float]:
+        return capteurs.get(nom)
+
+    def afficher(capteurs: dict[str, float], nom: str) -> None:
+        print(f"{chercher(capteurs, nom):.2f}")
+  bad: 7
+  fix: |2-
+        v = chercher(capteurs, nom)
+        print(f"{v:.2f}" if v is not None else "absent")
+  e: |-
+    `chercher` peut renvoyer `None`, et `f"{None:.2f}"` lève `TypeError: unsupported format string`.
+
+    C'est **le** bénéfice principal du typage : il t'oblige à traiter le cas absent au lieu de le découvrir en production, à 3 h du matin, sur une manip.
+
+    Le motif correct est le **rétrécissement de type** (narrowing) : après `if v is not None:`, mypy sait que `v` est un `float` dans cette branche.
+
+    `Optional[float]` ≡ `float | None` — préfère la seconde écriture depuis 3.10.
+- id: py09.13
+  type: flash
+  level: 2
+  concepts:
+  - enum
+  q: Quand utiliser `Enum`, `IntEnum`, `StrEnum` ou `IntFlag` ?
+  back: |-
+    | Type | Usage |
+    | --- | --- |
+    | `Enum` | états internes. **Défaut recommandé** : la comparaison à un entier est fausse, ce qui protège. |
+    | `IntEnum` | valeur envoyée dans un protocole binaire, code de retour C, index de tableau |
+    | `StrEnum` (3.11+) | clé de dict, colonne de CSV, valeur JSON |
+    | `IntFlag` | registre de bits, options combinables |
+
+    `auto()` numérote automatiquement. `@unique` interdit deux membres de même valeur.
+  e: |-
+    Combiné avec `match`, un `Enum` rend une machine à états lisible **et** vérifiable :
+
+    ```python
+    match etat:
+        case Etat.IDLE:   ...
+        case Etat.MESURE: ...
+    ```
+
+    mypy peut vérifier l'exhaustivité : ajoute un état, il te signale tous les `match` à compléter. C'est le pendant Python du `-Wswitch` de GCC.
+- id: py09.14
+  type: qcm
+  level: 3
+  concepts:
+  - typing
+  q: À quoi sert `typing.Protocol` ?
+  choices:
+  - t: 'Définir un contrat **structurel** : tout objet qui a les bonnes méthodes le satisfait, sans héritage'
+    ok: true
+    why: C’est le duck typing rendu vérifiable statiquement.
+  - t: Définir un protocole réseau ou série
+    ok: false
+    why: 'Aucun rapport : c’est une construction du système de types.'
+  - t: Remplacer `abc.ABC`
+    ok: false
+    why: '`ABC` impose l’héritage (nominal), `Protocol` non (structurel). Les deux coexistent.'
+  - t: Rendre une classe abstraite à l’exécution
+    ok: false
+    why: Un `Protocol` n’est pas vérifié à l’exécution, sauf avec `@runtime_checkable`.
+  e: |-
+    ```python
+    from typing import Protocol
+
+    class Transport(Protocol):
+        def ecrire(self, data: bytes) -> int: ...
+        def lire_ligne(self) -> bytes: ...
+
+    def interroger(t: Transport, cmd: bytes) -> bytes:
+        t.ecrire(cmd)
+        return t.lire_ligne()
+    ```
+
+    `serial.Serial` satisfait `Transport` **sans le savoir** — pas d'héritage, pas d'import, pas de couplage. Ton faux transport de test aussi.
+
+    C'est l'outil idéal pour typer une frontière matériel/logiciel : tu décris ce dont tu as besoin, pas ce que la bibliothèque est.
+
+    `@runtime_checkable` permet `isinstance`, mais ne vérifie alors que la **présence** des méthodes, pas leur signature.
+- id: py09.15
+  type: code
+  level: 2
+  concepts:
+  - pathlib
+  - fichiers
+  q: 'Écris `renommer_lot(noms, prefixe)` : renvoie la liste des `"{prefixe}_{stem}.json"`. Ignore tout ce qui n’est pas `.csv` (insensible à la casse).'
+  lang: python
+  start: |-
+    from pathlib import Path
+
+    def renommer_lot(noms, prefixe):
+        ...
+  sol: |-
+    from pathlib import Path
+
+    def renommer_lot(noms, prefixe):
+        out = []
+        for n in noms:
+            p = Path(n)
+            if p.suffix.lower() != ".csv":
+                continue
+            out.append(f"{prefixe}_{p.stem}.json")
+        return out
+  tests: |-
+    r = renommer_lot(["a.csv", "b.txt", "/x/y/c.CSV"], "run7")
+    assert r == ["run7_a.json", "run7_c.json"], r
+    assert renommer_lot([], "p") == []
+    assert renommer_lot(["sans_extension"], "p") == []
+    assert renommer_lot(["mesure.tar.gz"], "p") == []
+    assert renommer_lot(["dossier/m1.csv"], "run1") == ["run1_m1.json"]
+    print("OK")
+  e: |-
+    Trois détails que le test vérifie :
+    - `.lower()` sur le suffixe : sous Windows et macOS, les extensions arrivent en majuscules plus souvent qu'on ne croit.
+    - `p.stem` retire l'extension **et** le chemin : `"dossier/m1.csv"` → `"m1"`.
+    - `.tar.gz` : `.suffix` vaut `".gz"`, donc c'est rejeté. Pour le gérer, `p.suffixes` donne `['.tar', '.gz']`.
+
+    Faire ça à la main avec `split(".")` casse sur les noms contenant des points, sur les chemins Windows et sur les fichiers sans extension. `pathlib` traite les trois.
+- id: py09.16
+  type: parsons
+  level: 3
+  concepts:
+  - typing
+  q: Reconstitue un module correctement annoté et compatible `mypy --strict`.
+  lang: python
+  lines:
+  - from __future__ import annotations
+  - ''
+  - from collections.abc import Iterable
+  - from dataclasses import dataclass
+  - ''
+  - '@dataclass(frozen=True, slots=True)'
+  - 'class Mesure:'
+  - '    canal: int'
+  - '    valeur: float'
+  - ''
+  - 'def moyenne_canal(mesures: Iterable[Mesure], canal: int) -> float | None:'
+  - '    vals = [m.valeur for m in mesures if m.canal == canal]'
+  - '    return sum(vals) / len(vals) if vals else None'
+  extra:
+  - 'def moyenne_canal(mesures, canal):'
+  - '    return sum(vals) / len(vals)'
+  e: |-
+    Ce que chaque ligne apporte à `mypy --strict` :
+    - `from __future__ import annotations` : annotations paresseuses, syntaxe moderne partout.
+    - `Iterable[Mesure]` en paramètre : accepte liste, générateur, tuple.
+    - `float | None` en retour : **oblige** l'appelant à traiter le cas vide.
+    - `@dataclass(frozen=True, slots=True)` : `__eq__`, `__hash__`, `__repr__` générés et typés.
+
+    Le premier intrus (signature nue) fait échouer `--strict` (`disallow_untyped_defs`). Le second divise par zéro sur une liste vide.
+
+    Ordre des imports : `__future__`, stdlib, tiers, local — `ruff` (règle `I`) le fait pour toi.

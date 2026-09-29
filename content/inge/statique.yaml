@@ -1,0 +1,762 @@
+id: statique
+title: Statique et mécanique générale
+en: Statics and general mechanics
+desc: Forces, moments, liaisons et frottement, le socle de tout calcul mécanique.
+intro: |
+  La statique étudie les objets **qui ne bougent pas** (ou à vitesse constante) : un support, un bâti, une pièce serrée, une charge suspendue. C'est la première étape de tout dimensionnement : avant de savoir si une pièce tient, il faut savoir quels efforts elle reçoit.
+
+  La méthode est toujours la même : isoler l'objet, faire la liste de tout ce qui agit sur lui, et écrire que tout s'équilibre.
+notions:
+  # ------------------------------------------------------------------ forces et moments
+  - id: st-equilibre
+    title: Forces, moments et équilibre
+    en: Forces, moments and equilibrium
+    goal: Calculer un moment, écrire l'équilibre d'une pièce et trouver les efforts dans ses appuis.
+    minutes: 13
+    lesson:
+      steps:
+        - level: 1
+          title: La balançoire et la clé
+          body: |
+            Sur une balançoire à bascule, un enfant léger assis tout au bout peut équilibrer un adulte assis près du milieu. Ce n'est pas seulement le poids qui compte, c'est **le poids multiplié par la distance** au pivot.
+
+            Même chose avec une clé : pour débloquer un écrou, tu prends une clé plus longue, ou tu tires au bout du manche plutôt qu'au milieu. Tu ne tires pas plus fort, tu tires **plus loin**.
+
+            Cet « effet de rotation » d'une force s'appelle un **moment**.
+        - level: 2
+          title: Le bras de levier
+          body: |
+            Le moment d'une force par rapport à un point vaut la force multipliée par le **bras de levier** : la distance **perpendiculaire** entre le point et la ligne d'action de la force (la droite qui porte la force).
+
+            ```svg caption="Le bras de levier d n'est pas la longueur de la clé : c'est la distance perpendiculaire entre le pivot et la ligne d'action de la force."
+            <svg viewBox="0 0 430 215" width="430" role="img" aria-label="Bras de levier d'une force inclinée sur une clé">
+              <defs><marker id="ar-st1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="a" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+              <line class="s" x1="60" y1="120" x2="300" y2="120" style="stroke-width:7;stroke-linecap:round"/>
+              <circle class="soft" cx="60" cy="120" r="9"/>
+              <text class="t" x="40" y="150">pivot O</text>
+              <line class="s2 dash" x1="236" y1="9" x2="348" y2="203"/>
+              <line class="as" x1="300" y1="120" x2="335" y2="181" marker-end="url(#ar-st1)"/>
+              <text class="ta" x="344" y="170">F</text>
+              <line class="ws" x1="60" y1="120" x2="240" y2="16"/>
+              <text class="tw" x="128" y="58">d</text>
+              <polyline class="s2" points="231,21 236,30 245,25"/>
+              <text class="tm" x="170" y="140">longueur de la clé L</text>
+              <text class="tm" x="262" y="12">ligne d'action</text>
+            </svg>
+            ```
+
+            Une force dont la ligne d'action passe par le point a un moment **nul** : pousser une porte vers ses gonds ne la fait pas tourner.
+
+            Un objet est **à l'équilibre** quand deux conditions sont remplies en même temps :
+            - la somme des forces est nulle (sinon il part en translation) ;
+            - la somme des moments est nulle (sinon il se met à tourner).
+          check:
+            q: Tu pousses sur une porte, perpendiculairement à elle, tout près des gonds. Pourquoi est-ce si dur de l'ouvrir ?
+            choices:
+              - t: Le bras de levier est très petit, donc le moment aussi
+                ok: true
+                why: Moment = force × bras de levier. Près des gonds, il faut une force énorme pour obtenir le même moment.
+              - t: La porte est plus lourde de ce côté
+                why: La porte a la même masse partout ; c'est la distance au pivot qui change.
+              - t: Le frottement est plus grand près des gonds
+                why: Le frottement des gonds ne dépend pas de l'endroit où tu pousses.
+        - level: 3
+          title: Le principe fondamental de la statique
+          body: |
+            $$M = F \cdot d \qquad \text{(en N·m)}$$
+
+            Pour un problème plan (tout se passe dans un plan), l'équilibre donne **trois équations** :
+
+            $$\sum F_x = 0 \qquad \sum F_y = 0 \qquad \sum M_A = 0$$
+
+            Le point $A$ se choisit librement : on prend celui où passent le plus d'inconnues, elles disparaissent de l'équation des moments.
+
+            **Exemple.** Une poutre de 3 m repose sur deux appuis A et B. Une charge de 600 N est posée à 1 m de A.
+            - Moments en A : $R_B \times 3 - 600 \times 1 = 0$, donc $R_B = 200$ N.
+            - Forces verticales : $R_A + R_B = 600$, donc $R_A = 400$ N.
+
+            L'appui le plus proche de la charge en porte le plus, comme on s'y attend.
+          check:
+            q: Une clé de 30 cm, tu tires perpendiculairement au bout avec 100 N. Quel couple appliques-tu ?
+            choices:
+              - t: 30 N·m
+                ok: true
+                why: "100 N × 0,30 m = 30 N·m."
+              - t: 3000 N·m
+                why: "Tu as gardé les centimètres : 30 cm = 0,30 m."
+              - t: 333 N·m
+                why: C'est une division au lieu d'une multiplication.
+        - level: 4
+          title: Sous le capot
+          body: |
+            En trois dimensions, le moment est un **vecteur** : $\vec{M}_A = \overrightarrow{AP} \wedge \vec{F}$ (produit vectoriel), où $P$ est un point de la ligne d'action. Sa norme vaut $F \cdot d$, et sa direction est l'axe autour duquel la force fait tourner.
+
+            Le moment dépend du point choisi. Pour passer d'un point à un autre : $\vec{M}_B = \vec{M}_A + \overrightarrow{BA} \wedge \vec{R}$. L'ensemble « résultante + moment en un point » s'appelle un **torseur** ; c'est l'outil de base de la mécanique du solide en France.
+
+            En 3D, l'équilibre donne **six équations** (trois de forces, trois de moments). Si le nombre d'inconnues de liaison est égal au nombre d'équations utiles, le problème est **isostatique** : on trouve tous les efforts par la statique seule.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            **La méthode, toujours la même :**
+            1. isoler le système (un dessin où l'objet est seul) ;
+            2. faire le **bilan des actions extérieures** : poids, charges, réactions de chaque appui ;
+            3. écrire l'équilibre, en choisissant le point des moments pour éliminer un maximum d'inconnues ;
+            4. vérifier les signes et l'ordre de grandeur.
+
+            **Masse et poids.** Une masse de 20 kg exerce un poids de $20 \times 9{,}81 \approx 196$ N. Les fiches techniques mélangent encore les kgf (1 kgf ≈ 9,81 N) : méfie-toi des « charges admissibles » exprimées en kg.
+
+            **Clé dynamométrique.** Le couple de serrage indiqué (en N·m) suppose une force appliquée perpendiculairement au manche, au point prévu. Une rallonge ou un effort de biais changent le couple réellement appliqué.
+      recap:
+        - "Moment = force × bras de levier (distance perpendiculaire à la ligne d'action), en N·m."
+        - "Équilibre : somme des forces nulle ET somme des moments nulle."
+        - "Problème plan : 3 équations (ΣFx, ΣFy, ΣM) ; en 3D : 6."
+        - "Choisir le point des moments là où passent le plus d'inconnues."
+        - "Poids = masse × 9,81 : 1 kg pèse environ 9,81 N."
+      pieges: [ing-bras-levier, ing-poids-masse]
+    vocab:
+      - force = force
+      - moment = moment
+      - bras de levier = lever arm
+      - ligne d'action = line of action
+      - équilibre = equilibrium
+      - réaction d'appui = support reaction
+      - bilan des actions = free-body diagram
+      - couple de serrage = tightening torque
+    exercises:
+      - id: st-equilibre.1
+        type: numeric
+        level: 1
+        q: Poutre de 3 m sur deux appuis A et B, charge de 600 N posée à 1 m de A. Quelle est la réaction en A ?
+        answer: 400
+        tol: 0.01
+        unit: N
+        calc: 600 * (3 - 1) / 3
+        trap_values:
+          - v: 200
+            why: C'est la réaction en B. L'appui le plus proche de la charge (A) en porte le plus.
+          - v: 300
+            why: La charge n'est pas au milieu, elle ne se partage pas moitié-moitié.
+        e: |
+          Moments en B : $R_A \times 3 - 600 \times 2 = 0$, donc $R_A = 400$ N. Et $R_B = 600 - 400 = 200$ N.
+      - id: st-equilibre.2
+        type: numeric
+        level: 1
+        q: Pour serrer une vis à 30 N·m avec une clé dynamométrique dont le manche mesure 25 cm, quelle force faut-il appliquer au bout, perpendiculairement ?
+        answer: 120
+        tol: 0.01
+        unit: N
+        calc: 30 / 0.25
+        trap_values:
+          - v: 7.5
+            why: C'est 30 × 0,25. Il faut diviser le couple par le bras de levier.
+          - v: 1.2
+            why: "Tu as gardé des centimètres : 25 cm = 0,25 m."
+        e: $F = M / d = 30 / 0{,}25 = 120$ N, environ le poids d'une masse de 12 kg.
+      - id: st-equilibre.3
+        type: numeric
+        level: 2
+        q: "Tu tires avec 100 N au bout d'une clé de 30 cm, mais de biais : la force fait un angle de 60° avec le manche. Quel moment appliques-tu ?"
+        answer: 25.98
+        tol: 0.01
+        unit: N·m
+        calc: 100 * 0.30 * sin(radians(60))
+        trap_values:
+          - v: 30
+            why: Ce serait vrai avec une force perpendiculaire au manche. De biais, le bras de levier est plus court.
+          - v: 15
+            why: "Tu as pris le cosinus. Le bras de levier vaut L·sin α, avec α l'angle entre la force et le manche."
+        piege: ing-bras-levier
+        e: |
+          Bras de levier : $d = L \sin\alpha = 0{,}30 \times \sin 60° \approx 0{,}26$ m, donc $M = 100 \times 0{,}26 \approx 26$ N·m.
+
+          Autre façon de voir : seule la composante de la force perpendiculaire au manche ($F \sin\alpha$) fait tourner.
+      - id: st-equilibre.4
+        type: qcm
+        level: 1
+        q: Que vaut le moment d'une force par rapport à un point situé sur sa ligne d'action ?
+        choices:
+          - t: Zéro
+            ok: true
+            why: Le bras de levier est nul.
+          - t: La force multipliée par la distance au point d'application
+            why: Ce n'est pas la distance au point d'application qui compte, mais la distance perpendiculaire à la ligne d'action, ici nulle.
+          - t: Il n'est pas défini
+            why: Il est parfaitement défini, et il vaut zéro.
+        e: C'est pour ça qu'on choisit le point des moments sur la ligne d'action d'une force inconnue : elle disparaît de l'équation.
+      - id: st-equilibre.5
+        type: flash
+        level: 2
+        q: Combien d'équations d'équilibre en problème plan, et en 3D ? Que veut dire « isostatique » ?
+        back: |
+          - Plan : 3 équations ($\sum F_x$, $\sum F_y$, $\sum M$).
+          - 3D : 6 équations (3 de forces, 3 de moments).
+
+          **Isostatique** : autant d'inconnues d'efforts que d'équations utiles, on trouve tout par la statique. **Hyperstatique** : plus d'inconnues que d'équations, il faut tenir compte des déformations.
+        e: Un tabouret à trois pieds est isostatique (il ne boite jamais) ; une table à quatre pieds est hyperstatique (elle boite si le sol n'est pas plan).
+  # ------------------------------------------------------------------ liaisons
+  - id: st-liaisons
+    title: Liaisons mécaniques et degrés de liberté
+    en: Mechanical joints and degrees of freedom
+    goal: Nommer les liaisons usuelles, compter les degrés de liberté et reconnaître un montage hyperstatique.
+    minutes: 13
+    lesson:
+      steps:
+        - level: 1
+          title: Ce qu'une liaison autorise
+          body: |
+            Une porte tourne autour de ses gonds et ne peut rien faire d'autre. Un tiroir coulisse. Un joystick ou ton épaule pivotent dans toutes les directions autour d'un point.
+
+            Chaque fois, deux pièces sont reliées d'une façon qui **autorise** certains mouvements et en **bloque** d'autres. C'est ce qu'on appelle une **liaison mécanique**.
+        - level: 2
+          title: Six degrés de liberté
+          body: |
+            Un objet libre dans l'espace peut bouger de six façons indépendantes : trois **translations** (avancer, glisser de côté, monter) et trois **rotations** (autour de chacun de ces trois axes). Ce sont ses six **degrés de liberté** (DDL).
+
+            Une liaison en supprime certains. Et ce qu'elle bloque, elle doit être capable de le **retenir** : une liaison transmet un effort dans chaque direction qu'elle empêche, et un moment autour de chaque rotation qu'elle empêche.
+          check:
+            q: Combien de degrés de liberté laisse une charnière de porte (liaison pivot) ?
+            choices:
+              - t: "1 : une rotation"
+                ok: true
+                why: La porte ne peut que tourner autour de l'axe des gonds. Les 5 autres mouvements sont bloqués.
+              - t: "2 : une rotation et une translation"
+                why: Ce serait une liaison pivot glissant, comme un arbre libre de coulisser dans son palier.
+              - t: "5"
+                why: Ce serait une liaison ponctuelle, qui ne bloque qu'une seule direction.
+        - level: 3
+          title: Les liaisons usuelles
+          body: |
+            | Liaison | DDL laissés | Exemple |
+            | --- | --- | --- |
+            | encastrement | 0 | pièce soudée, vissée rigidement |
+            | pivot | 1 rotation | charnière, arbre sur deux roulements |
+            | glissière | 1 translation | tiroir, rail de guidage linéaire |
+            | hélicoïdale | 1 (rotation liée à une translation) | vis-écrou |
+            | pivot glissant | 1 rotation + 1 translation | tige de vérin dans son palier |
+            | rotule (sphérique) | 3 rotations | joystick, rotule de direction |
+            | appui plan | 2 translations + 1 rotation | objet posé sur une table |
+            | linéaire annulaire | 1 translation + 3 rotations | roulement libre axialement |
+            | ponctuelle | 5 | bille posée sur un plan |
+
+            **Règle simple** : en 3D, une liaison qui laisse $n$ degrés de liberté transmet $6 - n$ composantes d'effort. Une rotule (3 DDL) transmet 3 forces et aucun moment ; un encastrement transmet tout.
+        - level: 4
+          title: Isostatique ou hyperstatique
+          body: |
+            Quand on assemble plusieurs liaisons, on peut **bloquer deux fois le même mouvement**. Exemple classique : un arbre tenu par deux roulements, tous deux bloqués en translation le long de l'axe. L'axe est bloqué deux fois : le montage est **hyperstatique**.
+
+            Conséquences :
+            - les efforts ne se calculent plus par la statique seule, ils dépendent des déformations ;
+            - le montage exige une fabrication précise, sinon les pièces se contraignent entre elles ;
+            - une dilatation thermique crée des efforts internes (l'arbre chauffe, s'allonge, et pousse sur ses deux roulements).
+
+            La solution classique : un roulement **fixe** (qui bloque l'axe) et un roulement **libre** (qui peut glisser axialement). Chaque mouvement est bloqué une seule fois : le montage est **isostatique**.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            **Montages cinématiques.** Pour reposer une pièce toujours exactement au même endroit (un porte-échantillon, un détecteur, un miroir), on utilise un montage isostatique : trois billes qui reposent dans un cône, une rainure en V et un plan (montage de Kelvin), ou trois billes dans trois V (montage de Maxwell). Chaque degré de liberté est bloqué exactement une fois : la position est reproductible au micromètre, sans contraindre la pièce. On en trouve partout sur les lignes de lumière et en optique.
+
+            **Guidages linéaires.** Deux rails parallèles sous un même chariot forment un montage hyperstatique : ils doivent être alignés avec soin, ou l'un des rails doit être monté « flottant ».
+
+            **Schéma cinématique.** Avant de dimensionner un mécanisme, dessine-le avec les symboles normalisés des liaisons : c'est ce qui fait apparaître les blocages en double.
+      recap:
+        - "Un solide libre a 6 degrés de liberté : 3 translations, 3 rotations."
+        - "Une liaison qui laisse n DDL transmet 6 − n composantes d'effort."
+        - "Pivot : 1 rotation ; glissière : 1 translation ; rotule : 3 rotations ; encastrement : 0."
+        - "Hyperstatique = un mouvement bloqué deux fois : précision exigée, efforts parasites (dilatation)."
+        - "Arbre : un roulement fixe + un roulement libre ; repositionnement précis : montage cinématique."
+      pieges: [ing-hyperstatisme]
+    vocab:
+      - liaison = joint
+      - degré de liberté = degree of freedom
+      - pivot = revolute joint
+      - glissière = prismatic joint
+      - rotule = ball joint
+      - encastrement = fixed joint
+      - hyperstatique = statically indeterminate
+      - montage cinématique = kinematic mount
+    exercises:
+      - id: st-liaisons.1
+        type: qcm
+        level: 1
+        q: Combien de degrés de liberté possède un solide complètement libre dans l'espace ?
+        choices:
+          - t: "6"
+            ok: true
+            why: 3 translations et 3 rotations.
+          - t: "3"
+            why: C'est le nombre de translations seulement, ou le nombre de DDL d'un solide dans un plan.
+          - t: "4"
+            why: Il y a 3 translations et 3 rotations, soit 6.
+        e: Dans un problème plan, il n'en reste que 3 (deux translations et une rotation), d'où les 3 équations de la statique plane.
+      - id: st-liaisons.2
+        type: qcm
+        level: 2
+        q: Un arbre est guidé par deux roulements, tous deux bloqués axialement. L'arbre chauffe de 40 °C en service. Que se passe-t-il ?
+        piege: ing-hyperstatisme
+        choices:
+          - t: L'arbre veut s'allonger mais ne peut pas, ce qui charge anormalement les roulements
+            ok: true
+            why: Le déplacement axial est bloqué deux fois. La dilatation se transforme en effort sur les roulements.
+          - t: Rien, les roulements tournent librement
+            piege: true
+            why: Ils tournent, mais ils sont aussi bloqués en translation. L'allongement de l'arbre n'a nulle part où aller.
+          - t: L'arbre se raccourcit
+            why: Un arbre qui chauffe s'allonge.
+        e: |
+          Solution : un roulement **fixe** et un roulement **libre** axialement. Un arbre d'acier de 500 mm qui chauffe de 40 °C s'allonge de $12 \times 10^{-6} \times 500 \times 40 \approx 0{,}24$ mm : bloqué, cet allongement représente un effort considérable.
+      - id: st-liaisons.3
+        type: qcm
+        level: 2
+        q: Combien de composantes d'effort une liaison rotule peut-elle transmettre ?
+        choices:
+          - t: 3 forces et aucun moment
+            ok: true
+            why: Elle laisse les 3 rotations libres (pas de moment) et bloque les 3 translations (3 forces).
+          - t: 3 moments et aucune force
+            why: C'est l'inverse. Une rotule empêche de s'éloigner du centre, pas de tourner.
+          - t: 6
+            why: C'est le cas de l'encastrement, qui bloque tout.
+        e: Règle générale en 3D : composantes transmises = 6 − DDL laissés.
+      - id: st-liaisons.4
+        type: qcm
+        level: 3
+        q: Pourquoi utilise-t-on un montage « trois billes : cône, rainure en V, plan » pour poser un porte-échantillon ?
+        choices:
+          - t: Il bloque chaque degré de liberté exactement une fois, donc la position est reproductible sans contraindre la pièce
+            ok: true
+          - t: Il bloque chaque degré de liberté deux fois, ce qui est plus rigide
+            why: Bloquer deux fois rendrait le montage hyperstatique, dépendant des défauts de fabrication, donc peu reproductible.
+          - t: Il laisse la pièce libre de tourner
+            why: Posé sur ses trois appuis, sous son poids, le porte-échantillon ne bouge plus.
+        e: "Le cône bloque 3 translations, le V en bloque 2 de plus, le plan la dernière : 3 + 2 + 1 = 6, chaque mouvement une seule fois. C'est le montage de Kelvin."
+      - id: st-liaisons.5
+        type: flash
+        level: 1
+        q: Donne les degrés de liberté laissés par ces liaisons, pivot, glissière, pivot glissant, rotule, appui plan, encastrement.
+        back: |
+          - pivot : 1 (rotation)
+          - glissière : 1 (translation)
+          - pivot glissant : 2 (rotation + translation le long du même axe)
+          - rotule : 3 (rotations)
+          - appui plan : 3 (2 translations dans le plan + 1 rotation normale au plan)
+          - encastrement : 0
+        e: Pense à un objet réel pour chacune (charnière, tiroir, tige de vérin, joystick, objet posé sur une table, soudure).
+  # ------------------------------------------------------------------ frottement
+  - id: st-frottement
+    title: Frottement
+    en: Friction
+    goal: Utiliser la loi de Coulomb, connaître les ordres de grandeur, et comprendre l'arc-boutement et les vis irréversibles.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Démarrer, puis glisser
+          body: |
+            Pousse une lourde caisse sur le sol : il faut forcer pour la **décoller**, puis elle glisse avec un peu moins d'effort. Sur de la glace, presque rien ne la retient ; sur du caoutchouc, elle accroche.
+
+            Le frottement s'oppose toujours au glissement. Il est parfois un ennemi (usure, pertes d'énergie, à-coups) et parfois indispensable (freins, serrages, pneus, courroies).
+        - level: 2
+          title: Ce qui fixe le frottement
+          body: |
+            La force de frottement dépend de deux choses seulement :
+            - la **force qui plaque** les deux surfaces l'une contre l'autre (l'effort normal $N$) ;
+            - la **nature des surfaces** en contact, résumée par un coefficient $\mu$ (mu).
+
+            Contre-intuitif : elle ne dépend **pas** de la surface de contact. Une brique posée à plat ou sur la tranche glisse à la même force : sur la tranche, la pression est plus forte mais la surface plus petite, et les deux effets se compensent.
+
+            Le coefficient **statique** (pour décoller) est plus grand que le coefficient **dynamique** (pendant le glissement). C'est ce qui produit les à-coups (**stick-slip**) : ça colle, ça décroche, ça recolle.
+          check:
+            q: Tu doubles la surface de contact d'un patin (même matériaux, même charge). La force de frottement…
+            choices:
+              - t: ne change pas
+                ok: true
+                why: "T = μ·N : ni la charge N ni μ n'ont changé."
+              - t: double
+                why: C'est l'intuition courante, mais la loi de Coulomb ne fait pas intervenir la surface.
+              - t: est divisée par deux
+                why: La pression est divisée par deux, mais sur une surface deux fois plus grande.
+        - level: 3
+          title: La loi de Coulomb
+          body: |
+            Tant que ça ne glisse pas (adhérence) : $T \leq \mu_s N$. Pendant le glissement : $T = \mu_d N$.
+
+            | Couple de matériaux | $\mu$ (ordre de grandeur) |
+            | --- | --- |
+            | acier / acier, sec | 0,15 à 0,6 selon l'état de surface |
+            | acier / acier, lubrifié | 0,05 à 0,15 |
+            | acier / PTFE | 0,04 à 0,1 |
+            | acier / bronze, lubrifié | 0,05 à 0,1 |
+            | caoutchouc / bitume sec | 0,7 à 1 |
+            | roulement à billes (équivalent) | 0,001 à 0,005 |
+
+            **Exemple.** Une caisse de 50 kg sur un sol avec $\mu = 0{,}3$ : $N = 50 \times 9{,}81 \approx 490$ N, donc il faut pousser avec $0{,}3 \times 490 \approx 147$ N.
+
+            **Plan incliné.** Un objet posé sur une pente d'angle $\alpha$ commence à glisser quand $\tan\alpha > \mu$. Avec $\mu = 0{,}3$ : à partir d'environ 17°.
+        - level: 4
+          title: Cône de frottement et arc-boutement
+          body: |
+            Tant qu'il n'y a pas glissement, la réaction du support est inclinée d'un angle au plus égal à $\varphi$, avec $\tan\varphi = \mu$ : elle reste dans un **cône de frottement**.
+
+            Conséquence étonnante, l'**arc-boutement** : si la force qu'on applique reste à l'intérieur de ce cône, **aucune force**, aussi grande soit-elle, ne peut faire glisser. Un tiroir tiré par un seul coin se coince, une échelle mal inclinée tient ou glisse selon l'angle.
+
+            Même phénomène sur les vis : une vis dont l'angle d'hélice est plus petit que $\varphi$ est **irréversible**. Pousser sur l'écrou ne fait pas tourner la vis : un cric à vis trapézoïdale tient la voiture tout seul. Une vis à billes, elle, a si peu de frottement qu'elle est **réversible** : sans frein, la charge redescend en faisant tourner la vis.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - **Serrage et assemblages** : un assemblage boulonné transmet l'effort par frottement entre les pièces. Effort transmissible $\approx \mu \times \text{effort de serrage} \times \text{nombre de surfaces}$. Un changement de lubrification (graisse sur le filet) change beaucoup la précharge obtenue pour un même couple.
+            - **Positionnement précis** : le stick-slip rend les petits déplacements saccadés. On préfère les guidages à billes ou à rouleaux, ou des guidages flexibles sans frottement.
+            - **Sous vide** : sans film d'oxyde ni d'air, deux métaux propres frottent beaucoup plus et peuvent même se souder à froid (**grippage**). D'où les lubrifiants secs (MoS₂, WS₂), les vis argentées et les couples de matériaux choisis avec soin en ultravide.
+      recap:
+        - "Adhérence : T ≤ μs·N ; glissement : T = μd·N, avec μs > μd."
+        - "Le frottement ne dépend pas de la surface de contact."
+        - "Plan incliné : glissement si tan α > μ."
+        - "Arc-boutement : force dans le cône de frottement → aucun glissement possible. Vis trapézoïdale irréversible, vis à billes réversible."
+        - "Sous vide, frottement et grippage augmentent : lubrifiants secs."
+      pieges: [ing-frottement-surface, ing-poids-masse]
+    vocab:
+      - frottement = friction
+      - coefficient de frottement = friction coefficient
+      - adhérence = static friction
+      - glissement = sliding
+      - effort normal = normal force
+      - arc-boutement = self-locking
+      - grippage = seizing (galling)
+      - broutement = stick-slip
+    exercises:
+      - id: st-frottement.1
+        type: numeric
+        level: 1
+        q: Une caisse de 50 kg repose sur un sol (μ = 0,3). Quelle force horizontale faut-il pour la faire glisser ?
+        answer: 147.2
+        tol: 0.02
+        unit: N
+        calc: 0.3 * 50 * 9.81
+        trap_values:
+          - v: 15
+            why: "Tu as multiplié μ par la masse en kg. Le frottement dépend de l'effort normal, en newtons : N = m·g ≈ 490 N."
+        piege: ing-poids-masse
+        e: $T = \mu N = 0{,}3 \times 50 \times 9{,}81 \approx 147$ N.
+      - id: st-frottement.2
+        type: qcm
+        level: 1
+        q: Une brique glisse à plat sous une force de 20 N. Posée sur la tranche (surface de contact trois fois plus petite), elle glissera sous…
+        piege: ing-frottement-surface
+        choices:
+          - t: 20 N
+            ok: true
+            why: La charge et le coefficient n'ont pas changé, le frottement non plus.
+          - t: Environ 7 N
+            piege: true
+            why: La surface ne fait pas partie de la loi de Coulomb. Moins de surface, mais plus de pression.
+          - t: 60 N
+            why: Aucune raison que le frottement augmente.
+        e: C'est une approximation (valable pour des matériaux durs et des pressions modérées), mais elle surprend toujours la première fois.
+      - id: st-frottement.3
+        type: numeric
+        level: 2
+        q: À partir de quel angle d'inclinaison un objet commence-t-il à glisser si μ = 0,3 ?
+        answer: 16.7
+        tol: 0.01
+        unit: °
+        calc: degrees(atan(0.3))
+        trap_values:
+          - v: 17.46
+            why: "Tu as pris l'arc sinus. La condition de glissement est tan α > μ."
+          - v: 0.2915
+            why: C'est l'angle en radians.
+        e: |
+          Le poids se décompose en $mg\sin\alpha$ (qui fait glisser) et $mg\cos\alpha$ (qui plaque). Glissement quand $mg\sin\alpha > \mu\,mg\cos\alpha$, soit $\tan\alpha > \mu$ : $\alpha > \arctan 0{,}3 \approx 16{,}7°$.
+      - id: st-frottement.4
+        type: qcm
+        level: 2
+        q: Pourquoi un vérin électrique à vis trapézoïdale peut-il tenir sa charge sans frein, alors qu'un vérin à vis à billes ne le peut pas ?
+        choices:
+          - t: La vis trapézoïdale frotte assez pour être irréversible, la vis à billes est réversible
+            ok: true
+          - t: La vis à billes est moins rigide
+            why: La rigidité n'a rien à voir. C'est une question de frottement.
+          - t: La vis trapézoïdale a un pas plus grand
+            why: Un pas plus grand rendrait au contraire la vis plus facilement réversible.
+        e: "L'irréversibilité vient du frottement (arc-boutement dans le filet). Le prix à payer : un rendement faible, souvent 30 à 40 % pour une vis trapézoïdale, contre 90 % pour une vis à billes."
+      - id: st-frottement.5
+        type: flash
+        level: 2
+        q: Qu'est-ce que le stick-slip, et comment l'éviter sur une platine de positionnement ?
+        back: |
+          Des à-coups dus à la différence entre frottement statique (plus fort) et dynamique : la pièce colle, l'effort monte, elle décroche brutalement, puis recolle.
+
+          Remèdes : guidages à éléments roulants (billes, rouleaux) ou flexibles, matériaux à faible écart statique/dynamique (PTFE), lubrification adaptée, et asservissement plus raide.
+        e: C'est une des principales limites de résolution des platines à glissement.
+  # ------------------------------------------------------------------ centre de gravité
+  - id: st-gravite
+    title: Centre de gravité et stabilité
+    en: Centre of gravity and stability
+    goal: Trouver un centre de gravité et savoir quand un objet bascule.
+    minutes: 10
+    lesson:
+      steps:
+        - level: 1
+          title: Le point d'équilibre
+          body: |
+            Pose un crayon sur ton doigt : il tient en équilibre quand ton doigt est pile sous son milieu. Un marteau, lui, s'équilibre tout près de la tête, parce que c'est là qu'est la masse.
+
+            Ce point d'équilibre s'appelle le **centre de gravité**. Un objet posé reste debout tant que ce point est au-dessus de sa base d'appui ; s'il passe à côté, l'objet bascule.
+        - level: 2
+          title: Tout le poids en un point
+          body: |
+            Pour calculer l'équilibre d'un objet, on peut faire comme si tout son poids était concentré en son centre de gravité $G$. C'est ce qui rend les calculs de statique possibles.
+
+            **Stabilité.** Un objet posé bascule dès que la verticale passant par $G$ sort du **polygone de sustentation** (le contour de ses appuis). Plus $G$ est bas et plus la base est large, plus l'objet est stable.
+          check:
+            q: Une armoire haute bascule quand on ouvre ses tiroirs du haut chargés. Pourquoi ?
+            choices:
+              - t: Le centre de gravité avance et sort de la base d'appui
+                ok: true
+                why: Les tiroirs ouverts déplacent de la masse vers l'avant, et en hauteur.
+              - t: L'armoire devient plus lourde
+                why: Sa masse ne change pas en ouvrant un tiroir. C'est la position du centre de gravité qui change.
+              - t: Les pieds glissent
+                why: C'est un basculement, pas un glissement.
+        - level: 3
+          title: Le calculer
+          body: |
+            Pour un ensemble de masses $m_i$ placées aux abscisses $x_i$ :
+
+            $$x_G = \frac{\sum m_i\,x_i}{\sum m_i}$$
+
+            (et de même pour $y_G$ et $z_G$). C'est une **moyenne des positions pondérée par les masses**.
+
+            **Exemple.** 2 kg à $x = 0$ et 3 kg à $x = 0{,}5$ m : $x_G = (2 \times 0 + 3 \times 0{,}5)/5 = 0{,}3$ m, plus près de la masse la plus lourde.
+
+            Pour une pièce homogène de forme simple, $G$ est au centre de symétrie. Pour une forme composée, on découpe en morceaux simples, on prend le centre de chacun et on applique la formule.
+        - level: 4
+          title: Sous le capot
+          body: |
+            Le centre de gravité est le point où le **moment total des poids** est nul, quelle que soit l'orientation de l'objet. Dans un champ de pesanteur uniforme, il se confond avec le **centre de masse** (défini par la seule répartition de la masse).
+
+            Il peut se trouver **hors de la matière** : au centre d'un anneau, au creux d'une équerre, au-dessus d'un sauteur en hauteur qui passe la barre en arc de cercle.
+
+            La répartition de la masse autour de $G$ ne s'arrête pas là : elle détermine aussi la résistance à la mise en rotation, le **moment d'inertie**, qui joue en dynamique le rôle de la masse pour les rotations.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - **Levage** : le crochet doit se trouver à la verticale de $G$, sinon la charge bascule à l'arrachement. Les équipements lourds (cryostats, chambres, bancs) ont des points de levage prévus ; leur position est calculée à partir de $G$.
+            - **Transport** : un chariot chargé haut bascule en freinant ou dans une pente. Charge au plus bas, charges lourdes à l'arrière dans un bac.
+            - **Robots et axes** : la position de $G$ de la charge embarquée fixe le couple que doivent fournir les moteurs, même à l'arrêt.
+            - En CAO (SolidWorks, TopSolid), les propriétés de masse donnent $G$ et les moments d'inertie directement, à condition d'avoir mis les bons matériaux sur chaque pièce.
+      recap:
+        - "Le poids d'un objet agit comme s'il était concentré au centre de gravité G."
+        - "xG = Σ(mi·xi) / Σ mi : moyenne des positions pondérée par les masses."
+        - "Stable tant que la verticale de G reste dans le polygone d'appui."
+        - "G peut être hors de la matière (anneau, équerre)."
+        - "Levage : crochet à la verticale de G."
+    vocab:
+      - centre de gravité = centre of gravity
+      - centre de masse = centre of mass
+      - basculement = tipping
+      - polygone de sustentation = support polygon
+      - point de levage = lifting point
+      - propriétés de masse = mass properties
+    exercises:
+      - id: st-gravite.1
+        type: numeric
+        level: 1
+        q: Une masse de 2 kg est à x = 0 et une masse de 3 kg à x = 0,5 m. Où est le centre de gravité de l'ensemble ?
+        answer: 0.3
+        tol: 0.01
+        unit: m
+        calc: (2 * 0 + 3 * 0.5) / (2 + 3)
+        trap_values:
+          - v: 0.25
+            why: C'est le milieu géométrique. Les masses n'étant pas égales, G se rapproche de la plus lourde.
+          - v: 0.2
+            why: Tu t'es rapproché de la masse la plus légère. G est plus près de la plus lourde.
+        e: $x_G = \dfrac{2 \times 0 + 3 \times 0{,}5}{5} = 0{,}3$ m.
+      - id: st-gravite.2
+        type: qcm
+        level: 1
+        q: Où se trouve le centre de gravité d'un anneau homogène ?
+        choices:
+          - t: Au centre de l'anneau, dans le vide
+            ok: true
+          - t: Quelque part dans la matière de l'anneau
+            why: Par symétrie, il ne peut être qu'au centre, qui n'est pas dans la matière.
+          - t: Il n'existe pas
+            why: Il existe toujours. Il n'a simplement pas besoin d'être dans la matière.
+        e: Le centre de gravité est un point géométrique, pas un morceau de matière. Même chose pour une équerre, un tube, un fer à cheval.
+      - id: st-gravite.3
+        type: numeric
+        level: 2
+        q: "Une armoire de 80 kg, base 60 cm de profondeur, G à 1 m de haut et centré. Tu la pousses horizontalement en haut, à 1,8 m du sol. Quelle force la fait basculer autour de son arête avant (sans glissement) ?"
+        answer: 130.8
+        tol: 0.02
+        unit: N
+        calc: 80 * 9.81 * 0.30 / 1.8
+        trap_values:
+          - v: 235.4
+            why: "Tu as placé la poussée à la hauteur de G (1 m). Elle est appliquée à 1,8 m : son bras de levier est 1,8 m."
+          - v: 436
+            why: "Tu as pris 1 m (la hauteur de G) comme bras de levier du poids. Le poids est vertical : son bras de levier par rapport à l'arête est la demi-profondeur, 0,30 m."
+          - v: 13.3
+            why: "Tu as oublié g : 80 kg pèsent environ 785 N."
+        e: |
+          Basculement autour de l'arête avant : le moment de la poussée, $F \times 1{,}8$, doit dépasser le moment du poids, $mg \times 0{,}30$ (demi-profondeur).
+
+          $F = \dfrac{80 \times 9{,}81 \times 0{,}30}{1{,}8} \approx 131$ N. Pousser plus bas demande plus de force : c'est pourquoi on déplace un meuble en poussant en bas.
+      - id: st-gravite.4
+        type: flash
+        level: 2
+        q: Pourquoi un chariot chargé en hauteur bascule-t-il plus facilement en freinant ?
+        back: |
+          En freinant, l'inertie de la charge crée une force horizontale appliquée en $G$. Son moment par rapport aux roues avant vaut $m\,a\,h_G$ : il est d'autant plus grand que $G$ est haut. Quand il dépasse le moment du poids ($m\,g \times$ distance horizontale entre $G$ et les roues avant), le chariot bascule.
+        e: Règle pratique, charges lourdes en bas, et pas de freinage brusque avec un chargement haut.
+  # ------------------------------------------------------------------ leviers, poulies, vis
+  - id: st-transmission
+    title: Leviers, poulies et vis
+    en: Levers, pulleys and screws
+    goal: Calculer l'effort obtenu avec un levier, un palan ou une vis, et tenir compte du rendement.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: Multiplier un effort
+          body: |
+            Avec un pied-de-biche, tu soulèves une caisse trop lourde pour tes bras. Avec un palan à plusieurs poulies, tu hisses un moteur. Avec un cric à vis, tu lèves une voiture en tournant une manivelle.
+
+            Chaque fois, c'est le même marché : tu fournis **peu de force sur une grande distance**, et l'outil fournit **beaucoup de force sur une petite distance**.
+        - level: 2
+          title: Rien n'est gratuit
+          body: |
+            Le principe sous-jacent est la **conservation du travail** (force × déplacement). Sans pertes, ce que tu fournis d'un côté se retrouve de l'autre :
+
+            $$F_{entrée} \times d_{entrée} = F_{sortie} \times d_{sortie}$$
+
+            Si l'outil multiplie la force par 10, il divise le déplacement par 10. Avec un palan à 4 brins, tu tires 4 m de corde pour lever la charge de 1 m, avec 4 fois moins de force.
+
+            Dans la réalité, une partie du travail se perd en frottements : c'est le **rendement** $\eta$ (êta), toujours inférieur à 1.
+          check:
+            q: Un palan idéal à 4 brins soulève une charge de 800 N. Quelle force faut-il exercer sur la corde ?
+            choices:
+              - t: 200 N
+                ok: true
+                why: La charge est répartie sur 4 brins. En contrepartie, il faut tirer 4 fois plus de corde.
+              - t: 800 N
+                why: Ce serait avec une seule poulie fixe, qui ne fait que changer la direction de l'effort.
+              - t: 3200 N
+                why: Le palan divise l'effort, il ne le multiplie pas.
+        - level: 3
+          title: Les formules
+          body: |
+            | Outil | Relation (idéale) |
+            | --- | --- |
+            | levier | $F_2 = F_1 \times \dfrac{a}{b}$ ($a$, $b$ : bras de levier) |
+            | palan à $n$ brins | $F = P / n$ |
+            | vis-écrou de pas $p$ | $F = \dfrac{2\pi\,C}{p}$ |
+
+            Avec le rendement : **multiplie** l'effort de sortie par $\eta$ quand tu cherches ce que l'outil fournit, **divise** par $\eta$ quand tu cherches ce que tu dois fournir.
+
+            **Exemple.** Couple de 2 N·m sur une vis trapézoïdale de pas 2 mm, rendement 0,35 :
+            $F = 2\pi \times 2 / 0{,}002 \times 0{,}35 \approx 2200$ N. Pour une vis à billes ($\eta \approx 0{,}9$) : environ 5650 N.
+        - level: 4
+          title: Sous le capot, la vis
+          body: |
+            Un tour de vis fait avancer l'écrou d'un pas $p$. Le travail fourni sur un tour vaut $C \times 2\pi$ (couple × angle en radians) ; le travail récupéré vaut $F \times p$. D'où $F = 2\pi C \eta / p$.
+
+            Le rendement d'une vis dépend de l'angle d'hélice et du frottement dans le filet. Pour une vis-écrou à glissement, il dépasse rarement 0,5, et quand il est en dessous d'environ 0,5, la vis devient **irréversible** : la charge ne peut pas faire tourner la vis (voir l'arc-boutement).
+
+            La **vis micrométrique** exploite la même relation dans l'autre sens : un pas de 0,5 mm et un tambour gradué en 50 divisions donnent 0,01 mm par division. Un **différentiel** de deux vis de pas voisins (0,5 et 0,45 mm) donne un déplacement de 0,05 mm par tour, pour des réglages très fins.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Pour un **dimensionnement moteur**, divise toujours par le rendement : un vérin électrique qui doit fournir 2000 N avec une vis de rendement 0,4 demande au moteur 2,5 fois plus de couple que le calcul idéal.
+            - Le **rendement s'enchaîne** : réducteur (0,9), vis (0,4), guidage (0,95) donnent un rendement global de $0{,}9 \times 0{,}4 \times 0{,}95 \approx 0{,}34$.
+            - Les **vis de réglage** (miroirs, fentes, platines manuelles) utilisent des pas fins (0,25 à 0,5 mm) ou des vis différentielles ; au-delà, on passe aux platines motorisées et aux actionneurs piézoélectriques.
+            - Sécurité : une charge verticale sur une **vis réversible** (vis à billes) redescend dès que le moteur est coupé. Il faut un frein.
+      recap:
+        - "Conservation du travail : force × déplacement identiques à l'entrée et à la sortie (sans pertes)."
+        - "Levier F₂ = F₁·a/b ; palan à n brins F = P/n ; vis F = 2π·C·η/p."
+        - "Rendement : multiplier par η ce que l'outil fournit, diviser par η ce qu'il faut fournir."
+        - "Rendements en série : ils se multiplient."
+        - "Vis micrométrique : pas 0,5 mm et 50 divisions → 0,01 mm par division."
+      pieges: [ing-rendement-sens]
+    vocab:
+      - levier = lever
+      - poulie = pulley
+      - palan = pulley block (hoist)
+      - pas de vis = screw pitch (lead)
+      - rendement = efficiency
+      - vis à billes = ball screw
+      - vis trapézoïdale = lead screw (trapezoidal)
+      - vis micrométrique = micrometer screw
+    exercises:
+      - id: st-transmission.1
+        type: numeric
+        level: 2
+        q: "Couple de 2 N·m appliqué à une vis trapézoïdale de pas 2 mm, rendement 0,35. Quel effort axial fournit l'écrou ?"
+        answer: 2199
+        tol: 0.02
+        unit: N
+        calc: 2 * pi * 2 / 0.002 * 0.35
+        trap_values:
+          - v: 6283
+            why: C'est l'effort idéal, sans pertes. Le rendement de 0,35 réduit fortement l'effort réellement obtenu.
+          - v: 17952
+            why: "Tu as divisé par le rendement au lieu de multiplier. Ici on cherche ce que la vis fournit : on multiplie par η."
+          - v: 2.2
+            why: "Tu as laissé le pas en mm : 2 mm = 0,002 m."
+        piege: ing-rendement-sens
+        e: $F = \dfrac{2\pi C}{p}\,\eta = \dfrac{2\pi \times 2}{0{,}002} \times 0{,}35 \approx 2200$ N.
+      - id: st-transmission.2
+        type: numeric
+        level: 2
+        q: Un vérin électrique doit fournir 1500 N avec une vis à billes de pas 5 mm et de rendement 0,9. Quel couple doit fournir le moteur sur la vis ?
+        answer: 1.326
+        tol: 0.02
+        unit: N·m
+        calc: 1500 * 0.005 / (2 * pi * 0.9)
+        trap_values:
+          - v: 1.074
+            why: "Tu as multiplié par le rendement. Ici on cherche ce que le moteur doit fournir : on divise par η."
+          - v: 1.194
+            why: C'est le couple idéal, sans pertes.
+        piege: ing-rendement-sens
+        e: $C = \dfrac{F\,p}{2\pi\,\eta} = \dfrac{1500 \times 0{,}005}{2\pi \times 0{,}9} \approx 1{,}33$ N·m. On divise par le rendement parce que le moteur doit aussi fournir ce qui est perdu.
+      - id: st-transmission.3
+        type: qcm
+        level: 1
+        q: Avec un levier, tu appuies à 1 m de l'appui pour soulever une charge placée à 20 cm de l'appui, de l'autre côté. L'effort sur la charge est…
+        choices:
+          - t: 5 fois plus grand que ta force, mais la charge bouge 5 fois moins
+            ok: true
+          - t: 5 fois plus grand, sans contrepartie
+            why: La contrepartie existe toujours, le déplacement est 5 fois plus petit.
+          - t: 5 fois plus petit
+            why: C'est l'inverse, le bras le plus long est de ton côté.
+        e: Rapport des bras de levier 1 / 0,2 = 5. Le travail (force × déplacement) est le même des deux côtés, moins les pertes.
+      - id: st-transmission.4
+        type: numeric
+        level: 1
+        q: Une vis micrométrique a un pas de 0,5 mm et un tambour gradué en 50 divisions. Quel déplacement correspond à une division, en µm ?
+        answer: 10
+        tol: 0.01
+        unit: µm
+        calc: 0.5 / 50 * 1000
+        trap_values:
+          - v: 0.01
+            why: C'est la bonne valeur… en mm. La question demande des micromètres.
+          - v: 25
+            why: Un tour complet correspond à un pas, soit 0,5 mm, réparti sur 50 divisions.
+        e: Un tour = 0,5 mm = 500 µm, réparti sur 50 divisions → 10 µm par division.
+      - id: st-transmission.5
+        type: qcm
+        level: 2
+        q: Une chaîne de transmission comprend un réducteur (η = 0,9), une vis (η = 0,4) et un guidage (η = 0,95). Quel est le rendement global ?
+        choices:
+          - t: Environ 0,34
+            ok: true
+            why: "Les rendements en série se multiplient : 0,9 × 0,4 × 0,95 ≈ 0,34."
+          - t: Environ 0,75
+            why: C'est la moyenne. Les pertes s'enchaînent, elles ne se moyennent pas.
+          - t: 0,4
+            why: Le maillon le plus faible domine, mais les autres pertes s'ajoutent.
+        e: Chaque étage ne transmet qu'une fraction de ce qu'il reçoit. Le rendement global est le produit des rendements, et le moteur doit fournir environ 3 fois la puissance utile.

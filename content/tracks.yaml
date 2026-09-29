@@ -1,0 +1,40 @@
+# Ordre des pistes, des groupes et des modules. Un module absent du disque est ignoré au build.
+python:
+  title: Python
+  desc: De « je lance un script » à l'outillage d'un ingénieur qui automatise ses mesures. Les Fondations partent de zéro ; l'Avancé suppose les Fondations acquises.
+  groups:
+    - id: fondations
+      title: Fondations
+      desc: Tout ce qu'il faut pour écrire de vrais petits programmes sans se faire piéger. Dans l'ordre, un cours à la fois.
+      modules: [pf01, pf02, pf03, pf04, pf05, pf06, pf07, pf08, pf09, pf10, pf11, pf12]
+    - id: avance
+      title: Avancé
+      desc: Le modèle mental précis de Python, les outils du pro (tests, typage, packaging) et les performances.
+      modules: [py01, py02, py03, py04, py05, py06, py07, py08, py09, py10, py11, py12, py13, py14]
+cpp:
+  title: C++
+  desc: Depuis zéro, en partant de ce que tu connais déjà de l'Arduino, jusqu'au C++ moderne sûr pour l'embarqué.
+  groups:
+    - id: fondations
+      title: Fondations
+      desc: Compiler, typer, découper en fonctions, manipuler la mémoire sans se brûler. Aucun prérequis.
+      modules: [cf01, cf02, cf03, cf04, cf05, cf06, cf07, cf08, cf09, cf10, cf11, cf12, cf13]
+    - id: avance
+      title: Avancé
+      desc: RAII, sémantique de déplacement, STL, templates, comportement indéfini et C++ embarqué.
+      modules: [cpp01, cpp02, cpp03, cpp04, cpp05, cpp06, cpp07, cpp08, cpp09, cpp10, cpp11, cpp12, cpp13, cpp14]
+inge:
+  title: Culture ingé
+  desc: Les notions qu'un ingénieur mécatronicien est censé savoir, expliquées depuis zéro jusqu'à la formule et son origine, avec le vocabulaire anglais.
+  domains: [maths, statique, rdm, materiaux, fabrication, dynamique, motorisation, fluides, thermique, electrotech, analogique, numerique, embarque, capteurs, automatique, automatismes, signal, info, methodes, anglais]
+  families:
+    - title: Le socle
+      domains: [maths]
+    - title: Mécanique et énergie
+      domains: [statique, rdm, materiaux, fabrication, dynamique, motorisation, fluides, thermique]
+    - title: Électricité et électronique
+      domains: [electrotech, analogique, numerique, embarque, capteurs]
+    - title: Commande et signal
+      domains: [automatique, automatismes, signal]
+    - title: Outils de l'ingénieur
+      domains: [info, methodes, anglais]

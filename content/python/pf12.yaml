@@ -1,0 +1,261 @@
+id: pf12
+track: python
+title: "Projet : analyser une campagne de mesures"
+goal: Assembler tout ce qui précède dans un vrai petit outil — lire, nettoyer, analyser, détecter, rapporter.
+level: fondations
+requires: [pf11]
+concepts: [projet, csv, statistiques, decoupage]
+lesson:
+  minutes: 20
+  intro: |
+    Dernier cours des Fondations : pas de nouvelle syntaxe, mais un **projet complet**, du fichier brut au rapport. C'est la forme de presque tous les scripts que tu écriras en instrumentation : un banc produit un fichier, et tu veux savoir en deux secondes si l'essai est bon. On le construit par petites fonctions, chacune testable.
+  steps:
+    - level: 1
+      title: Le problème
+      body: |
+        Un banc d'essai thermique enregistre, pour trois sondes, une mesure par seconde dans un fichier CSV :
+
+        ```text
+        t_s;sonde;temp_c
+        0;A;21.52
+        0;B;21.61
+        0;C;21,58        ← virgule décimale (une sonde mal configurée)
+        1;A;21.55
+        1;B;
+        1;C;21.60
+        2;A;85.00        ← pic aberrant (connecteur qui bouge)
+        ...
+        ```
+
+        On veut : la moyenne, le min et le max **par sonde**, le nombre de lignes rejetées, et la liste des **valeurs aberrantes**. Le tout dans un rapport lisible.
+
+        Avant de coder, on **découpe** : 1) lire et nettoyer, 2) regrouper par sonde, 3) calculer les statistiques, 4) détecter les aberrations, 5) formater le rapport. Une fonction par étape.
+    - level: 2
+      title: Lire et nettoyer
+      body: |
+        Première fonction : transformer les lignes brutes en une liste de tuples propres `(t, sonde, valeur)`, en comptant les rejets. On travaille sur une liste de lignes plutôt que sur un fichier : c'est plus facile à tester, et `f.readlines()` en fournit une.
+      code: |
+        BRUT = """t_s;sonde;temp_c
+        0;A;21.52
+        0;B;21.61
+        0;C;21,58
+        1;A;21.55
+        1;B;
+        1;C;21.60
+        2;A;85.00
+        2;B;21.66
+        2;C;21.63
+        3;A;21.57
+        3;B;21.70
+        3;C;erreur"""
+
+        def lire(lignes):
+            mesures, rejets = [], 0
+            for ligne in lignes[1:]:                     # on saute l'en-tête
+                champs = [c.strip() for c in ligne.split(";")]
+                if len(champs) != 3:
+                    rejets += 1
+                    continue
+                t, sonde, valeur = champs
+                try:
+                    mesures.append((int(t), sonde, float(valeur.replace(",", "."))))
+                except ValueError:
+                    rejets += 1
+            return mesures, rejets
+
+        mesures, rejets = lire(BRUT.splitlines())
+        print(len(mesures), "mesures,", rejets, "rejets")
+        print(mesures[:3])
+      run: true
+      out: |
+        10 mesures, 2 rejets
+        [(0, 'A', 21.52), (0, 'B', 21.61), (0, 'C', 21.58)]
+    - level: 3
+      title: Regrouper, résumer, détecter
+      body: |
+        Pour détecter une valeur aberrante, une méthode robuste consiste à comparer chaque valeur à la **médiane** de sa sonde : si l'écart dépasse un seuil (ici 5 °C), on la signale. La médiane n'est presque pas influencée par le pic lui-même, contrairement à la moyenne.
+      code: |
+        import statistics
+
+        def lire(lignes):
+            mesures, rejets = [], 0
+            for ligne in lignes[1:]:
+                champs = [c.strip() for c in ligne.split(";")]
+                if len(champs) != 3:
+                    rejets += 1
+                    continue
+                t, sonde, valeur = champs
+                try:
+                    mesures.append((int(t), sonde, float(valeur.replace(",", "."))))
+                except ValueError:
+                    rejets += 1
+            return mesures, rejets
+
+        def par_sonde(mesures):
+            groupes = {}
+            for t, sonde, v in mesures:
+                groupes.setdefault(sonde, []).append((t, v))
+            return groupes
+
+        def aberrantes(points, seuil=5.0):
+            med = statistics.median(v for _, v in points)
+            return [(t, v) for t, v in points if abs(v - med) > seuil]
+
+        def rapport(groupes):
+            lignes = [f"{'sonde':<6}{'n':>3}{'moy':>8}{'min':>8}{'max':>8}  aberrantes"]
+            for sonde in sorted(groupes):
+                pts = groupes[sonde]
+                vals = [v for _, v in pts]
+                ab = aberrantes(pts)
+                propres = [v for t, v in pts if (t, v) not in ab]
+                lignes.append(f"{sonde:<6}{len(vals):>3}{statistics.mean(propres):>8.2f}"
+                              f"{min(propres):>8.2f}{max(propres):>8.2f}  {ab if ab else '-'}")
+            return "\n".join(lignes)
+
+        BRUT = "t_s;sonde;temp_c\n0;A;21.52\n0;B;21.61\n0;C;21,58\n1;A;21.55\n1;B;\n1;C;21.60\n2;A;85.00\n2;B;21.66\n2;C;21.63\n3;A;21.57\n3;B;21.70\n3;C;erreur"
+        mesures, rejets = lire(BRUT.splitlines())
+        print(rapport(par_sonde(mesures)))
+        print(f"{rejets} ligne(s) rejetée(s)")
+      run: true
+      out: |
+        sonde   n     moy     min     max  aberrantes
+        A       4   21.55   21.52   21.57  [(2, 85.0)]
+        B       3   21.66   21.61   21.70  -
+        C       3   21.60   21.58   21.63  -
+        2 ligne(s) rejetée(s)
+      after: |
+        Remarque le découpage : `lire` ne sait rien des statistiques, `aberrantes` ne sait rien des fichiers, `rapport` assemble. Chaque fonction se teste isolément, et on peut changer la méthode de détection sans toucher au reste.
+    - level: 4
+      title: Pourquoi ce découpage paie
+      body: |
+        Ce qui distingue un script jetable d'un outil fiable :
+
+        - **Des fonctions pures** (entrée → sortie, sans `print` ni variable globale) : on les teste avec trois `assert`, sans fichier ni banc d'essai.
+        - **Les rejets sont comptés et rapportés** : 2 lignes sur 12, c'est normal ; 400 sur 1000, c'est un problème d'acquisition qu'il faut voir.
+        - **Les valeurs aberrantes sont signalées, pas supprimées en silence** : c'est l'ingénieur qui décide si le pic à 85 °C est un faux contact… ou un vrai emballement thermique.
+        - **Les seuils sont des paramètres** (`seuil=5.0`) et non des nombres magiques enfouis dans le code.
+
+        Pour aller plus loin, le module avancé *I/O, instrumentation, CLI* ajoute la lecture série, le `logging` et une vraie interface en ligne de commande, et *Tests avec pytest* formalise les tests.
+    - level: 5
+      title: Et maintenant ?
+      body: |
+        Tu as les bases de Python. La suite :
+
+        1. **Les labs** (`./praxis list`) : le lab `py-03` reprend exactement ce projet, avec un vrai fichier et des tests pytest. C'est le moment de coder dans VS Code, pas seulement dans le navigateur.
+        2. **Le parcours Avancé** : modèle mental précis (mutabilité, portée), outils du pro (typage, tests, packaging) et performances.
+        3. **Les révisions** : les exercices de ces 12 cours vont revenir dans tes séances, espacés selon ta mémoire. C'est ce qui transforme « j'ai compris » en « je sais ».
+  recap:
+    - Découper le problème en étapes, une fonction par étape, avant de coder.
+    - "Lire : `strip`/`split`, conversion dans un `try`, **compter** les rejets."
+    - "Regrouper avec un dict de listes ; résumer avec `statistics`."
+    - "Détecter les aberrations par rapport à la **médiane** ; les signaler plutôt que les effacer."
+    - Des fonctions pures et des seuils en paramètres : un outil testable et réglable.
+  pieges: []
+exercises:
+  - id: pf12.1
+    type: code
+    level: 2
+    q: |
+      Écris `lire(lignes)` : `lignes` est une liste de lignes `"t;sonde;valeur"` (la première est l'en-tête). Renvoie `(mesures, rejets)` où `mesures` est une liste de tuples `(t: int, sonde: str, valeur: float)`. Accepte la virgule décimale ; une ligne qui n'a pas 3 champs ou dont un nombre est illisible compte comme rejet.
+    start: |
+      def lire(lignes):
+          mesures, rejets = [], 0
+          ...
+          return mesures, rejets
+    sol: |
+      def lire(lignes):
+          mesures, rejets = [], 0
+          for ligne in lignes[1:]:
+              champs = [c.strip() for c in ligne.split(";")]
+              if len(champs) != 3:
+                  rejets += 1
+                  continue
+              t, sonde, valeur = champs
+              try:
+                  mesures.append((int(t), sonde, float(valeur.replace(",", "."))))
+              except ValueError:
+                  rejets += 1
+          return mesures, rejets
+    tests: |
+      m, r = lire(["t;s;v", "0;A;1.5", "1;B;2,5", "2;A;", "3;A;x", "4;B", "5;A;3"])
+      assert m == [(0, "A", 1.5), (1, "B", 2.5), (5, "A", 3.0)], m
+      assert r == 3, r
+      assert lire(["en-tête seule"]) == ([], 0)
+      print("OK")
+    e: "Chaque ligne passe par le même entonnoir : découpage, contrôle du nombre de champs, conversion protégée. `lignes[1:]` saute l'en-tête."
+  - id: pf12.2
+    type: code
+    level: 2
+    q: |
+      Écris `aberrantes(valeurs, seuil)` qui renvoie la liste des valeurs dont l'écart absolu à la **médiane** de `valeurs` dépasse strictement `seuil`, dans l'ordre d'origine. Liste vide → `[]`.
+    start: |
+      import statistics
+
+      def aberrantes(valeurs, seuil):
+          ...
+    sol: |
+      import statistics
+
+      def aberrantes(valeurs, seuil):
+          if not valeurs:
+              return []
+          med = statistics.median(valeurs)
+          return [v for v in valeurs if abs(v - med) > seuil]
+    tests: |
+      assert aberrantes([21.5, 21.6, 85.0, 21.4], 5) == [85.0]
+      assert aberrantes([1, 2, 3], 10) == []
+      assert aberrantes([], 1) == []
+      assert aberrantes([0, 0, 0, -9, 9], 8) == [-9, 9]
+      print("OK")
+    e: "Avec la **moyenne** comme référence, le pic lui-même déplacerait la référence vers lui, et pourrait passer sous le seuil. La médiane, elle, reste au cœur des données."
+  - id: pf12.3
+    type: qcm
+    level: 2
+    q: "Pourquoi signaler les valeurs aberrantes plutôt que les supprimer automatiquement du fichier ?"
+    choices:
+      - t: "Parce qu'une valeur « aberrante » peut être un vrai phénomène physique que l'ingénieur doit voir."
+        ok: true
+      - t: "Parce que supprimer des lignes d'une liste est impossible en Python."
+        why: "C'est tout à fait possible. Le problème est la perte d'information."
+      - t: "Parce que la médiane ne fonctionne pas sans elles."
+        why: "La médiane fonctionne avec ou sans."
+    e: "Un filtre silencieux peut masquer un défaut réel (emballement, rupture de sonde) ou fausser une conclusion. Rapporte, trace, et laisse la décision à un humain, ou à une règle documentée."
+  - id: pf12.4
+    type: code
+    level: 3
+    q: |
+      Écris `rapport(groupes)` : `groupes` est un dict `{sonde: [valeurs]}`. Renvoie un texte, une ligne par sonde **triée par nom**, au format `"A: n=3 moy=21.55"` (moyenne avec 2 décimales). Les lignes sont séparées par `\n`.
+    start: |
+      def rapport(groupes):
+          ...
+    sol: |
+      def rapport(groupes):
+          lignes = []
+          for sonde in sorted(groupes):
+              v = groupes[sonde]
+              lignes.append(f"{sonde}: n={len(v)} moy={sum(v) / len(v):.2f}")
+          return "\n".join(lignes)
+    tests: |
+      r = rapport({"B": [2.0, 4.0], "A": [21.5, 21.55, 21.6]})
+      assert r == "A: n=3 moy=21.55\nB: n=2 moy=3.00", repr(r)
+      assert rapport({}) == ""
+      print("OK")
+    hint: "`sorted(dico)` renvoie les clés triées ; `\"\\n\".join(liste)` assemble les lignes."
+    e: "Construire une liste de lignes puis `join` est plus propre (et plus rapide) que de concaténer du texte au fur et à mesure avec `+=`."
+  - id: pf12.5
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      groupes = {}
+      for t, s, v in [(0, "A", 1.0), (0, "B", 5.0), (1, "A", 3.0)]:
+          groupes.setdefault(s, []).append(v)
+      print(groupes)
+    answer: "{'A': [1.0, 3.0], 'B': [5.0]}"
+    e: "`setdefault` crée la liste de la sonde au premier passage, puis renvoie la liste existante aux suivants."
+  - id: pf12.6
+    type: flash
+    level: 2
+    q: "Quelles sont les 5 étapes du projet d'analyse, dans l'ordre ?"
+    back: "1) lire et nettoyer (en comptant les rejets), 2) regrouper par sonde, 3) calculer les statistiques, 4) détecter les valeurs aberrantes, 5) formater le rapport."
+    e: "Ce découpage (acquisition → nettoyage → structuration → analyse → restitution) est celui de quasiment tout traitement de données de banc d'essai."

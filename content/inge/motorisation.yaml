@@ -1,0 +1,703 @@
+id: motorisation
+title: Actionneurs et motorisation
+en: Actuators and drives
+desc: Moteurs à courant continu, pas à pas, asynchrones et brushless, réducteurs, vérins et transformation du mouvement.
+intro: |
+  Un actionneur transforme une énergie (électrique, pneumatique, hydraulique) en mouvement. Le choisir, c'est répondre à trois questions : **quel effort**, **quelle vitesse**, **quelle précision**, et en déduire le type d'actionneur, sa taille et sa transmission.
+
+  En mécatronique, c'est le point où la mécanique, l'électricité et la commande se rencontrent.
+notions:
+  # ------------------------------------------------------------------ moteur CC
+  - id: mot-cc
+    title: Le moteur à courant continu
+    en: The DC motor
+    goal: Relier tension, courant, couple et vitesse d'un moteur CC, et lire sa caractéristique.
+    minutes: 13
+    lesson:
+      steps:
+        - level: 1
+          title: Le moteur de la petite voiture
+          body: |
+            Le moteur d'un jouet tourne plus vite quand on met plus de tension. Si tu le bloques avec les doigts, il force, il chauffe, et la pile se vide très vite : il consomme alors un courant énorme.
+
+            Et si tu fais tourner son axe à la main, il produit une petite tension à ses bornes : un moteur à courant continu est aussi une **dynamo**.
+        - level: 2
+          title: Deux relations suffisent
+          body: |
+            Tout le comportement d'un moteur CC tient en deux idées :
+            - le **couple** est proportionnel au **courant** : pour forcer plus, le moteur doit consommer plus de courant ;
+            - en tournant, le moteur produit une **force contre-électromotrice** (f.c.é.m.) proportionnelle à sa **vitesse**, qui s'oppose à la tension d'alimentation.
+
+            À vide, le moteur accélère jusqu'à ce que sa f.c.é.m. égale presque la tension : il consomme très peu. Quand on le charge, il ralentit, sa f.c.é.m. baisse, et le courant (donc le couple) augmente. Bloqué, la f.c.é.m. est nulle : seul le bobinage limite le courant.
+          check:
+            q: Un moteur CC est bloqué par un obstacle, alimentation maintenue. Que se passe-t-il ?
+            choices:
+              - t: Le courant devient maximal (U/R) et le moteur chauffe rapidement
+                ok: true
+                why: Sans rotation, plus de force contre-électromotrice. Seule la résistance du bobinage limite le courant.
+              - t: Le courant s'annule puisqu'il ne tourne plus
+                why: C'est l'inverse, c'est la rotation qui réduisait le courant.
+              - t: Rien de particulier
+                why: Un moteur bloqué sous tension grille en quelques secondes à quelques minutes selon sa taille.
+        - level: 3
+          title: Les équations
+          body: |
+            $$U = R\,I + k\,\omega \qquad C = k\,I$$
+
+            $U$ : tension (V), $R$ : résistance du bobinage (Ω), $I$ : courant (A), $\omega$ : vitesse (rad/s), $C$ : couple (N·m). La même constante $k$ (en V·s/rad, identique aux N·m/A) apparaît dans les deux équations.
+
+            On en déduit :
+            - vitesse à vide : $\omega_0 \approx U / k$ ;
+            - courant et couple de blocage : $I_{bl} = U / R$, $C_{bl} = k\,U / R$ ;
+            - la vitesse baisse **linéairement** avec le couple ; la puissance est maximale à mi-vitesse.
+
+            ```svg caption="Caractéristique d'un moteur CC (U = 24 V, R = 2 Ω, k = 0,05) : la vitesse baisse linéairement avec le couple, la puissance (en pointillés) est maximale à mi-vitesse."
+            <svg viewBox="0 0 460 240" width="460" role="img" aria-label="Vitesse et puissance d'un moteur CC en fonction du couple">
+              <line class="s" x1="60" y1="200" x2="420" y2="200"/>
+              <line class="s" x1="60" y1="200" x2="60" y2="20"/>
+              <line class="as" x1="60" y1="30" x2="400" y2="200"/>
+              <polyline class="ws dash" points="60.0,200.0 88.3,163.3 116.7,133.3 145.0,110.0 173.3,93.3 201.7,83.3 230.0,80.0 258.3,83.3 286.7,93.3 315.0,110.0 343.3,133.3 371.7,163.3 400.0,200.0"/>
+              <text class="ta" x="68" y="26">ω₀ = 480 rad/s (à vide)</text>
+              <text class="ta" x="330" y="218">C bloqué = 0,6 N·m</text>
+              <text class="tw" x="200" y="70">P max = 72 W</text>
+              <text class="t" x="425" y="204">C</text>
+              <text class="t" x="44" y="16">ω</text>
+            </svg>
+            ```
+
+            **Exemple** : $U = 24$ V, $R = 2$ Ω, $k = 0{,}05$. À vide : 480 rad/s (≈ 4580 tr/min). Bloqué : 12 A et 0,6 N·m. Sous 0,1 N·m : $I = 2$ A et $\omega = (24 - 2 \times 2)/0{,}05 = 400$ rad/s.
+        - level: 4
+          title: Sous le capot
+          body: |
+            Pourquoi la même constante ? Par conservation de l'énergie : la puissance électrique convertie, $E \cdot I = k\omega \cdot I$, doit égaler la puissance mécanique produite, $C \cdot \omega = kI \cdot \omega$. Les catalogues l'appellent **constante de couple** $k_t$ (N·m/A) et **constante de vitesse** $k_v$ (en tr/min/V, l'inverse de $k$ à un facteur près).
+
+            Le bobinage a aussi une **inductance** : le courant ne peut pas varier instantanément, ce qui donne une constante de temps électrique $L/R$ de l'ordre de la milliseconde.
+
+            On pilote un moteur CC avec un **pont en H** commandé en **MLI** (PWM) : la tension moyenne règle la vitesse, et l'inversion du pont change le sens. **Limiter le courant, c'est limiter le couple** : c'est ainsi qu'on protège une mécanique ou qu'on fait un serrage à effort maîtrisé.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Une fiche moteur donne : vitesse à vide, couple et courant de blocage, **couple nominal** (continu, limité par l'échauffement), constantes $k_t$ et $k_v$, résistance, inductance, inertie du rotor.
+            - Le **couple continu** est limité par la chaleur ; le couple crête (quelques secondes) peut être bien plus élevé. Un cycle de fonctionnement se vérifie en couple efficace (voir le choix d'un moteur).
+            - Les moteurs à **balais** s'usent et génèrent des parasites électromagnétiques ; les **brushless** (moteurs CC à commutation électronique) les remplacent dès que la durée de vie ou la propreté comptent, par exemple sous vide.
+      recap:
+        - "U = R·I + k·ω et C = k·I (même k en unités SI)."
+        - "À vide : ω₀ ≈ U/k ; bloqué : I = U/R, C = k·U/R, et ça chauffe."
+        - "La vitesse baisse linéairement avec le couple ; puissance max à mi-vitesse."
+        - "Pont en H + PWM ; limiter le courant = limiter le couple."
+        - "Couple continu limité par l'échauffement, couple crête pour de courtes durées."
+      pieges: [ing-tr-min-rad-s]
+    vocab:
+      - moteur à courant continu = DC motor
+      - force contre-électromotrice = back EMF
+      - constante de couple = torque constant
+      - constante de vitesse = speed constant
+      - couple de blocage = stall torque
+      - balais = brushes
+      - pont en H = H-bridge
+      - modulation de largeur d'impulsion = pulse-width modulation (PWM)
+    exercises:
+      - id: mot-cc.1
+        type: numeric
+        level: 1
+        q: "Moteur CC : U = 24 V, k = 0,05 V·s/rad. Vitesse à vide approximative, en tr/min ?"
+        answer: 4584
+        tol: 0.01
+        unit: tr/min
+        calc: 24 / 0.05 * 60 / (2 * pi)
+        trap_values:
+          - v: 480
+            why: C'est la vitesse en rad/s. Pour avoir des tr/min, multiplie par 60/2π.
+        piege: ing-tr-min-rad-s
+        e: $\omega_0 = U/k = 480$ rad/s, soit $480 \times 60 / 2\pi \approx 4580$ tr/min.
+      - id: mot-cc.2
+        type: numeric
+        level: 1
+        q: Même moteur, résistance de bobinage R = 2 Ω. Quel courant absorbe-t-il s'il est bloqué sous 24 V ?
+        answer: 12
+        tol: 0.01
+        unit: A
+        calc: 24 / 2
+        e: Bloqué, $\omega = 0$, donc $U = R\,I$ et $I = 24/2 = 12$ A. C'est le cas le plus sévère pour l'alimentation et pour le bobinage.
+      - id: mot-cc.3
+        type: numeric
+        level: 2
+        q: "Même moteur (U = 24 V, R = 2 Ω, k = 0,05), chargé par un couple de 0,1 N·m. Vitesse en rad/s ?"
+        answer: 400
+        tol: 0.01
+        unit: rad/s
+        calc: (24 - 2 * (0.1 / 0.05)) / 0.05
+        trap_values:
+          - v: 480
+            why: C'est la vitesse à vide. Sous charge, la chute R·I réduit la vitesse.
+        e: $I = C/k = 2$ A, puis $\omega = (U - R I)/k = (24 - 4)/0{,}05 = 400$ rad/s.
+      - id: mot-cc.4
+        type: qcm
+        level: 2
+        q: Tu veux qu'un moteur CC serre une pince avec un effort précis. Quelle grandeur électrique contrôler ?
+        choices:
+          - t: Le courant
+            ok: true
+            why: "C = k·I : régler le courant, c'est régler le couple."
+          - t: La tension
+            why: La tension règle surtout la vitesse. À l'arrêt contre la pièce, elle ne donne pas un couple maîtrisé (il dépend de R, qui varie avec la température).
+          - t: La fréquence
+            why: Un moteur CC ne se pilote pas en fréquence.
+        e: C'est le principe de la « limitation de courant » des variateurs, qui sert aussi de protection mécanique.
+      - id: mot-cc.5
+        type: flash
+        level: 2
+        q: Pourquoi la même constante k apparaît-elle dans U = R·I + k·ω et dans C = k·I ?
+        back: |
+          Par conservation de l'énergie : la puissance électrique convertie en mécanique, $(k\omega) \cdot I$, doit être égale à la puissance mécanique $C \cdot \omega$. Donc $C = k I$ avec la même constante, à condition d'utiliser les unités SI (V·s/rad = N·m/A).
+        e: En catalogue, kt (N·m/A) et ke (V/(rad/s)) ont la même valeur numérique en SI.
+  # ------------------------------------------------------------------ choix moteur
+  - id: mot-choix
+    title: Choisir un moteur et son réducteur
+    en: Motor and gearbox selection
+    goal: Ramener couple et vitesse de la charge au moteur, tenir compte du rendement et vérifier l'échauffement.
+    minutes: 13
+    lesson:
+      steps:
+        - level: 1
+          title: Les vitesses du vélo
+          body: |
+            Tes jambes aiment pédaler à une cadence confortable. Les vitesses du vélo te permettent de garder cette cadence en montée (braquet court, beaucoup de force) comme sur le plat (braquet long, peu de force).
+
+            Les moteurs électriques sont pareils : ils aiment tourner **vite avec peu de couple**. Une charge demande souvent l'inverse. Le **réducteur** fait la conversion.
+        - level: 2
+          title: Ce que fait un réducteur
+          body: |
+            Un réducteur de rapport $k$ :
+            - **divise la vitesse** par $k$ ;
+            - **multiplie le couple** par $k$ (moins les pertes, via le rendement $\eta$).
+
+            La puissance ne se crée pas : ce qui est gagné en couple est perdu en vitesse. Choisir un moteur, c'est trouver le couple **moteur + réducteur** qui fournit le couple et la vitesse de la charge, avec des marges, sans surchauffe.
+          check:
+            q: Un réducteur de rapport 20 et de rendement 0,9 reçoit 0,5 N·m à 2000 tr/min. Que sort-il ?
+            choices:
+              - t: 9 N·m à 100 tr/min
+                ok: true
+                why: "Couple : 0,5 × 20 × 0,9 = 9 N·m. Vitesse : 2000/20 = 100 tr/min."
+              - t: 10 N·m à 100 tr/min
+                why: C'est sans pertes. Le rendement s'applique au couple (et donc à la puissance).
+              - t: 0,025 N·m à 40 000 tr/min
+                why: C'est un multiplicateur, pas un réducteur.
+        - level: 3
+          title: Ramener la charge au moteur
+          body: |
+            $$C_{moteur} = \frac{C_{charge}}{k\,\eta} \qquad N_{moteur} = k \cdot N_{charge} \qquad P = C\,\omega$$
+
+            **Exemple.** Une charge demande 20 N·m à 60 tr/min. Réducteur $k = 50$, $\eta = 0{,}85$.
+            - $C_{moteur} = 20 / (50 \times 0{,}85) \approx 0{,}47$ N·m
+            - $N_{moteur} = 50 \times 60 = 3000$ tr/min
+            - Puissance utile : $20 \times (60 \times 2\pi/60) \approx 126$ W ; puissance moteur : $126 / 0{,}85 \approx 148$ W.
+
+            Le couple de la charge se décompose en couples résistants (frottements, gravité, efforts de process) **plus** le couple d'accélération ($J\,\alpha$, avec l'inertie ramenée au moteur).
+        - level: 4
+          title: Sous le capot, le couple efficace
+          body: |
+            Un moteur chauffe selon le carré du courant, donc du couple. Sur un cycle qui alterne accélération, vitesse constante, freinage et arrêt, ce qui compte pour l'échauffement est le **couple efficace** :
+
+            $$C_{eff} = \sqrt{\frac{\sum C_i^2\,t_i}{T_{cycle}}}$$
+
+            Il doit rester inférieur au **couple nominal** (continu) du moteur. Le **couple crête** doit rester inférieur au couple maximal admissible.
+
+            **Types de réducteurs** :
+            - à engrenages droits : simple, bon rendement ;
+            - **planétaire** : compact, fort couple, faible jeu ;
+            - **roue et vis sans fin** : grand rapport en un étage, renvoi d'angle, souvent **irréversible**, mais rendement faible (parfois moins de 50 %) ;
+            - **harmonic drive** : très grand rapport, jeu quasi nul, pour la robotique et le positionnement.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Prends des **marges** : 1,5 à 2 sur le couple, car les frottements réels sont souvent plus élevés que prévu (joints, câbles, désalignements).
+            - Vérifie les limites du réducteur : vitesse d'entrée maximale, couple de sortie, **charges radiales** sur l'arbre (poulie, pignon), et le **jeu** (backlash) s'il y a des inversions de sens en positionnement.
+            - **Pas à pas, CC ou servomoteur ?** Pas à pas : simple et précis en boucle ouverte à basse vitesse. Servomoteur brushless : dynamique, vitesse, couple constant sur une large plage. CC à balais : simple et bon marché, mais usure.
+            - Sous **vide** ou en **cryogénie** : moteurs et réducteurs spéciaux (lubrifiants secs ou compatibles vide, matériaux choisis pour le dégazage).
+      recap:
+        - "Réducteur k : vitesse ÷ k, couple × k·η."
+        - "C_moteur = C_charge/(k·η) ; N_moteur = k·N_charge ; P = C·ω."
+        - "Couple de charge = résistants + J·α (inertie ramenée au moteur)."
+        - "Échauffement : couple efficace √(Σ Ci²·ti / T) < couple nominal."
+        - "Marge 1,5 à 2 ; vérifier vitesse d'entrée, charges radiales et jeu du réducteur."
+      pieges: [ing-rendement-sens, ing-inertie-ramenee]
+    vocab:
+      - réducteur = gearbox
+      - réducteur planétaire = planetary gearbox
+      - roue et vis sans fin = worm gear
+      - jeu (d'engrenage) = backlash
+      - couple nominal = rated (continuous) torque
+      - couple crête = peak torque
+      - couple efficace = RMS torque
+      - cycle de fonctionnement = duty cycle
+    exercises:
+      - id: mot-choix.1
+        type: numeric
+        level: 2
+        q: "Une charge demande 20 N·m. Réducteur de rapport 50, rendement 0,85. Quel couple le moteur doit-il fournir ?"
+        answer: 0.4706
+        tol: 0.01
+        unit: N·m
+        calc: 20 / (50 * 0.85)
+        trap_values:
+          - v: 0.4
+            why: Tu as multiplié par le rendement. Le moteur doit aussi fournir les pertes, on divise par η.
+          - v: 0.34
+            why: Tu as multiplié par le rendement au lieu de diviser (20/50 × 0,85). Le moteur doit fournir plus, pas moins.
+          - v: 1000
+            why: Le réducteur multiplie le couple du moteur. Vu depuis le moteur, le couple de charge est divisé par k.
+        piege: ing-rendement-sens
+        e: $C_{moteur} = \dfrac{20}{50 \times 0{,}85} \approx 0{,}47$ N·m.
+      - id: mot-choix.2
+        type: numeric
+        level: 1
+        q: La charge doit tourner à 60 tr/min à travers un réducteur de rapport 50. À quelle vitesse tourne le moteur ?
+        answer: 3000
+        tol: 0.001
+        unit: tr/min
+        calc: 50 * 60
+        e: Le moteur tourne k fois plus vite que la charge, 50 × 60 = 3000 tr/min.
+      - id: mot-choix.3
+        type: numeric
+        level: 3
+        q: "Cycle de 4 s : 1 N·m pendant 0,2 s, 0,3 N·m pendant 1,6 s, 0,8 N·m pendant 0,2 s, puis arrêt (0 N·m) pendant 2 s. Couple efficace ?"
+        answer: 0.3435
+        tol: 0.02
+        unit: N·m
+        calc: sqrt((1**2 * 0.2 + 0.3**2 * 1.6 + 0.8**2 * 0.2) / 4)
+        trap_values:
+          - v: 0.21
+            why: C'est le couple moyen. L'échauffement dépend du carré du couple, d'où la moyenne quadratique.
+          - v: 1
+            why: C'est le couple crête, à comparer au couple maximal, pas au couple nominal.
+        e: $C_{eff} = \sqrt{(0{,}2 + 0{,}144 + 0{,}128)/4} = \sqrt{0{,}118} \approx 0{,}34$ N·m, à comparer au couple nominal du moteur.
+      - id: mot-choix.4
+        type: qcm
+        level: 2
+        q: Quel réducteur choisir pour un axe vertical qui doit rester en place sans frein, moteur coupé ?
+        choices:
+          - t: Une roue et vis sans fin irréversible
+            ok: true
+            why: Son rendement inverse est très faible, la charge ne peut pas faire tourner la vis.
+          - t: Un réducteur planétaire
+            why: Il est réversible, la charge redescendrait.
+          - t: Un harmonic drive
+            why: Il est lui aussi réversible.
+        e: L'irréversibilité se paie par un rendement faible. Pour la sécurité des personnes, on ajoute quand même souvent un frein, car l'irréversibilité peut disparaître sous vibrations.
+      - id: mot-choix.5
+        type: flash
+        level: 2
+        q: Quelles vérifications faire après avoir choisi un moteur et un réducteur ?
+        back: |
+          1. Couple efficace du cycle < couple nominal du moteur (échauffement).
+          2. Couple crête < couple maximal du moteur et du réducteur.
+          3. Vitesse moteur < vitesse d'entrée maximale du réducteur.
+          4. Rapport d'inertie charge ramenée / rotor raisonnable.
+          5. Charges radiales et axiales sur les arbres, jeu acceptable pour le positionnement.
+        e: Et une marge de 1,5 à 2 sur le couple pour les frottements imprévus.
+  # ------------------------------------------------------------------ pas à pas
+  - id: mot-pas-a-pas
+    title: Le moteur pas à pas
+    en: The stepper motor
+    goal: Calculer une résolution et une fréquence de pas, comprendre les micro-pas et éviter les pertes de pas.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Avancer par crans
+          body: |
+            Un moteur pas à pas avance par petits crans réguliers, comme l'aiguille des secondes d'une horloge. Chaque impulsion électrique le fait tourner d'un cran, souvent 1,8°, soit **200 pas par tour**.
+
+            Avantage énorme : pour savoir où il est, il suffit de **compter les impulsions** envoyées. Pas besoin de capteur… tant qu'il ne rate aucun cran.
+        - level: 2
+          title: Comment il fonctionne
+          body: |
+            Le moteur a deux bobinages (ou plus). Un **driver** les alimente dans un ordre précis ; à chaque changement, le rotor aimanté s'aligne sur le nouveau champ et avance d'un pas. À l'arrêt, les bobinages alimentés **maintiennent** la position avec un couple de maintien.
+
+            Les **micro-pas** : en dosant le courant entre les deux bobinages, le driver place le rotor entre deux pas entiers. Le mouvement devient plus doux et plus silencieux.
+
+            Point faible : si le couple demandé dépasse ce que le moteur peut fournir (charge trop lourde, accélération trop forte, vitesse trop haute), il **saute des pas**. En boucle ouverte, personne ne le sait : la position est fausse, silencieusement.
+          check:
+            q: Un moteur pas à pas perd régulièrement des pas au démarrage, mais jamais à vitesse constante. Cause la plus probable ?
+            choices:
+              - t: L'accélération demandée est trop forte
+                ok: true
+                why: Le couple d'accélération (J·α) s'ajoute à la charge au démarrage. Adoucir la rampe règle souvent le problème.
+              - t: Le moteur est trop gros
+                why: Un moteur trop gros ne perd pas de pas. Au pire, il est lent et lourd.
+              - t: Les micro-pas sont trop fins
+                why: Les micro-pas ne changent pas le couple disponible au démarrage.
+        - level: 3
+          title: Résolution et fréquence
+          body: |
+            - Pas par tour : $N_{pas} = 360° / \text{angle de pas}$ (200 pour 1,8°).
+            - Avec des micro-pas de 1/$m$ : $200 \times m$ micro-pas par tour (3200 en 1/16).
+            - Avec une vis de pas $p$ : résolution $= p / (200\,m)$.
+            - Fréquence d'impulsions pour une vitesse $v$ : $f = v \times 200\,m / p$.
+
+            **Exemple.** 200 pas, 1/16, vis de 2 mm : 3200 micro-pas par tour, soit 0,625 µm par micro-pas. Pour 5 mm/s : $f = 5 \times 3200 / 2 = 8000$ micro-pas par seconde.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Les micro-pas ne donnent pas une précision proportionnelle.** L'écart de couple entre deux micro-pas voisins est minuscule : une charge ou un frottement suffit à décaler le rotor de plusieurs micro-pas. Les micro-pas améliorent surtout la douceur ; la précision réelle dépend de la mécanique, de la charge et, si besoin, d'un codeur.
+
+            **Le couple chute avec la vitesse.** L'inductance des bobinages empêche le courant de s'établir à haute fréquence de pas. D'où l'intérêt d'une tension d'alimentation du driver élevée par rapport à la tension nominale du moteur (le driver limite le courant par découpage).
+
+            **Résonances.** À certaines vitesses basses ou moyennes, le rotor oscille autour de chaque pas et le moteur peut décrocher. Les micro-pas, un amortissement mécanique ou des drivers adaptés les atténuent.
+
+            **Échauffement à l'arrêt** : les bobinages restent alimentés pour maintenir la position. Les drivers réduisent le courant quand le moteur est immobile.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Fais toujours une **prise d'origine** (homing) sur un fin de course ou un capteur de référence au démarrage : c'est elle qui donne la position absolue.
+            - Pour une position garantie, ajoute un **codeur** (moteur en boucle fermée) : les pertes de pas sont détectées.
+            - Règle le **courant** du driver selon le moteur, et la **réduction de courant** à l'arrêt.
+            - Les lignes de lumière de synchrotron utilisent énormément de moteurs pas à pas, avec des contrôleurs de mouvement dédiés (à l'ESRF, les contrôleurs IcePAP), des moteurs compatibles vide et des codeurs sur les axes critiques.
+      recap:
+        - "1,8° → 200 pas/tour ; micro-pas 1/16 → 3200 micro-pas/tour."
+        - "Résolution = pas de vis / (200·m) ; fréquence = v·200·m/p."
+        - "Perte de pas si le couple demandé dépasse le couple disponible (souvent : accélération trop forte)."
+        - "Micro-pas : plus de douceur, pas une précision proportionnelle."
+        - "Prise d'origine au démarrage ; codeur pour garantir la position."
+      pieges: [ing-perte-pas, ing-micropas-precision]
+    vocab:
+      - moteur pas à pas = stepper motor
+      - pas = step
+      - micro-pas = microstep
+      - couple de maintien = holding torque
+      - perte de pas = missed steps (step loss)
+      - prise d'origine = homing
+      - fin de course = limit switch
+      - codeur = encoder
+    exercises:
+      - id: mot-pas-a-pas.1
+        type: numeric
+        level: 1
+        q: Un moteur de 1,8° par pas est piloté en micro-pas 1/16. Combien de micro-pas par tour ?
+        answer: 3200
+        tol: 0.001
+        calc: 360 / 1.8 * 16
+        trap_values:
+          - v: 200
+            why: C'est le nombre de pas entiers. Chaque pas est divisé en 16 micro-pas.
+        e: 360 / 1,8 = 200 pas, × 16 = 3200 micro-pas par tour.
+      - id: mot-pas-a-pas.2
+        type: numeric
+        level: 2
+        q: Même moteur (3200 micro-pas/tour) entraînant une vis de pas 2 mm. Déplacement pour un micro-pas, en µm ?
+        answer: 0.625
+        tol: 0.01
+        unit: µm
+        calc: 2 / 3200 * 1000
+        trap_values:
+          - v: 10
+            why: C'est le déplacement par pas entier (2 mm / 200). En micro-pas 1/16, c'est 16 fois moins.
+          - v: 0.000625
+            why: C'est la valeur en mm.
+        e: 2 mm / 3200 = 0,000625 mm = 0,625 µm. Résolution de commande, pas précision garantie.
+      - id: mot-pas-a-pas.3
+        type: numeric
+        level: 2
+        q: Même axe (3200 micro-pas/tour, vis de 2 mm). Quelle fréquence d'impulsions pour avancer à 5 mm/s ?
+        answer: 8000
+        tol: 0.01
+        unit: Hz
+        calc: 5 / 2 * 3200
+        e: 5 mm/s = 2,5 tours/s, × 3200 = 8000 micro-pas par seconde.
+      - id: mot-pas-a-pas.4
+        type: qcm
+        level: 2
+        q: En passant de micro-pas 1/16 à 1/256, la précision de positionnement réelle de l'axe…
+        piege: ing-micropas-precision
+        choices:
+          - t: s'améliore peu ou pas, elle reste limitée par la mécanique et la charge
+            ok: true
+          - t: est multipliée par 16
+            piege: true
+            why: La résolution de commande est 16 fois plus fine, mais le couple entre deux micro-pas voisins est si faible que le rotor n'arrive pas exactement à chaque position.
+          - t: se dégrade
+            why: Plus de micro-pas ne dégrade pas la position, ça améliore la douceur.
+        e: Les micro-pas servent surtout à réduire vibrations et bruit. Pour une vraie précision, on mesure avec un codeur ou on travaille la mécanique.
+      - id: mot-pas-a-pas.5
+        type: qcm
+        level: 1
+        q: Pourquoi faut-il faire une prise d'origine au démarrage d'un axe à moteur pas à pas ?
+        piege: ing-perte-pas
+        choices:
+          - t: Parce que le moteur ne connaît que des déplacements relatifs, pas sa position absolue
+            ok: true
+          - t: Pour chauffer le moteur
+            why: Aucun rapport.
+          - t: Parce que le driver l'exige
+            why: Le driver n'en a pas besoin ; c'est ta logique de position qui en a besoin.
+        e: Au démarrage (ou après une perte de pas), la position comptée ne correspond à rien. On va chercher un repère physique (fin de course, capteur, top zéro de codeur) pour la recaler.
+  # ------------------------------------------------------------------ AC
+  - id: mot-ac
+    title: "Moteurs alternatifs : asynchrone et brushless"
+    en: "AC motors: induction and brushless"
+    goal: Calculer une vitesse de synchronisme et un glissement, et savoir quand utiliser un asynchrone ou un servomoteur brushless.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Les moteurs de l'industrie
+          body: |
+            La grande majorité des pompes, ventilateurs, compresseurs et convoyeurs tournent avec des **moteurs asynchrones** : robustes, bon marché, presque sans entretien.
+
+            Les robots et les axes de positionnement précis utilisent plutôt des **servomoteurs brushless** : plus chers, mais rapides, précis et capables de fortes accélérations.
+        - level: 2
+          title: Le champ tournant
+          body: |
+            Trois bobinages alimentés par des courants **triphasés** (décalés d'un tiers de période) créent un champ magnétique qui **tourne**. Tout ce qui est magnétique au centre est entraîné.
+
+            - **Moteur synchrone / brushless** : le rotor porte des aimants et suit le champ exactement, à la même vitesse.
+            - **Moteur asynchrone** : le rotor n'a pas d'aimant, juste des barres conductrices. Le champ qui tourne induit des courants dans ces barres, et ces courants créent le couple. Mais s'il tournait aussi vite que le champ, plus rien ne varierait, donc plus de courant induit, donc plus de couple : il tourne toujours **un peu moins vite** que le champ. C'est le **glissement**.
+          check:
+            q: Pourquoi un moteur asynchrone ne peut-il pas tourner exactement à la vitesse du champ ?
+            choices:
+              - t: Sans différence de vitesse, aucun courant n'est induit dans le rotor, donc aucun couple
+                ok: true
+              - t: À cause des frottements des roulements
+                why: Même sans aucun frottement, il faut un glissement pour créer du couple.
+              - t: Parce que le rotor est trop lourd
+                why: L'inertie n'intervient qu'en régime transitoire.
+        - level: 3
+          title: Les formules
+          body: |
+            $$n_s = \frac{60\,f}{p} \qquad g = \frac{n_s - n}{n_s}$$
+
+            $n_s$ : vitesse de synchronisme (tr/min), $f$ : fréquence du réseau (Hz), $p$ : nombre de **paires** de pôles, $g$ : glissement.
+
+            | Paires de pôles | $n_s$ à 50 Hz | vitesse typique d'un asynchrone |
+            | --- | --- | --- |
+            | 1 | 3000 tr/min | ≈ 2850 |
+            | 2 | 1500 tr/min | ≈ 1450 |
+            | 3 | 1000 tr/min | ≈ 960 |
+
+            **Exemple** : 2 paires de pôles à 50 Hz, $n_s = 1500$ tr/min ; il tourne à 1440 tr/min, donc $g = 60/1500 = 4\,\%$.
+
+            Pour changer la vitesse, on change la fréquence avec un **variateur de fréquence**.
+        - level: 4
+          title: Sous le capot
+          body: |
+            Un **brushless** est en réalité un moteur à courant continu dont on a remplacé les balais par de l'électronique : un capteur (effet Hall, codeur, résolveur) donne la position du rotor, et le variateur alimente les bobinages au bon moment. La commande vectorielle (**FOC**, field-oriented control) pilote séparément le courant qui produit le couple, pour un couple précis et fluide à toute vitesse.
+
+            Un **asynchrone** alimenté directement par le réseau démarre avec un fort appel de courant (5 à 8 fois le courant nominal). Sa plaque indique souvent **230/400 V** : couplage en triangle (Δ) sur un réseau 230 V entre phases, en étoile (Y) sur un réseau 400 V.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - **Plaque signalétique** d'un asynchrone : tensions et couplages (230/400 V Δ/Y), courant nominal, puissance **utile** (mécanique), vitesse nominale, $\cos\varphi$, classe de rendement (IE2, IE3…).
+            - Un asynchrone **autoventilé** chauffe s'il tourne longtemps lentement sur variateur : son ventilateur tourne avec lui. On ajoute alors une ventilation forcée.
+            - **Servomoteur brushless** : le couple nominal est disponible sur toute la plage de vitesse, le codeur donne la position, et le réglage des boucles (courant, vitesse, position) se fait dans le variateur.
+      recap:
+        - "Triphasé → champ tournant ; ns = 60·f/p (p : paires de pôles)."
+        - "Asynchrone : le rotor tourne un peu moins vite que le champ, glissement g = (ns − n)/ns, quelques %."
+        - "Brushless = moteur CC à commutation électronique, suit exactement le champ."
+        - "Vitesse d'un asynchrone : réglée par un variateur de fréquence."
+        - "230/400 V : triangle sur 230 V, étoile sur 400 V ; puissance plaque = puissance mécanique utile."
+      pieges: [ing-vitesse-synchronisme]
+    vocab:
+      - moteur asynchrone = induction motor
+      - moteur synchrone = synchronous motor
+      - glissement = slip
+      - champ tournant = rotating magnetic field
+      - paire de pôles = pole pair
+      - variateur de fréquence = variable frequency drive (VFD)
+      - plaque signalétique = nameplate
+      - couplage étoile / triangle = star / delta connection
+    exercises:
+      - id: mot-ac.1
+        type: numeric
+        level: 1
+        q: Vitesse de synchronisme d'un moteur à 2 paires de pôles alimenté en 50 Hz ?
+        answer: 1500
+        tol: 0.001
+        unit: tr/min
+        calc: 60 * 50 / 2
+        trap_values:
+          - v: 750
+            why: Tu as pris 4 paires de pôles. « 4 pôles », c'est 2 paires.
+          - v: 25
+            why: C'est en tours par seconde. En tr/min, multiplie par 60.
+        piege: ing-vitesse-synchronisme
+        e: $n_s = 60 \times 50 / 2 = 1500$ tr/min. Un moteur « 4 pôles » a 2 paires de pôles.
+      - id: mot-ac.2
+        type: numeric
+        level: 1
+        q: Ce moteur tourne à 1440 tr/min en charge. Quel est son glissement, en % ?
+        answer: 4
+        tol: 0.01
+        unit: "%"
+        calc: (1500 - 1440) / 1500 * 100
+        e: $g = (1500 - 1440)/1500 = 0{,}04$, soit 4 %.
+      - id: mot-ac.3
+        type: qcm
+        level: 2
+        q: Comment faire varier la vitesse d'un moteur asynchrone de façon continue ?
+        choices:
+          - t: Avec un variateur qui change la fréquence d'alimentation
+            ok: true
+          - t: En baissant la tension seulement
+            why: Baisser la tension réduit surtout le couple et fait monter le glissement, avec beaucoup de pertes.
+          - t: En changeant le couplage étoile/triangle
+            why: Cela adapte le moteur à la tension du réseau, ça ne règle pas la vitesse.
+        e: La vitesse suit le champ tournant, dont la fréquence est imposée par l'alimentation. Le variateur de fréquence est l'outil standard.
+      - id: mot-ac.4
+        type: qcm
+        level: 2
+        q: Qu'est-ce qui distingue fondamentalement un moteur brushless d'un moteur CC à balais ?
+        choices:
+          - t: La commutation des bobinages est faite par l'électronique, grâce à un capteur de position du rotor
+            ok: true
+          - t: Il n'a pas d'aimants
+            why: Au contraire, un brushless a des aimants au rotor.
+          - t: Il tourne en courant alternatif du réseau, sans électronique
+            why: Un brushless a toujours besoin d'un variateur qui commute ses phases.
+        e: Suppression des balais, donc pas d'usure ni d'étincelles, et un meilleur refroidissement (les bobinages sont au stator).
+      - id: mot-ac.5
+        type: flash
+        level: 2
+        q: Que signifie « 230/400 V » sur la plaque d'un moteur asynchrone, et comment le brancher sur un réseau 400 V triphasé ?
+        back: |
+          Chaque bobinage supporte 230 V. Sur un réseau dont la tension **entre phases** est de 230 V, on couple en **triangle** (Δ) ; sur un réseau 400 V entre phases (le réseau triphasé européen standard), on couple en **étoile** (Y), chaque bobinage voit alors 400/√3 = 230 V.
+        e: Un mauvais couplage (triangle sur 400 V) fait voir 400 V à chaque bobinage, et le moteur grille.
+  # ------------------------------------------------------------------ linéaire
+  - id: mot-lineaire
+    title: Vérins et mouvement linéaire
+    en: Cylinders and linear motion
+    goal: Calculer l'effort d'un vérin, la vitesse d'une vis à billes, et choisir entre pneumatique, électrique et hydraulique.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: Pousser en ligne droite
+          body: |
+            Pour déplacer quelque chose en ligne droite, on a plusieurs outils : un **vérin** pneumatique (l'air comprimé pousse un piston), une **vis** tournée par un moteur, une **courroie**, un **pignon-crémaillère**, ou un moteur linéaire.
+
+            Une porte de bus qui s'ouvre d'un coup, c'est du pneumatique ; une imprimante 3D, des courroies et des vis ; une pelleteuse, de l'hydraulique.
+        - level: 2
+          title: Le vérin, une pression sur une surface
+          body: |
+            La force d'un vérin, c'est la **pression** multipliée par la **surface** du piston. En rentrant, la tige occupe une partie de la surface : l'effort de **retour** est plus faible que l'effort de sortie.
+
+            Le **pneumatique** est rapide, simple et bon marché, idéal pour aller d'une butée à l'autre. Mais l'air est compressible : un vérin pneumatique est « spongieux » et difficile à arrêter précisément au milieu de sa course.
+
+            L'**hydraulique** (huile, incompressible) donne des efforts énormes et une grande raideur. L'**électrique** (vis, courroie) donne la précision et le contrôle de position.
+          check:
+            q: Un vérin double effet sort avec 480 N. À la rentrée, sous la même pression, il pousse…
+            choices:
+              - t: moins, à cause de la section de la tige
+                ok: true
+                why: La pression n'agit que sur l'anneau autour de la tige.
+              - t: autant
+                why: La surface utile n'est pas la même des deux côtés du piston.
+              - t: plus
+                why: Côté tige, la surface est plus petite, donc la force aussi.
+        - level: 3
+          title: Les formules
+          body: |
+            $$F = p \times S \qquad 1\ \text{bar} = 10^5\ \text{Pa} = 0{,}1\ \text{N/mm}^2$$
+
+            **Exemple.** Vérin Ø32 mm sous 6 bar :
+            - sortie : $S = \pi \times 16^2 \approx 804$ mm², $F = 0{,}6 \times 804 \approx 480$ N ;
+            - rentrée avec une tige Ø12 : $S = 804 - 113 = 691$ mm², $F \approx 415$ N.
+
+            (Efforts théoriques, à réduire d'environ 10 % pour les frottements des joints.)
+
+            **Vis à billes** : $v = N \times p$ (N en tours par seconde). À 3000 tr/min (50 tr/s) avec un pas de 5 mm : 250 mm/s. **Courroie** : $v = \omega \times r$ (rayon primitif de la poulie).
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Unités de pression** : 1 bar = 100 000 Pa = 0,1 MPa = 0,1 N/mm². C'est ce dernier qui rend les calculs de vérins si simples en mm². 1 bar vaut aussi environ 14,5 psi.
+
+            **Amortissement de fin de course** : lancé à pleine vitesse, un piston frappe le fond du vérin. Les vérins ont des amortisseurs réglables (air emprisonné en fin de course) à ajuster.
+
+            **Limites d'une vis à billes longue** : au-delà d'une certaine vitesse, elle entre en résonance et « fouette » (**vitesse critique**), et en compression elle peut **flamber**. Les catalogues donnent ces limites en fonction de la longueur et des paliers.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - **Pneumatique** : mouvements tout-ou-rien rapides entre deux positions (insérer ou retirer un filtre, un écran, une pince). Sur une ligne de lumière, beaucoup d'éléments « in/out » (obturateurs, écrans fluorescents, atténuateurs) sont actionnés par des vérins, avec des soufflets pour passer le mouvement dans le vide.
+            - **Électrique** : dès qu'il faut s'arrêter en position intermédiaire, contrôler une vitesse ou un effort.
+            - **Hydraulique** : presses, levage lourd, très forts efforts.
+            - Prévois des **capteurs de fin de course** sur les vérins (capteurs magnétiques sur le corps) pour savoir si le mouvement a bien eu lieu.
+      recap:
+        - "F = p·S ; 1 bar = 0,1 N/mm², donc F(N) = p(bar) × 0,1 × S(mm²)."
+        - "Rentrée d'un vérin : surface annulaire (piston − tige), effort plus faible."
+        - "Pneumatique : rapide, tout-ou-rien, spongieux ; électrique : précis ; hydraulique : très fort."
+        - "Vis à billes : v = N·p ; limites de vitesse critique et de flambement."
+        - "Capteurs de fin de course pour confirmer le mouvement."
+      pieges: [ing-bar-pa, ing-verin-retour]
+    vocab:
+      - vérin = cylinder (actuator)
+      - vérin double effet = double-acting cylinder
+      - tige = rod
+      - piston = piston
+      - distributeur = directional valve
+      - soufflet = bellows
+      - pignon-crémaillère = rack and pinion
+      - vitesse critique = critical speed
+    exercises:
+      - id: mot-lineaire.1
+        type: numeric
+        level: 1
+        q: Effort de sortie théorique d'un vérin de diamètre 32 mm sous 6 bar ?
+        answer: 482.5
+        tol: 0.01
+        unit: N
+        calc: 0.6 * pi * 16**2
+        trap_values:
+          - v: 4825
+            why: "1 bar = 0,1 N/mm², donc 6 bar = 0,6 N/mm² (et non 6)."
+          - v: 1930
+            why: Tu as pris le diamètre comme rayon dans πr².
+        piege: ing-bar-pa
+        e: $S = \pi \times 16^2 \approx 804$ mm², $F = 0{,}6 \times 804 \approx 482$ N.
+      - id: mot-lineaire.2
+        type: numeric
+        level: 2
+        q: Même vérin (Ø32, 6 bar), tige de diamètre 12 mm. Effort théorique à la rentrée ?
+        answer: 414.7
+        tol: 0.01
+        unit: N
+        calc: 0.6 * pi * (16**2 - 6**2)
+        trap_values:
+          - v: 482.5
+            why: C'est l'effort de sortie. À la rentrée, la tige occupe une partie de la surface.
+          - v: 67.9
+            why: C'est l'effort sur la seule section de la tige, pas sur l'anneau.
+        piege: ing-verin-retour
+        e: $S = \pi(16^2 - 6^2) \approx 691$ mm², $F = 0{,}6 \times 691 \approx 415$ N.
+      - id: mot-lineaire.3
+        type: numeric
+        level: 1
+        q: Une vis à billes de pas 5 mm tourne à 3000 tr/min. Vitesse de l'écrou, en mm/s ?
+        answer: 250
+        tol: 0.01
+        unit: mm/s
+        calc: 3000 / 60 * 5
+        trap_values:
+          - v: 15000
+            why: "Ce sont des mm/min. En mm/s, divise par 60."
+        e: 3000 tr/min = 50 tr/s, × 5 mm = 250 mm/s.
+      - id: mot-lineaire.4
+        type: qcm
+        level: 2
+        q: Tu dois arrêter une charge précisément à mi-course et l'y maintenir sous des efforts variables. Quel actionneur ?
+        choices:
+          - t: Un axe électrique (vis à billes ou courroie) asservi en position
+            ok: true
+          - t: Un vérin pneumatique standard
+            why: L'air étant compressible, la position intermédiaire varie avec l'effort. Le pneumatique est fait pour aller de butée en butée.
+          - t: Un électroaimant
+            why: Un électroaimant fait un mouvement tout-ou-rien sur une course très courte.
+        e: Le pneumatique reste imbattable pour les mouvements rapides et simples entre deux butées ; dès qu'il faut une position intermédiaire contrôlée, on passe à l'électrique.
+      - id: mot-lineaire.5
+        type: flash
+        level: 1
+        q: Combien vaut 1 bar en Pa, en MPa et en N/mm² ?
+        back: |
+          1 bar = 100 000 Pa = 0,1 MPa = 0,1 N/mm² (≈ 14,5 psi).
+
+          Donc un vérin sous $p$ bar de surface $S$ en mm² pousse $F = 0{,}1 \times p \times S$ newtons.
+        e: Et la pression atmosphérique vaut environ 1,013 bar.

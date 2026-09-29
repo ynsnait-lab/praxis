@@ -1,0 +1,697 @@
+id: cpp07
+track: cpp
+title: Algorithmes & lambdas
+goal: Remplacer une boucle manuelle par l’algorithme standard qui dit ton intention.
+level: avance
+requires:
+- cpp06
+concepts:
+- algorithmes
+- lambda
+- capture
+- ranges
+lesson:
+  minutes: 18
+  intro: |
+    Une boucle `for` écrite à la main dit **comment** faire ; un algorithme standard dit **quoi** faire : `std::any_of` (« y en a-t-il au moins un ? »), `std::count_if`, `std::sort`. Le code devient plus court, plus lisible, et moins sujet aux erreurs d'indice. Les **lambdas**, des petites fonctions écrites sur place, permettent de donner à ces algorithmes le critère exact dont tu as besoin. Ce module t'apprend les deux, et le piège des captures.
+  steps:
+    - level: 1
+      title: Des opérations nommées et des gabarits sur mesure
+      body: |
+        Dans un atelier, on ne décrit pas chaque geste : on dit « perce », « trie », « contrôle ». Les algorithmes de la bibliothèque standard sont ces opérations nommées, testées et optimisées.
+
+        Une **lambda**, c'est un petit gabarit fabriqué sur place et confié à la machine : « trie, **selon ce critère** », « compte, **ceux qui dépassent ce seuil** ». Si le gabarit a besoin d'une valeur de l'établi (le seuil), il l'emporte avec lui : c'est la **capture**. Il peut en emporter une **copie**, ou juste noter **où** elle se trouve (une référence), et c'est là que se cache le piège.
+    - level: 2
+      title: Algorithmes, lambdas, captures
+      body: |
+        **Algorithmes** (`<algorithm>`, `<numeric>`) : ils travaillent sur un intervalle `[debut, fin)`, ou directement sur un conteneur avec leur version `std::ranges::`.
+        - chercher et tester : `find`, `find_if`, `any_of`, `all_of`, `none_of`, `count_if`
+        - extrêmes : `min_element`, `max_element`, `minmax_element`
+        - transformer et filtrer : `transform`, `copy_if`, `erase_if` (C++20)
+        - trier et chercher dans du trié : `sort`, `stable_sort`, `partial_sort`, `nth_element`, `lower_bound`
+        - calculer : `accumulate`, `reduce`, `iota`
+
+        **Lambda** : `[captures](paramètres) { corps }`. Captures :
+        - `[]` : rien ; `[seuil]` : une **copie** de `seuil` ; `[&journal]` : une **référence** vers `journal` ;
+        - `[=]` : copie de tout ce qui est utilisé ; `[&]` : référence vers tout ce qui est utilisé ; `[this]` : l'objet courant.
+
+        Une lambda capturée **par référence** ne doit pas survivre aux variables qu'elle désigne : si elle est stockée (callback, thread) et appelée après la fin de la fonction, elle lit une mémoire morte.
+
+        **Projections** (C++20) : `std::ranges::sort(mesures, {}, &Mesure::valeur)` trie des structures selon un membre, sans écrire de lambda.
+      check:
+        q: "Une lambda est rangée dans une liste de callbacks, puis appelée bien après la fin de la fonction qui l'a créée. Quelle capture est dangereuse ?"
+        choices:
+          - t: "`[&]`, qui capture les variables locales par référence"
+            ok: true
+            why: Les variables locales sont détruites à la fin de la fonction ; les références capturées pendouillent.
+          - t: "`[=]`, qui capture par copie"
+            why: Les copies vivent dans la lambda elle-même. (Attention seulement à `this`, capturé comme un pointeur.)
+          - t: "`[]`, qui ne capture rien"
+            why: Sans capture, rien ne peut pendouiller.
+    - level: 3
+      title: Remplacer les boucles
+      code: |
+        #include <algorithm>
+        #include <iostream>
+        #include <numeric>
+        #include <vector>
+
+        struct Mesure {
+            int canal;
+            double valeur;
+        };
+
+        int main() {
+            std::vector<double> v{21.5, 22.0, 35.2, 20.8, 21.1};
+            double seuil = 30.0;
+
+            bool alarme = std::any_of(v.begin(), v.end(), [seuil](double x) { return x > seuil; });
+            auto n_chauds = std::count_if(v.begin(), v.end(), [](double x) { return x > 21.2; });
+            auto [mini, maxi] = std::minmax_element(v.begin(), v.end());
+            double somme = std::accumulate(v.begin(), v.end(), 0.0);    // 0.0 : somme en double
+            std::cout << alarme << " " << n_chauds << " " << *mini << " " << *maxi << " "
+                      << somme / static_cast<double>(v.size()) << '\n';
+
+            std::vector<double> kelvins(v.size());
+            std::transform(v.begin(), v.end(), kelvins.begin(), [](double c) { return c + 273.15; });
+            std::cout << kelvins.front() << '\n';
+
+            std::vector<Mesure> m{{2, 21.5}, {1, 22.0}, {2, 23.1}, {1, 20.9}};
+            std::ranges::sort(m, [](const Mesure& a, const Mesure& b) {
+                if (a.canal != b.canal) return a.canal < b.canal;     // canal croissant…
+                return a.valeur > b.valeur;                           // …puis valeur décroissante
+            });
+            for (const auto& x : m) std::cout << x.canal << ":" << x.valeur << " ";
+            std::cout << '\n';
+
+            auto chaud = std::ranges::max_element(m, {}, &Mesure::valeur);   // projection
+            std::cout << "maximum sur le canal " << chaud->canal << '\n';
+
+            int appels = 0;
+            auto compter = [&appels]() { ++appels; };                  // référence : modifie appels
+            compter();
+            compter();
+            std::cout << appels << " appels\n";
+        }
+      out: |
+        1 3 20.8 35.2 24.12
+        294.65
+        1:22 1:20.9 2:23.1 2:21.5 
+        maximum sur le canal 2
+        2 appels
+      after: |
+        Chaque ligne dit son intention : « existe-t-il », « combien », « le plus petit et le plus grand ». Et aucun indice `i` à faire déborder.
+    - level: 4
+      title: Ce qu'est vraiment une lambda
+      body: |
+        Pour chaque lambda, le compilateur fabrique une petite classe sans nom : les captures deviennent ses **membres**, le corps devient son `operator()`. `[seuil](double x) { return x > seuil; }` est exactement équivalent à un objet `PlusGrandQue{seuil}`, qu'on appelle un **foncteur**. Coût : aucun appel indirect, le compilateur peut tout intégrer en ligne.
+
+        Conséquences : une lambda qui capture par copie emporte **ses propres** valeurs (et `mutable` l'autorise à les modifier) ; une lambda sans capture tient dans 1 octet ; une lambda à paramètre `auto` est un modèle (template). Pour **stocker** des lambdas de types différents dans un même conteneur, on utilise `std::function`, plus souple mais plus coûteux (appel indirect, parfois une allocation).
+
+        Les **vues** (`std::views::filter`, `transform`, `take`) de C++20 sont paresseuses, comme les générateurs Python : rien n'est calculé tant qu'on ne parcourt pas le résultat. Une vue ne possède pas les données : elle ne doit pas survivre au conteneur qu'elle regarde.
+      code: |
+        #include <functional>
+        #include <iostream>
+        #include <ranges>
+        #include <vector>
+
+        struct PlusGrandQue {                   // l'équivalent de [seuil](double x) { … }
+            double seuil;
+            bool operator()(double x) const { return x > seuil; }
+        };
+
+        std::function<int()> fabrique_compteur() {
+            int n = 0;
+            return [n]() mutable { return ++n; };   // copie : la lambda emporte son propre n
+        }
+
+        int main() {
+            double seuil = 30.0;
+            auto lambda = [seuil](double x) { return x > seuil; };
+            PlusGrandQue foncteur{seuil};
+            std::cout << lambda(35.2) << foncteur(35.2) << " " << sizeof(lambda) << " octets\n";
+
+            auto c = fabrique_compteur();
+            std::cout << c() << c() << c() << '\n';
+
+            auto carre = [](auto x) { return x * x; };      // lambda générique
+            std::cout << carre(3) << " " << carre(1.5) << '\n';
+
+            std::vector<int> v{1, 2, 3, 4, 5, 6};
+            auto pairs_au_carre = v | std::views::filter([](int x) { return x % 2 == 0; })
+                                    | std::views::transform(carre);    // rien n'est calculé ici
+            for (int x : pairs_au_carre) std::cout << x << ' ';       // calcul à la demande
+            std::cout << '\n';
+        }
+      out: |
+        11 8 octets
+        123
+        9 2.25
+        4 16 36 
+    - level: 5
+      title: Sur le terrain
+      body: |
+        - Avant d'écrire une boucle, cherche l'algorithme qui la nomme. La plupart des boucles de traitement de mesures sont un `any_of`, un `count_if`, un `transform`, un `copy_if`, un `minmax_element` ou un `accumulate`.
+        - Préfère les versions `std::ranges::` : pas de paire `begin`/`end` à mélanger par erreur, et les projections évitent des lambdas.
+        - Captures **explicites** (`[seuil, &journal]`) plutôt que `[=]` ou `[&]` : on voit ce que la lambda emporte. Une lambda **stockée** (callback, thread, minuterie) capture par copie.
+        - Comparateur de tri : strictement `<` (ou `>`), jamais `<=`. Plusieurs critères : `std::tie(a.canal, b.valeur) < std::tie(b.canal, a.valeur)`.
+        - `std::accumulate` calcule dans le type de sa valeur initiale : `0.0` pour une somme de `double`.
+        - Les `k` plus grandes valeurs : `std::partial_sort` ou `std::nth_element`, inutile de tout trier.
+  recap:
+    - "Un algorithme nomme l'intention : `any_of`, `count_if`, `transform`, `sort`, `accumulate`…"
+    - "Lambda = objet d'une classe générée ; captures = membres ; corps = `operator()`."
+    - "`[x]` copie, `[&x]` référence ; une lambda stockée pour plus tard capture par copie."
+    - "Comparateur strict (`<`), valeur initiale d'`accumulate` du bon type (`0.0`)."
+    - "Vues C++20 : paresseuses, sans possession ; elles ne survivent pas à leurs données."
+  pieges: [cpp-lambda-capture-ref, cpp-accumulate-int, cpp-comparateur-non-strict]
+exercises:
+- id: cpp07.1
+  type: qcm
+  level: 3
+  concepts:
+  - capture
+  q: Quelle capture de lambda est **dangereuse** si la lambda est stockée et appelée plus tard ?
+  choices:
+  - t: '`[&]` — capture tout par référence'
+    ok: true
+    why: 'Les locaux capturés meurent à la fin de la portée : références pendouillantes.'
+  - t: '`[=]` — capture tout par copie'
+    ok: false
+    why: Sûr pour les valeurs (attention quand même à `this` capturé implicitement).
+  - t: '`[x]` — copie explicite de `x`'
+    ok: false
+    why: 'Sûr : la valeur est figée au moment de la création de la lambda, indépendamment de la portée.'
+  - t: '`[]` — aucune capture'
+    ok: false
+    why: 'Le plus sûr : convertible en pointeur de fonction.'
+  e: |-
+    Règle : **`[&]` seulement pour une lambda consommée immédiatement** (un `std::sort`, un `for_each` dans la même fonction).
+
+    Dès qu’elle est stockée (callback, `std::function` membre, thread, timer), capture par copie ce dont tu as besoin, explicitement.
+
+    Piège spécifique : `[=]` dans une méthode capture `this` **par pointeur**, pas l’objet. Si l’objet meurt, la lambda est pendouillante malgré le `=`. En C++17 : `[*this]` copie l’objet ; en C++20, `[=, this]` rend l’intention explicite.
+
+    Une lambda sans capture `[]` se convertit en pointeur de fonction C — pratique pour enregistrer un ISR ou un callback d’API C.
+- id: cpp07.2
+  type: qcm
+  level: 2
+  concepts:
+  - algorithmes
+  q: Tu veux savoir si **au moins une** mesure dépasse un seuil. Le plus idiomatique ?
+  choices:
+  - t: '`std::any_of(v.begin(), v.end(), [s](double x){ return x > s; })`'
+    ok: true
+    why: Dit exactement l’intention, s’arrête au premier trouvé.
+  - t: Une boucle `for` avec un drapeau `bool trouve`
+    ok: false
+    why: Fonctionne, mais trois lignes de plus et un état à maintenir.
+  - t: '`std::count_if(...) > 0`'
+    ok: false
+    why: Parcourt **tout** le conteneur même après avoir trouvé.
+  - t: '`std::sort` puis tester le dernier'
+    ok: false
+    why: O(n log n) pour une question en O(n), et ça modifie le conteneur.
+  e: |-
+    Les algorithmes qui remplacent 90 % des boucles écrites à la main :
+
+    | Intention | Algorithme |
+    | --- | --- |
+    | au moins un / tous / aucun | `any_of`, `all_of`, `none_of` |
+    | chercher | `find`, `find_if`, `search` |
+    | compter | `count`, `count_if` |
+    | min/max | `min_element`, `max_element`, `minmax_element` |
+    | transformer | `transform` |
+    | accumuler | `accumulate`, `reduce` |
+    | trier partiellement | `nth_element`, `partial_sort` |
+
+    L’intérêt n’est pas la vitesse (identique), c’est que **le nom dit l’intention** : le lecteur n’a pas à décoder la boucle.
+
+    En C++20 : `std::ranges::any_of(v, pred)` — plus de `begin/end`.
+- id: cpp07.3
+  type: predict
+  level: 3
+  concepts:
+  - lambda
+  - algorithmes
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    #include <vector>
+    #include <algorithm>
+    int main() {
+        std::vector<int> v{5, 1, 4, 2};
+        std::sort(v.begin(), v.end(), [](int a, int b){ return a > b; });
+        for (int x : v) std::cout << x << " ";
+        std::cout << "| " << *std::max_element(v.begin(), v.end()) << "\n";
+    }
+  answer: 5 4 2 1 | 5
+  e: |-
+    Le comparateur de `std::sort` répond à « **a doit-il venir avant b ?** ». `a > b` donne donc un tri **décroissant**.
+
+    Contrainte cruciale : le comparateur doit être un **ordre strict faible**. Concrètement, `comp(a, a)` doit être `false`. Écrire `>=` au lieu de `>` est un UB classique — `std::sort` peut sortir du tableau et provoquer un segfault, pas juste un mauvais tri.
+
+    `max_element` renvoie un **itérateur** : ne pas oublier le `*`. Sur un conteneur vide, il renvoie `end()`, qu’il ne faut pas déréférencer.
+- id: cpp07.4
+  type: parsons
+  level: 3
+  concepts:
+  - algorithmes
+  - lambda
+  q: Reconstitue une fonction qui renvoie les `k` plus grandes valeurs, sans trier tout le vecteur.
+  lang: cpp
+  lines:
+  - std::vector<double> top_k(std::vector<double> v, std::size_t k) {
+  - '    if (k >= v.size()) { std::sort(v.begin(), v.end(), std::greater<>{}); return v; }'
+  - '    std::nth_element(v.begin(), v.begin() + k, v.end(), std::greater<>{});'
+  - '    v.resize(k);'
+  - '    std::sort(v.begin(), v.end(), std::greater<>{});'
+  - '    return v;'
+  - '}'
+  extra:
+  - '    std::sort(v.begin(), v.end());'
+  - '    v.erase(v.begin(), v.begin() + k);'
+  e: |-
+    `std::nth_element` place le k-ième élément à sa position finale et garantit que **tout ce qui est avant lui est « plus grand »** (selon le comparateur), sans trier le reste. Coût : O(n) au lieu de O(n log n).
+
+    Le paramètre est pris **par valeur** volontairement : la fonction a besoin de modifier une copie, et l’appelant peut faire `top_k(std::move(mesures), 10)` pour éviter la copie.
+
+    `std::greater<>{}` (avec les chevrons vides, C++14) déduit le type des arguments — plus besoin de `std::greater<double>`.
+
+    Cas d’usage : garder les 10 pics d’un spectre parmi 10⁶ points.
+- id: cpp07.5
+  type: qcm
+  level: 3
+  concepts:
+  - ranges
+  q: Que fait `auto r = v | std::views::filter(pair) | std::views::transform(carre);` en C++20 ?
+  choices:
+  - t: 'Rien encore : la vue est **paresseuse**, rien n’est calculé avant le parcours'
+    ok: true
+    why: Aucune allocation, aucun élément produit tant qu’on n’itère pas.
+  - t: Elle crée un nouveau vecteur filtré et transformé
+    ok: false
+    why: Ce serait le cas avec `ranges::to<std::vector>()` (C++23).
+  - t: Elle modifie `v` en place
+    ok: false
+    why: Une vue ne modifie pas la source.
+  - t: Elle copie `v`
+    ok: false
+    why: Elle ne référence que la source — attention à sa durée de vie.
+  e: |-
+    Les vues sont **paresseuses** et **composables**. L’équivalent de `itertools` côté Python.
+
+    ```cpp
+    for (int x : v | std::views::filter(pair) | std::views::transform(carre))
+        std::cout << x;
+    ```
+
+    Deux avertissements :
+    1. Une vue **ne possède pas** la source. `auto r = faire_vecteur() | views::filter(...)` est pendouillant (le temporaire meurt). Range-for protège ce cas précis depuis C++23 seulement.
+    2. Le support est complet à partir de GCC 12 / Clang 16. Sur un compilateur de MCU plus ancien, reste sur les algorithmes classiques.
+- id: cpp07.6
+  type: predict
+  level: 2
+  concepts:
+  - lambda
+  - capture
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    int main() {
+        int n = 1;
+        auto par_valeur = [n]() { return n; };
+        auto par_ref    = [&n]() { return n; };
+        auto mutable_   = [n]() mutable { return ++n; };
+        n = 100;
+        std::cout << par_valeur() << " " << par_ref() << " "
+                  << mutable_() << mutable_() << " " << n << "\n";
+    }
+  answer: 1 100 23 100
+  e: |-
+    Quatre comportements distincts :
+    - `[n]` copie `n` **au moment de la création** de la lambda → figé à 1.
+    - `[&n]` capture par référence → voit la valeur courante, 100.
+    - `[n]() mutable` copie **et** autorise la modification de la copie interne : 2 puis 3, sans toucher au `n` extérieur.
+    - `n` vaut toujours 100 : seule `par_ref` le lisait, aucune ne l'a modifié.
+
+    Une lambda est un objet avec un `operator()` **const par défaut** — d'où la nécessité de `mutable` pour modifier une capture par copie.
+
+    Danger de `[&]` : les références capturées meurent avec leur portée. Ne l'utilise que pour une lambda **consommée immédiatement** (un `std::sort`, un `for_each` local).
+- id: cpp07.7
+  type: cloze
+  level: 2
+  concepts:
+  - algorithmes
+  q: Remplace quatre boucles manuelles par les algorithmes qui disent l’intention.
+  lang: cpp
+  tpl: |-
+    #include <algorithm>
+    #include <numeric>
+    #include <vector>
+
+    void analyser(const std::vector<double>& v) {
+        auto n     = std::⟦0⟧(v.begin(), v.end(), [](double x){ return x > 5.0; });
+        auto somme = std::⟦1⟧(v.begin(), v.end(), 0.0);
+        auto pos   = std::⟦2⟧(v.begin(), v.end(), 42.0);
+        auto pic   = std::⟦3⟧(v.begin(), v.end());
+    }
+  blanks:
+  - - count_if
+  - - accumulate
+  - - find
+  - - max_element
+  e: |-
+    Les algorithmes ne sont pas plus rapides qu'une boucle — ils sont **plus lisibles** : le nom dit l'intention, le lecteur n'a pas à décoder la boucle.
+
+    Trois pièges à connaître :
+    - `accumulate(…, 0.0)` : avec `0` (int), l'accumulateur serait un **int** et tronquerait chaque addition. Le type de la valeur initiale décide de tout.
+    - `find` et `max_element` renvoient un **itérateur**, à comparer à `end()` avant de déréférencer.
+    - `max_element` sur une plage vide renvoie `end()` : ne le déréférence pas sans test.
+
+    En C++20, tout se simplifie : `std::ranges::max_element(v)`, `std::ranges::count_if(v, pred)` — plus de `begin/end`.
+- id: cpp07.8
+  type: qcm
+  level: 3
+  concepts:
+  - lambda
+  q: Quelle est la vraie nature d’une lambda en C++ ?
+  choices:
+  - t: Un objet d’un type anonyme unique, avec un `operator()` — appelable et inlinable
+    ok: true
+    why: D’où le fait qu’un `std::sort` avec lambda batte `qsort` avec pointeur de fonction.
+  - t: Un pointeur de fonction
+    ok: false
+    why: Seule une lambda **sans capture** se convertit en pointeur de fonction.
+  - t: Un `std::function`
+    ok: false
+    why: '`std::function` peut la stocker, mais avec effacement de type et parfois une allocation.'
+  - t: Une macro du préprocesseur
+    ok: false
+    why: C’est une construction du langage.
+  e: |-
+    `[x](int a){ return a + x; }` est équivalent à :
+    ```cpp
+    struct Anonyme {
+        int x;
+        int operator()(int a) const { return a + x; }
+    };
+    ```
+
+    Chaque lambda a un type **unique**, connu à la compilation. Le compilateur peut donc **inliner** l'appel — c'est pourquoi `std::sort` (lambda inlinée) est typiquement 2 à 3× plus rapide que `qsort` (appel indirect via pointeur).
+
+    Coût de stockage :
+    - `auto f = [](int){...};` → inlinable, coût zéro.
+    - `std::function<int(int)> f = ...;` → effacement de type, appel indirect, parfois une allocation.
+
+    En code chaud ou en embarqué, préfère un **template** (`template <class F> void appliquer(F f)`) à `std::function`.
+
+    Une lambda **sans capture** se convertit en pointeur de fonction C : parfait pour enregistrer un callback d'API C ou un vecteur d'interruption.
+- id: cpp07.9
+  type: bug
+  level: 3
+  concepts:
+  - algorithmes
+  - lambda
+  q: Ce tri plante parfois avec un segfault. Clique sur la ligne fautive.
+  lang: cpp
+  code: |-
+    #include <algorithm>
+    #include <vector>
+    void trier(std::vector<double>& v) {
+        std::sort(v.begin(), v.end(),
+                  [](double a, double b) { return a >= b; });
+    }
+  bad: 5
+  fix: '              [](double a, double b) { return a > b; });'
+  e: |-
+    Le comparateur de `std::sort` doit être un **ordre strict faible**. La condition la plus visible : `comp(a, a)` doit être **faux**.
+
+    Avec `>=`, `comp(a, a)` est vrai. L'implémentation d'introsort utilise le comparateur comme sentinelle pour ses boucles internes ; avec un comparateur non strict, l'index sort du tableau. Résultat : lecture hors bornes, corruption ou segfault — pas un simple mauvais tri.
+
+    Le bug ne se manifeste qu'au-delà d'un certain nombre d'éléments (le seuil de bascule vers l'insertion), d'où les « ça marche en test, ça plante en prod ».
+
+    Règle : **le comparateur utilise toujours `<` ou `>`, jamais `<=` ni `>=`.**
+
+    Détection : `-D_GLIBCXX_DEBUG` (GCC) vérifie explicitement l'irréflexivité du comparateur et signale l'erreur au lieu de planter.
+- id: cpp07.10
+  type: code
+  level: 3
+  concepts:
+  - algorithmes
+  q: 'Écris `std::vector<double> ecarts(const std::vector<double>& v)` : renvoie les différences successives (`v[i+1] - v[i]`). Vecteur de moins de 2 éléments → vide.'
+  lang: cpp
+  start: |-
+    #include <vector>
+    #include <numeric>
+
+    std::vector<double> ecarts(const std::vector<double>& v) {
+        // ton code
+    }
+  sol: |-
+    #include <vector>
+    #include <numeric>
+
+    std::vector<double> ecarts(const std::vector<double>& v) {
+        if (v.size() < 2) return {};
+        std::vector<double> out(v.size() - 1);
+        std::adjacent_difference(v.begin() + 1, v.end(), out.begin());
+        out[0] = v[1] - v[0];
+        return out;
+    }
+  tests: |-
+    #include <cassert>
+    #include <cmath>
+    #include <iostream>
+    int main() {
+        auto r = ecarts({1.0, 3.0, 6.0, 10.0});
+        assert(r.size() == 3);
+        assert(std::abs(r[0] - 2.0) < 1e-12);
+        assert(std::abs(r[1] - 3.0) < 1e-12);
+        assert(std::abs(r[2] - 4.0) < 1e-12);
+        assert(ecarts({}).empty());
+        assert(ecarts({5.0}).empty());
+        auto r2 = ecarts({2.0, 2.0});
+        assert(r2.size() == 1 && std::abs(r2[0]) < 1e-12);
+        std::cout << "OK\n";
+    }
+  e: |-
+    Le piège de `std::adjacent_difference` : il écrit **n** valeurs pour **n** entrées, la première étant recopiée telle quelle. D'où le décalage (`v.begin() + 1`) et la correction de `out[0]`.
+
+    Une boucle explicite est ici plus lisible, et c'est un choix légitime :
+    ```cpp
+    for (std::size_t i = 1; i < v.size(); ++i)
+        out.push_back(v[i] - v[i - 1]);
+    ```
+
+    **L'algorithme standard n'est pas toujours le bon choix.** Le critère est la lisibilité, pas le dogme.
+
+    Le cas `v.size() < 2` doit être traité avant : `v.size() - 1` sur un vecteur vide donne un `size_t` énorme (non signé), et `vector out(énorme)` lève `std::bad_alloc` ou tue le processus.
+
+    En C++23 : `std::views::pairwise_transform`.
+- id: cpp07.11
+  type: qcm
+  level: 3
+  concepts:
+  - capture
+  q: Dans une méthode de classe, `[=]` capture quoi exactement ?
+  choices:
+  - t: '`this` **par pointeur** — les membres ne sont pas copiés'
+    ok: true
+    why: Si l’objet meurt avant la lambda, elle est pendouillante malgré le `=`.
+  - t: Une copie complète de l’objet
+    ok: false
+    why: Ce serait `[*this]` (C++17).
+  - t: Rien, il faut lister les membres
+    ok: false
+    why: '`[=]` capture bien `this` implicitement.'
+  - t: Les membres par copie
+    ok: false
+    why: Les membres sont accédés **à travers** `this`, pas copiés.
+  e: |-
+    ```cpp
+    class Capteur {
+        double gain_ = 2.0;
+    public:
+        auto convertisseur() {
+            return [=](double x) { return x * gain_; };   // capture this !
+        }
+    };
+    auto f = Capteur{}.convertisseur();   // l'objet est mort
+    f(1.0);                                // UB
+    ```
+
+    C'est un piège si courant que **C++20 a déprécié la capture implicite de `this` par `[=]`** : il faut écrire `[=, this]` pour dire qu'on l'assume.
+
+    Les solutions :
+    - `[*this]` (C++17) — copie l'objet entier dans la lambda.
+    - `[gain = gain_]` — capture par initialisation : on ne copie que ce dont on a besoin. **C'est la meilleure option.**
+
+    La capture par initialisation permet aussi de déplacer dans une lambda : `[p = std::move(ptr)]`.
+- id: cpp07.12
+  type: predict
+  level: 2
+  concepts:
+  - algorithmes
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    #include <vector>
+    #include <algorithm>
+    int main() {
+        std::vector<int> v{5, 3, 8, 1};
+        auto it = std::find(v.begin(), v.end(), 9);
+        std::cout << (it == v.end()) << " ";
+        std::cout << std::distance(v.begin(), std::min_element(v.begin(), v.end()));
+        std::sort(v.begin(), v.end());
+        std::cout << " " << std::binary_search(v.begin(), v.end(), 8) << "\n";
+    }
+  answer: 1 3 1
+  e: |-
+    Trois idiomes :
+    - `find` renvoie `end()` quand il ne trouve pas. **Toujours** comparer à `end()` avant de déréférencer.
+    - `std::distance(begin, it)` convertit un itérateur en **index**. Ici `min_element` pointe sur le 1, en position 3.
+    - `binary_search` exige une plage **triée** — d'où le `sort` juste avant. Sur une plage non triée, c'est un UB, pas un faux résultat.
+
+    `std::distance` est en O(1) pour un itérateur à accès aléatoire (vector, array, deque) et en O(n) pour un itérateur bidirectionnel (list, map).
+
+    Pour un vector, `it - v.begin()` fait la même chose et se lit aussi bien.
+- id: cpp07.13
+  type: qcm
+  level: 3
+  concepts:
+  - ranges
+  q: Quel est le principal danger d’une vue C++20 ?
+  choices:
+  - t: 'Elle ne possède pas sa source : une vue sur un temporaire est pendouillante'
+    ok: true
+    why: '`auto v = fabriquer() | views::filter(p);` — le temporaire meurt à la fin de l’instruction.'
+  - t: Elle est plus lente qu’une boucle
+    ok: false
+    why: 'Le compilateur inline tout : le coût est comparable.'
+  - t: Elle copie les éléments
+    ok: false
+    why: 'Justement pas : c’est une vue paresseuse.'
+  - t: Elle ne marche que sur les vecteurs
+    ok: false
+    why: Elle marche sur toute plage.
+  e: |-
+    ```cpp
+    auto pairs = v | std::views::filter([](int x){ return x % 2 == 0; })
+                   | std::views::transform([](int x){ return x * x; });
+    for (int x : pairs) std::cout << x;     // rien n'a été calculé avant ici
+    ```
+
+    Les vues sont **paresseuses** et **composables** : aucune allocation, aucun élément produit tant qu'on n'itère pas. C'est l'équivalent d'`itertools` en Python.
+
+    Le danger :
+    ```cpp
+    auto mauvais = fabriquer_vecteur() | std::views::filter(p);  // pendouillant
+    for (int x : mauvais) ...                                     // UB
+    ```
+    Le temporaire est détruit à la fin de l'instruction. (Le range-for protège ce cas précis depuis C++23 seulement.)
+
+    Règle : **une vue ne doit jamais survivre à sa source.** Nomme la source d'abord, ou matérialise avec `std::ranges::to<std::vector>()` (C++23).
+
+    Support complet : GCC 12+, Clang 16+. Sur un toolchain embarqué plus ancien, reste sur les algorithmes classiques.
+- id: cpp07.14
+  type: flash
+  level: 2
+  concepts:
+  - algorithmes
+  q: Les algorithmes qui remplacent 90 % des boucles écrites à la main.
+  back: |-
+    | Intention | Algorithme |
+    | --- | --- |
+    | au moins un / tous / aucun | `any_of` · `all_of` · `none_of` |
+    | chercher une valeur / un motif | `find` · `find_if` · `search` |
+    | compter | `count` · `count_if` |
+    | extrema | `min_element` · `max_element` · `minmax_element` |
+    | transformer | `transform` |
+    | accumuler | `accumulate` · `reduce` (parallélisable) |
+    | filtrer en place | `remove_if` + `erase` · `std::erase_if` (C++20) |
+    | trier partiellement | `partial_sort` · `nth_element` |
+    | dédupliquer (trié) | `unique` + `erase` |
+    | copier sous condition | `copy_if` |
+    | tout initialiser | `fill` · `iota` · `generate` |
+  e: |-
+    Le bénéfice n'est pas la vitesse (identique, parfois meilleure grâce à l'inlining) : c'est que **le nom dit l'intention**. Un lecteur voit `any_of` et comprend en une seconde ; il doit décoder une boucle avec drapeau.
+
+    Deux algorithmes sous-estimés :
+    - `std::nth_element` : place le k-ième élément à sa position finale en **O(n)**, sans trier le reste. Pour « les 10 plus grands parmi 10⁶ ».
+    - `std::partition` : sépare en deux groupes en une passe, sans allocation.
+
+    En C++20, préfère les versions `std::ranges::` : elles prennent le conteneur directement et acceptent un projecteur (`std::ranges::sort(v, {}, &Mesure::valeur)`).
+- id: cpp07.15
+  type: parsons
+  level: 3
+  concepts:
+  - lambda
+  - algorithmes
+  q: 'Reconstitue un tri multi-critères de mesures : par canal croissant, puis par valeur décroissante.'
+  lang: cpp
+  lines:
+  - '#include <algorithm>'
+  - '#include <vector>'
+  - ''
+  - struct Mesure { int canal; double valeur; };
+  - ''
+  - void trier(std::vector<Mesure>& v) {
+  - '    std::sort(v.begin(), v.end(),'
+  - '              [](const Mesure& a, const Mesure& b) {'
+  - '                  if (a.canal != b.canal) return a.canal < b.canal;'
+  - '                  return a.valeur > b.valeur;'
+  - '              });'
+  - '}'
+  extra:
+  - '              [](Mesure a, Mesure b) {'
+  - '                  return a.canal <= b.canal;'
+  e: |-
+    Trois points :
+    - **Comparateur lexicographique** : on départage sur le critère secondaire uniquement quand le primaire est égal. La forme `if (a.x != b.x) return a.x < b.x; return a.y > b.y;` est la plus lisible et se généralise à n critères.
+    - `const Mesure&` et non `Mesure` par valeur (premier intrus) : le comparateur est appelé O(n log n) fois, chaque copie compte.
+    - `<=` (second intrus) casse l'ordre strict faible → UB, comme vu précédemment.
+
+    Alternative concise avec `std::tie` quand tous les critères vont dans le même sens :
+    ```cpp
+    return std::tie(a.canal, b.valeur) < std::tie(b.canal, a.valeur);
+    ```
+    (l'inversion des opérandes sur `valeur` donne l'ordre décroissant — élégant mais moins lisible).
+
+    En C++20 : `std::ranges::sort(v, comp)`, ou un `operator<=>` sur la structure si l'ordre est naturel.
+- id: cpp07.16
+  type: predict
+  level: 3
+  concepts:
+  - capture
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    #include <vector>
+    #include <functional>
+    int main() {
+        std::vector<std::function<int()>> fs;
+        for (int i = 0; i < 3; ++i) {
+            fs.push_back([i]() { return i; });
+        }
+        for (auto& f : fs) std::cout << f();
+        std::cout << "\n";
+    }
+  answer: '012'
+  e: |-
+    Contrairement à Python, **la capture par copie fige la valeur** au moment de la création : chaque lambda a sa propre copie de `i`. La sortie est `012`, pas `333`.
+
+    En Python, `[lambda: i for i in range(3)]` donne `[2, 2, 2]` parce que la closure capture la **variable**, pas sa valeur.
+
+    Le piège existe quand même en C++, mais avec `[&]` :
+    ```cpp
+    fs.push_back([&i]() { return i; });   // référence sur i, mort à la fin de la boucle
+    ```
+    → comportement indéfini à l'appel.
+
+    Retiens la symétrie : **Python capture par référence de nom, C++ te laisse choisir** — et le choix par défaut sûr est la copie.
+
+    Note aussi le coût : `std::vector<std::function<int()>>` fait de l'effacement de type. Si toutes les lambdas ont la même forme, un `std::vector<int>` de paramètres serait bien plus efficace.

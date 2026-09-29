@@ -1,0 +1,705 @@
+id: cpp09
+track: cpp
+title: Comportement indéfini & pièges
+goal: Repérer l’UB dans du code qui « marche » — c’est ce qui te sauvera en prod.
+level: avance
+requires:
+- cpp03
+concepts:
+- ub
+- overflow
+- dangling
+- ordre-eval
+- aliasing
+lesson:
+  minutes: 20
+  intro: |
+    En Python, une erreur lève une exception. En C++, beaucoup d'erreurs ne lèvent **rien** : elles déclenchent un **comportement indéfini** (*undefined behavior*, UB), et la norme cesse alors de garantir quoi que ce soit. Le programme peut sembler marcher pendant des mois, puis se comporter autrement avec un autre compilateur ou un autre niveau d'optimisation. Ce module t'apprend à reconnaître les UB courants dans du code qui « marche », à comprendre pourquoi le compilateur les exploite, et à les faire détecter par des outils.
+  steps:
+    - level: 1
+      title: Le contrat et la cote hors tolérance
+      body: |
+        La norme C++ est un **contrat** : « respecte ces règles, et je te garantis ce résultat ». Un comportement indéfini, c'est une situation **hors contrat** : il n'y a plus aucune garantie, pas même celle d'un plantage.
+
+        Pense à un usineur qui fait confiance au plan : si une cote est fausse, il ne s'arrête pas pour demander, il usine ce qui est écrit, et la pièce est fausse d'une façon imprévisible. Le compilateur fait pareil : il **suppose** que ton programme respecte le contrat, et il optimise en conséquence. Un code avec UB qui « marche », c'est un boulon qui tient par frottement et non par conception : il lâchera un jour, sans prévenir.
+    - level: 2
+      title: Défini, non spécifié, indéfini
+      body: |
+        La norme classe les comportements en trois familles :
+        - **défini par l'implémentation** : chaque compilateur choisit et documente (la taille de `int`, par exemple) ;
+        - **non spécifié** : plusieurs résultats sont possibles, sans documentation obligatoire. Exemple : l'ordre dans lequel les arguments d'une fonction sont évalués ;
+        - **indéfini** : aucune exigence. Tout peut arriver.
+
+        Les UB que tu rencontreras vraiment :
+        - débordement d'un entier **signé** (`INT_MAX + 1`) ;
+        - accès hors limites d'un tableau, déréférencement de `nullptr` ;
+        - lecture d'une variable non initialisée ;
+        - utilisation d'un objet détruit (pointeur ou référence pendouillants, *use after free*), double libération ;
+        - décalage d'un nombre de bits négatif ou supérieur ou égal à la taille du type (`1 << 32` sur un `int`) ;
+        - lecture d'octets à travers un pointeur d'un autre type (`*reinterpret_cast<float*>(octets)`, règle de *strict aliasing*) ;
+        - fonction non `void` qui se termine sans `return` ;
+        - accès simultané à une même donnée par deux threads, dont au moins une écriture (*data race*).
+
+        Pourquoi la norme laisse-t-elle ces trous ? Pour la **vitesse** et la **portabilité** : ne pas vérifier chaque accès, ne pas imposer un comportement que certains processeurs n'ont pas.
+      check:
+        q: "`int x = INT_MAX; int y = x + 1;` Que dit la norme ?"
+        choices:
+          - t: C'est un comportement indéfini
+            ok: true
+            why: Le débordement d'un entier signé est indéfini. Le programme peut afficher −2147483648… ou le compilateur peut raisonner comme si ça n'arrivait jamais.
+          - t: "`y` vaut −2147483648, le calcul reboucle"
+            why: C'est ce qu'on observe souvent en pratique, mais rien ne le garantit. Seuls les non signés rebouclent par définition.
+          - t: Le programme lève une exception
+            why: C++ ne vérifie pas les débordements ; aucune exception n'est levée.
+    - level: 3
+      title: Les versions sûres des gestes risqués
+      body: |
+        Ce programme ne contient **aucun** comportement indéfini : chaque geste risqué est remplacé par sa version sûre. Seul l'ordre d'affichage de la 4e ligne dépend du compilateur (non spécifié, mais pas indéfini).
+      code: |
+        #include <climits>
+        #include <cstdint>
+        #include <cstring>
+        #include <iostream>
+        #include <optional>
+
+        std::optional<int> ajouter_sur(int a, int b) {           // teste AVANT de calculer
+            if ((b > 0 && a > INT_MAX - b) || (b < 0 && a < INT_MIN - b)) return std::nullopt;
+            return a + b;
+        }
+
+        float depuis_octets(const unsigned char* p) {             // lire un float dans une trame
+            float f;
+            std::memcpy(&f, p, sizeof f);                         // et non *reinterpret_cast<const float*>(p)
+            return f;
+        }
+
+        int trace(const char* nom, int v) { std::cout << nom << ' '; return v; }
+        int somme(int a, int b) { return a + b; }
+
+        int main() {
+            auto r1 = ajouter_sur(INT_MAX, 1);
+            auto r2 = ajouter_sur(2'000'000'000, 100'000'000);
+            auto r3 = ajouter_sur(-5, 3);
+            std::cout << r1.has_value() << r2.has_value() << " " << r3.value() << '\n';
+
+            unsigned int u = UINT_MAX;
+            std::cout << u + 1u << '\n';                          // non signé : reboucle, défini
+
+            const unsigned char trame[] = {0x00, 0x00, 0xC0, 0x3F};   // 1.5f en little-endian
+            std::cout << depuis_octets(trame) << '\n';
+
+            int s = somme(trace("a", 1), trace("b", 2));          // ordre non spécifié
+            std::cout << "= " << s << '\n';
+
+            std::int32_t n = -8;
+            std::cout << (n >> 1) << " " << (std::uint32_t{1} << 31) << '\n';
+        }
+      out: |
+        01 -2
+        0
+        1.5
+        b a = 3
+        -4 2147483648
+      after: |
+        Compilé avec GCC, les arguments de `somme` sont évalués de droite à gauche (`b a`) ; avec Clang, de gauche à droite (`a b`). Les deux ont raison. Et depuis C++20, décaler à droite un entier négatif est défini (décalage arithmétique : −8 >> 1 = −4).
+    - level: 4
+      title: Comment le compilateur exploite l'UB
+      body: |
+        Une vérification de débordement écrite **avec** un débordement est supprimée. Cette fonction :
+
+        ```cpp
+        bool va_deborder(int x) { return x + 1 < x; }
+        ```
+
+        devient, avec `g++ -O2 -S` (lignes techniques retirées) :
+
+        ```text
+        _Z11va_deborderi:            # va_deborder(int)
+                xorl    %eax, %eax   # eax = 0, c'est-à-dire « return false; »
+                ret
+        ```
+
+        Le raisonnement du compilateur est imparable : un `int` ne déborde jamais (sinon ce serait un UB), donc `x + 1` est toujours plus grand que `x`, donc le test est toujours faux. Même logique : un test `if (p == nullptr)` placé **après** `*p` peut disparaître, puisque `p` a déjà été déréférencé.
+
+        Deux alliés pour ne pas se laisser surprendre :
+        - **UBSan** (`-fsanitize=undefined`) vérifie à l'exécution et signale l'UB au moment précis où il se produit : `ubsan.cpp:6:9: runtime error: signed integer overflow: 2147483647 + 1 cannot be represented in type 'int'` ;
+        - **l'évaluation à la compilation** : un UB dans un calcul `constexpr` est une **erreur de compilation**. Les `static_assert` sur des fonctions `constexpr` sont donc de petits tests exempts d'UB.
+      code: |
+        #include <climits>
+        #include <iostream>
+
+        constexpr int carre(int x) { return x * x; }
+
+        constexpr int somme_jusqua(int n) {
+            int s = 0;
+            for (int i = 1; i <= n; ++i) s += i;
+            return s;
+        }
+
+        static_assert(carre(46'340) == 2'147'395'600);   // tient dans un int : accepté
+        // static_assert(carre(46'341) > 0);             // débordement : compilation refusée
+        static_assert(somme_jusqua(100) == 5050);
+
+        int main() {
+            constexpr int mille_carre = carre(1000);
+            std::cout << mille_carre << " " << somme_jusqua(10) << '\n';
+            std::cout << "INT_MAX = " << INT_MAX << " = 2^31 - 1\n";
+        }
+      out: |
+        1000000 55
+        INT_MAX = 2147483647 = 2^31 - 1
+      after: |
+        Décommente la ligne `carre(46'341)` : GCC refuse de compiler avec `error: overflow in constant expression`. Le même calcul, fait à l'exécution, aurait produit un UB silencieux.
+    - level: 5
+      title: Sur le terrain
+      body: |
+        - « Ça marche » n'est pas une preuve. Fais tourner tes tests en `-O0` **et** en `-O2`, avec GCC **et** Clang (sur ton Mac, `g++` est Apple Clang ; GCC s'installe avec Homebrew).
+        - En mise au point et en intégration continue : `-g -fsanitize=address,undefined`. Ça ralentit le programme d'un facteur 2 environ et ça trouve des bugs qui dormaient depuis des années.
+        - Arithmétique qui peut déborder : teste les limites **avant**, ou utilise `__builtin_add_overflow(a, b, &resultat)` (GCC et Clang), qui renvoie `true` en cas de débordement.
+        - Réinterpréter des octets : `std::memcpy` ou `std::bit_cast` (C++20), jamais `reinterpret_cast` sur des données.
+        - Initialise tout à la déclaration. Décale des **non signés**, d'un nombre de bits inférieur à leur taille.
+        - Une expression = un seul effet de bord sur une même chose : pas de `f(i++, i++)`, pas de `combiner(lire(), lire())`.
+  recap:
+    - "Défini par l'implémentation, non spécifié, indéfini : trois niveaux de garantie."
+    - "UB courants : débordement signé, hors limites, nul, non initialisé, pendouillant, décalage excessif, aliasing, data race."
+    - "Le compilateur suppose l'absence d'UB et optimise en conséquence : les tests « après coup » disparaissent."
+    - "`-fsanitize=address,undefined` en développement ; tests en -O0 et -O2, GCC et Clang."
+    - "`std::memcpy`/`std::bit_cast` pour réinterpréter ; tester les limites avant de calculer."
+  pieges: [cpp-ub-ca-marche, cpp-ordre-evaluation, cpp-reinterpret-cast-trame, cpp-debordement-entier, cpp-variable-non-initialisee]
+exercises:
+- id: cpp09.1
+  type: qcm
+  level: 3
+  concepts:
+  - overflow
+  - ub
+  q: '`int x = INT_MAX; x + 1;` — que dit le standard ?'
+  choices:
+  - t: 'Comportement **indéfini** : le compilateur peut supposer que ça n’arrive jamais'
+    ok: true
+    why: Il optimise en conséquence — d’où des boucles qui ne terminent pas comme prévu.
+  - t: Ça boucle sur `INT_MIN`, c’est garanti
+    ok: false
+    why: Vrai pour les **non signés** seulement.
+  - t: Ça lève une exception
+    ok: false
+    why: Le C++ ne vérifie rien à l’exécution.
+  - t: La valeur est saturée à `INT_MAX`
+    ok: false
+    why: Aucune saturation automatique.
+  e: |-
+    Distinction fondamentale :
+    - **Non signé** : arithmétique modulo 2ⁿ, parfaitement définie. `UINT_MAX + 1 == 0`.
+    - **Signé** : le débordement est un **UB**. Le compilateur a le droit de supposer que `x + 1 > x` est toujours vrai.
+
+    Conséquence réelle : `for (int i = 0; i <= n; ++i)` avec `n == INT_MAX` peut devenir une boucle infinie *après optimisation*, parce que le compilateur élimine le test.
+
+    Détection : `-fsanitize=signed-integer-overflow` (UBSan). Prévention : `<cstdint>` avec la bonne largeur, et en C++20 `std::in_range`/`std::cmp_less` pour les comparaisons mixtes.
+- id: cpp09.2
+  type: qcm
+  level: 2
+  concepts:
+  - ub
+  q: 'Coche tout ce qui est un **comportement indéfini** :'
+  multi: true
+  choices:
+  - t: Lire `v[10]` sur un `std::vector` de taille 3
+    ok: true
+    why: '`operator[]` ne vérifie rien. `v.at(10)` lève `std::out_of_range`.'
+  - t: Déréférencer un pointeur nul
+    ok: true
+    why: UB, même pour juste lire.
+  - t: Diviser un entier par zéro
+    ok: true
+    why: 'UB. En flottant, c’est défini : `inf` ou `nan`.'
+  - t: Décaler un `uint32_t` de 32 bits (`x << 32`)
+    ok: true
+    why: 'UB : le décalage doit être < largeur du type.'
+  - t: Déborder un `unsigned int`
+    ok: false
+    why: 'Défini : arithmétique modulo 2³².'
+  - t: Comparer deux pointeurs vers des objets non liés avec `<`
+    ok: true
+    why: Non spécifié/UB. `==` est autorisé.
+  e: |-
+    L’UB n’est pas « ça plante » : c’est « le compilateur peut tout faire », y compris supprimer ton test de sécurité parce qu’il en déduit qu’il est inutile.
+
+    Ta trousse de secours, à mettre dans **tout** projet :
+    ```bash
+    g++ -std=c++17 -Wall -Wextra -Wpedantic -Wshadow -Wconversion \
+        -fsanitize=address,undefined -g -O1 main.cpp
+    ```
+    ASan attrape les débordements et les use-after-free ; UBSan les décalages, débordements signés et déréférencements nuls. Coût : ~2× plus lent — inacceptable en production, indispensable en test.
+- id: cpp09.3
+  type: qcm
+  level: 3
+  concepts:
+  - ordre-eval
+  q: '`int i = 0; f(i++, i++);` — que sait-on de l’ordre d’évaluation des arguments ?'
+  choices:
+  - t: 'L’ordre est **non spécifié** : le compilateur choisit, et il peut varier'
+    ok: true
+    why: Depuis C++17 chaque argument est évalué complètement avant le suivant, mais dans un ordre libre.
+  - t: De gauche à droite, garanti
+    ok: false
+    why: Jamais garanti pour les arguments de fonction.
+  - t: De droite à gauche, garanti
+    ok: false
+    why: Non plus.
+  - t: C’est un UB
+    ok: false
+    why: C’était un UB avant C++17 ; depuis, c’est « non spécifié » — moins grave mais toujours à éviter.
+  e: |-
+    Ce qui **est** garanti (depuis C++17) :
+    - `a = b` : la droite avant la gauche.
+    - `a[i] = f()` : `f()` d’abord.
+    - `a << b << c` : de gauche à droite.
+    - `&&`, `||`, `,`, `?:` : court-circuit, gauche à droite.
+
+    Ce qui **ne l’est pas** : l’ordre des arguments d’un appel.
+
+    Conclusion pratique : **un seul effet de bord par expression**. Écris `f(i, i+1); i += 2;`. Ça se lit mieux de toute façon.
+- id: cpp09.4
+  type: bug
+  level: 3
+  concepts:
+  - dangling
+  q: Clique sur la ligne qui crée une référence pendouillante.
+  lang: cpp
+  code: |-
+    #include <string>
+    #include <string_view>
+    std::string construire(int id);
+
+    int main() {
+        std::string_view v = construire(7);
+        return v.size();
+    }
+  bad: 6
+  fix: |2-
+        std::string s = construire(7);
+        std::string_view v = s;
+  e: |-
+    `construire(7)` renvoie un `std::string` **temporaire**. La `string_view` mémorise un pointeur vers ses données, puis le temporaire est détruit à la fin de l’instruction. `v` pointe sur de la mémoire libérée.
+
+    Contrairement à `const std::string&`, une `string_view` **ne prolonge pas** la durée de vie du temporaire — c’est un simple couple (pointeur, taille).
+
+    Règles pour `string_view` / `span` :
+    - Parfait en **paramètre** de fonction.
+    - Jamais en **membre** de classe, jamais en **valeur de retour** vers un local, jamais lié à un temporaire.
+
+    Clang le repère avec `-Wdangling-gsl`.
+- id: cpp09.5
+  type: predict
+  level: 3
+  concepts:
+  - ub
+  - aliasing
+  q: Ce code est un UB courant en embarqué. Que devrait-on écrire à la place ? (réponds par le nom de la fonction standard)
+  lang: cpp
+  code: |-
+    float lire_float(const uint8_t* buf) {
+        return *reinterpret_cast<const float*>(buf);   // UB
+    }
+  answer: memcpy
+  accept:
+  - std::memcpy
+  - memcpy()
+  - std::memcpy()
+  - bit_cast
+  - std::bit_cast
+  norun: true
+  e: |-
+    Deux problèmes :
+    1. **Strict aliasing** : accéder à des octets à travers un `float*` viole les règles d’aliasing → le compilateur peut réordonner ou supprimer l’accès.
+    2. **Alignement** : si `buf` n’est pas aligné sur 4 octets, c’est un UB — et sur ARM Cortex-M0, un vrai *hard fault*.
+
+    La solution portable et **gratuite** (tous les compilateurs l’optimisent en une instruction) :
+    ```cpp
+    float lire_float(const uint8_t* buf) {
+        float f;
+        std::memcpy(&f, buf, sizeof f);
+        return f;
+    }
+    ```
+    En C++20, `std::bit_cast<float>(mot32)` fait la même chose, à la compilation si possible.
+
+    L’union de type-punning est légale en C, **pas** en C++ (même si GCC la tolère).
+- id: cpp09.6
+  type: predict
+  level: 3
+  concepts:
+  - ub
+  - dangling
+  q: Ce programme affiche-t-il toujours la même chose ? Que vaut la première ligne ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    #include <string>
+    int main() {
+        std::string s = "bonjour le monde";
+        std::string_view v = s;
+        std::cout << v.substr(0, 7) << "|";
+        s = "court";                      // réallocation possible
+        std::cout << v.size() << "\n";    // v ne le sait pas
+    }
+  answer: bonjour|16
+  e: |-
+    `string_view` mémorise un **pointeur et une longueur**, capturés au moment de la construction. Elle n'a aucun lien avec la chaîne source ensuite.
+
+    Après `s = "court"`, `v.size()` renvoie toujours 16 : la vue n'est pas notifiée. Et son pointeur peut désormais désigner de la mémoire libérée — lire `v` est un **UB**, même si l'affichage de `size()` ne plante pas.
+
+    Ici l'affectation d'une petite chaîne utilise l'optimisation « small string » et ne réalloue peut-être pas, ce qui rend le bug invisible. C'est exactement ce qui rend l'UB dangereux : **ça marche jusqu'à ce que ça ne marche plus.**
+
+    Règles pour `string_view` et `span` :
+    - parfait en **paramètre** de fonction ;
+    - jamais en **membre**, jamais en **valeur de retour** vers un local, jamais lié à un temporaire ;
+    - ne survit pas à une modification de la source.
+- id: cpp09.7
+  type: qcm
+  level: 3
+  concepts:
+  - ub
+  - overflow
+  q: Pourquoi le débordement d’entier **signé** est-il un UB alors que le non signé est parfaitement défini ?
+  choices:
+  - t: 'Pour laisser le compilateur optimiser : il peut supposer que `x + 1 > x` est toujours vrai'
+    ok: true
+    why: Cela autorise le déroulage de boucles et la promotion d’index en registres 64 bits.
+  - t: Parce que le matériel ne sait pas le faire
+    ok: false
+    why: Tous les processeurs modernes utilisent le complément à deux et bouclent silencieusement.
+  - t: Pour des raisons historiques uniquement
+    ok: false
+    why: L’histoire (complément à un, signe-magnitude) explique l’origine, l’optimisation explique le maintien.
+  - t: C’est une erreur du standard
+    ok: false
+    why: C’est un choix délibéré et toujours défendu.
+  e: |-
+    Exemple concret de ce que l'UB autorise :
+    ```cpp
+    for (int i = 0; i <= n; ++i) f(i);
+    ```
+    Le compilateur peut supposer que `i` ne déborde jamais, donc que la boucle **termine**, donc la dérouler et vectoriser. Avec `unsigned`, il doit envisager le bouclage et génère du code plus prudent.
+
+    Depuis C++20, la représentation des entiers signés **est** le complément à deux (P0907) — mais le **débordement** reste un UB. Ne confonds pas les deux.
+
+    Ta trousse :
+    - `-fsanitize=signed-integer-overflow` (UBSan) : détecte à l'exécution.
+    - `-ftrapv` : fait planter au débordement.
+    - `-fwrapv` : **définit** le débordement comme bouclant (au prix d'optimisations perdues).
+    - C++20 : `std::cmp_less`, `std::in_range` pour les comparaisons mixtes sûres.
+- id: cpp09.8
+  type: bug
+  level: 3
+  concepts:
+  - ub
+  - ordre-eval
+  q: Clique sur la ligne dont le résultat n’est pas garanti.
+  lang: cpp
+  code: |-
+    #include <cstdio>
+    int suivant(int& i) { return i++; }
+    int main() {
+        int i = 0;
+        printf("%d %d\n", suivant(i), suivant(i));
+        printf("%d\n", i);
+        return 0;
+    }
+  bad: 5
+  fix: |2-
+        int a = suivant(i);
+        int b = suivant(i);
+        printf("%d %d\n", a, b);
+  e: |-
+    L'ordre d'évaluation des **arguments d'une fonction** n'est pas spécifié. Le compilateur peut évaluer de droite à gauche (c'est le cas de GCC sur x86-64) ou de gauche à droite (MSVC).
+
+    Depuis C++17, chaque argument est évalué **complètement** avant le suivant — ce n'est donc plus un UB, mais le résultat reste **non spécifié** : il peut différer d'un compilateur ou d'un niveau d'optimisation à l'autre.
+
+    Ce qui **est** garanti :
+    - `a = b` : droite avant gauche ;
+    - `a[i] = f()` : `f()` d'abord ;
+    - `a << b << c` : de gauche à droite ;
+    - `&&`, `||`, `,`, `?:` : court-circuit, gauche à droite.
+
+    **Règle de survie : un seul effet de bord par instruction.** Ça se lit mieux de toute façon.
+- id: cpp09.9
+  type: cloze
+  level: 2
+  concepts:
+  - ub
+  q: La ligne de compilation qui attrape les comportements indéfinis.
+  lang: shell
+  verify: skip
+  tpl: |-
+    g++ -std=c++20 -Wall -Wextra -Wpedantic     -fsanitize=⟦0⟧,⟦1⟧     -fno-omit-frame-pointer -g -O1 main.cpp -o app
+
+    # En plus, côté bibliothèque standard :
+    g++ -D_GLIBCXX_⟦2⟧ ...     # vérifie les bornes de vector::operator[]
+  blanks:
+  - - address
+  - - undefined
+  - - ASSERTIONS
+  e: |-
+    | Outil | Ce qu'il attrape |
+    | --- | --- |
+    | **ASan** (`address`) | dépassements de tampon, use-after-free, fuites, double-free |
+    | **UBSan** (`undefined`) | débordement signé, décalage invalide, déréférencement nul, désalignement |
+    | **TSan** (`thread`) | courses de données — **incompatible avec ASan**, à lancer séparément |
+    | `_GLIBCXX_ASSERTIONS` | `v[i]` hors bornes, itérateurs invalides — coût quasi nul |
+    | `_GLIBCXX_DEBUG` | vérifications complètes des conteneurs — coût élevé, très bavard |
+
+    Coût d'ASan+UBSan : ~2× plus lent, ~3× plus de mémoire. Inacceptable en production, **indispensable en test**.
+
+    Mets-les dans ta CI : c'est le meilleur rapport bugs trouvés / effort de tout l'écosystème C++.
+
+    Sur cible embarquée, les sanitizers ne tournent pas — d'où l'importance de tester la logique **sur PC**, en séparant le calcul de l'accès matériel.
+- id: cpp09.10
+  type: qcm
+  level: 3
+  concepts:
+  - ub
+  - aliasing
+  q: Que garantit la règle du « strict aliasing » au compilateur ?
+  choices:
+  - t: Que deux pointeurs de types incompatibles ne désignent pas le même objet — donc qu’il peut réordonner les accès
+    ok: true
+    why: C’est ce qui permet de garder une valeur en registre au lieu de la relire.
+  - t: Que les pointeurs sont toujours alignés
+    ok: false
+    why: L’alignement est une contrainte distincte.
+  - t: Que `const` n’est jamais contourné
+    ok: false
+    why: Autre sujet.
+  - t: Que les tableaux ne se recouvrent pas
+    ok: false
+    why: C’est `restrict` (en C ; `__restrict` en extension C++).
+  e: |-
+    ```cpp
+    void f(int* i, float* fl) {
+        *i = 1;
+        *fl = 2.0f;
+        printf("%d", *i);     // le compilateur peut garder 1 en registre
+    }
+    ```
+    Puisqu'un `int*` et un `float*` ne peuvent pas légalement désigner le même objet, le compilateur n'a pas besoin de relire `*i`.
+
+    Casser cette règle (par un `reinterpret_cast` entre types non liés) produit du code qui « marche » en `-O0` et casse en `-O2`.
+
+    Les exceptions autorisées : `char*`, `unsigned char*` et `std::byte*` peuvent aliaser **n'importe quoi**. C'est pour ça que la manipulation d'octets bruts se fait toujours en `uint8_t*`.
+
+    La façon **correcte** de réinterpréter des octets :
+    ```cpp
+    float f;
+    std::memcpy(&f, buf, sizeof f);          // gratuit après optimisation
+    auto f2 = std::bit_cast<float>(mot32);   // C++20, constexpr
+    ```
+    GCC : `-fno-strict-aliasing` désactive la règle (le noyau Linux l'utilise), au prix de performances.
+- id: cpp09.11
+  type: code
+  level: 3
+  concepts:
+  - ub
+  - dangling
+  q: 'Corrige la conception : écris `std::string prefixe(const std::string& s, std::size_t n)` qui renvoie les `n` premiers caractères, sans jamais renvoyer de vue pendouillante ni dépasser.'
+  lang: cpp
+  start: |-
+    #include <string>
+    #include <cstddef>
+
+    std::string prefixe(const std::string& s, std::size_t n) {
+        // ton code
+    }
+  sol: |-
+    #include <string>
+    #include <cstddef>
+    #include <algorithm>
+
+    std::string prefixe(const std::string& s, std::size_t n) {
+        return s.substr(0, std::min(n, s.size()));
+    }
+  tests: |-
+    #include <cassert>
+    #include <iostream>
+    int main() {
+        assert(prefixe("bonjour", 3) == "bon");
+        assert(prefixe("bonjour", 0) == "");
+        assert(prefixe("bonjour", 100) == "bonjour");
+        assert(prefixe("", 5) == "");
+        std::string s = "temporaire";
+        std::string r = prefixe(s + "!", 4);
+        assert(r == "temp" && "doit survivre a un temporaire");
+        std::cout << "OK\n";
+    }
+  e: |-
+    Renvoyer par **valeur** est la seule option sûre ici. Une `std::string_view` de retour serait pendouillante dès que l'appelant passe un temporaire (`prefixe(s + "!", 4)`) — et le test le vérifie explicitement.
+
+    `std::min(n, s.size())` évite le dépassement. En réalité `substr` tronque déjà silencieusement quand `count` dépasse, mais l'écrire documente l'intention et protège si tu changes d'implémentation.
+
+    Attention à l'autre extrémité : `s.substr(pos, n)` avec `pos > size()` **lève** `std::out_of_range`. Seul le second argument est tronqué.
+
+    Le coût de la copie ? Négligeable, et NRVO l'élimine souvent. **Ne sacrifie jamais la sûreté de durée de vie pour éviter une copie de chaîne courte.**
+- id: cpp09.12
+  type: predict
+  level: 2
+  concepts:
+  - ub
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <cstdio>
+    #include <cstdint>
+    int main() {
+        unsigned u = 0;
+        printf("%u ", u - 1);
+        uint8_t petit = 200;
+        printf("%d ", petit + petit);
+        printf("%d\n", static_cast<uint8_t>(petit + petit));
+    }
+  answer: 4294967295 400 144
+  e: |-
+    Trois comportements, tous **définis** :
+    - `u - 1` sur un `unsigned` à 0 : arithmétique modulo 2³² → 4294967295. Aucune erreur, aucun UB. C'est ce qui rend `for (unsigned i = n; i >= 0; --i)` **infinie**.
+    - `petit + petit` : promotion en `int` → 400, calculé sur 32 bits.
+    - Le cast en `uint8_t` tronque : 400 mod 256 = 144.
+
+    Le tableau à mémoriser :
+
+    | Opération | Comportement |
+    | --- | --- |
+    | débordement **non signé** | défini : modulo 2ⁿ |
+    | débordement **signé** | **UB** |
+    | conversion vers non signé | définie : modulo |
+    | conversion vers signé (hors plage) | définie depuis C++20 (complément à deux) |
+
+    En instrumentation, les compteurs de temps (`millis()`) sont **non signés** exprès : `(maintenant - avant) >= delai` reste correct même après le bouclage du compteur. C'est un usage volontaire du modulo.
+- id: cpp09.13
+  type: flash
+  level: 3
+  concepts:
+  - ub
+  q: Cite dix comportements indéfinis que tu rencontreras vraiment.
+  back: |-
+    1. Accès hors bornes (`v[i]`, tableau C, `memcpy` trop long)
+    2. Déréférencer un pointeur nul ou pendouillant
+    3. Débordement d'entier **signé**
+    4. Décalage `>=` la largeur du type (`x << 32` sur un `uint32_t`)
+    5. Lire une variable non initialisée
+    6. Violer le strict aliasing (`reinterpret_cast` entre types non liés)
+    7. Accès non aligné (fatal sur ARM Cortex-M0)
+    8. Division entière par zéro
+    9. Course de données (deux threads, une écriture, pas de synchronisation)
+    10. Sortir d'une fonction non-`void` sans `return`
+
+    Et le plus vicieux : **un comparateur de tri non strict** (`<=` au lieu de `<`).
+  e: |-
+    Le point crucial : un UB n'est **pas** « ça plante ». C'est « le compilateur suppose que ça n'arrive pas et optimise en conséquence ». Il peut supprimer ton test de sécurité parce qu'il en déduit qu'il est inutile.
+
+    D'où des bugs qui apparaissent en changeant de `-O`, de compilateur, ou en ajoutant une ligne sans rapport.
+
+    La discipline qui protège :
+    1. `-Wall -Wextra -Wpedantic -Werror` en CI.
+    2. ASan + UBSan sur la suite de tests.
+    3. Types de largeur fixe et `.at()` aux frontières.
+    4. Pas de pointeur nu propriétaire.
+- id: cpp09.14
+  type: parsons
+  level: 3
+  concepts:
+  - ub
+  - overflow
+  q: Reconstitue une addition entière protégée contre le débordement (C++, sans dépendance).
+  lang: cpp
+  lines:
+  - '#include <limits>'
+  - '#include <optional>'
+  - ''
+  - std::optional<int> additionner(int a, int b) noexcept {
+  - '    constexpr int MAX = std::numeric_limits<int>::max();'
+  - '    constexpr int MIN = std::numeric_limits<int>::min();'
+  - '    if (b > 0 && a > MAX - b) return std::nullopt;'
+  - '    if (b < 0 && a < MIN - b) return std::nullopt;'
+  - '    return a + b;'
+  - '}'
+  extra:
+  - '    if (a + b < a) return std::nullopt;'
+  - '    return a + b > MAX ? 0 : a + b;'
+  e: |-
+    La détection doit se faire **avant** l'opération : les deux intrus calculent `a + b` d'abord, ce qui est déjà l'UB qu'on voulait éviter. C'est le piège classique — `if (a + b < a)` est une vérification qui n'en est pas une, et le compilateur a le droit de la supprimer entièrement.
+
+    La logique correcte reformule la condition sans jamais déborder :
+    - si `b > 0`, le débordement par le haut arrive quand `a > MAX - b` ;
+    - si `b < 0`, le débordement par le bas arrive quand `a < MIN - b`.
+
+    `std::optional` rend l'échec impossible à ignorer.
+
+    Alternatives concrètes :
+    - GCC/Clang : `__builtin_add_overflow(a, b, &r)` — une instruction, teste le drapeau matériel.
+    - C++26 : `std::add_sat` (arithmétique saturante) et `std::ckd_add`.
+    - Ou reste en **non signé**, dont le bouclage est défini, et gère la saturation explicitement.
+- id: cpp09.15
+  type: qcm
+  level: 3
+  concepts:
+  - ub
+  q: Ton code marche en `-O0` et plante en `-O2`. Quelle est la cause la plus probable ?
+  choices:
+  - t: Un comportement indéfini que l’optimiseur exploite
+    ok: true
+    why: 'Variable non initialisée, débordement signé, aliasing, pointeur pendouillant : à `-O0` le code « survit » par hasard.'
+  - t: Un bug de GCC
+    ok: false
+    why: Statistiquement, c’est toujours le code avant le compilateur.
+  - t: Un problème de cache
+    ok: false
+    why: Le cache n’affecte pas la correction.
+  - t: Il manque des `volatile`
+    ok: false
+    why: Sauf accès matériel réel, ajouter `volatile` masque le symptôme sans corriger la cause.
+  e: |-
+    À `-O0`, chaque variable a un emplacement en pile, chaque lecture relit la mémoire, rien n'est réordonné. Beaucoup d'UB passent inaperçus.
+
+    À `-O2`, le compilateur garde les valeurs en registre, réordonne, déroule, supprime le code qu'il juge inatteignable **en supposant l'absence d'UB**.
+
+    Procédure de diagnostic, dans l'ordre :
+    1. `-fsanitize=address,undefined` en `-O1` — trouve la cause 8 fois sur 10.
+    2. `-Wall -Wextra -Wmaybe-uninitialized`.
+    3. Bisection : `-O2 -fno-strict-aliasing`, puis `-fwrapv`. Si l'un des deux « répare », tu sais quelle règle tu violes.
+    4. `git bisect` sur le commit fautif.
+
+    **Ajouter `volatile` pour « réparer » est un anti-pattern** : ça désactive l'optimisation autour du symptôme sans corriger l'UB, et le bug ressurgira ailleurs.
+- id: cpp09.16
+  type: predict
+  level: 3
+  concepts:
+  - dangling
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    #include <vector>
+    int main() {
+        std::vector<int> v{1, 2, 3};
+        v.reserve(10);
+        int& r = v[0];
+        v.push_back(4);
+        r = 99;
+        std::cout << v[0] << " " << v.size() << "\n";
+    }
+  answer: 99 4
+  e: |-
+    Ici **ça marche**, et il faut comprendre pourquoi : `reserve(10)` garantit qu'aucune réallocation n'aura lieu avant le 11ᵉ élément. La référence `r` reste donc valide après le `push_back`.
+
+    Sans le `reserve`, la capacité initiale de 3 serait atteinte et `push_back` réallouerait → `r` pendouillant → UB.
+
+    C'est exactement le genre de code qui « marche sur ma machine » : il dépend d'une garantie que le lecteur ne voit pas forcément.
+
+    Deux conseils :
+    1. Si tu t'appuies sur `reserve` pour la validité d'une référence, **écris-le en commentaire** — sinon quelqu'un déplacera le `reserve` un jour.
+    2. Mieux : stocke un **index** plutôt qu'une référence. Un index survit à toutes les réallocations.
+
+    ```cpp
+    std::size_t i = 0;
+    v.push_back(4);
+    v[i] = 99;        // toujours correct
+    ```

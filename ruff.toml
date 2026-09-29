@@ -1,0 +1,7 @@
+# Règles ruff utilisées par ./praxis check (fixées ici pour que le résultat
+# ne dépende pas de la version de ruff installée).
+line-length = 120
+target-version = "py39"
+
+[lint]
+select = ["E4", "E7", "E9", "F", "B"]   # erreurs, imports et noms inutilisés, bugs probables (bugbear)

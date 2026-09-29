@@ -1,0 +1,287 @@
+domain: numerique
+exercises:
+- id: ig.num01
+  type: qcm
+  level: 1
+  q: 'La valeur hexadécimale 0xFF vaut en décimal :'
+  choices:
+  - t: '256'
+    ok: false
+  - t: '255'
+    ok: true
+  - t: '16'
+    ok: false
+  - t: '15'
+    ok: false
+  e: '0xFF = 15×16 + 15 = 255, la plus grande valeur d''un octet non signé. Les repères à connaître de tête : 0xFF = 255, 0x100 = 256, 0xFFFF = 65 535, 0x80 = 128 (bit de poids fort seul).'
+  src: calibre
+- id: ig.num02
+  type: qcm
+  level: 1
+  q: Combien de valeurs distinctes peut coder un octet ?
+  choices:
+  - t: '8'
+    ok: false
+  - t: '256'
+    ok: true
+  - t: '255'
+    ok: false
+  - t: '128'
+    ok: false
+  e: '2⁸ = 256 valeurs, de 0 à 255. L''erreur classique est de répondre 255, qui est la valeur MAXIMALE et non le nombre de combinaisons. Même piège sur un CAN 12 bits : 4096 niveaux, valeur max 4095.'
+  src: calibre
+- id: ig.num03
+  type: qcm
+  level: 2
+  q: 'Plage de valeurs d''un entier signé sur 8 bits en complément à 2 :'
+  choices:
+  - t: 0 à 255
+    ok: false
+  - t: −128 à +128
+    ok: false
+  - t: −127 à +127
+    ok: false
+  - t: −128 à +127
+    ok: true
+  e: 'De −128 à +127 : la plage est dissymétrique parce que le zéro n''a qu''une seule représentation en complément à 2. Ce détail cause de vrais bugs en embarqué : sur un int8_t, la négation de −128 n''existe pas et provoque un débordement silencieux.'
+  src: calibre
+- id: ig.num04
+  type: qcm
+  level: 2
+  q: Quelle porte logique est dite « universelle » ?
+  choices:
+  - t: NAND
+    ok: true
+  - t: AND
+    ok: false
+  - t: OR
+    ok: false
+  - t: XOR
+    ok: false
+  e: 'La NAND (comme la NOR) permet de reconstruire toutes les autres fonctions logiques : NOT, AND, OR, et tout le reste. C''est pourquoi les bibliothèques de cellules CMOS sont bâties autour d''elle — un avantage de fabrication autant que de théorie.'
+  src: calibre
+- id: ig.num05
+  type: qcm
+  level: 2
+  q: 'La sortie d''une porte XOR vaut 1 lorsque :'
+  choices:
+  - t: Les deux entrées sont différentes
+    ok: true
+  - t: Les deux entrées sont identiques
+    ok: false
+  - t: Les deux entrées valent 1
+    ok: false
+  - t: Au moins une entrée vaut 1
+    ok: false
+  e: 'XOR = « ou exclusif » : vrai si et seulement si les entrées diffèrent. C''est donc un détecteur d''inégalité, d''où son usage massif en calcul de parité, en somme de contrôle et en addition binaire (le XOR donne le bit de somme, le AND la retenue).'
+  src: calibre
+- id: ig.num06
+  type: qcm
+  level: 2
+  q: 'Une bascule D synchrone :'
+  choices:
+  - t: Ne fonctionne qu'en analogique
+    ok: false
+  - t: Recopie son entrée en continu
+    ok: false
+  - t: Inverse son entrée
+    ok: false
+  - t: Recopie son entrée sur un front d'horloge et la mémorise jusqu'au front suivant
+    ok: true
+  e: 'C''est l''échantillonnage sur front qui fait toute la différence avec un verrou (latch) commandé par niveau : la bascule D fige la donnée à un instant précis, ce qui rend la logique séquentielle synchrone prévisible. Elle est la brique de base de tout registre, compteur et pipeline.'
+  src: calibre
+- id: ig.num07
+  type: qcm
+  level: 2
+  q: Combien d'états peut prendre un compteur binaire à 12 bits ?
+  choices:
+  - t: '12'
+    ok: false
+  - t: '2048'
+    ok: false
+  - t: '4096'
+    ok: true
+  - t: '144'
+    ok: false
+  e: '2¹² = 4096, de 0 à 4095. Repères à connaître : 8 bits → 256, 10 bits → 1024, 12 bits → 4096, 16 bits → 65 536. Ce sont exactement les résolutions des convertisseurs et des timers qu''on manipule en embarqué.'
+  src: calibre
+- id: ig.num08
+  type: qcm
+  level: 3
+  q: Qu'est-ce qui distingue un circuit séquentiel d'un circuit combinatoire ?
+  choices:
+  - t: Il n'utilise pas d'horloge
+    ok: false
+  - t: Il consomme moins
+    ok: false
+  - t: Sa sortie dépend de l'état interne (de l'historique), pas seulement des entrées actuelles
+    ok: true
+  - t: Il est plus rapide
+    ok: false
+  e: 'Un combinatoire est une fonction pure : mêmes entrées, même sortie, toujours. Un séquentiel possède une mémoire, donc un état. C''est ce qui permet de compter, de temporiser et d''implémenter des machines à états — au prix de contraintes temporelles (setup, hold) et de risques de métastabilité.'
+  src: calibre
+- id: ig.num09
+  type: qcm
+  level: 2
+  q: À quoi sert une résistance de pull-up sur une entrée logique ?
+  choices:
+  - t: À limiter le courant de sortie
+    ok: false
+  - t: À imposer un niveau haut défini lorsque rien ne pilote l'entrée
+    ok: true
+  - t: À filtrer le bruit haute fréquence
+    ok: false
+  - t: À protéger contre les décharges électrostatiques
+    ok: false
+  e: Une entrée CMOS laissée flottante prend un potentiel indéterminé et oscille au gré des parasites, ce qui provoque des comportements erratiques et une consommation anormale. Le pull-up (ou pull-down) fixe l'état de repos. Sur un bouton-poussoir à la masse, c'est indispensable.
+  src: calibre
+- id: ig.num10
+  type: qcm
+  level: 2
+  q: 'Tu relies la sortie 5 V d''un capteur à l''entrée d''un microcontrôleur alimenté en 3,3 V, sans précaution. Risque principal :'
+  choices:
+  - t: La fréquence sera divisée
+    ok: false
+  - t: Destruction de l'entrée du microcontrôleur ou injection de courant par les diodes de protection
+    ok: true
+  - t: Le signal sera trop faible pour être lu
+    ok: false
+  - t: Aucun, c'est compatible
+    ok: false
+  e: 'Les diodes de protection internes écrêtent vers Vdd et encaissent le courant excédentaire : au mieux le circuit chauffe et dérive, au pire l''entrée lâche. Solutions : diviseur résistif, translateur de niveau, ou entrée déclarée tolérante 5 V (à vérifier dans la datasheet — toutes ne le sont pas). L''inverse, 3,3 V vers une entrée 5 V, pose un problème différent : le niveau haut peut ne pas être reconnu.'
+  src: calibre
+- id: ig.num11
+  type: qcm
+  level: 3
+  q: Pourquoi resynchronise-t-on un signal asynchrone par deux bascules en cascade avant de l'utiliser dans une logique cadencée ?
+  choices:
+  - t: Pour le retarder volontairement
+    ok: false
+  - t: Pour réduire fortement le risque de métastabilité
+    ok: true
+  - t: Pour économiser des ressources
+    ok: false
+  - t: Pour amplifier le signal
+    ok: false
+  e: 'Si un front arrive pendant la fenêtre de setup/hold, la bascule peut rester un temps indéterminé dans un état intermédiaire : c''est la métastabilité. Le second étage laisse un cycle entier pour que l''état se résolve, ce qui fait chuter la probabilité d''erreur de plusieurs ordres de grandeur. Mesure obligatoire pour tout signal entrant dans un FPGA.'
+  src: calibre
+- id: ig.num12
+  type: qcm
+  level: 2
+  q: 'Avantage décisif d''un FPGA sur un microcontrôleur :'
+  choices:
+  - t: Il exécute réellement des traitements en parallèle, avec un déterminisme temporel au cycle près
+    ok: true
+  - t: Il consomme toujours moins
+    ok: false
+  - t: Il est moins cher
+    ok: false
+  - t: Il est plus facile à programmer
+    ok: false
+  e: 'Un microcontrôleur exécute des instructions l''une après l''autre ; un FPGA réalise des circuits qui fonctionnent simultanément. D''où son intérêt pour l''acquisition rapide multivoie, le traitement d''image en flux ou une boucle d''asservissement à latence garantie. En contrepartie : développement plus long, outillage plus lourd, et souvent une consommation supérieure.'
+  src: calibre
+- id: ig.num13
+  type: qcm
+  level: 2
+  q: Combien de bits de sélection faut-il pour un multiplexeur 8 vers 1 ?
+  choices:
+  - t: '2'
+    ok: false
+  - t: '8'
+    ok: false
+  - t: '3'
+    ok: true
+  - t: '4'
+    ok: false
+  e: '2³ = 8, donc 3 bits de sélection. Généralisation : un mux 2ⁿ vers 1 demande n bits. Même logique pour un décodeur d''adresse : 10 bits d''adresse donnent accès à 1024 emplacements.'
+  src: calibre
+- id: ig.num14
+  type: qcm
+  level: 2
+  q: 'Le nombre binaire 0b1011 vaut en décimal :'
+  choices:
+  - t: '9'
+    ok: false
+  - t: '11'
+    ok: true
+  - t: '13'
+    ok: false
+  - t: '23'
+    ok: false
+  e: '8 + 0 + 2 + 1 = 11. Méthode : additionner les puissances de 2 correspondant aux bits à 1, de droite (2⁰) vers la gauche. Savoir le faire mentalement sur 8 bits est un réflexe attendu dès qu''on lit un registre dans une datasheet.'
+  src: calibre
+- id: ig.num15
+  type: qcm
+  level: 3
+  q: 'Le temps de « hold » d''une bascule est la durée pendant laquelle la donnée doit rester stable :'
+  choices:
+  - t: Avant la mise sous tension
+    ok: false
+  - t: Avant le front d'horloge
+    ok: false
+  - t: Après le front d'horloge
+    ok: true
+  - t: Pendant tout le cycle
+    ok: false
+  e: Le setup est AVANT le front, le hold APRÈS. Une violation de setup se corrige en ralentissant l'horloge ; une violation de hold ne se corrige PAS ainsi — il faut ajouter du délai sur le chemin de données. C'est ce qui rend les violations de hold bien plus pénibles à traiter en conception numérique.
+  src: calibre
+- id: ig.num16
+  type: qcm
+  level: 2
+  q: 'Une sortie à collecteur ouvert (ou drain ouvert) :'
+  choices:
+  - t: Peut imposer un niveau haut et un niveau bas
+    ok: false
+  - t: Est réservée à l'analogique
+    ok: false
+  - t: Fournit un courant constant
+    ok: false
+  - t: Ne peut imposer que le niveau bas, et nécessite une résistance de tirage externe
+    ok: true
+  e: 'Elle ne sait que tirer vers la masse ou se mettre en haute impédance. Conséquence élégante : plusieurs sorties peuvent partager la même ligne, et il suffit qu''une seule tire pour imposer le 0 — c''est le ET câblé, exactement le principe des lignes SDA et SCL d''un bus I2C, et la raison de leurs pull-ups obligatoires.'
+  src: calibre
+- id: ig.num17
+  type: qcm
+  level: 3
+  q: 'Dans une machine à états, un modèle de Moore se distingue d''un modèle de Mealy par le fait que :'
+  choices:
+  - t: Il ne nécessite pas d'horloge
+    ok: false
+  - t: Sa sortie ne dépend que de l'état courant, pas directement des entrées
+    ok: true
+  - t: Il possède moins d'états
+    ok: false
+  - t: Sa sortie dépend directement des entrées
+    ok: false
+  e: 'Moore : sortie = f(état), donc synchrone, stable et exempte de glitchs, mais réagit avec un cycle de retard. Mealy : sortie = f(état, entrées), plus réactive et souvent plus compacte, mais ses sorties peuvent présenter des transitoires. En pratique on choisit Moore pour piloter de la puissance, Mealy quand la latence compte.'
+  src: calibre
+- id: ig.num18
+  type: qcm
+  level: 2
+  q: À quoi sert un trigger de Schmitt sur une entrée logique ?
+  choices:
+  - t: À convertir en analogique
+    ok: false
+  - t: À filtrer les hautes fréquences
+    ok: false
+  - t: À amplifier le signal
+    ok: false
+  - t: À introduire une hystérésis et éviter les commutations multiples sur un front lent ou bruité
+    ok: true
+  e: 'Deux seuils distincts selon le sens de variation : une fois basculé, il faut repasser nettement de l''autre côté pour rebasculer. Un signal lent et bruité produirait sinon des dizaines de transitions parasites. C''est la solution matérielle au rebond mécanique d''un contact, et l''étage d''entrée standard des lignes d''horloge.'
+  src: calibre
+- id: ig.num19
+  type: qcm
+  level: 2
+  q: Sur un bus SPI, combien de fils sont nécessaires au minimum pour dialoguer avec un seul esclave en lecture/écriture ?
+  choices:
+  - t: '4'
+    ok: true
+  - t: '5'
+    ok: false
+  - t: '2'
+    ok: false
+  - t: '3'
+    ok: false
+  e: 'SCLK, MOSI, MISO et un CS (chip select) : 4 fils. Chaque esclave supplémentaire réclame son propre CS, ce qui fait grimper le nombre de broches. À comparer à l''I2C, qui n''utilise que 2 fils quel que soit le nombre d''esclaves grâce à l''adressage — mais plafonne beaucoup plus bas en débit.'
+  src: calibre

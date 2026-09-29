@@ -1,0 +1,287 @@
+domain: fluides
+exercises:
+- id: ig.flu01
+  type: qcm
+  level: 1
+  q: 'Le nombre de Reynolds compare :'
+  choices:
+  - t: Les forces d'inertie aux forces visqueuses
+    ok: true
+  - t: La vitesse du fluide à celle du son
+    ok: false
+  - t: Les forces de pression aux forces de pesanteur
+    ok: false
+  - t: La chaleur transportée à la chaleur conduite
+    ok: false
+  e: 'Re = ρVD/µ = VD/ν : inertie sur viscosité, et sans dimension. Grand Re, l''inertie domine et l''écoulement devient turbulent. Le rapport à la vitesse du son est le nombre de Mach ; le rapport convection/conduction est Péclet ou Nusselt selon le contexte.'
+  src: calibre
+- id: ig.flu02
+  type: qcm
+  level: 1
+  q: 'Dans une conduite cylindrique, la transition laminaire-turbulent se situe vers :'
+  choices:
+  - t: Re ≈ 2000
+    ok: true
+  - t: Re ≈ 200 000
+    ok: false
+  - t: Re ≈ 2 000 000
+    ok: false
+  - t: Re ≈ 20
+    ok: false
+  e: 'Re ≈ 2000-2300 en conduite : en dessous, laminaire franc ; au-delà de 4000, turbulent établi ; entre les deux, régime transitoire instable. Attention, ce seuil est propre à la conduite — sur une plaque plane, la transition se produit plutôt vers Re ≈ 5×10⁵.'
+  src: calibre
+- id: ig.flu03
+  type: qcm
+  level: 2
+  q: 'Le théorème de Bernoulli, dans sa forme classique, suppose un écoulement :'
+  choices:
+  - t: Parfait, incompressible, stationnaire, le long d'une ligne de courant
+    ok: true
+  - t: À température variable
+    ok: false
+  - t: Turbulent et compressible
+    ok: false
+  - t: Visqueux avec pertes de charge
+    ok: false
+  e: p + ½ρv² + ρgz = constante n'est valable que sans viscosité, sans échange de travail, à masse volumique constante et en régime permanent, le long d'une même ligne de courant. En pratique on ajoute un terme de perte de charge et éventuellement une hauteur de pompe — c'est le Bernoulli généralisé.
+  src: calibre
+- id: ig.flu04
+  type: qcm
+  level: 2
+  q: 'Le diamètre d''une conduite est divisé par 2, le débit volumique est conservé. La vitesse moyenne est :'
+  choices:
+  - t: Multipliée par 4
+    ok: true
+  - t: Inchangée
+    ok: false
+  - t: Doublée
+    ok: false
+  - t: Divisée par 2
+    ok: false
+  e: 'Q = V·S et S ∝ D², donc V ∝ 1/D² : ×4. C''est la conservation du débit, et l''origine de tous les effets Venturi. Puisque la perte de charge turbulente varie en V², la réduire de moitié en diamètre la multiplie par 16 à débit égal.'
+  src: calibre
+- id: ig.flu05
+  type: qcm
+  level: 2
+  q: 'En régime turbulent établi, la perte de charge dans une conduite varie approximativement comme :'
+  choices:
+  - t: Le cube de la vitesse
+    ok: false
+  - t: Le carré de la vitesse
+    ok: true
+  - t: La racine de la vitesse
+    ok: false
+  - t: La vitesse
+    ok: false
+  e: 'Darcy-Weisbach : ΔP = f·(L/D)·½ρV², donc en V². En LAMINAIRE, c''est différent : Poiseuille donne une perte proportionnelle à la vitesse (ou au débit) tout court. Savoir dans quel régime on est décide donc la loi à appliquer.'
+  src: calibre
+- id: ig.flu06
+  type: qcm
+  level: 2
+  q: 'En régime laminaire (Poiseuille), à débit constant, la perte de charge varie comme :'
+  choices:
+  - t: 1/D
+    ok: false
+  - t: 1/D²
+    ok: false
+  - t: 1/D³
+    ok: false
+  - t: 1/D⁴
+    ok: true
+  e: 'ΔP = 128µLQ/(πD⁴) : en 1/D⁴, la dépendance la plus brutale de toute l''hydraulique. Diviser un diamètre par 2 multiplie la perte par 16 à débit égal. C''est pourquoi on ne bride jamais un circuit hydraulique par un tube trop fin, et pourquoi une artère partiellement obstruée coûte si cher au cœur.'
+  src: calibre
+- id: ig.flu07
+  type: qcm
+  level: 2
+  q: 'Une perte de charge singulière (coude, vanne, changement de section) s''exprime sous la forme :'
+  choices:
+  - t: K·ρgz
+    ok: false
+  - t: K·µ·V
+    ok: false
+  - t: K·L/D
+    ok: false
+  - t: K·½ρV²
+    ok: true
+  e: ΔP = K·½ρV², où K est un coefficient tabulé propre à l'accident géométrique (≈ 0,3 pour un coude arrondi, ≈ 1 pour un coude vif, jusqu'à plusieurs dizaines pour une vanne partiellement fermée). Sur un circuit court et accidenté, les pertes singulières dominent largement les pertes linéaires.
+  src: calibre
+- id: ig.flu08
+  type: qcm
+  level: 3
+  q: 'La cavitation dans une pompe se produit lorsque :'
+  choices:
+  - t: La pompe tourne trop lentement
+    ok: false
+  - t: La pression à l'aspiration descend sous la pression de vapeur saturante du fluide
+    ok: true
+  - t: La température du fluide dépasse 100 °C
+    ok: false
+  - t: Le débit est trop faible
+    ok: false
+  e: 'Le liquide se vaporise localement, puis les bulles implosent dans les zones de pression plus élevée : bruit de gravier, chute de performance, érosion des aubes. On s''en protège par le NPSH — il faut NPSH disponible > NPSH requis, ce qui se gagne en abaissant la pompe, en raccourcissant l''aspiration ou en refroidissant le fluide.'
+  src: calibre
+- id: ig.flu09
+  type: qcm
+  level: 2
+  q: 'Lois de similitude d''une pompe centrifuge : si on double la vitesse de rotation, la hauteur manométrique est :'
+  choices:
+  - t: Multipliée par 4
+    ok: true
+  - t: Doublée
+    ok: false
+  - t: Multipliée par 8
+    ok: false
+  - t: Inchangée
+    ok: false
+  e: 'Les lois d''affinité : Q ∝ N, H ∝ N², P ∝ N³. La hauteur est donc ×4 et la puissance absorbée ×8 — ce qui explique l''intérêt énorme d''un variateur de vitesse en pompage : réduire le débit de 20 % économise près de la moitié de la puissance.'
+  src: calibre
+- id: ig.flu10
+  type: qcm
+  level: 2
+  q: À quelle pression correspond une colonne d'eau de 10 mètres ?
+  choices:
+  - t: ≈ 10 bar
+    ok: false
+  - t: ≈ 100 bar
+    ok: false
+  - t: ≈ 1 bar
+    ok: true
+  - t: ≈ 0,1 bar
+    ok: false
+  e: 'p = ρgh = 1000 × 9,81 × 10 ≈ 98 100 Pa ≈ 1 bar. Repère universel : 10 m d''eau = 1 bar, donc 1 m d''eau ≈ 0,1 bar. Pour le mercure (13 600 kg/m³), 760 mm suffisent à faire une atmosphère.'
+  src: calibre
+- id: ig.flu11
+  type: qcm
+  level: 2
+  q: 'Relation entre viscosité dynamique µ et viscosité cinématique ν :'
+  choices:
+  - t: ν = µ²
+    ok: false
+  - t: ν = µ·ρ
+    ok: false
+  - t: ν = ρ/µ
+    ok: false
+  - t: ν = µ/ρ
+    ok: true
+  e: 'ν = µ/ρ, en m²/s (le stokes vaut 10⁻⁴ m²/s). µ s''exprime en Pa·s. La cinématique apparaît naturellement dans Re = VD/ν, ce qui explique un fait surprenant : l''air, bien moins visqueux que l''eau au sens de µ, a une viscosité CINÉMATIQUE environ 15 fois plus grande, parce que sa masse volumique est minuscule.'
+  src: calibre
+- id: ig.flu12
+  type: qcm
+  level: 3
+  q: 'Le décollement de la couche limite sur un profil provoque principalement :'
+  choices:
+  - t: Une augmentation brutale de la traînée de forme et une perte de portance
+    ok: true
+  - t: Une hausse de la pression en aval
+    ok: false
+  - t: Une chute de la traînée
+    ok: false
+  - t: Un écoulement plus laminaire
+    ok: false
+  e: 'Quand le gradient de pression adverse est trop fort, la couche limite se détache et laisse un sillage tourbillonnaire large : la traînée de pression s''envole et la portance s''effondre — c''est le décrochage d''une aile. Paradoxe utile : une couche limite TURBULENTE résiste mieux au décollement, d''où les alvéoles d''une balle de golf.'
+  src: calibre
+- id: ig.flu13
+  type: qcm
+  level: 2
+  q: 'Pour calculer l''effort exercé par un jet d''eau sur un coude de conduite, on applique :'
+  choices:
+  - t: Le théorème de Bernoulli seul
+    ok: false
+  - t: La loi de Poiseuille
+    ok: false
+  - t: La loi des gaz parfaits
+    ok: false
+  - t: Le théorème de la quantité de mouvement (Euler)
+    ok: true
+  e: 'Bernoulli donne les pressions, pas les efforts : il faut le bilan de quantité de mouvement sur un volume de contrôle, F = ṁ(V_sortie − V_entrée) plus les termes de pression. C''est ce qui dimensionne les brides, les colliers et les massifs d''ancrage d''un coude — souvent des efforts de plusieurs kN.'
+  src: calibre
+- id: ig.flu14
+  type: qcm
+  level: 2
+  q: 'Dans un débitmètre à Venturi ou à diaphragme, le débit est relié à la différence de pression par :'
+  choices:
+  - t: Q ∝ 1/ΔP
+    ok: false
+  - t: Q ∝ √ΔP
+    ok: true
+  - t: Q ∝ ΔP
+    ok: false
+  - t: Q ∝ ΔP²
+    ok: false
+  e: 'Q ∝ √ΔP, conséquence directe de Bernoulli. C''est une contrainte métrologique forte : à 10 % du débit nominal, le ΔP ne vaut plus que 1 % de sa pleine échelle, ce qui noie le signal. D''où la dynamique de mesure médiocre de ces capteurs (typiquement 3:1) face à un débitmètre électromagnétique ou Coriolis.'
+  src: calibre
+- id: ig.flu15
+  type: qcm
+  level: 1
+  q: '1 bar vaut :'
+  choices:
+  - t: 10⁵ Pa
+    ok: true
+  - t: 10³ Pa
+    ok: false
+  - t: 760 Pa
+    ok: false
+  - t: 10⁶ Pa
+    ok: false
+  e: '1 bar = 10⁵ Pa = 100 kPa, très proche de l''atmosphère normale (1013 hPa). Autres repères : 1 MPa = 10 bar, et 1 psi ≈ 69 mbar. Confondre bar et MPa d''un facteur 10 est une erreur courante et coûteuse en hydraulique.'
+  src: calibre
+- id: ig.flu16
+  type: qcm
+  level: 3
+  q: 'Dans un convergent-divergent, lorsque le nombre de Mach atteint 1 au col :'
+  choices:
+  - t: La température augmente au col
+    ok: false
+  - t: Le débit continue d'augmenter si l'on baisse la pression aval
+    ok: false
+  - t: Le débit massique devient maximal et ne dépend plus de la pression aval
+    ok: true
+  - t: L'écoulement redevient incompressible
+    ok: false
+  e: 'C''est l''amorçage (choked flow) : l''information ne peut plus remonter l''écoulement, donc baisser davantage la pression aval ne change plus rien au débit. Le débit n''est alors piloté que par les conditions amont. Principe de base des tuyères, des détendeurs et des fuites calibrées.'
+  src: calibre
+- id: ig.flu17
+  type: qcm
+  level: 2
+  q: 'Pour atteindre l''ultravide (< 10⁻⁷ mbar), il faut :'
+  choices:
+  - t: Une pompe primaire puis une pompe secondaire (turbomoléculaire, ionique), avec étuvage de l'enceinte
+    ok: true
+  - t: Uniquement un bon joint
+    ok: false
+  - t: Refroidir l'enceinte à l'azote liquide
+    ok: false
+  - t: Une pompe primaire à palettes suffisamment puissante
+    ok: false
+  e: 'Une pompe primaire plafonne vers 10⁻² à 10⁻³ mbar ; au-delà il faut un étage secondaire (turbo, ionique, sublimation de titane). Et surtout, la limite n''est plus le pompage mais le DÉGAZAGE des parois : d''où l''étuvage, les joints métalliques et les inox 316L à faible dégazage. Le piège à azote liquide n''est qu''une aide.'
+  src: calibre
+- id: ig.flu18
+  type: qcm
+  level: 2
+  q: 'La traînée aérodynamique d''un corps s''exprime par F = ½ρV²S·Cx. Si la vitesse double, la PUISSANCE nécessaire pour vaincre cette traînée est :'
+  choices:
+  - t: Multipliée par 8
+    ok: true
+  - t: Doublée
+    ok: false
+  - t: Inchangée
+    ok: false
+  - t: Multipliée par 4
+    ok: false
+  e: 'La force est en V², mais la puissance vaut F·V, donc en V³ : ×8. C''est la raison physique pour laquelle la consommation d''un véhicule explose à haute vitesse, et pourquoi gagner 10 km/h de vitesse de pointe coûte une fortune en puissance installée.'
+  src: calibre
+- id: ig.flu19
+  type: qcm
+  level: 3
+  q: 'Dans la formule de Darcy-Weisbach, le coefficient de perte de charge f en régime turbulent dépend :'
+  choices:
+  - t: Uniquement de la longueur de la conduite
+    ok: false
+  - t: Uniquement du fluide
+    ok: false
+  - t: Du nombre de Reynolds et de la rugosité relative de la paroi
+    ok: true
+  - t: Uniquement du nombre de Reynolds
+    ok: false
+  e: 'C''est ce que traduit le diagramme de Moody : f = f(Re, ε/D). En laminaire, f = 64/Re et la rugosité n''intervient pas du tout. En turbulent pleinement rugueux, l''inverse : f ne dépend plus que de ε/D et devient insensible à Re — d''où l''intérêt de connaître son régime avant de choisir sa corrélation.'
+  src: calibre

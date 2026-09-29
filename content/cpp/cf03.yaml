@@ -1,0 +1,335 @@
+id: cf03
+track: cpp
+title: Opérateurs, division entière et débordements
+goal: Calculer juste en C++ — divisions, restes, conversions, débordements — et manipuler des bits comme dans un registre.
+level: fondations
+requires: [cf02]
+concepts: [operateurs, division, cast, debordement, bits]
+lesson:
+  minutes: 16
+  intro: |
+    Les opérateurs de C++ ressemblent à ceux de Python, mais leurs règles sont dictées par le matériel : un entier a un nombre de bits fixé, une division entre entiers reste entière, un calcul qui dépasse la capacité d'une variable « déborde ». Ces règles sont la source de bugs célèbres (une fusée Ariane 5 perdue en 1996 à cause d'une conversion d'un nombre trop grand vers un entier 16 bits). Et comme en embarqué on parle aux registres bit par bit, on termine par les opérateurs binaires.
+  steps:
+    - level: 1
+      title: La même calculatrice… avec des entiers têtus
+      body: |
+        `+`, `-`, `*`, `/`, `%` et les parenthèses fonctionnent comme en maths, avec les priorités habituelles. La règle qui change tout :
+
+        > **Si les deux opérandes de `/` sont des entiers, la division est entière.**
+
+        `7 / 2` vaut `3`, `1 / 2` vaut `0`. Il suffit qu'**un seul** des deux soit à virgule pour que la division soit réelle : `7.0 / 2` vaut `3.5`.
+
+        `%` donne le reste (seulement sur des entiers) : `17 % 5` vaut `2`.
+    - level: 2
+      title: Convertir explicitement avec static_cast
+      body: |
+        Quand tu divises deux variables entières et que tu veux un résultat réel (une moyenne, un pourcentage), il faut **convertir** l'une des deux avant la division. La forme C++ explicite est `static_cast<type>(valeur)` :
+      code: |
+        #include <iostream>
+
+        int main() {
+            int somme = 7;
+            int n = 2;
+            double faux = somme / n;                          // 3 : division entière PUIS conversion
+            double juste = static_cast<double>(somme) / n;    // 3.5
+            int pourcent_faux = somme / 10 * 100;             // 0 * 100
+            int pourcent_juste = somme * 100 / 10;            // 700 / 10
+            std::cout << faux << " " << juste << " " << pourcent_faux << " " << pourcent_juste << '\n';
+        }
+      out: |
+        3 3.5 0 70
+      after: |
+        Regarde bien `double faux = somme / n;` : le résultat est rangé dans un `double`, mais c'est trop tard. La division entière a déjà eu lieu (`7 / 2 = 3`), la conversion arrive après. **Le type de la variable de destination ne change pas la façon dont le calcul est fait.**
+
+        Autre astuce visible ici : réordonner le calcul (`somme * 100 / 10` au lieu de `somme / 10 * 100`) pour multiplier avant de diviser.
+    - level: 3
+      title: Incréments, affectations composées, négatifs
+      body: |
+        - `++i` et `i++` ajoutent 1 ; `--i`, `i--` retirent 1. Seuls sur leur ligne, c'est pareil. Dans une expression, `++i` vaut la **nouvelle** valeur, `i++` l'**ancienne**. Conseil : n'utilise jamais ces opérateurs au milieu d'une expression compliquée.
+        - `x += 2`, `x *= 3`, `x %= 8`… comme en Python.
+        - **Division de négatifs** : C++ tronque **vers zéro** : `-7 / 2` vaut `-3` et `-7 % 2` vaut `-1`. Python donne `-4` et `1`. Attention en portant un calcul d'index circulaire.
+      code: |
+        #include <iostream>
+
+        int main() {
+            int i = 5;
+            int a = i++;   // a = 5, puis i = 6
+            int b = ++i;   // i = 7, puis b = 7
+            std::cout << a << " " << b << " " << i << '\n';
+            std::cout << -7 / 2 << " " << -7 % 2 << " " << 7 % -2 << '\n';
+        }
+      out: |
+        5 7 7
+        -3 -1 1
+    - level: 4
+      title: Le débordement
+      body: |
+        Un entier a un nombre de bits fixé, donc une valeur maximale. Que se passe-t-il au-delà ?
+
+        - **Entier non signé** (`unsigned`, `uint8_t`, `uint32_t`…) : le calcul **boucle** modulo 2ⁿ, comme un compteur kilométrique. `uint8_t x = 255; x = x + 1;` → 0. C'est défini et parfois utile (compteurs de temps).
+        - **Entier signé** (`int`, `int16_t`…) : le débordement est un **comportement indéfini**. En pratique on obtient souvent une valeur négative absurde, mais le compilateur a le droit de supposer que ça n'arrive jamais et d'optimiser en conséquence.
+
+        Deux subtilités qui piègent :
+        - Les **petits types sont promus en `int`** avant tout calcul : `uint8_t a = 200, b = 100;` alors `a + b` vaut 300 (un `int`)… et ne redevient 44 que si tu le ranges dans un `uint8_t`.
+        - Mélanger **signé et non signé** convertit le signé en non signé : `-1 < 1u` est **faux**, car −1 devient 4 294 967 295. Le compilateur t'avertit (`-Wsign-compare`) : écoute-le.
+      code: |
+        #include <cstdint>
+        #include <iostream>
+
+        int main() {
+            uint8_t compteur = 255;
+            compteur = compteur + 1;
+            uint8_t a = 200, b = 100;
+            auto somme = a + b;                 // promu en int : 300
+            uint8_t somme8 = a + b;             // tronqué : 300 - 256 = 44
+            std::cout << +compteur << " " << somme << " " << +somme8 << '\n';
+            std::cout << (-1 < 1u) << '\n';     // 0 = false !
+        }
+      out: |
+        0 300 44
+        0
+      flags: [-Wno-sign-compare, -Wno-constant-conversion, -Wno-implicit-const-int-float-conversion, -Wno-tautological-constant-compare]
+    - level: 5
+      title: Parler aux registres avec les opérateurs de bits
+      body: |
+        En embarqué, un registre de 8, 16 ou 32 bits contient souvent plusieurs réglages, **un par bit**. On les manipule avec les opérateurs binaires :
+
+        | Opérateur | Nom | Usage typique |
+        | --- | --- | --- |
+        | `a & b` | ET bit à bit | tester ou isoler des bits (masque) |
+        | `a \| b` | OU bit à bit | mettre des bits à 1 |
+        | `a ^ b` | OU exclusif | inverser des bits (**pas** une puissance !) |
+        | `~a` | NON | inverser tous les bits |
+        | `a << n`, `a >> n` | décalages | construire un masque `1 << n`, extraire un champ |
+
+        Les quatre gestes à connaître par cœur, pour le bit `n` d'un registre `reg` :
+
+        ```cpp
+        reg |=  (1u << n);          // mettre à 1
+        reg &= ~(1u << n);          // mettre à 0
+        reg ^=  (1u << n);          // inverser
+        bool actif = reg & (1u << n);   // tester
+        ```
+      code: |
+        #include <cstdint>
+        #include <iostream>
+
+        int main() {
+            uint8_t reg = 0b0000'0101;          // bits 0 et 2 à 1
+            reg |= (1u << 7);                    // bit 7 à 1
+            reg &= ~(1u << 0);                   // bit 0 à 0
+            bool bit2 = reg & (1u << 2);
+            uint16_t mot = 0x1234;
+            uint8_t poids_fort = mot >> 8;       // 0x12
+            uint8_t poids_faible = mot & 0xFF;   // 0x34
+            std::cout << +reg << " " << bit2 << " " << +poids_fort << " " << +poids_faible << '\n';
+        }
+      out: |
+        132 1 18 52
+      after: |
+        `0b0000'0101` est un littéral binaire (l'apostrophe est un séparateur de lecture, comme `_` en Python) et `0x1234` un littéral hexadécimal. Résultat : `reg` vaut 1000 0100 en binaire = 128 + 4 = 132.
+  recap:
+    - "`int / int` = division entière : `7 / 2 == 3`. Un seul `double` suffit pour une division réelle."
+    - "Convertir **avant** de diviser : `static_cast<double>(a) / b`. Le type de la variable de destination n'y change rien."
+    - "C++ tronque vers zéro : `-7 / 2 == -3`, `-7 % 2 == -1` (différent de Python)."
+    - "Non signé : boucle modulo 2ⁿ. Signé : débordement = comportement indéfini. Signé + non signé = danger."
+    - "Bits : `|=` met à 1, `&= ~` met à 0, `^=` inverse, `&` teste ; masque `1u << n`."
+  pieges: [cpp-division-entiere, cpp-debordement-entier, cpp-signe-non-signe]
+exercises:
+  - id: cf03.1
+    type: predict
+    level: 1
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+
+      int main() {
+          std::cout << 9 / 2 << " " << 9 % 2 << " " << 9.0 / 2 << " " << 1 / 3 << '\n';
+      }
+    answer: 4 1 4.5 0
+    trap_answers: ["4.5 1 4.5 0.333333", "4.5 1 4.5 0"]
+    piege: cpp-division-entiere
+    e: "Entier / entier → entier. `1 / 3` vaut donc 0. Il suffit d'un opérande `double` (`9.0`) pour une division réelle."
+  - id: cf03.2
+    type: predict
+    level: 2
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+
+      int main() {
+          int total = 10;
+          int n = 4;
+          double moyenne = total / n;
+          std::cout << moyenne << '\n';
+      }
+    answer: "2"
+    trap_answers: ["2.5"]
+    piege: cpp-division-entiere
+    e: "La division `total / n` est faite **entre entiers** (→ 2), puis 2 est converti en `double` pour être rangé. Il faut `static_cast<double>(total) / n`."
+  - id: cf03.3
+    type: bug
+    level: 2
+    q: "Cette fonction doit renvoyer un rapport cyclique en pourcentage (par exemple 25.0 pour 250 sur 1000). Elle renvoie toujours 0. Quelle ligne corriger ?"
+    code: |
+      double rapport_cyclique(int haut_us, int periode_us) {
+          double ratio = haut_us / periode_us;
+          return ratio * 100.0;
+      }
+    bad: 2
+    fix: "    double ratio = static_cast<double>(haut_us) / periode_us;"
+    piege: cpp-division-entiere
+    e: "`250 / 1000` entre entiers vaut 0. La conversion doit avoir lieu **avant** la division."
+  - id: cf03.4
+    type: predict
+    level: 2
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <cstdint>
+      #include <iostream>
+
+      int main() {
+          uint8_t niveau = 250;
+          niveau += 10;
+          std::cout << +niveau << '\n';
+      }
+    answer: "4"
+    trap_answers: ["260", "255"]
+    piege: cpp-debordement-entier
+    e: "Un `uint8_t` va de 0 à 255. 250 + 10 = 260 = 256 + 4 : le compteur fait le tour et vaut 4. Pas d'erreur, pas d'avertissement à l'exécution."
+  - id: cf03.5
+    type: predict
+    level: 2
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+
+      int main() {
+          std::cout << -9 / 4 << " " << -9 % 4 << '\n';
+      }
+    answer: -2 -1
+    trap_answers: ["-3 3"]
+    e: "C++ tronque vers zéro : −2,25 → −2, et le reste a le signe du dividende : −9 = 4 × (−2) − 1. Python donnerait `-3` et `3`."
+  - id: cf03.6
+    type: qcm
+    level: 2
+    q: "Que vaut `(-1 < 1u)` en C++ (`1u` est un `unsigned int`) ?"
+    piege: cpp-signe-non-signe
+    choices:
+      - t: "`false`"
+        ok: true
+        why: "−1 est converti en `unsigned` : il devient 4 294 967 295, qui n'est pas plus petit que 1."
+      - t: "`true`"
+        piege: true
+        why: "Ce serait le cas en maths, et en Python. Le mélange signé/non signé suit d'autres règles."
+      - t: "Erreur de compilation"
+        why: "C'est légal, juste un avertissement avec `-Wsign-compare` (inclus dans `-Wall` pour les comparaisons)."
+    e: "Le cas le plus fréquent : `for (int i = 0; i < v.size(); ++i)`, où `size()` est non signé. Tant que `i` reste positif ça marche, mais c'est un terrain miné. On le reverra avec `std::vector`."
+  - id: cf03.7
+    type: cloze
+    level: 2
+    q: "Complète pour mettre à 1 le bit 3 de `reg`, puis mettre à 0 son bit 0."
+    lang: cpp
+    tpl: |
+      #include <cstdint>
+      #include <iostream>
+
+      int main() {
+          uint8_t reg = 0b0000'0001;
+          reg ⟦0⟧ (1u << 3);
+          reg ⟦1⟧ ~(1u << 0);
+          std::cout << +reg << '\n';
+      }
+    blanks:
+      - ["|="]
+      - ["&="]
+    verify: compile
+    e: "OU avec un masque pour mettre à 1, ET avec le masque inversé pour mettre à 0. Résultat : 0b0000'1000 = 8."
+  - id: cf03.8
+    type: predict
+    level: 2
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+
+      int main() {
+          int x = 3;
+          std::cout << (x ^ 2) << " " << (x << 2) << " " << (x & 1) << '\n';
+      }
+    answer: 1 12 1
+    trap_answers: ["9 12 1"]
+    piege: cpp-chapeau-xor
+    e: "`^` est le OU exclusif : 11 ^ 10 = 01 → 1 (pas 3² = 9). `x << 2` décale de 2 bits, soit ×4 → 12. `x & 1` isole le bit de poids faible : 1, donc `x` est impair."
+  - id: cf03.9
+    type: code
+    level: 2
+    lang: cpp
+    q: |
+      Écris `uint16_t assembler(uint8_t fort, uint8_t faible)` qui reconstitue un mot 16 bits à partir de deux octets reçus d'un capteur I²C (poids fort en premier). Exemple : `assembler(0x12, 0x34)` → `0x1234`.
+    start: |
+      #include <cstdint>
+
+      uint16_t assembler(uint8_t fort, uint8_t faible) {
+          return 0;  // à remplacer
+      }
+    sol: |
+      #include <cstdint>
+
+      uint16_t assembler(uint8_t fort, uint8_t faible) {
+          return static_cast<uint16_t>((fort << 8) | faible);
+      }
+    tests: |
+      #include <cassert>
+      #include <iostream>
+      int main() {
+          assert(assembler(0x12, 0x34) == 0x1234);
+          assert(assembler(0xFF, 0x00) == 0xFF00);
+          assert(assembler(0x00, 0xFF) == 0x00FF);
+          assert(assembler(0, 0) == 0);
+          std::cout << "OK\n";
+      }
+    hint: "Décale le poids fort de 8 bits vers la gauche, puis combine avec le poids faible par un OU."
+    e: "`fort << 8` place l'octet dans les bits 8 à 15 (le calcul se fait en `int` grâce à la promotion, donc aucun bit n'est perdu), `| faible` remplit les bits 0 à 7. Le `static_cast` final rend explicite le retour à 16 bits."
+  - id: cf03.10
+    type: flash
+    level: 2
+    q: "Donne les quatre gestes sur le bit `n` d'un registre `reg` : mettre à 1, mettre à 0, inverser, tester."
+    back: |
+      ```cpp
+      reg |=  (1u << n);            // à 1
+      reg &= ~(1u << n);            // à 0
+      reg ^=  (1u << n);            // inverser
+      bool b = reg & (1u << n);     // tester
+      ```
+    e: "Le `u` de `1u` rend le masque non signé : décaler un `1` signé jusqu'au bit 31 est un débordement signé."
+  - id: cf03.11
+    type: predict
+    level: 3
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <cstdint>
+      #include <iostream>
+
+      int main() {
+          uint8_t a = 200, b = 100;
+          if (a + b > 255) {
+              std::cout << "grand\n";
+          } else {
+              std::cout << "petit\n";
+          }
+      }
+    answer: grand
+    trap_answers: ["petit"]
+    e: "Avant le calcul, `a` et `b` sont **promus en `int`** : `a + b` vaut 300 en `int`, sans débordement. Ce n'est qu'en rangeant le résultat dans un `uint8_t` qu'il serait tronqué à 44."
+  - id: cf03.12
+    type: qcm
+    level: 3
+    q: "Pourquoi un débordement d'entier **signé** est-il plus dangereux qu'un débordement non signé ?"
+    choices:
+      - t: "C'est un comportement indéfini : le compilateur peut supposer qu'il n'arrive jamais et produire du code surprenant."
+        ok: true
+      - t: "Il fait planter le programme immédiatement."
+        why: "Aucune vérification n'est faite à l'exécution (sauf avec `-fsanitize=undefined`, qui le signale)."
+      - t: "Il met la valeur à zéro."
+        why: "Aucune règle ne le garantit."
+    e: "Exemple réel : une boucle `for (int i = 0; i >= 0; ++i)` peut être compilée en boucle infinie, car « `i` positif + 1 reste positif » quand le débordement est impossible. Le sanitizer `-fsanitize=undefined` détecte ces débordements à l'exécution."

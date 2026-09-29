@@ -1,0 +1,736 @@
+id: cpp04
+track: cpp
+title: RAII & durée de vie
+goal: 'Ne plus jamais écrire de `delete` : la ressource est libérée par le destructeur.'
+level: avance
+requires:
+- cpp03
+concepts:
+- raii
+- destructeur
+- unique_ptr
+- scope
+lesson:
+  minutes: 18
+  intro: |
+    Fichier ouvert, mémoire réservée, port série, mutex verrouillé, vanne ouverte : toute ressource doit être rendue, **sur tous les chemins**, y compris quand une exception interrompt tout. En C, c'est une discipline de chaque instant. En C++, c'est une technique qui rend l'oubli impossible : **RAII**. C'est probablement l'idée la plus importante du langage, et la raison pour laquelle un C++ moderne bien écrit ne contient presque aucun `delete`.
+  steps:
+    - level: 1
+      title: La porte qui se referme toute seule
+      body: |
+        Dans une salle blanche, la porte d'accès se referme **automatiquement** derrière toi, que tu sortes tranquillement, en courant, ou par l'issue de secours. Personne n'a besoin de penser à la fermer : c'est la porte elle-même qui garantit l'état sûr.
+
+        RAII (*Resource Acquisition Is Initialization*), c'est ça : on confie chaque ressource à un **objet gardien**. Son **constructeur** acquiert la ressource (ouvre, réserve, verrouille) ; son **destructeur** la rend (ferme, libère, déverrouille). Et le langage **garantit** que le destructeur d'un objet local est appelé quand on sort de son bloc, par n'importe quel chemin.
+    - level: 2
+      title: Durée de vie et propriétaires
+      body: |
+        - Un objet local est détruit à la fin de son bloc `{ }`. Les destructeurs sont appelés dans l'**ordre inverse** de construction : le dernier ouvert est le premier fermé.
+        - Si une exception est levée, le programme **remonte** les appels (*stack unwinding*) et détruit au passage tous les objets locaux déjà construits. Les ressources gardées par RAII sont donc rendues même en cas d'erreur.
+        - La bibliothèque standard est pleine de gardiens : `std::vector` et `std::string` (mémoire), `std::fstream` (fichier), `std::lock_guard` et `std::scoped_lock` (mutex), `std::jthread` (attend la fin du thread), et les **pointeurs intelligents** :
+          - `std::unique_ptr<T>` : **un seul** propriétaire. Non copiable, mais déplaçable (`std::move`) : la propriété change de main. Créé avec `std::make_unique<T>(…)`. Aucun surcoût par rapport à un pointeur brut ;
+          - `std::shared_ptr<T>` : propriété **partagée**, avec un compteur de propriétaires ; l'objet est détruit quand le dernier disparaît. Créé avec `std::make_shared<T>(…)`. Coût : un compteur mis à jour de façon atomique.
+        - Un objet gardien d'une ressource physique ne doit pas être copié par accident : on supprime la copie avec `= delete`.
+        - Une classe de base destinée à être détruite par un pointeur de base a un destructeur **virtuel** : `virtual ~Base() = default;`.
+      check:
+        q: "Une fonction crée `Vanne v1(\"V1\");` puis `Vanne v2(\"V2\");`, puis une exception est levée. Que se passe-t-il ?"
+        choices:
+          - t: "Les destructeurs de `v2` puis de `v1` sont appelés pendant la remontée de l'exception"
+            ok: true
+            why: Les objets locaux déjà construits sont détruits, dans l'ordre inverse de leur construction.
+          - t: Aucun destructeur n'est appelé, les vannes restent ouvertes
+            why: C'est ce qui arriverait avec des fonctions `ouvrir()`/`fermer()` appelées à la main. RAII existe justement pour ça.
+          - t: "Les destructeurs sont appelés dans l'ordre `v1` puis `v2`"
+            why: C'est l'ordre inverse de la construction, comme une pile d'assiettes.
+    - level: 3
+      title: Une vanne qui se referme toujours
+      code: |
+        #include <iostream>
+        #include <memory>
+        #include <stdexcept>
+        #include <string>
+        #include <utility>
+
+        class Vanne {
+        public:
+            explicit Vanne(std::string nom) : nom_(std::move(nom)) { std::cout << "ouvre " << nom_ << '\n'; }
+            ~Vanne() { std::cout << "ferme " << nom_ << '\n'; }
+            Vanne(const Vanne&) = delete;                // une vanne physique ne se copie pas
+            Vanne& operator=(const Vanne&) = delete;
+        private:
+            std::string nom_;
+        };
+
+        void remplir(bool panne) {
+            Vanne v1("V1");
+            Vanne v2("V2");
+            if (panne) throw std::runtime_error("capteur de niveau muet");
+            std::cout << "remplissage terminé\n";
+        }                                                // v2 puis v1 fermées ici, dans tous les cas
+
+        int main() {
+            remplir(false);
+            try {
+                remplir(true);
+            } catch (const std::exception& e) {
+                std::cout << "erreur : " << e.what() << '\n';
+            }
+
+            auto p = std::make_unique<Vanne>("V3");      // sur le tas, possédée par p
+            auto q = std::move(p);                       // transfert de propriété
+            std::cout << (p ? "p possède V3" : "p est vide") << '\n';
+        }                                                // q détruit : V3 fermée
+      out: |
+        ouvre V1
+        ouvre V2
+        remplissage terminé
+        ferme V2
+        ferme V1
+        ouvre V1
+        ouvre V2
+        ferme V2
+        ferme V1
+        erreur : capteur de niveau muet
+        ouvre V3
+        p est vide
+        ferme V3
+      after: |
+        Au deuxième appel, les vannes sont fermées **avant** que le `catch` ne s'exécute : c'est la remontée de l'exception qui détruit les objets locaux. Aucun `fermer()` à appeler, aucun oubli possible.
+    - level: 4
+      title: Pointeurs intelligents sous le capot
+      body: |
+        Un `unique_ptr` n'est qu'un pointeur brut enveloppé dans une classe dont le destructeur appelle `delete`, et dont la copie est supprimée : même taille, même vitesse. On peut lui donner un **suppresseur** personnalisé pour gérer une ressource C (un `FILE*` à refermer avec `fclose`, un handle système).
+
+        Un `shared_ptr` pointe en plus vers un **bloc de contrôle** qui contient le compteur de propriétaires. Chaque copie l'incrémente, chaque destruction le décrémente ; à zéro, l'objet est détruit. Deux objets qui se possèdent mutuellement ne descendent jamais à zéro (cycle) : on casse le cycle avec `std::weak_ptr`.
+
+        Enfin, détruire un objet dérivé à travers un pointeur de base n'appelle le bon destructeur que s'il est **virtuel**.
+      code: |
+        #include <cstdio>
+        #include <iostream>
+        #include <memory>
+
+        struct Base {
+            virtual ~Base() { std::cout << "~Base\n"; }           // virtuel : indispensable
+        };
+        struct Pilote : Base {
+            ~Pilote() override { std::cout << "~Pilote (ferme le port)\n"; }
+        };
+
+        struct FermerFichier {                                    // suppresseur personnalisé
+            void operator()(std::FILE* f) const { std::fclose(f); }
+        };
+        using Fichier = std::unique_ptr<std::FILE, FermerFichier>;
+
+        int main() {
+            std::unique_ptr<Base> b = std::make_unique<Pilote>();
+            b.reset();                                            // détruit maintenant
+
+            auto journal = std::make_shared<int>(0);
+            {
+                auto copie = journal;
+                std::cout << "propriétaires : " << journal.use_count() << '\n';
+            }
+            std::cout << "propriétaires : " << journal.use_count() << '\n';
+
+            {
+                Fichier f(std::fopen("essai.txt", "w"));
+                if (f) std::fputs("T1;20.5\n", f.get());
+            }                                                     // fclose appelé ici
+            Fichier g(std::fopen("essai.txt", "r"));
+            char ligne[32] = {};
+            if (g && std::fgets(ligne, sizeof ligne, g.get())) std::cout << "relu : " << ligne;
+            g.reset();
+            std::remove("essai.txt");
+        }
+      out: |
+        ~Pilote (ferme le port)
+        ~Base
+        propriétaires : 2
+        propriétaires : 1
+        relu : T1;20.5
+    - level: 5
+      title: Sur le terrain
+      body: |
+        - Règle d'or : **toute** ressource appartient à un objet dont le destructeur la rend. Mémoire, fichiers, sockets, mutex, mais aussi en embarqué : sélection d'un périphérique SPI (chip-select bas dans le constructeur, haut dans le destructeur), section critique (interruptions masquées puis restaurées), broche mise en état sûr.
+        - Par défaut `std::unique_ptr` ; `std::shared_ptr` seulement quand la propriété est **réellement** partagée ; pour observer sans posséder, une référence ou un pointeur brut.
+        - Un `new` ou un `delete` dans du code neuf mérite une justification : `std::make_unique` et les conteneurs couvrent presque tous les cas.
+        - Un destructeur ne doit jamais laisser échapper d'exception (il est `noexcept` par défaut) : pendant une remontée d'exception, une deuxième exception termine le programme. Si la fermeture peut échouer et que ça compte, fournis aussi une méthode `fermer()` explicite qui, elle, peut signaler l'erreur.
+        - Pour plusieurs mutex à la fois : `std::scoped_lock verrou(m1, m2);`, qui les prend sans risque d'interblocage.
+  recap:
+    - "RAII : constructeur = acquisition, destructeur = libération, appelé automatiquement à la sortie du bloc."
+    - "Destruction dans l'ordre inverse, y compris pendant la remontée d'une exception."
+    - "`unique_ptr` : un propriétaire, déplaçable ; `shared_ptr` : compteur, pour la propriété partagée."
+    - "Suppresseur personnalisé pour les ressources C ; `= delete` sur la copie d'un gardien."
+    - "Base polymorphe : `virtual ~Base() = default;`."
+  pieges: [cpp-fuite-memoire, cpp-double-delete, cpp-destructeur-non-virtuel]
+exercises:
+- id: cpp04.1
+  type: qcm
+  level: 1
+  concepts:
+  - raii
+  q: 'RAII, en une phrase, c’est :'
+  choices:
+  - t: 'lier la durée de vie d’une ressource à celle d’un objet : acquisition dans le constructeur, libération dans le destructeur'
+    ok: true
+    why: Et le destructeur est appelé automatiquement, y compris quand une exception traverse la portée.
+  - t: allouer toute la mémoire au démarrage
+    ok: false
+    why: Ça, c’est une politique d’allocation statique, différente.
+  - t: utiliser `new` et `delete` par paires
+    ok: false
+    why: RAII sert justement à ne plus les écrire.
+  - t: un patron de conception pour les singletons
+    ok: false
+    why: Aucun rapport.
+  e: |-
+    RAII est **l’idée centrale du C++**, celle qui le distingue du C et des langages à ramasse-miettes.
+
+    Ça marche pour tout ce qui s’acquiert et se libère : mémoire (`unique_ptr`, `vector`), fichiers (`fstream`), verrous (`lock_guard`), sockets, ports série, handles GPIO, transactions.
+
+    Le point fort : **l’exception-safety gratuite**. Si une exception traverse ta fonction, tous les destructeurs des objets locaux sont appelés dans l’ordre inverse. Un `delete` manuel, lui, est sauté.
+
+    ```cpp
+    {
+        std::lock_guard<std::mutex> g(m);   // verrouille
+        faire_quelque_chose();              // même si ça lève…
+    }                                       // …le mutex est relâché ici
+    ```
+- id: cpp04.2
+  type: predict
+  level: 2
+  concepts:
+  - destructeur
+  - scope
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    struct Trace {
+        const char* n;
+        Trace(const char* n) : n(n) { std::cout << "+" << n; }
+        ~Trace() { std::cout << "-" << n; }
+    };
+    int main() {
+        Trace a("A");
+        { Trace b("B"); }
+        Trace c("C");
+        std::cout << "\n";
+    }
+  answer: |-
+    +A+B-B+C
+    -C-A
+  e: |-
+    Deux règles, et elles suffisent :
+    1. Un objet est détruit **à la fin de sa portée**.
+    2. Dans une même portée, la destruction se fait dans l’**ordre inverse** de la construction.
+
+    D’où `-C` avant `-A` — et surtout : le retour à la ligne est écrit **avant** ces deux destructions, puisqu’elles n’ont lieu qu’à l’accolade fermante de `main`. La sortie tient donc sur deux lignes.
+
+    Cette prévisibilité totale est ce qu’un ramasse-miettes ne peut pas offrir. C’est pour ça qu’un port série C++ se ferme exactement quand tu crois, et pas « plus tard ».
+- id: cpp04.3
+  type: qcm
+  level: 2
+  concepts:
+  - unique_ptr
+  q: Différence essentielle entre `std::unique_ptr` et `std::shared_ptr` ?
+  choices:
+  - t: '`unique_ptr` a un propriétaire unique et zéro surcoût ; `shared_ptr` compte les références (atomiquement)'
+    ok: true
+    why: Le compteur atomique de shared_ptr coûte en temps et en mémoire (bloc de contrôle).
+  - t: '`shared_ptr` est plus sûr, donc à préférer par défaut'
+    ok: false
+    why: 'Inverse : `unique_ptr` par défaut, `shared_ptr` seulement si la propriété est vraiment partagée.'
+  - t: '`unique_ptr` ne peut pas être déplacé'
+    ok: false
+    why: Il est déplaçable — c’est la copie qui est interdite.
+  - t: '`shared_ptr` empêche les fuites en toutes circonstances'
+    ok: false
+    why: Un cycle de `shared_ptr` fuit. Il faut casser le cycle avec `weak_ptr`.
+  e: |-
+    Ordre de préférence :
+    1. **Objet par valeur** (pile, membre) — la majorité des cas.
+    2. `std::unique_ptr<T>` — propriété exclusive, polymorphisme, ressource lourde.
+    3. `std::shared_ptr<T>` — propriété réellement partagée, durée de vie indéterminée.
+    4. Pointeur nu `T*` ou `T&` — **observation seulement**, jamais de propriété.
+
+    `auto p = std::make_unique<Capteur>(3);` — préfère `make_unique`/`make_shared` à `new` : une seule allocation, exception-safe.
+
+    En embarqué, on reste souvent au niveau 1 : pas de tas du tout.
+- id: cpp04.4
+  type: code
+  level: 3
+  concepts:
+  - raii
+  q: 'Écris une classe RAII `Broche` : le constructeur met `etat = true` (broche activée), le destructeur `etat = false`. Non copiable. `etat` est un `bool&` fourni à la construction.'
+  lang: cpp
+  start: |-
+    class Broche {
+        // ton code
+    };
+  sol: |-
+    class Broche {
+        bool& etat_;
+    public:
+        explicit Broche(bool& etat) : etat_(etat) { etat_ = true; }
+        ~Broche() { etat_ = false; }
+
+        Broche(const Broche&) = delete;
+        Broche& operator=(const Broche&) = delete;
+    };
+  tests: |-
+    #include <cassert>
+    #include <iostream>
+    #include <type_traits>
+    int main() {
+        bool gpio = false;
+        {
+            Broche b(gpio);
+            assert(gpio == true);
+        }
+        assert(gpio == false);
+        static_assert(!std::is_copy_constructible<Broche>::value, "doit etre non copiable");
+        static_assert(!std::is_copy_assignable<Broche>::value, "doit etre non copiable");
+        bool g2 = false;
+        try {
+            Broche b(g2);
+            throw 1;
+        } catch (int) {}
+        assert(g2 == false && "le destructeur doit passer meme sur exception");
+        std::cout << "OK\n";
+    }
+  e: |-
+    Trois points que le test vérifie :
+    1. **Symétrie** constructeur/destructeur — c’est tout RAII.
+    2. `= delete` sur copie et affectation : deux `Broche` sur la même GPIO éteindraient la broche à la première destruction. Une ressource unique **ne se copie pas**.
+    3. Le destructeur passe même quand une exception traverse la portée — la garantie fondamentale.
+
+    `explicit` empêche la conversion implicite `Broche b = gpio;` qui ne veut rien dire.
+
+    C’est le squelette exact d’un wrapper de GPIO, de chip-select SPI ou de section critique sur MCU.
+- id: cpp04.5
+  type: qcm
+  level: 3
+  concepts:
+  - raii
+  - destructeur
+  q: Pourquoi une classe destinée à être héritée doit-elle déclarer `virtual ~Base() = default;` ?
+  choices:
+  - t: 'Sinon `delete ptr_base` sur un objet dérivé est un comportement indéfini : le destructeur dérivé n’est pas appelé'
+    ok: true
+    why: Fuite de ressources au mieux, corruption au pire.
+  - t: Pour permettre l’héritage
+    ok: false
+    why: L’héritage marche sans.
+  - t: Pour rendre la classe abstraite
+    ok: false
+    why: C’est `= 0` sur une méthode.
+  - t: Pour éviter le découpage (slicing)
+    ok: false
+    why: Le slicing se règle en interdisant la copie, pas par le destructeur.
+  e: |-
+    ```cpp
+    struct Base { virtual ~Base() = default; };
+    struct Derivee : Base { std::vector<int> gros; };
+
+    std::unique_ptr<Base> p = std::make_unique<Derivee>();
+    // à la destruction : sans virtual, ~Derivee n'est pas appelé → le vector fuit
+    ```
+
+    Règle simple : **une classe de base polymorphe a un destructeur soit `virtual public`, soit `protected non-virtual`** (ce second cas interdit la destruction par pointeur de base).
+
+    Coût : une vtable (un pointeur par objet). Sur MCU, à peser — mais si tu as déjà une méthode virtuelle, la vtable est là de toute façon.
+- id: cpp04.6
+  type: predict
+  level: 2
+  concepts:
+  - raii
+  - unique_ptr
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    #include <memory>
+    struct T {
+        int n;
+        T(int n) : n(n) { std::cout << "+" << n; }
+        ~T() { std::cout << "-" << n; }
+    };
+    int main() {
+        auto a = std::make_unique<T>(1);
+        {
+            auto b = std::make_unique<T>(2);
+            a = std::move(b);
+        }
+        std::cout << "|";
+    }
+  answer: +1+2-1|-2
+  e: |-
+    Décomposition ligne par ligne :
+    1. `+1` : construction de T(1).
+    2. `+2` : construction de T(2).
+    3. `a = std::move(b)` : `a` **abandonne** son T(1) — donc `-1` — et prend possession de T(2). `b` devient nul.
+    4. Fin du bloc : `b` est détruit, mais il ne possède plus rien → rien ne s'affiche.
+    5. `|`, puis fin de `main` : `a` détruit T(2) → `-2`.
+
+    C'est exactement le comportement attendu d'une propriété **unique** : l'affectation par déplacement libère l'ancien objet.
+
+    Détruire un `unique_ptr` nul est parfaitement sûr et ne fait rien — c'est ce qui rend le déplacement inoffensif.
+- id: cpp04.7
+  type: qcm
+  level: 3
+  concepts:
+  - raii
+  q: Pourquoi `std::lock_guard` est-il préférable à `mutex.lock()` / `mutex.unlock()` ?
+  choices:
+  - t: Le déverrouillage est garanti même si une exception traverse la section critique
+    ok: true
+    why: Un `return` anticipé ou un `throw` sauteraient un `unlock()` manuel — et le programme se fige.
+  - t: Il est plus rapide
+    ok: false
+    why: 'Coût identique : c’est une abstraction sans surcoût.'
+  - t: Il permet de verrouiller plusieurs mutex
+    ok: false
+    why: C’est `std::scoped_lock` (C++17), qui évite en plus les interblocages.
+  - t: Il rend le mutex récursif
+    ok: false
+    why: C’est `std::recursive_mutex`, et c’est généralement un signe de mauvaise conception.
+  e: |-
+    ```cpp
+    {
+        std::lock_guard<std::mutex> g(m);   // ou std::scoped_lock g(m); en C++17
+        if (erreur) return;                  // déverrouillé
+        traiter();                           // même si ça lève : déverrouillé
+    }                                        // déverrouillé
+    ```
+
+    Un `unlock()` manqué ne provoque pas un crash mais un **interblocage** : le programme se fige silencieusement. C'est l'un des bugs les plus difficiles à diagnostiquer.
+
+    La famille complète :
+    - `std::lock_guard` — le plus simple, non déplaçable.
+    - `std::unique_lock` — verrouillage différé, transfert, utilisable avec `condition_variable`.
+    - `std::scoped_lock` (C++17) — plusieurs mutex à la fois, sans risque d'interblocage.
+
+    C'est le RAII appliqué à autre chose que la mémoire : le vrai domaine du C++.
+- id: cpp04.8
+  type: bug
+  level: 3
+  concepts:
+  - destructeur
+  q: Cette classe fuit. Clique sur la ligne qui devrait disparaître.
+  lang: cpp
+  code: |-
+    #include <vector>
+    class Journal {
+        std::vector<double>* v_;
+    public:
+        Journal() : v_(new std::vector<double>) {}
+        ~Journal() { delete v_; }
+        void ajouter(double x) { v_->push_back(x); }
+    };
+  bad: 3
+  fix: '    std::vector<double> v_;   // …et supprimer constructeur ET destructeur'
+  e: |-
+    Le pointeur ligne 3 n'apporte **rien** : `std::vector` gère déjà sa mémoire. Il ajoute une allocation, une indirection, un destructeur à écrire — et surtout, il casse la copie : le constructeur de copie généré duplique le **pointeur**, deux `Journal` libèrent le même vecteur → double `delete`.
+
+    C'est la **règle de 0** : si tu n'écris ni destructeur, ni copie, ni déplacement, le compilateur en génère de corrects.
+
+    ```cpp
+    class Journal {
+        std::vector<double> v_;
+    public:
+        void ajouter(double x) { v_.push_back(x); }
+    };
+    ```
+    Copiable, déplaçable, sans fuite, sans une seule ligne de gestion mémoire.
+
+    Tu n'écris les cinq fonctions spéciales **que** si tu enveloppes une ressource non-C++ : un descripteur de fichier, un handle système, un buffer DMA.
+- id: cpp04.9
+  type: cloze
+  level: 2
+  concepts:
+  - unique_ptr
+  q: Crée et transfère la propriété d’un objet polymorphe.
+  lang: cpp
+  tpl: |-
+    #include <memory>
+    #include <vector>
+
+    std::⟦0⟧<Instrument> fabriquer(int type) {
+        if (type == 0) return std::⟦1⟧<Thermocouple>();
+        return std::⟦1⟧<Piranha>();
+    }
+
+    void installer(std::vector<std::⟦0⟧<Instrument>>& bancs) {
+        bancs.push_back(fabriquer(0));   // déplacement implicite
+    }
+  blanks:
+  - - unique_ptr
+  - - make_unique
+  e: |-
+    `std::make_unique<T>(args...)` construit l'objet et le pointeur intelligent en une seule expression : impossible d'oublier le `delete`, et pas de fuite si une autre partie de l'appel lève.
+
+    `unique_ptr` est **déplaçable mais non copiable** : il peut être renvoyé par valeur (le déplacement est implicite sur un temporaire) et stocké dans un `vector`.
+
+    C'est le bon outil pour le polymorphisme : la `vector<unique_ptr<Base>>` évite le **découpage** (slicing) qu'un `vector<Base>` provoquerait.
+
+    ⚠️ La classe `Instrument` doit avoir un **destructeur virtuel**, sinon `~Thermocouple` ne sera jamais appelé.
+
+    Coût de `unique_ptr` : **zéro**. Même taille qu'un pointeur nu, mêmes instructions générées.
+  verify_prelude: |
+    struct Instrument { virtual ~Instrument() = default; };
+    struct Thermocouple : Instrument {};
+    struct Piranha : Instrument {};
+- id: cpp04.10
+  type: predict
+  level: 3
+  concepts:
+  - scope
+  - raii
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    struct Garde {
+        const char* n;
+        ~Garde() { std::cout << n; }
+    };
+    int main() {
+        Garde a{"A"};
+        for (int i = 0; i < 2; ++i) {
+            Garde b{"b"};
+        }
+        Garde c{"C"};
+        std::cout << "|";
+    }
+  answer: bb|CA
+  e: |-
+    `b` est détruit à **chaque itération** : le corps de la boucle est une portée. D'où `bb` avant le `|`.
+
+    `a` et `c` vivent jusqu'à la fin de `main`, détruits dans l'**ordre inverse** de leur construction : `C` puis `A`.
+
+    Cette prévisibilité totale est ce qui distingue le C++ d'un langage à ramasse-miettes : tu sais exactement **quand** la ressource est libérée, à l'instruction près.
+
+    Application directe : un objet `Chrono` déclaré en début de bloc mesure automatiquement la durée du bloc. Un objet `ChipSelect` déclaré avant une transaction SPI la termine à l'accolade fermante, même si la fonction sort par une exception ou un `return` anticipé.
+- id: cpp04.11
+  type: code
+  level: 3
+  concepts:
+  - raii
+  q: 'Écris `Compteur` : le constructeur incrémente un `int&` fourni, le destructeur le décrémente. Non copiable, non déplaçable.'
+  lang: cpp
+  start: |-
+    class Compteur {
+        // ton code
+    };
+  sol: |-
+    class Compteur {
+        int& n_;
+    public:
+        explicit Compteur(int& n) noexcept : n_(n) { ++n_; }
+        ~Compteur() { --n_; }
+
+        Compteur(const Compteur&) = delete;
+        Compteur& operator=(const Compteur&) = delete;
+        Compteur(Compteur&&) = delete;
+        Compteur& operator=(Compteur&&) = delete;
+    };
+  tests: |-
+    #include <cassert>
+    #include <iostream>
+    #include <type_traits>
+    int main() {
+        int n = 0;
+        {
+            Compteur a(n);
+            assert(n == 1);
+            {
+                Compteur b(n);
+                assert(n == 2);
+            }
+            assert(n == 1);
+        }
+        assert(n == 0);
+        static_assert(!std::is_copy_constructible<Compteur>::value, "non copiable");
+        static_assert(!std::is_move_constructible<Compteur>::value, "non deplacable");
+        int m = 0;
+        try { Compteur c(m); throw 1; } catch (int) {}
+        assert(m == 0 && "le destructeur doit passer sur exception");
+        std::cout << "OK\n";
+    }
+  e: |-
+    Le compteur imbriqué vérifie la **symétrie exacte** : chaque construction est compensée par une destruction, dans l'ordre inverse.
+
+    Pourquoi interdire aussi le **déplacement** ici : un `Compteur` déplacé décrémenterait deux fois (une fois pour la source vidée, une fois pour la destination). Contrairement au cas du handle, il n'y a pas d'état « vide » à neutraliser — donc on interdit.
+
+    Note que déclarer les constructeurs de copie `= delete` supprime **aussi** le déplacement implicite ; les deux dernières lignes sont redondantes mais explicites, et c'est mieux : le lecteur ne doit pas avoir à connaître cette règle.
+
+    C'est le motif d'un compteur de sections critiques, de profondeur de récursion, ou de connexions actives.
+- id: cpp04.12
+  type: qcm
+  level: 3
+  concepts:
+  - unique_ptr
+  - raii
+  q: Quel outil RAII pour une ressource C (`FILE*`, handle système) que `unique_ptr` doit fermer avec une fonction dédiée ?
+  choices:
+  - t: '`std::unique_ptr<FILE, decltype(&fclose)>` avec un deleter personnalisé'
+    ok: true
+    why: Le second paramètre de template est le type du deleter.
+  - t: '`std::shared_ptr` uniquement'
+    ok: false
+    why: '`shared_ptr` accepte aussi un deleter, mais il ajoute un compteur atomique inutile ici.'
+  - t: 'Impossible : il faut écrire sa propre classe'
+    ok: false
+    why: Possible et courant, même si une petite classe dédiée est souvent plus lisible.
+  - t: '`std::vector`'
+    ok: false
+    why: Aucun rapport.
+  e: |-
+    ```cpp
+    struct FermerFichier {
+        void operator()(FILE* f) const noexcept { if (f) std::fclose(f); }
+    };
+    using FichierUnique = std::unique_ptr<FILE, FermerFichier>;
+
+    FichierUnique f{std::fopen("mesures.bin", "rb")};
+    if (!f) return erreur();
+    std::fread(buf, 1, n, f.get());
+    // fclose automatique, même sur exception
+    ```
+
+    Le foncteur (`struct` avec `operator()`) est préférable à `decltype(&fclose)` : il est **vide**, donc le `unique_ptr` garde la taille d'un pointeur nu. Un pointeur de fonction, lui, doublerait sa taille.
+
+    Applique le même motif à tout ce que tu ouvres : `libusb_device_handle`, un descripteur `open()`, un contexte de bibliothèque d'instrument. Écrire ce wrapper une fois t'évite des dizaines de fuites.
+- id: cpp04.13
+  type: qcm
+  level: 3
+  concepts:
+  - destructeur
+  q: Pourquoi un destructeur ne doit-il jamais laisser échapper une exception ?
+  choices:
+  - t: 'Les destructeurs sont implicitement `noexcept` : une exception qui s’en échappe appelle `std::terminate`'
+    ok: true
+    why: Et pendant le déroulement d’une autre exception, il n’y a de toute façon aucune sémantique correcte.
+  - t: C’est une convention de style
+    ok: false
+    why: C’est une règle du langage depuis C++11.
+  - t: Parce que les destructeurs ne peuvent pas contenir de `try`
+    ok: false
+    why: Ils le peuvent parfaitement — c’est même la solution.
+  - t: Parce que ça ralentit
+    ok: false
+    why: Aucun rapport avec la performance.
+  e: |-
+    Depuis C++11, un destructeur est `noexcept` par défaut. Une exception qui s'en échappe → `std::terminate` → le programme meurt.
+
+    La raison profonde : si une exception est déjà en cours de propagation et qu'un destructeur en lève une seconde, il y aurait **deux exceptions actives** — le langage n'a pas de sémantique pour ça.
+
+    Le motif correct pour un destructeur qui doit faire une opération faillible :
+    ```cpp
+    ~Fichier() {
+        try {
+            vider_tampon();
+        } catch (...) {
+            // logger, jamais relever
+        }
+    }
+    ```
+
+    Et si l'erreur de fermeture **compte vraiment** (écriture sur disque non confirmée), expose une méthode `fermer()` explicite que l'appelant peut vérifier ; le destructeur ne sert alors que de filet de sécurité. C'est ce que fait `std::ofstream`.
+- id: cpp04.14
+  type: flash
+  level: 2
+  concepts:
+  - raii
+  - scope
+  q: Cite cinq classes RAII de la bibliothèque standard et ce qu’elles libèrent.
+  back: |-
+    | Classe | Ressource libérée |
+    | --- | --- |
+    | `std::vector`, `std::string` | mémoire du tas |
+    | `std::unique_ptr` / `shared_ptr` | un objet alloué dynamiquement |
+    | `std::fstream` | descripteur de fichier |
+    | `std::lock_guard` / `scoped_lock` | verrou d'un mutex |
+    | `std::jthread` (C++20) | joint le thread à la destruction |
+
+    Toutes suivent le même contrat : **acquisition dans le constructeur, libération dans le destructeur, non copiables (ou copie profonde)**.
+  e: |-
+    `std::jthread` illustre bien le progrès : un `std::thread` classique appelle `std::terminate` si tu oublies `join()` avant sa destruction. `jthread` joint automatiquement, et sait même demander l'arrêt via un `stop_token`.
+
+    Le RAII s'applique à tout ce qui a une paire acquérir/libérer : transaction de base de données, alimentation de laboratoire à allumer/éteindre, broche GPIO, chip-select SPI, mode « haute vitesse » d'un instrument.
+
+    Quand tu écris un pilote d'instrument, demande-toi systématiquement : **quelle est la paire ?** Puis enveloppe-la.
+- id: cpp04.15
+  type: parsons
+  level: 3
+  concepts:
+  - raii
+  - unique_ptr
+  q: Reconstitue un wrapper RAII pour une transaction SPI (chip-select bas pendant l’échange).
+  lang: cpp
+  lines:
+  - class TransactionSpi {
+  - '    Gpio& cs_;'
+  - 'public:'
+  - '    explicit TransactionSpi(Gpio& cs) noexcept : cs_(cs) {'
+  - '        cs_.ecrire(false);      // sélection active à l''état bas'
+  - '    }'
+  - '    ~TransactionSpi() {'
+  - '        cs_.ecrire(true);       // désélection, quoi qu''il arrive'
+  - '    }'
+  - '    TransactionSpi(const TransactionSpi&) = delete;'
+  - '    TransactionSpi& operator=(const TransactionSpi&) = delete;'
+  - '};'
+  extra:
+  - '    void fermer() { cs_.ecrire(true); }'
+  - '        cs_.ecrire(true);   // dans le constructeur'
+  e: |-
+    Le motif exact dont tu as besoin pour piloter un capteur SPI :
+
+    ```cpp
+    {
+        TransactionSpi t(cs_capteur);
+        spi.echanger(commande);
+        if (mauvais_crc) return;      // CS remonte quand même
+        lire_reponse();
+    }                                  // CS remonte ici
+    ```
+
+    Sans RAII, chaque `return` et chaque exception laisse le chip-select bas — l'esclave reste sélectionné, le bus est bloqué, et le bug apparaît une fois sur mille, en production.
+
+    Le premier intrus (`fermer()` manuelle) est précisément ce que RAII remplace : une méthode qu'on peut oublier.
+
+    La copie est interdite parce que **la ressource est unique** : deux objets qui désélectionnent la même broche produiraient une désélection prématurée.
+  verify_prelude: |
+    struct Gpio { void ecrire(bool) {} };
+- id: cpp04.16
+  type: predict
+  level: 3
+  concepts:
+  - scope
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    struct A {
+        ~A() { std::cout << "A"; }
+    };
+    struct B {
+        A a;
+        ~B() { std::cout << "B"; }
+    };
+    int main() {
+        { B b; }
+        std::cout << "|";
+        static A s;
+        std::cout << "fin";
+    }
+  answer: BA|finA
+  e: |-
+    Deux règles composées :
+    1. Le destructeur d'une classe s'exécute **d'abord**, puis ceux de ses membres, dans l'ordre inverse de déclaration. D'où `B` puis `A`.
+    2. Les objets `static` locaux sont détruits **après** `main`, dans l'ordre inverse de leur construction. D'où le `A` final, après `"fin"`.
+
+    Cette destruction post-`main` est une source de bugs subtils : si un destructeur statique utilise un autre objet statique déjà détruit, c'est un UB — c'est le fameux « static destruction order fiasco ».
+
+    Remède classique : le singleton de Meyers (`static T& instance() { static T t; return t; }`), qui construit à la première utilisation, ou simplement **ne pas avoir d'état global**.

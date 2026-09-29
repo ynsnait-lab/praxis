@@ -1,0 +1,950 @@
+id: maths
+title: Outils mathématiques de l'ingénieur
+en: Engineering mathematics toolkit
+desc: Ordres de grandeur et unités, trigonométrie, dérivées et intégrales, nombres complexes, vecteurs et rotations, statistiques.
+intro: |
+  Pas de maths pour les maths ici : seulement les outils qui servent tous les jours, chacun relié à un usage concret (une flèche, une impédance, une rotation de platine, une incertitude de mesure).
+
+  C'est le socle des autres domaines : si une formule te paraît obscure ailleurs, la réponse est souvent ici.
+notions:
+  # ------------------------------------------------------------------ ordres de grandeur
+  - id: ma-ordres
+    title: Unités, préfixes et ordres de grandeur
+    en: Units, prefixes and orders of magnitude
+    goal: Convertir sans erreur avec les préfixes SI (y compris au carré et au cube) et vérifier un calcul par les unités et l'ordre de grandeur.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: Le bon sens avant la calculatrice
+          body: |
+            Si ton calcul dit qu'une vis M6 supporte 300 tonnes, ou qu'un moteur de perceuse tourne à 2 tours par minute, tu sais qu'il y a une erreur, avant même de la trouver. Cet instinct s'appelle le sens des **ordres de grandeur**, et il se travaille.
+        - level: 2
+          title: Les préfixes et la notation scientifique
+          body: |
+            | Préfixe | Symbole | Facteur |
+            | --- | --- | --- |
+            | giga | G | 10⁹ |
+            | méga | M | 10⁶ |
+            | kilo | k | 10³ |
+            | milli | m | 10⁻³ |
+            | micro | µ | 10⁻⁶ |
+            | nano | n | 10⁻⁹ |
+            | pico | p | 10⁻¹² |
+
+            **Notation scientifique** : $4{,}7 \times 10^{-8}$ F = 47 nF. On change de préfixe en déplaçant la virgule de 3 en 3.
+
+            **Attention aux unités au carré et au cube** : le préfixe s'applique **avant** la puissance. $1\ \text{mm}^2 = (10^{-3}\ \text{m})^2 = 10^{-6}\ \text{m}^2$, et $1\ \text{cm}^3 = 10^{-6}\ \text{m}^3$.
+          check:
+            q: Combien de mm² dans 1 m² ?
+            choices:
+              - t: 1 000 000
+                ok: true
+                why: 1 m = 1000 mm, donc 1 m² = 1000 × 1000 mm².
+              - t: "1000"
+                why: Le facteur 1000 s'applique à chaque dimension, donc deux fois.
+              - t: "100"
+                why: 100, c'est le nombre de dm² dans un m² (10 × 10).
+        - level: 3
+          title: Vérifier par les unités
+          body: |
+            **Analyse dimensionnelle** : une formule juste est homogène. Si tu calcules une force, le résultat doit sortir en kg·m/s² = N. Si les unités ne collent pas, la formule est fausse (ou il manque une conversion).
+
+            Exemple : la contrainte $\sigma = F/S$ en N/mm² = MPa. Une flèche $f = F L^3/(48 E I)$ : N × mm³ / (N/mm² × mm⁴) = mm. Les unités confirment la formule.
+
+            **Repères utiles** :
+            - une année ≈ $\pi \times 10^7$ s ;
+            - 1 tonne-force ≈ 10 kN ;
+            - l'épaisseur d'un cheveu ≈ 50 à 100 µm ; une feuille de papier ≈ 0,1 mm ;
+            - un acier de construction : limite élastique de l'ordre de 250 à 350 MPa, module d'Young ≈ 210 GPa.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Le système SI** repose sur sept unités de base (m, kg, s, A, K, mol, cd) ; toutes les autres en dérivent (N = kg·m/s², Pa = N/m², J = N·m, W = J/s, V = W/A, Ω = V/A).
+
+            **Estimation de Fermi** : on décompose une grandeur inconnue en facteurs grossièrement estimables. L'erreur de chaque facteur se compense souvent, et on obtient le bon ordre de grandeur. C'est l'outil du « est-ce que ça peut marcher ? » avant tout calcul détaillé.
+
+            **Chiffres significatifs** : un résultat ne peut pas être plus précis que ses données. Annoncer « 12,3456 mm » à partir d'une mesure au dixième n'a pas de sens.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Travaille en **mm, N, MPa** en mécanique : les unités sont cohérentes (N/mm² = MPa) et évitent les puissances de 10.
+            - Écris toujours l'unité à côté de chaque nombre dans tes calculs, et vérifie-la à la fin.
+            - Avant de valider un résultat, pose-toi la question : « est-ce plausible ? ». Si non, cherche l'erreur avant d'aller plus loin.
+      recap:
+        - "G 10⁹, M 10⁶, k 10³, m 10⁻³, µ 10⁻⁶, n 10⁻⁹, p 10⁻¹²."
+        - "Au carré, au cube : 1 mm² = 10⁻⁶ m², 1 cm³ = 10⁻⁶ m³."
+        - "Une formule juste est homogène : vérifie l'unité du résultat."
+        - "Mécanique : mm, N, MPa (N/mm²), cohérents entre eux."
+        - "Toujours se demander si le résultat est plausible."
+      pieges: [ing-prefixe-carre, ing-mm2-mpa]
+    vocab:
+      - ordre de grandeur = order of magnitude
+      - notation scientifique = scientific notation
+      - préfixe = prefix
+      - analyse dimensionnelle = dimensional analysis
+      - homogène = dimensionally consistent
+      - chiffres significatifs = significant figures
+      - estimation = estimate (back-of-the-envelope)
+      - unité de base = base unit
+    exercises:
+      - id: ma-ordres.1
+        type: numeric
+        level: 1
+        q: Convertis 2,5 µm en millimètres.
+        answer: 0.0025
+        tol: 0.001
+        unit: mm
+        calc: 2.5e-6 / 1e-3
+        trap_values:
+          - v: 2.5
+            why: µ et m sont deux préfixes différents, séparés d'un facteur 1000.
+          - v: 2500
+            why: Dans le mauvais sens ; 1 µm est plus petit que 1 mm.
+        e: 1 µm = 0,001 mm, donc 2,5 µm = 0,0025 mm.
+      - id: ma-ordres.2
+        type: numeric
+        level: 1
+        q: Convertis 47 nF en µF.
+        answer: 0.047
+        tol: 0.001
+        unit: µF
+        calc: 47e-9 / 1e-6
+        e: 1 nF = 0,001 µF.
+      - id: ma-ordres.3
+        type: numeric
+        level: 2
+        q: Une section de 25 mm², en m² ?
+        answer: 0.000025
+        tol: 0.001
+        unit: m²
+        calc: 25 * (1e-3)**2
+        trap_values:
+          - v: 0.025
+            why: Le facteur 10⁻³ s'applique aux deux dimensions ; 1 mm² = 10⁻⁶ m².
+        piege: ing-prefixe-carre
+        e: $25 \times 10^{-6} = 2{,}5 \times 10^{-5}$ m².
+      - id: ma-ordres.4
+        type: numeric
+        level: 1
+        q: Période d'un signal de 3,2 GHz, en ns ?
+        answer: 0.3125
+        tol: 0.001
+        unit: ns
+        calc: 1 / 3.2e9 * 1e9
+        e: $1/3{,}2 \times 10^9 = 3{,}125 \times 10^{-10}$ s $= 0{,}3125$ ns.
+      - id: ma-ordres.5
+        type: numeric
+        level: 2
+        q: Environ combien de secondes dans une année ? (donne l'ordre de grandeur, en millions)
+        answer: 31.54
+        tol: 0.02
+        unit: millions de s
+        calc: 365.25 * 86400 / 1e6
+        e: ≈ 31,5 millions, soit à peu près π × 10⁷ s, un repère facile à retenir.
+      - id: ma-ordres.6
+        type: qcm
+        level: 2
+        q: Laquelle de ces formules est fausse, d'après les unités ? (E en MPa, I en mm⁴, F en N, L en mm)
+        choices:
+          - t: f = F·L²/(E·I), qui donnerait un nombre sans unité
+            ok: true
+          - t: f = F·L³/(48·E·I), qui donne des mm
+            why: N·mm³/(N/mm²·mm⁴) = mm, c'est homogène.
+          - t: σ = F/S, qui donne des MPa
+            why: N/mm² = MPa, c'est homogène.
+        e: E·I s'exprime en N/mm² × mm⁴ = N·mm², comme F·L². Leur rapport est sans unité, il ne peut pas être une flèche (une longueur). La bonne formule a L³.
+      - id: ma-ordres.7
+        type: flash
+        level: 1
+        q: Donne les préfixes de 10⁻¹² à 10⁹ avec leur symbole.
+        back: |
+          pico p 10⁻¹² ; nano n 10⁻⁹ ; micro µ 10⁻⁶ ; milli m 10⁻³ ; kilo k 10³ ; méga M 10⁶ ; giga G 10⁹.
+        e: Attention à la casse, m (milli) et M (méga) diffèrent d'un facteur 10⁹.
+  # ------------------------------------------------------------------ trigo
+  - id: ma-trigo
+    title: Trigonométrie et petits angles
+    en: Trigonometry and small angles
+    goal: Projeter une force, passer des degrés aux radians, utiliser l'approximation des petits angles et atan2.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: L'échelle contre le mur
+          body: |
+            Une échelle posée contre un mur forme un triangle rectangle avec le mur et le sol. Plus on l'incline, plus son pied s'éloigne du mur et moins elle monte haut. La **trigonométrie** relie ces longueurs à l'angle.
+        - level: 2
+          title: Sinus, cosinus, tangente
+          body: |
+            Dans un triangle rectangle d'angle $\theta$ :
+            - $\cos\theta$ = côté adjacent / hypoténuse ;
+            - $\sin\theta$ = côté opposé / hypoténuse ;
+            - $\tan\theta$ = opposé / adjacent.
+
+            Usage le plus courant : **projeter** une force ou un vecteur. Une force $F$ inclinée de $\theta$ par rapport à l'horizontale a une composante horizontale $F\cos\theta$ et verticale $F\sin\theta$.
+
+            **Radians** : un tour complet = $2\pi$ rad = 360°. Les fonctions `sin`, `cos` des langages de programmation attendent des **radians**.
+          check:
+            q: En Python, que vaut `math.sin(30)` ?
+            choices:
+              - t: Environ −0,988, car 30 est interprété en radians
+                ok: true
+              - t: 0,5
+                why: sin(30°) = 0,5, mais math.sin attend des radians ; il faut math.sin(math.radians(30)).
+              - t: Une erreur
+                why: Le calcul est valide, il est juste fait en radians.
+        - level: 3
+          title: Les formules utiles
+          body: |
+            $$\theta_{rad} = \theta_{deg} \times \frac{\pi}{180} \qquad \text{arc} = r\,\theta_{rad}$$
+
+            **Petits angles** (en radians, en dessous de ~0,1 rad ≈ 6°) : $\sin\theta \approx \tan\theta \approx \theta$ et $\cos\theta \approx 1 - \theta^2/2$.
+
+            Conséquence pratique : **1 mrad à 1 m, c'est 1 mm**. Un défaut d'angle de 0,1 mrad sur un bras de 10 m donne 1 mm d'écart en bout.
+
+            Repères : 1° ≈ 17,5 mrad ; 1 seconde d'arc ≈ 4,85 µrad.
+
+            **Angle à partir de coordonnées** : `math.atan2(y, x)` donne l'angle du point (x, y) dans le bon quadrant (−180° à 180°), là où `atan(y/x)` se trompe dès que x est négatif (et plante si x = 0).
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Pourquoi les radians ?** Parce qu'avec eux, la dérivée de $\sin x$ est simplement $\cos x$, et l'arc vaut $r\theta$ sans facteur parasite. Toutes les formules de la physique (vitesse angulaire, oscillations, séries de Taylor) supposent des radians.
+
+            **Petits angles** : ce sont les premiers termes des séries de Taylor, $\sin\theta = \theta - \theta^3/6 + \dots$. L'erreur relative de $\sin\theta \approx \theta$ vaut environ $\theta^2/6$ : 0,2 % à 0,1 rad.
+
+            **Composition de rotations** : les rotations dans le plan s'additionnent ; dans l'espace, elles ne commutent pas (tourner autour de x puis de y ≠ autour de y puis de x). D'où les matrices de rotation (notion vecteurs).
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Alignement optique ou mécanique : raisonne en microradians et en bras de levier (1 µrad × 10 m = 10 µm).
+            - Vérifie le **mode** de ta calculatrice (DEG ou RAD) avant chaque calcul d'angle.
+            - Pour un angle calculé à partir de deux mesures (position sur deux axes, vecteur de force), utilise systématiquement `atan2`.
+      recap:
+        - "cos = adjacent/hypoténuse, sin = opposé/hypoténuse, tan = opposé/adjacent."
+        - "θ_rad = θ_deg × π/180 ; les fonctions de programmation attendent des radians."
+        - "Petits angles : sin θ ≈ tan θ ≈ θ (rad) ; 1 mrad × 1 m = 1 mm."
+        - "1° ≈ 17,5 mrad ; 1″ ≈ 4,85 µrad."
+        - "Angle d'un point : atan2(y, x), jamais atan(y/x)."
+      pieges: [ing-radians-degres, ing-atan2]
+    vocab:
+      - sinus, cosinus, tangente = sine, cosine, tangent
+      - hypoténuse = hypotenuse
+      - radian = radian
+      - approximation des petits angles = small-angle approximation
+      - seconde d'arc = arcsecond
+      - bras de levier = lever arm
+      - composante = component
+      - quadrant = quadrant
+    exercises:
+      - id: ma-trigo.1
+        type: numeric
+        level: 1
+        q: Une force de 100 N est inclinée de 30° par rapport à l'horizontale. Composante horizontale ?
+        answer: 86.6
+        tol: 0.01
+        unit: N
+        calc: 100 * cos(radians(30))
+        trap_values:
+          - v: 50
+            why: C'est la composante verticale (sin 30°).
+          - v: 15.43
+            why: Tu as calculé cos(30) avec 30 en radians. Convertis en radians d'abord (ou mets la calculatrice en degrés).
+        e: $100 \cos 30° \approx 86{,}6$ N.
+      - id: ma-trigo.2
+        type: numeric
+        level: 1
+        q: Convertis 45° en radians.
+        answer: 0.7854
+        tol: 0.001
+        unit: rad
+        calc: radians(45)
+        e: $45 \times \pi/180 = \pi/4 \approx 0{,}785$ rad.
+      - id: ma-trigo.3
+        type: numeric
+        level: 2
+        q: Un faisceau dévié de 1 mrad parcourt 10 m. De combien s'est-il décalé en bout, en mm ?
+        answer: 10
+        tol: 0.01
+        unit: mm
+        calc: 1e-3 * 10 * 1000
+        e: Petits angles, décalage ≈ L × θ = 10 m × 0,001 = 10 mm.
+      - id: ma-trigo.4
+        type: numeric
+        level: 2
+        q: Une rampe monte de 50 mm sur 1 m de longueur horizontale. Son angle, en degrés ?
+        answer: 2.862
+        tol: 0.01
+        unit: °
+        calc: degrees(atan(50 / 1000))
+        e: $\arctan(0{,}05) \approx 0{,}05$ rad ≈ 2,86°.
+      - id: ma-trigo.5
+        type: numeric
+        level: 2
+        q: Combien vaut une seconde d'arc, en µrad ?
+        answer: 4.848
+        tol: 0.01
+        unit: µrad
+        calc: radians(1 / 3600) * 1e6
+        e: $1'' = 1/3600$ degré $= \pi/(180 \times 3600) \approx 4{,}85$ µrad.
+      - id: ma-trigo.6
+        type: qcm
+        level: 2
+        q: Un capteur donne x = −1 et y = 1. `math.degrees(math.atan(y / x))` renvoie −45°. Quel est l'angle réel du point ?
+        piege: ing-atan2
+        choices:
+          - t: 135°, que donne math.atan2(y, x)
+            ok: true
+          - t: −45°
+            piege: true
+            why: atan(y/x) ne distingue pas (−1, 1) de (1, −1) ; il perd le quadrant.
+          - t: 45°
+            why: Le point est à gauche de l'axe vertical (x < 0), dans le deuxième quadrant.
+        e: atan2 utilise les signes de x et de y séparément pour retrouver le bon quadrant.
+      - id: ma-trigo.7
+        type: flash
+        level: 1
+        q: Qu'est-ce que l'approximation des petits angles et quand l'utiliser ?
+        back: |
+          Pour θ petit, exprimé en **radians** : sin θ ≈ tan θ ≈ θ et cos θ ≈ 1 − θ²/2. Erreur de l'ordre de θ²/6 (0,2 % à 0,1 rad ≈ 6°).
+
+          Usages : alignements, déviations de faisceau, petites rotations de platines, oscillations de pendule.
+        e: Règle mnémotechnique, 1 mrad à 1 m donne 1 mm.
+  # ------------------------------------------------------------------ dérivées
+  - id: ma-derivees
+    title: Dérivées et intégrales, sans douleur
+    en: Derivatives and integrals, painlessly
+    goal: Interpréter une dérivée comme une vitesse de variation et une intégrale comme une accumulation, et les calculer sur des données.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Le compteur de vitesse et le compteur kilométrique
+          body: |
+            Le **compteur de vitesse** d'une voiture dit à quelle vitesse la distance augmente, à cet instant : c'est une **dérivée**. Le **compteur kilométrique** additionne, instant après instant, la vitesse multipliée par le temps : c'est une **intégrale**.
+
+            Les deux sont l'inverse l'un de l'autre.
+        - level: 2
+          title: Pente et aire
+          body: |
+            - **Dérivée** : la **pente** d'une courbe, le taux de variation instantané. La vitesse est la dérivée de la position, l'accélération celle de la vitesse, un débit celle d'un volume.
+            - **Intégrale** : l'**aire** sous une courbe, l'accumulation. La distance est l'intégrale de la vitesse, l'énergie celle de la puissance, un volume celle d'un débit.
+
+            Sur des données mesurées, on les calcule simplement :
+            - dérivée ≈ $\dfrac{\Delta y}{\Delta t}$ entre deux points ;
+            - intégrale ≈ somme des $y \times \Delta t$ (rectangles ou trapèzes).
+          check:
+            q: Une courbe de consommation électrique donne la puissance au cours de la journée. Comment obtenir l'énergie consommée ?
+            choices:
+              - t: En calculant l'aire sous la courbe (intégrale de la puissance dans le temps)
+                ok: true
+              - t: En prenant la pente de la courbe
+                why: La pente dirait comment la puissance varie, pas combien d'énergie a été consommée.
+              - t: En prenant la valeur maximale
+                why: La puissance crête ne dit rien de la durée.
+        - level: 3
+          title: Les formules
+          body: |
+            Quelques dérivées à connaître :
+
+            | Fonction | Dérivée |
+            | --- | --- |
+            | $t^n$ | $n\,t^{n-1}$ |
+            | $\sin(\omega t)$ | $\omega\cos(\omega t)$ |
+            | $e^{-t/\tau}$ | $-\dfrac{1}{\tau} e^{-t/\tau}$ |
+
+            **Exemple** : $x(t) = 3t^2$ (m) donne $v(t) = 6t$, soit 12 m/s à $t = 2$ s.
+
+            **Méthode des trapèzes** : $\int y\,dt \approx \sum \dfrac{y_i + y_{i+1}}{2}\,\Delta t$.
+
+            Sur des mesures réelles :
+          code: |
+            # Position d'un chariot mesurée toutes les 0,1 s (en mm)
+            t = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
+            x = [0.0, 0.5, 2.0, 4.5, 8.0, 12.5]          # x = 50·t²
+
+            # Dérivée : vitesse moyenne sur chaque intervalle (différences finies), en mm/s
+            v = [(x[i + 1] - x[i]) / (t[i + 1] - t[i]) for i in range(len(t) - 1)]
+            print("vitesses :", [round(vi, 1) for vi in v])
+
+            # Intégrale : somme vitesse × durée = distance parcourue
+            d = sum(vi * (t[i + 1] - t[i]) for i, vi in enumerate(v))
+            print("distance :", round(d, 2), "mm")
+          run: true
+          out: |
+            vitesses : [5.0, 15.0, 25.0, 35.0, 45.0]
+            distance : 12.5 mm
+          after: |
+            La vitesse augmente régulièrement : l'accélération (dérivée de la vitesse) est constante, 100 mm/s². Et en réintégrant la vitesse, on retrouve bien les 12,5 mm parcourus.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Définition** : $\dfrac{dy}{dt} = \lim\limits_{\Delta t \to 0} \dfrac{y(t + \Delta t) - y(t)}{\Delta t}$ ; l'intégrale est la limite de la somme des rectangles quand ils deviennent infiniment fins. Le **théorème fondamental** relie les deux : intégrer une dérivée redonne la fonction (à une constante près).
+
+            **Dériver amplifie le bruit** : sur des mesures bruitées, chaque petite fluctuation devient une grosse pente. On lisse avant de dériver, ou on dérive sur un intervalle plus large.
+
+            **Intégrer fait dériver les erreurs** : un petit biais constant sur une vitesse, intégré, donne une position qui dérive sans fin (c'est le problème des centrales inertielles et des accéléromètres).
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Débit → volume, puissance → énergie, courant → charge (Ah d'une batterie) : autant d'intégrales calculées par les compteurs.
+            - Vitesse à partir d'un codeur : dérivée de la position, à filtrer.
+            - En Python : `numpy.gradient` pour dériver, `numpy.trapz` (ou `scipy.integrate.trapezoid`) pour intégrer des données.
+      recap:
+        - "Dérivée = pente = vitesse de variation ; intégrale = aire = accumulation."
+        - "Position → vitesse → accélération (dériver) ; et l'inverse (intégrer)."
+        - "Sur des données : Δy/Δt ; somme des y·Δt (trapèzes)."
+        - "Dériver amplifie le bruit ; intégrer accumule les biais."
+        - "(tⁿ)' = n·tⁿ⁻¹ ; (sin ωt)' = ω·cos ωt."
+      pieges: [ing-derivee-bruit]
+    vocab:
+      - dérivée = derivative
+      - intégrale = integral
+      - pente = slope
+      - taux de variation = rate of change
+      - différences finies = finite differences
+      - méthode des trapèzes = trapezoidal rule
+      - aire sous la courbe = area under the curve
+      - dérive = drift
+    exercises:
+      - id: ma-derivees.1
+        type: numeric
+        level: 1
+        q: La position d'un objet vaut x(t) = 3t² (en m). Sa vitesse à t = 2 s ?
+        answer: 12
+        tol: 0.01
+        unit: m/s
+        calc: 6 * 2
+        trap_values:
+          - v: 6
+            why: La dérivée de 3t² est 6t, à évaluer en t = 2.
+        e: $v = dx/dt = 6t = 12$ m/s.
+      - id: ma-derivees.2
+        type: numeric
+        level: 1
+        q: Un chariot roule à 2 m/s constants pendant 5 s. Distance parcourue ?
+        answer: 10
+        tol: 0.01
+        unit: m
+        calc: 2 * 5
+        e: L'aire sous la courbe de vitesse est un rectangle, 2 × 5 = 10 m.
+      - id: ma-derivees.3
+        type: numeric
+        level: 2
+        q: Une puissance mesurée vaut 100 W, puis 200 W une heure plus tard, puis 300 W encore une heure après. Énergie consommée sur ces deux heures (trapèzes), en Wh ?
+        answer: 400
+        tol: 0.01
+        unit: Wh
+        calc: (100 + 200) / 2 * 1 + (200 + 300) / 2 * 1
+        trap_values:
+          - v: 600
+            why: Tu as additionné les trois puissances. Il faut l'aire sous la courbe, intervalle par intervalle.
+        e: (100 + 200)/2 × 1 h + (200 + 300)/2 × 1 h = 150 + 250 = 400 Wh.
+      - id: ma-derivees.4
+        type: numeric
+        level: 2
+        q: Une batterie fournit 2 A pendant 30 min puis 0,5 A pendant 2 h. Charge débitée, en Ah ?
+        answer: 2
+        tol: 0.01
+        unit: Ah
+        calc: 2 * 0.5 + 0.5 * 2
+        e: L'intégrale du courant dans le temps, 1 Ah + 1 Ah = 2 Ah.
+      - id: ma-derivees.5
+        type: qcm
+        level: 2
+        q: On calcule une vitesse en dérivant, point par point, une position mesurée avec du bruit. Que se passe-t-il ?
+        piege: ing-derivee-bruit
+        choices:
+          - t: La vitesse obtenue est très bruitée ; il faut lisser ou dériver sur un intervalle plus large
+            ok: true
+          - t: Le bruit disparaît avec la dérivée
+            piege: true
+            why: C'est l'inverse, la dérivation amplifie les variations rapides.
+          - t: La vitesse est décalée d'une constante
+            why: Un décalage constant de position disparaît à la dérivation, mais le bruit, lui, est amplifié.
+        e: Une variation de 0,01 mm entre deux points à 1 ms donne 10 mm/s de « vitesse » parasite.
+      - id: ma-derivees.6
+        type: flash
+        level: 1
+        q: Donne trois couples grandeur / dérivée et trois couples grandeur / intégrale.
+        back: |
+          Dérivées : position → vitesse ; vitesse → accélération ; volume → débit.
+          Intégrales : vitesse → distance ; puissance → énergie ; courant → charge (Ah).
+        e: Dériver, c'est « à quelle vitesse ça change » ; intégrer, c'est « combien en tout ».
+  # ------------------------------------------------------------------ complexes
+  - id: ma-complexes
+    title: Nombres complexes et jω
+    en: Complex numbers and jω
+    goal: Manipuler module et argument, et utiliser les complexes pour calculer une impédance en alternatif.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Une flèche qui tourne
+          body: |
+            Imagine une aiguille qui tourne à vitesse constante. Sa projection sur l'axe horizontal monte et descend comme une sinusoïde. Un **nombre complexe** décrit cette aiguille : sa **longueur** (le module) et son **angle** (l'argument). Toute l'électricité alternative se calcule ainsi.
+        - level: 2
+          title: Deux nombres en un
+          body: |
+            Un complexe s'écrit $z = a + jb$, avec $j^2 = -1$ (les électriciens écrivent $j$ pour ne pas confondre avec le courant $i$). On le représente comme un point ou une flèche dans un plan :
+            - **module** $|z| = \sqrt{a^2 + b^2}$ : la longueur ;
+            - **argument** $\varphi = \text{atan2}(b, a)$ : l'angle.
+
+            L'intérêt : **multiplier deux complexes multiplie les modules et additionne les angles**. Multiplier par $j$, c'est tourner de 90°.
+
+            En alternatif, une tension sinusoïdale devient un complexe (amplitude et phase), et les bobines et condensateurs deviennent de simples « résistances complexes » : les **impédances**.
+          check:
+            q: Que fait la multiplication d'un complexe par j ?
+            choices:
+              - t: Elle le fait tourner de 90° sans changer son module
+                ok: true
+              - t: Elle double son module
+                why: Le module de j vaut 1, donc le module ne change pas.
+              - t: Elle le rend négatif
+                why: Ça, c'est multiplier par j deux fois (j² = −1, rotation de 180°).
+        - level: 3
+          title: Les formules
+          body: |
+            $$z = a + jb = |z|\,e^{j\varphi} = |z|(\cos\varphi + j\sin\varphi)$$
+
+            **Impédances** à la pulsation $\omega = 2\pi f$ :
+            $$Z_R = R \qquad Z_L = jL\omega \qquad Z_C = \frac{1}{jC\omega} = -\frac{j}{C\omega}$$
+            En série, elles s'additionnent ; en parallèle, leurs inverses s'additionnent, exactement comme des résistances.
+
+            **Exemple** : $R = 100$ Ω en série avec une bobine telle que $L\omega = 100$ Ω : $Z = 100 + 100j$, $|Z| \approx 141$ Ω, déphasage de 45°.
+
+            Python connaît les complexes :
+          code: |
+            import cmath, math
+
+            R, C = 1000.0, 1e-6                      # RC série : 1 kΩ, 1 µF
+            f = 1 / (2 * math.pi * R * C)            # fréquence de coupure ≈ 159 Hz
+            w = 2 * math.pi * f
+            Z = R + 1 / (1j * w * C)                 # impédance complexe
+            print(f"f = {f:.1f} Hz")
+            print(f"Z = {Z.real:.0f} {Z.imag:+.0f}j Ω")
+            print(f"|Z| = {abs(Z):.0f} Ω, phase = {math.degrees(cmath.phase(Z)):.1f}°")
+          run: true
+          out: |
+            f = 159.2 Hz
+            Z = 1000 -1000j Ω
+            |Z| = 1414 Ω, phase = -45.0°
+        - level: 4
+          title: Sous le capot
+          body: |
+            **La formule d'Euler** $e^{j\varphi} = \cos\varphi + j\sin\varphi$ relie exponentielle et trigonométrie. Une sinusoïde $\hat U\cos(\omega t + \varphi)$ est la partie réelle de $\hat U e^{j\varphi} e^{j\omega t}$ : tout le circuit tourne au même $e^{j\omega t}$, qu'on peut oublier, et il ne reste que l'amplitude et la phase de chaque grandeur.
+
+            **Pourquoi $jL\omega$ ?** La tension d'une bobine vaut $L\,di/dt$. Dériver $e^{j\omega t}$ revient à multiplier par $j\omega$ : les équations différentielles deviennent des équations algébriques. C'est aussi la base de la **transformée de Laplace** et des fonctions de transfert en automatique ($s = j\omega$).
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Filtres, impédances, fonctions de transfert, diagrammes de Bode : tout se calcule avec des complexes.
+            - En Python, `1j` est l'unité imaginaire, `abs(z)` le module, `cmath.phase(z)` l'argument (en radians).
+            - En traitement du signal, la FFT renvoie des complexes : le module donne l'amplitude de chaque fréquence, l'argument sa phase.
+      recap:
+        - "z = a + jb ; |z| = √(a² + b²) ; φ = atan2(b, a)."
+        - "Multiplier : modules multipliés, angles additionnés ; × j = rotation de 90°."
+        - "Z_R = R, Z_L = jLω, Z_C = 1/(jCω) ; série/parallèle comme des résistances."
+        - "Euler : e^(jφ) = cos φ + j sin φ."
+        - "Dériver en régime sinusoïdal = multiplier par jω."
+      pieges: [ing-2pi]
+    vocab:
+      - nombre complexe = complex number
+      - partie réelle / imaginaire = real / imaginary part
+      - module = modulus (magnitude)
+      - argument = argument (phase angle)
+      - impédance = impedance
+      - formule d'Euler = Euler's formula
+      - pulsation = angular frequency
+      - fonction de transfert = transfer function
+    exercises:
+      - id: ma-complexes.1
+        type: numeric
+        level: 1
+        q: Module du complexe 3 + 4j ?
+        answer: 5
+        tol: 0.01
+        calc: sqrt(3**2 + 4**2)
+        trap_values:
+          - v: 7
+            why: Le module n'est pas la somme des parties ; c'est √(a² + b²).
+        e: $\sqrt{9 + 16} = 5$.
+      - id: ma-complexes.2
+        type: numeric
+        level: 1
+        q: Argument du complexe 1 + j, en degrés ?
+        answer: 45
+        tol: 0.01
+        unit: °
+        calc: degrees(atan2(1, 1))
+        e: Parties réelle et imaginaire égales, 45°.
+      - id: ma-complexes.3
+        type: numeric
+        level: 2
+        q: "R = 100 Ω en série avec une bobine d'impédance 100 Ω (Lω = 100). Module de l'impédance totale ?"
+        answer: 141.4
+        tol: 0.01
+        unit: Ω
+        calc: sqrt(100**2 + 100**2)
+        trap_values:
+          - v: 200
+            why: R et jLω sont en quadrature ; on additionne les complexes, pas les modules.
+        e: $|100 + 100j| = 100\sqrt 2 \approx 141$ Ω.
+      - id: ma-complexes.4
+        type: numeric
+        level: 2
+        q: Impédance d'un condensateur de 1 µF à 1 kHz, en module (Ω) ?
+        answer: 159.2
+        tol: 0.01
+        unit: Ω
+        calc: 1 / (2 * pi * 1000 * 1e-6)
+        trap_values:
+          - v: 1000
+            why: Tu as oublié le 2π, ω = 2πf.
+        piege: ing-2pi
+        e: $1/(2\pi \times 1000 \times 10^{-6}) \approx 159$ Ω.
+      - id: ma-complexes.5
+        type: qcm
+        level: 2
+        q: On multiplie deux complexes de modules 2 et 3 et d'arguments 30° et 60°. Le résultat a…
+        choices:
+          - t: un module 6 et un argument 90°
+            ok: true
+          - t: un module 5 et un argument 90°
+            why: Les modules se multiplient.
+          - t: un module 6 et un argument 1800°
+            why: Les arguments s'additionnent.
+        e: $2e^{j30°} \times 3e^{j60°} = 6e^{j90°} = 6j$.
+      - id: ma-complexes.6
+        type: flash
+        level: 2
+        q: Écris la formule d'Euler et explique pourquoi elle sert en électricité.
+        back: |
+          e^(jφ) = cos φ + j sin φ.
+
+          Une sinusoïde s'écrit comme la partie réelle d'une exponentielle complexe. Dans un circuit linéaire, toutes les grandeurs tournent à la même vitesse e^(jωt) ; on ne garde que l'amplitude et la phase de chacune, et dériver revient à multiplier par jω. Les équations différentielles deviennent de l'algèbre.
+        e: C'est l'origine des impédances jLω et 1/(jCω).
+  # ------------------------------------------------------------------ vecteurs
+  - id: ma-vecteurs
+    title: Vecteurs, produits et rotations
+    en: Vectors, products and rotations
+    goal: Utiliser produit scalaire et produit vectoriel, et appliquer une matrice de rotation.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Pousser une porte
+          body: |
+            Pour ouvrir une porte, il vaut mieux pousser loin des gonds et perpendiculairement à la porte. Pousser en biais ou près des gonds, c'est gaspiller son effort. La **direction** d'une force compte autant que son intensité : c'est ce que décrivent les **vecteurs**.
+        - level: 2
+          title: Deux produits, deux usages
+          body: |
+            Un vecteur a une direction, un sens et une longueur ; on le note par ses composantes $(x, y, z)$.
+
+            - **Produit scalaire** $\vec a \cdot \vec b$ : un **nombre**, qui mesure « combien les deux vecteurs vont dans le même sens ». Il sert à **projeter** (travail d'une force, composante le long d'un axe) et à calculer un **angle**.
+            - **Produit vectoriel** $\vec a \times \vec b$ : un **vecteur**, perpendiculaire aux deux, dont la longueur mesure « combien ils sont perpendiculaires ». Il sert à calculer un **moment** ($\vec M = \vec r \times \vec F$) et une normale.
+
+            Une **matrice de rotation** fait tourner des vecteurs sans les déformer.
+          check:
+            q: Deux vecteurs non nuls ont un produit scalaire nul. Qu'en déduis-tu ?
+            choices:
+              - t: Ils sont perpendiculaires
+                ok: true
+              - t: Ils sont parallèles
+                why: Deux vecteurs parallèles ont un produit vectoriel nul, pas un produit scalaire nul.
+              - t: L'un des deux est nul
+                why: Ils sont non nuls par hypothèse.
+        - level: 3
+          title: Les formules
+          body: |
+            $$\vec a \cdot \vec b = a_x b_x + a_y b_y + a_z b_z = |\vec a|\,|\vec b|\cos\theta$$
+
+            $$\vec a \times \vec b = (a_y b_z - a_z b_y,\ a_z b_x - a_x b_z,\ a_x b_y - a_y b_x) \qquad |\vec a \times \vec b| = |\vec a|\,|\vec b|\sin\theta$$
+
+            **Rotation d'un angle θ dans le plan** :
+            $$\begin{pmatrix} x' \\ y' \end{pmatrix} = \begin{pmatrix} \cos\theta & -\sin\theta \\ \sin\theta & \cos\theta \end{pmatrix} \begin{pmatrix} x \\ y \end{pmatrix}$$
+
+            **Exemple de moment** : une force de 50 N selon y appliquée à 0,2 m selon x du pivot donne $M_z = 0{,}2 \times 50 = 10$ N·m.
+          code: |
+            import math
+
+            def tourner(x, y, angle_deg):
+                a = math.radians(angle_deg)            # les fonctions trigonométriques veulent des radians
+                return (x * math.cos(a) - y * math.sin(a),
+                        x * math.sin(a) + y * math.cos(a))
+
+            for angle in (30, 90, 180):
+                xr, yr = tourner(2.0, 0.0, angle)
+                print(f"(2, 0) tourné de {angle:3d}° → ({xr:6.3f}, {yr:6.3f})")
+          run: true
+          out: |
+            (2, 0) tourné de  30° → ( 1.732,  1.000)
+            (2, 0) tourné de  90° → ( 0.000,  2.000)
+            (2, 0) tourné de 180° → (-2.000,  0.000)
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Propriétés d'une matrice de rotation** : ses colonnes sont des vecteurs unitaires perpendiculaires (matrice **orthogonale**), son déterminant vaut +1, et son inverse est sa **transposée** (tourner de −θ). Enchaîner deux rotations revient à multiplier leurs matrices, dans l'ordre.
+
+            **En 3D**, les rotations autour de x, y et z ne **commutent pas** : l'ordre compte. Les angles d'Euler (trois rotations successives) dépendent d'une convention qu'il faut toujours préciser. En robotique et en infographie, on utilise aussi les **quaternions**, plus robustes.
+
+            **Changement de repère** : passer des coordonnées d'un repère « outil » à un repère « machine », c'est appliquer une rotation puis une translation. C'est le quotidien des robots, des diffractomètres et des platines multi-axes.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Moment d'une force : $\vec r \times \vec F$, avec $\vec r$ du point de calcul vers le point d'application (voir la statique).
+            - Alignement : l'angle entre deux directions mesurées se calcule avec le produit scalaire.
+            - En Python : `numpy.dot`, `numpy.cross`, et `scipy.spatial.transform.Rotation` pour les rotations 3D (conventions explicites).
+      recap:
+        - "Scalaire : a·b = Σ aᵢbᵢ = |a||b|cos θ ; nul si perpendiculaires ; sert à projeter."
+        - "Vectoriel : a × b ⊥ aux deux, |a||b| sin θ ; sert aux moments (M = r × F)."
+        - "Rotation 2D : [[cos, −sin], [sin, cos]]."
+        - "Matrice de rotation : orthogonale, inverse = transposée."
+        - "En 3D, l'ordre des rotations compte."
+      pieges: [ing-radians-degres, ing-bras-levier]
+    vocab:
+      - vecteur = vector
+      - produit scalaire = dot product
+      - produit vectoriel = cross product
+      - matrice de rotation = rotation matrix
+      - transposée = transpose
+      - repère = coordinate frame
+      - changement de repère = coordinate transformation
+      - angles d'Euler = Euler angles
+    exercises:
+      - id: ma-vecteurs.1
+        type: numeric
+        level: 1
+        q: Produit scalaire de (1, 2, 3) et (4, 5, 6) ?
+        answer: 32
+        tol: 0.001
+        calc: 1*4 + 2*5 + 3*6
+        e: 4 + 10 + 18 = 32.
+      - id: ma-vecteurs.2
+        type: numeric
+        level: 2
+        q: Angle entre les vecteurs (1, 0) et (1, 1), en degrés ?
+        answer: 45
+        tol: 0.01
+        unit: °
+        calc: degrees(acos(1 / (1 * sqrt(2))))
+        e: $\cos\theta = \dfrac{1}{1 \times \sqrt 2}$, donc θ = 45°.
+      - id: ma-vecteurs.3
+        type: numeric
+        level: 2
+        q: On fait tourner le point (2, 0) de 30° autour de l'origine. Nouvelle coordonnée x ?
+        answer: 1.732
+        tol: 0.01
+        calc: 2 * cos(radians(30))
+        trap_values:
+          - v: 0.308
+            why: Tu as utilisé 30 en radians dans le cosinus.
+        piege: ing-radians-degres
+        e: $x' = 2\cos 30° \approx 1{,}732$ (et $y' = 2\sin 30° = 1$).
+      - id: ma-vecteurs.4
+        type: numeric
+        level: 2
+        q: Une force de 50 N selon y est appliquée au point (0,2 m ; 0 ; 0), le pivot étant à l'origine. Moment autour de z ?
+        answer: 10
+        tol: 0.01
+        unit: N·m
+        calc: 0.2 * 50 - 0 * 0
+        e: $M_z = r_x F_y - r_y F_x = 0{,}2 \times 50 = 10$ N·m.
+      - id: ma-vecteurs.5
+        type: qcm
+        level: 2
+        q: Quelle est l'inverse d'une matrice de rotation ?
+        choices:
+          - t: Sa transposée
+            ok: true
+          - t: Elle-même
+            why: Seulement pour une rotation de 180° (ou 0°).
+          - t: Elle n'en a pas
+            why: Une rotation est toujours inversible (on tourne dans l'autre sens).
+        e: Les colonnes sont orthonormées, donc Rᵀ·R = I.
+      - id: ma-vecteurs.6
+        type: flash
+        level: 1
+        q: À quoi servent le produit scalaire et le produit vectoriel ?
+        back: |
+          **Scalaire** (un nombre) : projeter un vecteur sur un autre, calculer un angle, un travail (W = F·d) ; nul si les vecteurs sont perpendiculaires.
+          **Vectoriel** (un vecteur perpendiculaire aux deux) : calculer un moment (M = r × F), une normale à un plan ; nul si les vecteurs sont parallèles.
+        e: Attention à l'ordre, a × b = −(b × a).
+  # ------------------------------------------------------------------ statistiques
+  - id: ma-stats
+    title: Statistiques de mesure
+    en: Measurement statistics
+    goal: Calculer moyenne et écart-type, utiliser la règle 68-95-99,7 et l'incertitude de la moyenne.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Mesurer dix fois la même pièce
+          body: |
+            Mesure dix fois le diamètre d'une même pièce au pied à coulisse : tu n'obtiendras pas dix fois exactement la même valeur. Les valeurs se regroupent autour d'une moyenne, avec une certaine dispersion. Les statistiques décrivent ce nuage de points avec deux nombres.
+        - level: 2
+          title: Moyenne et écart-type
+          body: |
+            - La **moyenne** donne la valeur centrale.
+            - L'**écart-type** $\sigma$ mesure la **dispersion** : l'écart typique d'une mesure à la moyenne.
+
+            Beaucoup de phénomènes (erreurs de mesure, dimensions usinées) suivent une **loi normale** (la courbe en cloche) :
+            - 68 % des valeurs sont à ± 1 σ de la moyenne ;
+            - 95 % à ± 2 σ ;
+            - 99,7 % à ± 3 σ.
+
+            ```svg caption="Loi normale : 68 % des valeurs à ±1σ, 95 % à ±2σ, 99,7 % à ±3σ."
+            <svg viewBox="0 0 460 250" width="460" role="img" aria-label="Courbe en cloche avec les intervalles à un, deux et trois écarts-types">
+              <defs><marker id="ar-ma1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="a"/></marker></defs>
+              <polygon class="soft" points="180,170 180,85.1 185,76.6 190,68.3 195,60.4 200,53.1 205,46.5 210,40.8 215,36.2 220,32.8 225,30.7 230,30.0 235,30.7 240,32.8 245,36.2 250,40.8 255,46.5 260,53.1 265,60.4 270,68.3 275,76.6 280,85.1 280,170"/>
+              <line class="s2" x1="30" y1="170" x2="430" y2="170"/>
+              <polyline class="as" points="30,170.0 35,169.9 40,169.9 45,169.9 50,169.8 55,169.7 60,169.6 65,169.4 70,169.2 75,168.9 80,168.4 85,167.9 90,167.2 95,166.3 100,165.2 105,163.8 110,162.1 115,160.1 120,157.6 125,154.6 130,151.1 135,147.0 140,142.3 145,137.0 150,131.1 155,124.5 160,117.5 165,109.9 170,101.9 175,93.5 180,85.1 185,76.6 190,68.3 195,60.4 200,53.1 205,46.5 210,40.8 215,36.2 220,32.8 225,30.7 230,30.0 235,30.7 240,32.8 245,36.2 250,40.8 255,46.5 260,53.1 265,60.4 270,68.3 275,76.6 280,85.1 285,93.5 290,101.9 295,109.9 300,117.5 305,124.5 310,131.1 315,137.0 320,142.3 325,147.0 330,151.1 335,154.6 340,157.6 345,160.1 350,162.1 355,163.8 360,165.2 365,166.3 370,167.2 375,167.9 380,168.4 385,168.9 390,169.2 395,169.4 400,169.6 405,169.7 410,169.8 415,169.9 420,169.9 425,169.9 430,170.0"/>
+              <line class="grid dash" x1="130" y1="151" x2="130" y2="170"/>
+              <line class="grid dash" x1="330" y1="151" x2="330" y2="170"/>
+              <line class="grid dash" x1="80" y1="168" x2="80" y2="176"/>
+              <line class="grid dash" x1="380" y1="168" x2="380" y2="176"/>
+              <text class="tm" x="80" y="188" text-anchor="middle">−3σ</text>
+              <text class="tm" x="130" y="188" text-anchor="middle">−2σ</text>
+              <text class="tm" x="180" y="188" text-anchor="middle">−σ</text>
+              <text class="tb" x="230" y="188" text-anchor="middle">μ</text>
+              <text class="tm" x="280" y="188" text-anchor="middle">+σ</text>
+              <text class="tm" x="330" y="188" text-anchor="middle">+2σ</text>
+              <text class="tm" x="380" y="188" text-anchor="middle">+3σ</text>
+              <line class="as" x1="180" y1="202" x2="280" y2="202" marker-start="url(#ar-ma1)" marker-end="url(#ar-ma1)"/>
+              <text class="ta" x="288" y="206">68 %</text>
+              <line class="s2" x1="130" y1="219" x2="330" y2="219"/>
+              <text class="t" x="338" y="223">95 %</text>
+              <line class="s2" x1="80" y1="236" x2="380" y2="236"/>
+              <text class="t" x="388" y="240">99,7 %</text>
+            </svg>
+            ```
+          check:
+            q: Des pièces ont un diamètre moyen de 10,00 mm avec un écart-type de 0,02 mm. Quelle proportion sort de 10,00 ± 0,04 mm ?
+            choices:
+              - t: Environ 5 %
+                ok: true
+                why: ± 0,04 mm = ± 2σ, qui contient 95 % des pièces.
+              - t: Environ 32 %
+                why: Ce serait hors de ± 1σ (± 0,02 mm).
+              - t: Environ 0,3 %
+                why: Ce serait hors de ± 3σ (± 0,06 mm).
+        - level: 3
+          title: Les formules
+          body: |
+            $$\bar x = \frac{1}{n}\sum x_i \qquad s = \sqrt{\frac{1}{n-1}\sum (x_i - \bar x)^2} \qquad s_{\bar x} = \frac{s}{\sqrt n}$$
+
+            - $s$ décrit la dispersion d'**une** mesure ;
+            - $s/\sqrt n$ décrit l'incertitude sur la **moyenne** de $n$ mesures : elle diminue quand on répète.
+
+            Le dénominateur $n - 1$ (correction de Bessel) compense le fait que la moyenne a été estimée sur les mêmes données.
+          code: |
+            import statistics as st
+
+            mesures = [9.8, 10.1, 10.0, 10.3, 9.8]      # diamètres mesurés, en mm
+            m = st.mean(mesures)
+            s = st.stdev(mesures)                        # écart-type (n − 1)
+            print(f"moyenne = {m:.3f} mm, écart-type = {s:.3f} mm")
+            print(f"incertitude-type de la moyenne = {s / len(mesures) ** 0.5:.3f} mm")
+          run: true
+          out: |
+            moyenne = 10.000 mm, écart-type = 0.212 mm
+            incertitude-type de la moyenne = 0.095 mm
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Pourquoi la loi normale est partout** : le théorème central limite dit que la somme de nombreuses petites causes indépendantes tend vers une loi normale, quelle que soit la loi de chacune. Une erreur de mesure, qui cumule des dizaines de petites perturbations, en est l'exemple type.
+
+            **Attention aux données qui ne sont pas normales** : une distribution tronquée (pièces triées), bimodale (deux machines), ou avec des valeurs aberrantes. Trace toujours l'**histogramme** avant de résumer par moyenne et écart-type.
+
+            **Capabilité** : en production, on compare la tolérance à la dispersion. $C_p = \dfrac{\text{IT}}{6\sigma}$ ; un procédé est dit capable si $C_p \geq 1{,}33$ environ (la tolérance vaut au moins 8σ).
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Annonce un résultat avec son incertitude : « 10,00 ± 0,19 mm (k = 2, environ 95 %) » (voir les méthodes, incertitudes).
+            - Répète les mesures quand c'est possible, mais rappelle-toi que la moyenne ne supprime pas un biais.
+            - En Python : `statistics` (bibliothèque standard), `numpy.mean`, `numpy.std(x, ddof=1)` (attention, `ddof=0` par défaut), `pandas.describe()`.
+      recap:
+        - "Moyenne = centre ; écart-type = dispersion d'une mesure."
+        - "Loi normale : 68 % à ±1σ, 95 % à ±2σ, 99,7 % à ±3σ."
+        - "Incertitude de la moyenne : s/√n."
+        - "Écart-type d'échantillon : dénominateur n − 1 (ddof=1 en NumPy)."
+        - "Toujours regarder l'histogramme avant de résumer."
+      pieges: [ing-ecart-type-moyenne, ing-moyenne-biais]
+    vocab:
+      - moyenne = mean
+      - écart-type = standard deviation
+      - loi normale = normal (Gaussian) distribution
+      - variance = variance
+      - incertitude-type = standard uncertainty
+      - histogramme = histogram
+      - théorème central limite = central limit theorem
+      - capabilité = process capability
+    exercises:
+      - id: ma-stats.1
+        type: numeric
+        level: 1
+        q: Moyenne des mesures 9,8 ; 10,1 ; 10,0 ; 10,3 ; 9,8 mm ?
+        answer: 10
+        tol: 0.001
+        unit: mm
+        calc: (9.8 + 10.1 + 10.0 + 10.3 + 9.8) / 5
+        e: 50,0 / 5 = 10,0 mm.
+      - id: ma-stats.2
+        type: numeric
+        level: 2
+        q: Écart-type (n − 1) de ces mêmes mesures, en mm ?
+        answer: 0.2121
+        tol: 0.01
+        unit: mm
+        calc: sqrt(((-0.2)**2 + 0.1**2 + 0 + 0.3**2 + (-0.2)**2) / 4)
+        trap_values:
+          - v: 0.1897
+            why: Tu as divisé par n = 5. Pour un écart-type d'échantillon, on divise par n − 1 = 4.
+          - v: 0.045
+            why: C'est la variance ; l'écart-type en est la racine carrée.
+        e: Écarts, −0,2 ; 0,1 ; 0 ; 0,3 ; −0,2. Carrés sommés = 0,18 ; /4 = 0,045 ; √ ≈ 0,212 mm.
+      - id: ma-stats.3
+        type: numeric
+        level: 2
+        q: "Une mesure a un écart-type de 0,5 µm. Tu fais la moyenne de 25 mesures. Incertitude-type de la moyenne, en µm ?"
+        answer: 0.1
+        tol: 0.01
+        unit: µm
+        calc: 0.5 / sqrt(25)
+        trap_values:
+          - v: 0.5
+            why: C'est la dispersion d'une mesure. La moyenne de n mesures est √n fois plus précise.
+          - v: 0.02
+            why: Tu as divisé par n au lieu de √n.
+        piege: ing-ecart-type-moyenne
+        e: $0{,}5/\sqrt{25} = 0{,}1$ µm.
+      - id: ma-stats.4
+        type: numeric
+        level: 2
+        q: "Diamètre moyen 10,00 mm, écart-type 0,02 mm, loi normale. Pourcentage de pièces hors de 10,00 ± 0,06 mm ?"
+        answer: 0.27
+        tol: 0.05
+        unit: "%"
+        calc: (1 - erf(3 / sqrt(2))) * 100
+        trap_values:
+          - v: 5
+            why: ± 0,06 mm = ± 3σ, pas ± 2σ.
+        e: ± 3σ contient 99,73 % des pièces, donc 0,27 % en dehors.
+      - id: ma-stats.5
+        type: qcm
+        level: 2
+        q: Pourquoi divise-t-on par n − 1 (et pas n) pour l'écart-type d'un échantillon ?
+        choices:
+          - t: Parce que la moyenne est estimée sur les mêmes données, ce qui fait sous-estimer la dispersion avec n
+            ok: true
+          - t: Pour arrondir
+            why: C'est une correction statistique (Bessel), pas un arrondi.
+          - t: Par convention sans importance
+            why: Pour de petits échantillons, l'écart est notable (5 mesures, √(5/4) ≈ 1,12).
+        e: En NumPy, np.std(x, ddof=1) ; par défaut (ddof=0), NumPy divise par n.
+      - id: ma-stats.6
+        type: flash
+        level: 1
+        q: Énonce la règle 68-95-99,7.
+        back: |
+          Pour une loi normale : 68 % des valeurs à ±1σ de la moyenne, 95 % à ±2σ, 99,7 % à ±3σ.
+        e: D'où l'usage de ±2σ pour une incertitude « à 95 % » et de ±3σ pour les tolérances de fabrication.

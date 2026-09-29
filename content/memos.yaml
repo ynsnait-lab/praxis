@@ -1,0 +1,144 @@
+- id: m1
+  title: 'Python ↔ C++ : les 12 différences qui piquent'
+  lang: both
+  summary: Les endroits précis où ton intuition d’un langage te trahit dans l’autre.
+  body: |-
+    ## 1. Affectation
+
+    | | Python | C++ |
+    | --- | --- | --- |
+    | `b = a` | deux noms, **un** objet | **copie** complète de a |
+    | copie | `a.copy()`, `deepcopy` | implicite |
+    | référence | impossible à créer | `auto& b = a;` |
+
+    C’est l’inversion la plus déroutante : Python partage par défaut, C++ copie par défaut.
+
+    ## 2. Division et modulo des négatifs
+
+    ```
+    Python : -7 // 2 == -4     -7 % 3 == 2     (arrondi vers le bas)
+    C++    : -7 / 2  == -3     -7 % 3 == -1    (troncature vers zéro)
+    ```
+
+    ## 3. Comparaisons chaînées
+
+    `1 < a < b` : correct en Python, **piège silencieux** en C++ (`(1<a) < b`).
+
+    ## 4. Débordement d’entier
+
+    Python : entiers de précision arbitraire, jamais de débordement.
+    C++ : débordement **signé** = UB ; non signé = modulo 2ⁿ.
+
+    ## 5. Indices hors bornes
+
+    Python : `IndexError`. C++ : `v[i]` = UB silencieux, `v.at(i)` lève.
+
+    ## 6. Chaînes
+
+    Python : `str` = texte Unicode, `bytes` = octets, conversion explicite.
+    C++ : `std::string` = suite d’octets. L’Unicode est ton problème.
+
+    ## 7. Booléens
+
+    `if valeur:` en Python est vrai pour tout ce qui n’est pas vide/zéro.
+    En C++, `if (v)` ne marche que sur les types convertibles en bool.
+
+    ## 8. Portée
+
+    Python : la portée est la **fonction** (une variable d’un `for` survit à la boucle).
+    C++ : la portée est le **bloc** `{}`.
+
+    ## 9. Passage d’arguments
+
+    | Intention | Python | C++ |
+    | --- | --- | --- |
+    | lecture | `def f(v)` | `void f(const T& v)` |
+    | modification | muter l’objet reçu | `void f(T& v)` |
+    | copie garantie | `f(v.copy())` | `void f(T v)` |
+
+    ## 10. Erreurs
+
+    Python : exceptions partout, c’est idiomatique.
+    C++ : exceptions sur PC, codes de retour / `optional` en embarqué.
+
+    ## 11. Durée de vie
+
+    Python : ramasse-miettes, destruction à un moment indéterminé.
+    C++ : déterministe, fin de portée, ordre inverse de construction. Sur ça, C++ est **supérieur** — c’est ce qui rend RAII possible.
+
+    ## 12. Ce qui se ressemble vraiment
+
+    `for x in v` ↔ `for (auto x : v)` · comprehension ↔ `transform`/`views` · générateur ↔ vue paresseuse (`std::views`) · `with` ↔ RAII · décorateur ↔ template wrapper.
+- id: m2
+  title: Check-list avant de pousser du code
+  lang: both
+  summary: Dix minutes qui t’évitent une soirée de débogage.
+  body: |-
+    ## Python
+
+    ```bash
+    ruff check . && ruff format .
+    mypy --strict src/
+    pytest -q
+    ```
+
+    - [ ] Aucun `print` de débogage restant (utilise `logging`)
+    - [ ] Aucune valeur par défaut mutable dans une signature
+    - [ ] Les `except` nomment un type précis
+    - [ ] Les chemins passent par `pathlib`, pas par concaténation de chaînes
+    - [ ] Ouverture de fichier avec `encoding=` explicite
+    - [ ] Les fonctions publiques sont annotées
+
+    ## C++
+
+    ```bash
+    g++ -std=c++17 -Wall -Wextra -Wpedantic -Wshadow -Wconversion \
+        -fsanitize=address,undefined -g -O1 ...
+    ```
+
+    - [ ] Zéro avertissement
+    - [ ] Tests passés sous ASan **et** UBSan
+    - [ ] Aucun `new`/`delete` nu (`unique_ptr`, `vector`, valeur)
+    - [ ] Toute méthode qui ne modifie pas est `const`
+    - [ ] Les déplacements sont `noexcept`
+    - [ ] Pas de référence/span/string_view stockée vers un temporaire
+    - [ ] Comparaisons signé/non signé vérifiées (`-Wsign-compare`)
+    - [ ] Destructeur `virtual` sur toute classe de base polymorphe
+
+    ## Les deux
+
+    - [ ] Le README dit comment lancer et comment tester
+    - [ ] Chaque commit fait **une** chose
+    - [ ] Les cas limites sont testés : vide, un élément, taille max, valeur nulle
+- id: m3
+  title: Comment réviser pour que ça reste
+  lang: both
+  summary: Le mode d’emploi de Praxis, et pourquoi il est fait comme ça.
+  body: |-
+    ## Les quatre leviers, par efficacité décroissante
+
+    1. **Récupération active.** Se forcer à produire la réponse ancre bien mieux que relire. C’est pour ça que Praxis te fait *prédire la sortie* avant de montrer le code annoté, plutôt que de te faire lire un cours.
+    2. **Répétition espacée.** Réviser au moment où tu es sur le point d’oublier maximise l’ancrage par révision. Praxis utilise FSRS-6, qui modélise ta stabilité mémoire par item.
+    3. **Entrelacement.** Mélanger les sujets dans une même séance est moins confortable et plus efficace que les blocs homogènes. Praxis ne te donne jamais trois items du même concept d’affilée.
+    4. **Difficulté désirable.** Un exercice qu’on rate à 20 % apprend plus qu’un exercice réussi à 100 %. Si tu réussis tout, monte de niveau.
+
+    ## Ce qui ne marche pas (et qu’on fait tous)
+
+    - Relire ses notes / regarder des tutos vidéo → sensation de maîtrise, rétention faible.
+    - Copier le code d’un cours en le tapant → tu apprends à taper.
+    - Faire 40 exercices d’un coup puis rien pendant trois semaines.
+
+    ## Le rythme qui marche
+
+    **20 à 30 min par jour, tous les jours** > 3 h le dimanche. La courbe d’oubli ne prend pas le week-end.
+
+    Une séance type dans Praxis :
+    1. Les révisions dues (le moteur les choisit).
+    2. 3 à 5 items nouveaux de ton unité en cours.
+    3. Un exercice de code si tu as l’énergie.
+
+    ## Et le vrai code dans tout ça ?
+
+    Praxis entretient les **fondations** — ce qui te fait perdre des heures quand tu ne le sais pas. Il ne remplace pas l’écriture de vrais programmes.
+
+    Le bon dosage : Praxis le matin (20 min), un vrai projet le reste du temps. Les défis de l’onglet **Défis** sont là pour faire le pont.

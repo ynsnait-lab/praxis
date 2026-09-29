@@ -1,0 +1,353 @@
+id: pf02
+track: python
+title: Variables et types
+goal: Nommer des valeurs, savoir de quel type elles sont, et convertir de l'une à l'autre sans surprise.
+level: fondations
+requires: [pf01]
+concepts: [variables, types, conversions, fstring]
+lesson:
+  minutes: 15
+  intro: |
+    Un programme manipule des **valeurs** : une température, un nom de capteur, un nombre de mesures, un état ouvert/fermé. Pour les manipuler, on leur donne des **noms**. Et chaque valeur a un **type**, qui décide de ce qu'on peut faire avec. La moitié des bugs de débutant viennent d'un type qui n'est pas celui qu'on croit.
+  steps:
+    - level: 1
+      title: Une étiquette collée sur une valeur
+      body: |
+        Quand tu écris `temperature = 21.5`, imagine que Python fabrique la valeur `21.5` quelque part en mémoire, puis **colle une étiquette** portant le nom `temperature` dessus.
+
+        Ensuite, chaque fois que tu écris `temperature`, Python va chercher la valeur qui porte cette étiquette.
+
+        Si tu écris plus loin `temperature = 23.0`, Python ne modifie pas la valeur 21.5 : il **décolle l'étiquette** et la recolle sur une nouvelle valeur, 23.0.
+
+        Le signe `=` ne veut donc **pas** dire « est égal à » comme en maths. Il veut dire « **range cette valeur sous ce nom** ». C'est une **affectation**.
+      check:
+        q: "Après ces deux lignes : `a = 10` puis `a = a * 2`, que vaut `a` ?"
+        choices:
+          - t: "20"
+            ok: true
+            why: "Python calcule d'abord la droite avec la valeur actuelle de `a` (10 × 2 = 20), puis recolle l'étiquette `a` sur 20."
+          - t: "10"
+            why: La deuxième ligne remplace la valeur. La première n'est plus qu'un souvenir.
+          - t: Rien, c'est une équation impossible.
+            why: "C'est impossible en maths (a = 2a ⇒ a = 0), mais en Python `=` est une instruction, pas une équation."
+    - level: 2
+      title: Les quatre types de base
+      body: |
+        Chaque valeur a un **type**. Les quatre premiers à connaître :
+
+        | Type | Nom Python | Exemples | Sert à |
+        | --- | --- | --- | --- |
+        | entier | `int` | `0`, `42`, `-7`, `1_000_000` | compter, indexer |
+        | nombre à virgule | `float` | `3.14`, `-0.5`, `2e-3` | mesurer |
+        | texte | `str` | `"capteur"`, `'OK'`, `""` | nommer, afficher |
+        | booléen | `bool` | `True`, `False` | un état vrai/faux |
+
+        La fonction `type(...)` te dit de quel type est une valeur. Et remarque : `"42"` avec des guillemets est du **texte** qui ressemble à un nombre, pas un nombre.
+
+        Pour **convertir**, on appelle le type comme une fonction : `int("42")` donne l'entier 42, `float("3.5")` le nombre 3.5, `str(12)` le texte `"12"`.
+      code: |
+        print(type(42), type(3.14), type("42"), type(True))
+        tension = "3.3"            # du texte, par exemple lu dans un fichier
+        print(float(tension) * 2)  # converti en nombre : le calcul marche
+        print(tension * 2)         # texte * 2 : le texte est répété !
+      run: true
+      out: |
+        <class 'int'> <class 'float'> <class 'str'> <class 'bool'>
+        6.6
+        3.33.3
+    - level: 3
+      title: Construire du texte avec les f-strings
+      body: |
+        Pour mélanger du texte et des valeurs, la méthode moderne est la **f-string** : un texte précédé de la lettre `f`, dans lequel tout ce qui est entre accolades `{...}` est **calculé puis inséré**.
+
+        Après la valeur, un `:` permet de **formater** : `{x:.2f}` affiche `x` avec 2 décimales, `{n:4d}` un entier sur 4 caractères, `{x:.1e}` en notation scientifique.
+      code: |
+        capteur = "PT100-A"
+        temp_c = 21.4567
+        n = 7
+        print(f"{capteur} : {temp_c:.2f} °C ({n} mesures)")
+        print(f"en kelvin : {temp_c + 273.15:.1f} K")
+        print(f"débit : {0.000123:.1e} m³/s")
+      run: true
+      out: |
+        PT100-A : 21.46 °C (7 mesures)
+        en kelvin : 294.6 K
+        débit : 1.2e-04 m³/s
+      check:
+        q: "Que produit `f\"{2/3:.3f}\"` ?"
+        choices:
+          - t: "`0.667`"
+            ok: true
+            why: "3 décimales, arrondies : 0.6666… devient 0.667."
+          - t: "`0.666`"
+            why: Le formatage arrondit, il ne tronque pas.
+          - t: "`2/3:.3f`"
+            why: "C'est ce qu'on aurait sans le `f` devant les guillemets (et sans les accolades)."
+    - level: 4
+      title: Le type est dans la valeur, pas dans le nom
+      body: |
+        En Python, une variable n'a **pas** de type fixé : c'est la **valeur** qui en a un. Le même nom peut désigner un entier puis un texte (c'est légal, mais rarement une bonne idée).
+
+        Conséquence : Python ne te prévient pas à l'avance si tu mélanges des types incompatibles. Il ne le découvre qu'**au moment d'exécuter** la ligne :
+
+        - `"Mesure n°" + 3` → `TypeError: can only concatenate str (not "int") to str`. Il faut `"Mesure n°" + str(3)`, ou mieux une f-string.
+        - `int("3.5")` → `ValueError` : `int()` sur du texte n'accepte que des chiffres entiers. Il faut `int(float("3.5"))`, qui donne 3 (tronqué, pas arrondi).
+        - `input()`, qui lit ce que tape l'utilisateur, renvoie **toujours du texte**, même si l'utilisateur tape un nombre.
+
+        Et une surprise qui n'est pas propre à Python : les `float` sont stockés en binaire, avec une précision limitée. `0.1` n'a pas de représentation binaire exacte (comme 1/3 n'a pas d'écriture décimale exacte), d'où :
+      code: |
+        print(0.1 + 0.2)
+        print(0.1 + 0.2 == 0.3)
+        import math
+        print(math.isclose(0.1 + 0.2, 0.3))
+      run: true
+      out: |
+        0.30000000000000004
+        False
+        True
+      after: |
+        Règle : **ne compare jamais deux `float` avec `==`**. Utilise `math.isclose(a, b)` ou une tolérance : `abs(a - b) < 1e-9`.
+    - level: 5
+      title: Bien nommer, en ingénieur
+      body: |
+        Un bon nom de variable évite des bugs, en particulier des **erreurs d'unités** (la sonde Mars Climate Orbiter a été perdue en 1999 à cause d'un mélange livres-force / newtons entre deux équipes).
+
+        - Style `snake_case` : minuscules et `_` → `temperature_max`, `nb_mesures`.
+        - **Mets l'unité dans le nom** quand il y a un doute : `temp_c`, `temp_k`, `pression_mbar`, `delai_ms`.
+        - Les constantes (valeurs qui ne changent pas) en MAJUSCULES : `ZERO_ABSOLU_C = -273.15`, `G = 9.81`.
+        - Pas d'accents ni d'espaces dans les noms (les accents sont autorisés, mais source d'ennuis selon les claviers et les outils).
+        - Évite `l` (confondu avec 1), `O` (avec 0), et les noms qui masquent des fonctions de Python : `list`, `str`, `sum`, `max`, `input`, `type`.
+
+        > [!piege] Nommer une variable `sum` ou `list`
+        > `sum = 0` fonctionne… jusqu'au moment où tu veux utiliser la fonction `sum(...)` : `TypeError: 'int' object is not callable`. Tu as recollé l'étiquette `sum` sur un entier.
+  recap:
+    - "`=` range une valeur sous un nom (affectation). Ce n'est pas une égalité mathématique."
+    - "Types de base : `int`, `float`, `str`, `bool`. `type(x)` les révèle. `\"42\"` est du texte."
+    - "Convertir : `int(...)`, `float(...)`, `str(...)`. `input()` renvoie toujours du texte."
+    - "f-string : `f\"{x:.2f}\"` insère et formate. Jamais de `==` entre deux `float` : `math.isclose`."
+    - Des noms explicites, avec l'unité quand elle est ambiguë.
+  pieges: [py-str-plus-int, py-input-texte, py-flottants-exacts, py-nom-masque]
+exercises:
+  - id: pf02.1
+    type: predict
+    level: 1
+    q: Qu'affiche ce script ?
+    code: |
+      x = 4
+      y = x
+      x = 10
+      print(x, y)
+    answer: 10 4
+    trap_answers: ["10 10"]
+    e: |
+      `y = x` colle l'étiquette `y` sur la valeur **actuelle** de `x`, c'est-à-dire 4. Ensuite `x = 10` décolle l'étiquette `x` et la recolle sur 10 : `y` n'est pas concerné, il désigne toujours 4.
+
+      (Avec des listes, le comportement semblera différent — on le verra au cours sur les listes, c'est un piège célèbre.)
+  - id: pf02.2
+    type: qcm
+    level: 1
+    q: "Quel est le type de `\"21.5\"` ?"
+    choices:
+      - t: "`str`"
+        ok: true
+      - t: "`float`"
+        piege: true
+        why: Les guillemets en font du texte, même s'il ressemble à un nombre.
+      - t: "`int`"
+      - t: "`bool`"
+    piege: py-str-plus-int
+    e: Tout ce qui est entre guillemets est une chaîne (`str`). Pour obtenir un nombre, il faut convertir avec `float("21.5")`.
+  - id: pf02.3
+    type: predict
+    level: 1
+    q: Qu'affiche ce script ? (s'il plante, écris juste le type d'erreur)
+    code: |
+      nb = 3
+      print("Mesures : " + nb)
+    answer: TypeError
+    norun: true
+    piege: py-str-plus-int
+    trap_answers: ["Mesures : 3", "Mesures : 3"]
+    e: |
+      `+` entre un texte et un entier n'a pas de sens pour Python : `TypeError: can only concatenate str (not "int") to str`.
+
+      Trois corrections, de la meilleure à la moins bonne :
+      ```python
+      print(f"Mesures : {nb}")
+      print("Mesures :", nb)
+      print("Mesures : " + str(nb))
+      ```
+  - id: pf02.4
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      a = "5"
+      b = "3"
+      print(a + b)
+      print(int(a) + int(b))
+      print(a * 3)
+    answer: |
+      53
+      8
+      555
+    trap_answers:
+      - |
+        8
+        8
+        15
+    e: |
+      Sur du texte, `+` **colle** (concatène) et `*` **répète**. C'est seulement après conversion en `int` que `+` additionne.
+
+      Ce piège apparaît dès que des données viennent d'un fichier, d'une liaison série ou d'un `input()` : tout arrive sous forme de texte.
+  - id: pf02.5
+    type: qcm
+    level: 2
+    q: "L'utilisateur tape `12` quand ce programme demande : `n = input(\"Nombre de mesures ? \")`. Que vaut `n * 2` ?"
+    piege: py-input-texte
+    choices:
+      - t: "`\"1212\"`"
+        ok: true
+        why: "`input()` renvoie le texte `\"12\"`, et un texte multiplié par 2 est répété."
+      - t: "`24`"
+        piege: true
+        why: "Il faudrait `int(input(...))` pour obtenir un nombre."
+      - t: "Une `TypeError`"
+        why: "Texte × entier est autorisé : c'est la répétition."
+    e: "`input()` renvoie **toujours** une chaîne. Convertis immédiatement : `n = int(input(\"Nombre de mesures ? \"))`."
+  - id: pf02.6
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      print(0.1 + 0.2 == 0.3)
+      print(round(0.1 + 0.2, 2) == 0.3)
+    answer: |
+      False
+      True
+    piege: py-flottants-exacts
+    trap_answers:
+      - |
+        True
+        True
+    e: |
+      `0.1` et `0.2` ne sont pas représentables exactement en binaire : leur somme vaut `0.30000000000000004`. Comparer des `float` avec `==` est donc fragile.
+
+      Arrondir fonctionne ici, mais la vraie solution générale est `math.isclose(a, b)` (tolérance relative) ou `abs(a - b) < tolerance`.
+  - id: pf02.7
+    type: cloze
+    level: 1
+    q: Complète pour afficher `Pression : 1.01 bar` (2 décimales).
+    tpl: |
+      p_bar = 1.01325
+      print(⟦0⟧"Pression : {p_bar⟦1⟧} bar")
+    blanks:
+      - [f]
+      - [":.2f"]
+    run: true
+    out: "Pression : 1.01 bar"
+    e: "Le `f` devant les guillemets active l'insertion des `{...}`. `:.2f` demande un `float` avec 2 décimales (arrondi)."
+  - id: pf02.8
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      print(int(7.9))
+      print(int(-7.9))
+      print(round(7.9))
+      print(int("  42 "))
+    answer: |
+      7
+      -7
+      8
+      42
+    trap_answers:
+      - |
+        8
+        -8
+        8
+        42
+    e: |
+      `int()` sur un `float` **tronque vers zéro** : il coupe la partie décimale, 7.9 → 7 et -7.9 → -7. Ce n'est pas un arrondi. Pour arrondir, `round()`.
+
+      `int()` sur du texte tolère les espaces autour, mais pas un point : `int("3.5")` lève une `ValueError`.
+  - id: pf02.9
+    type: code
+    level: 1
+    q: |
+      Écris une fonction `celsius_vers_kelvin(c)` qui renvoie la température en kelvins (`K = °C + 273.15`).
+
+      (On verra les fonctions en détail plus tard : ici, il suffit de compléter la ligne `return`.)
+    start: |
+      def celsius_vers_kelvin(c):
+          return ...
+    sol: |
+      def celsius_vers_kelvin(c):
+          return c + 273.15
+    tests: |
+      import math
+      assert math.isclose(celsius_vers_kelvin(0), 273.15)
+      assert math.isclose(celsius_vers_kelvin(-273.15), 0, abs_tol=1e-9), "le zéro absolu doit donner 0 K"
+      assert math.isclose(celsius_vers_kelvin(21.5), 294.65)
+      print("OK")
+    e: |
+      Les tests comparent avec `math.isclose` et non `==`, justement à cause des arrondis binaires des `float`.
+  - id: pf02.10
+    type: bug
+    level: 2
+    q: "Ce script plante avec `TypeError: 'int' object is not callable`. Quelle ligne est la vraie cause ?"
+    code: |
+      mesures = [3, 5, 4]
+      sum = 0
+      for m in mesures:
+          print(m)
+      total = sum(mesures)
+      print(total)
+    bad: 2
+    fix: |
+      somme = 0   # ne jamais nommer une variable comme une fonction de Python
+    piege: py-nom-masque
+    e: |
+      L'erreur **apparaît** ligne 5, mais sa **cause** est ligne 2 : `sum = 0` recolle l'étiquette `sum` (la fonction de Python) sur l'entier 0. Ligne 5, `sum(...)` essaie donc « d'appeler » un entier.
+
+      Leçon plus générale : la ligne signalée par le traceback est l'endroit où ça casse, pas toujours l'endroit où c'est faux. Remonte le fil.
+  - id: pf02.11
+    type: flash
+    level: 1
+    q: Pourquoi faut-il éviter `==` pour comparer deux `float` ? Que faire à la place ?
+    back: |
+      Parce que la plupart des décimaux (0.1, 0.2…) n'ont pas de représentation binaire exacte : de minuscules erreurs d'arrondi s'accumulent, et `0.1 + 0.2 == 0.3` vaut `False`.
+
+      À la place : `math.isclose(a, b)` ou `abs(a - b) < tol`.
+    e: Même règle en C++, en C, en Java, sur un ESP32… c'est une propriété du format IEEE-754, pas de Python.
+  - id: pf02.12
+    type: qcm
+    level: 2
+    q: "Lequel de ces noms de variable est le meilleur pour un délai de temporisation lu dans une configuration ?"
+    choices:
+      - t: "`delai_ms`"
+        ok: true
+        why: Explicite, en snake_case, et l'unité est dans le nom.
+      - t: "`d`"
+        why: Illisible dès que le code dépasse dix lignes.
+      - t: "`Delai`"
+        why: "Les majuscules initiales sont réservées aux noms de classes (on verra ça plus tard)."
+      - t: "`time`"
+        why: "Masque le module `time` de Python si tu l'importes, et ne dit pas l'unité."
+    e: Un nom doit dire **ce que c'est** et, pour une grandeur physique, **dans quelle unité**. C'est de la documentation gratuite.
+  - id: pf02.13
+    type: predict
+    level: 3
+    q: Qu'affiche ce script ?
+    code: |
+      a = True
+      b = 3
+      print(a + b)
+      print(type(a + b).__name__)
+    answer: |
+      4
+      int
+    e: |
+      Surprise : en Python, `bool` est un sous-type de `int`. `True` vaut 1 et `False` vaut 0 dans un calcul.
+
+      C'est pratique pour compter : `sum([m > 25 for m in mesures])` compte les mesures au-dessus de 25. Mais c'est aussi un piège quand on vérifie qu'une valeur est « un nombre » : `isinstance(True, int)` vaut `True`.

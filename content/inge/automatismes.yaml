@@ -1,0 +1,832 @@
+id: automatismes
+title: Automatismes industriels
+en: Industrial automation
+desc: Automates programmables, Ladder, GRAFCET, temporisations et compteurs, et sécurité des machines.
+intro: |
+  Dans une usine comme dans un hall d'expérience, les séquences de machines (serrer, déplacer, attendre, vérifier) sont confiées à des **automates programmables**. Ils sont robustes, prévisibles, et programmés dans des langages pensés pour les électriciens et les automaticiens.
+
+  Ces notions couvrent le fonctionnement de l'automate, ses langages, et surtout la sécurité, où les erreurs se paient cher.
+notions:
+  # ------------------------------------------------------------------ cycle
+  - id: api-cycle
+    title: L'automate programmable et son cycle
+    en: The PLC and its scan cycle
+    goal: Comprendre le cycle d'un automate, ses conséquences sur la lecture des signaux, et ses langages.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: Un ordinateur de chantier
+          body: |
+            Un **automate programmable** (API, ou PLC en anglais) est un ordinateur industriel fait pour commander des machines : il résiste aux vibrations, à la poussière et aux parasites, tourne des années sans redémarrer, et se programme dans des langages proches des schémas électriques.
+        - level: 2
+          title: Le cycle
+          body: |
+            Un automate répète en boucle, toutes les quelques millisecondes, le même **cycle** :
+            1. il **lit toutes les entrées** et en garde une photographie (l'image des entrées) ;
+            2. il **exécute le programme** en entier, sur cette photographie ;
+            3. il **écrit toutes les sorties** d'un coup.
+
+            Conséquences :
+            - pendant l'exécution, les entrées ne changent pas (le programme voit un état cohérent) ;
+            - une impulsion **plus courte qu'un cycle** peut passer inaperçue ;
+            - si la même sortie est écrite à deux endroits du programme, c'est la **dernière** écriture qui gagne.
+
+            Le temps de cycle est surveillé par un **watchdog** : s'il dépasse la limite, l'automate s'arrête en défaut.
+          check:
+            q: Un capteur envoie des impulsions de 3 ms. L'automate a un temps de cycle de 10 ms. Que se passe-t-il ?
+            choices:
+              - t: Certaines impulsions ne sont pas vues, car elles tombent entre deux lectures des entrées
+                ok: true
+              - t: Toutes sont vues, l'automate est rapide
+                why: Il ne lit ses entrées qu'une fois par cycle.
+              - t: L'automate s'arrête en défaut
+                why: Il ne sait même pas qu'il les a ratées.
+        - level: 3
+          title: Les langages (norme CEI 61131-3)
+          body: |
+            | Langage | Nom anglais | Allure |
+            | --- | --- | --- |
+            | Ladder | LD, *Ladder Diagram* | schéma à contacts, comme un schéma électrique |
+            | Blocs fonctionnels | FBD, *Function Block Diagram* | blocs reliés par des fils |
+            | Texte structuré | ST, *Structured Text* | proche du Pascal : IF, FOR, CASE |
+            | Diagramme fonctionnel en séquence | SFC | étapes et transitions (le GRAFCET) |
+
+            Exemple en texte structuré :
+
+            ```text
+            IF Marche AND NOT Defaut THEN
+                Moteur := TRUE;
+            ELSIF Arret THEN
+                Moteur := FALSE;
+            END_IF;
+            ```
+
+            Ordres de grandeur : temps de cycle de 1 à 20 ms ; pour les signaux rapides (codeurs, impulsions brèves), on utilise des **modules de comptage rapide** ou des entrées sur interruption.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Pourquoi l'image des entrées ?** Si une entrée changeait au milieu du programme, deux lignes pourraient voir deux valeurs différentes et prendre des décisions contradictoires. La photographie garantit la cohérence du cycle.
+
+            **Pourquoi les sorties à la fin ?** Pour que les sorties ne « clignotent » pas si le programme les modifie plusieurs fois pendant le cycle : seul l'état final est appliqué.
+
+            **Tâches** : les automates modernes ont plusieurs tâches (cyclique rapide pour les mouvements, lente pour les calculs, événementielles), avec des priorités, comme un petit système temps réel.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Grandes familles : Siemens (TIA Portal), Schneider, Beckhoff (TwinCAT, sur PC industriel), Rockwell, et des environnements génériques comme CODESYS.
+            - Mode **en ligne** : on observe l'état des variables en direct, on force des entrées ou des sorties pour tester. Le forçage est puissant et dangereux : note-le et retire-le.
+            - L'automate dialogue avec les variateurs, les capteurs intelligents et la supervision par des bus de terrain (Profinet, EtherCAT, Modbus TCP).
+      recap:
+        - "Cycle : lire toutes les entrées → exécuter le programme → écrire toutes les sorties."
+        - "Impulsion plus courte qu'un cycle : peut être ratée (comptage rapide pour ça)."
+        - "Même sortie écrite deux fois : la dernière écriture gagne."
+        - "Langages CEI 61131-3 : Ladder, FBD, ST, SFC."
+        - "Forçage en ligne : utile mais à tracer et retirer."
+      pieges: [ing-impulsion-cycle, ing-double-bobine]
+    vocab:
+      - automate programmable = programmable logic controller (PLC)
+      - cycle automate = scan cycle
+      - temps de cycle = scan time
+      - image des entrées = input image (process image)
+      - texte structuré = structured text (ST)
+      - forçage = forcing
+      - supervision = supervisory control (SCADA, HMI)
+      - comptage rapide = high-speed counter
+    exercises:
+      - id: api-cycle.1
+        type: qcm
+        level: 1
+        q: Dans quel ordre un automate traite-t-il un cycle ?
+        choices:
+          - t: Lecture des entrées, exécution du programme, écriture des sorties
+            ok: true
+          - t: Écriture des sorties, exécution, lecture des entrées
+            why: Les sorties sont écrites à la fin, avec le résultat du programme.
+          - t: Chaque ligne du programme lit ses entrées et écrit ses sorties aussitôt
+            why: C'est justement ce que l'image des entrées/sorties évite.
+        e: L'image des entrées garantit un état cohérent pendant tout le cycle.
+      - id: api-cycle.2
+        type: qcm
+        level: 2
+        q: Un capteur de passage donne des impulsions de 2 ms ; le cycle de l'automate dure 8 ms. Comment les compter de façon fiable ?
+        piege: ing-impulsion-cycle
+        choices:
+          - t: Avec une entrée de comptage rapide (module dédié ou entrée sur interruption)
+            ok: true
+          - t: Avec un compteur CTU dans le programme cyclique
+            piege: true
+            why: Le programme ne voit l'entrée qu'une fois toutes les 8 ms ; il en rate une partie.
+          - t: En réduisant le filtre d'entrée à zéro
+            why: Le problème est la fréquence de lecture, pas le filtre.
+        e: Règle, un signal doit durer au moins un cycle (plus le filtre d'entrée) pour être vu à coup sûr.
+      - id: api-cycle.3
+        type: qcm
+        level: 2
+        q: La sortie Moteur est commandée à la ligne 10 (vraie) et à la ligne 40 (fausse) du même programme. Quel est son état ?
+        piege: ing-double-bobine
+        choices:
+          - t: Fausse, la dernière écriture du cycle gagne
+            ok: true
+          - t: Vraie, la première écriture gagne
+            why: Les sorties sont écrites à la fin du cycle avec la dernière valeur calculée.
+          - t: Elle clignote
+            why: Seul l'état final du cycle est appliqué aux sorties physiques.
+        e: Écrire une sortie à un seul endroit du programme, c'est la règle de base.
+      - id: api-cycle.4
+        type: qcm
+        level: 1
+        q: Quel langage CEI 61131-3 ressemble le plus à un programme Pascal ou C ?
+        choices:
+          - t: Le texte structuré (ST)
+            ok: true
+          - t: Le Ladder
+            why: C'est un langage graphique à contacts.
+          - t: Le SFC
+            why: C'est un langage graphique de séquences.
+        e: ST est le plus pratique pour les calculs, les boucles et les conditions complexes.
+      - id: api-cycle.5
+        type: qcm
+        level: 2
+        q: Tu as forcé une sortie en ligne pour tester un vérin. Que faire avant de partir ?
+        choices:
+          - t: Retirer le forçage et le noter dans le cahier de l'installation
+            ok: true
+          - t: Rien, il disparaît tout seul
+            why: Sur beaucoup d'automates, un forçage reste actif, parfois même après redémarrage.
+          - t: Redémarrer l'automate
+            why: Ce n'est pas garanti de retirer le forçage, et ça arrête l'installation.
+        e: Un forçage oublié peut maintenir un actionneur en action malgré le programme.
+      - id: api-cycle.6
+        type: flash
+        level: 1
+        q: Cite les langages de la norme CEI 61131-3.
+        back: |
+          **LD** (Ladder, schéma à contacts), **FBD** (blocs fonctionnels), **ST** (texte structuré), **SFC** (séquences, dérivé du GRAFCET). L'**IL** (liste d'instructions) a été retiré de la version récente de la norme.
+        e: Un même projet mélange souvent les langages, par exemple SFC pour la séquence, ST pour les calculs, Ladder pour les verrouillages.
+  # ------------------------------------------------------------------ ladder
+  - id: api-ladder
+    title: Ladder et auto-maintien
+    en: Ladder logic and latching
+    goal: Lire et écrire les réseaux Ladder de base, dont l'auto-maintien marche/arrêt, en tenant compte du câblage NO/NF.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Le schéma électrique devenu programme
+          body: |
+            Avant les automates, les machines étaient commandées par des armoires pleines de relais. Le **Ladder** (« échelle ») reprend ces schémas : deux rails verticaux, et entre eux des « barreaux » de contacts qui commandent des bobines. Un électricien le lit sans formation informatique.
+        - level: 2
+          title: Contacts et bobines
+          body: |
+            - **Contact ouvert** (NO) `─┤ ├─` : laisse passer si la variable est vraie.
+            - **Contact fermé** (NF) `─┤/├─` : laisse passer si la variable est fausse.
+            - **Bobine** `─( )─` : la variable prend la valeur du barreau.
+
+            Contacts en **série** = ET, en **parallèle** = OU.
+
+            **Attention au câblage** : un bouton d'arrêt est câblé en **NF** (pour qu'un fil coupé provoque l'arrêt). Au repos, l'entrée vaut donc **1**, et appuyer la fait passer à 0. Dans le programme, on utilise alors un **contact NO** de cette entrée : « le barreau passe tant que l'arrêt n'est pas actionné ».
+          check:
+            q: Le bouton Arrêt est câblé en NF sur l'entrée I0.1. Quel contact utiliser dans le programme pour que la machine tourne tant qu'on n'appuie pas ?
+            choices:
+              - t: Un contact NO de I0.1 (I0.1 vaut 1 au repos)
+                ok: true
+              - t: Un contact NF de I0.1
+                why: Au repos I0.1 vaut 1, un contact NF bloquerait le barreau et la machine ne démarrerait jamais.
+              - t: Peu importe
+                why: Le choix du contact dépend du câblage physique, c'est une source d'erreurs classique.
+        - level: 3
+          title: L'auto-maintien
+          body: |
+            Un bouton **Marche** à impulsion doit faire tourner un moteur jusqu'à l'appui sur **Arrêt**. On « mémorise » grâce à un contact de la bobine elle-même, en parallèle sur le bouton Marche :
+
+            ```svg caption="Auto-maintien : une impulsion sur Marche alimente Moteur, dont le contact prend le relais. Arrêt (câblé NF, contact NO dans le programme) coupe le barreau."
+            <svg viewBox="0 0 460 150" width="460" role="img" aria-label="Réseau Ladder d'auto-maintien marche-arrêt">
+              <line class="s" x1="20" y1="20" x2="20" y2="130"/>
+              <line class="s" x1="440" y1="20" x2="440" y2="130"/>
+              <line class="s" x1="20" y1="55" x2="70" y2="55"/>
+              <line class="s" x1="70" y1="42" x2="70" y2="68"/>
+              <line class="s" x1="90" y1="42" x2="90" y2="68"/>
+              <line class="s" x1="90" y1="55" x2="190" y2="55"/>
+              <line class="s" x1="190" y1="42" x2="190" y2="68"/>
+              <line class="s" x1="210" y1="42" x2="210" y2="68"/>
+              <line class="s" x1="210" y1="55" x2="342" y2="55"/>
+              <path class="s" d="M350,41 A18,18 0 0,0 350,69"/>
+              <path class="s" d="M370,41 A18,18 0 0,1 370,69"/>
+              <line class="s" x1="378" y1="55" x2="440" y2="55"/>
+              <line class="s" x1="40" y1="55" x2="40" y2="105"/>
+              <line class="s" x1="40" y1="105" x2="70" y2="105"/>
+              <line class="as" x1="70" y1="92" x2="70" y2="118"/>
+              <line class="as" x1="90" y1="92" x2="90" y2="118"/>
+              <line class="s" x1="90" y1="105" x2="130" y2="105"/>
+              <line class="s" x1="130" y1="105" x2="130" y2="55"/>
+              <text class="t" x="80" y="32" text-anchor="middle">Marche</text>
+              <text class="t" x="200" y="32" text-anchor="middle">Arrêt</text>
+              <text class="tm" x="200" y="84" text-anchor="middle">(câblé NF)</text>
+              <text class="tb" x="360" y="32" text-anchor="middle">Moteur</text>
+              <text class="ta" x="80" y="138" text-anchor="middle">Moteur</text>
+              <text class="tm" x="150" y="120">auto-maintien</text>
+            </svg>
+            ```
+
+            En logique : `Moteur := (Marche OR Moteur) AND Arret_ok` (où `Arret_ok` est l'entrée câblée NF, vraie au repos). Arrêt est **prioritaire** : tant qu'on appuie dessus, Marche ne peut rien.
+
+            Variante : bobines **Set/Reset** (mise à 1, mise à 0). Si Set et Reset sont vrais en même temps, c'est l'ordre des lignes ou le type de bascule (priorité à la mise à 0 ou à 1) qui décide : l'arrêt doit gagner.
+        - level: 4
+          title: Sous le capot
+          body: |
+            L'auto-maintien est une **mémoire** : un circuit séquentiel construit avec de la logique combinatoire et une rétroaction (la sortie revient en entrée). C'est exactement une bascule.
+
+            **Détection de front** : les contacts « front montant » `─┤P├─` et « front descendant » `─┤N├─` ne sont vrais que pendant **un seul cycle**, au changement de l'entrée. Ils servent par exemple à compter un appui une seule fois.
+
+            **Comportement à la remise sous tension** : un auto-maintien retombe à 0 à la coupure (sauf variable rémanente). C'est voulu : une machine ne doit pas redémarrer seule au retour du courant.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Lis toujours le schéma électrique **avec** le programme : l'état d'une entrée dépend du câblage (NO ou NF).
+            - Commente chaque barreau (le « pourquoi », pas le « quoi ») ; nomme les variables clairement (`Arret_ok`, `Porte_fermee`).
+            - Une sortie = un seul barreau qui l'écrit. Pour les conditions multiples, construis-les avec des variables intermédiaires.
+      recap:
+        - "Contact NO : vrai si la variable est vraie ; NF : vrai si elle est fausse."
+        - "Série = ET, parallèle = OU."
+        - "Arrêt câblé NF → entrée à 1 au repos → contact NO dans le programme."
+        - "Auto-maintien : Moteur := (Marche OR Moteur) AND Arret_ok, arrêt prioritaire."
+        - "Pas de redémarrage automatique au retour du courant."
+      pieges: [ing-arret-nf, ing-double-bobine]
+    vocab:
+      - schéma à contacts = ladder diagram
+      - contact normalement ouvert / fermé = normally open / closed contact
+      - bobine = coil
+      - barreau = rung
+      - auto-maintien = self-holding (latching, seal-in) circuit
+      - mise à 1 / mise à 0 = set / reset
+      - front montant = rising edge (positive transition)
+      - variable rémanente = retentive variable
+    exercises:
+      - id: api-ladder.1
+        type: qcm
+        level: 1
+        q: Dans un barreau Ladder, deux contacts placés l'un après l'autre (en série) réalisent…
+        choices:
+          - t: un ET
+            ok: true
+          - t: un OU
+            why: Le OU s'obtient avec des contacts en parallèle.
+          - t: un OU exclusif
+            why: Un XOR demande une combinaison de contacts NO et NF.
+        e: Le courant ne passe que si les deux contacts sont fermés.
+      - id: api-ladder.2
+        type: qcm
+        level: 2
+        q: Le bouton Arrêt (câblé NF) est programmé avec un contact NF. Que se passe-t-il ?
+        piege: ing-arret-nf
+        choices:
+          - t: La machine ne démarre jamais, car l'entrée vaut 1 au repos et le contact NF bloque le barreau
+            ok: true
+          - t: Ça fonctionne normalement
+            piege: true
+            why: C'est une double inversion ; le barreau est coupé tant qu'on n'appuie PAS sur Arrêt.
+          - t: La machine s'arrête quand on relâche le bouton
+            why: Elle ne démarre pas du tout.
+        e: Contact physique NF → entrée à 1 au repos → contact NO dans le programme.
+      - id: api-ladder.3
+        type: qcm
+        level: 2
+        q: Pourquoi le contact de la bobine Moteur est-il placé en parallèle sur le bouton Marche ?
+        choices:
+          - t: Pour que le moteur reste en marche une fois le bouton relâché (auto-maintien)
+            ok: true
+          - t: Pour doubler la sécurité
+            why: C'est une mémoire, pas une redondance.
+          - t: Pour démarrer plus vite
+            why: Il ne joue aucun rôle au démarrage, seulement après.
+        e: Une fois Moteur à 1, son propre contact alimente le barreau à la place du bouton.
+      - id: api-ladder.4
+        type: qcm
+        level: 2
+        q: "Écrit en logique, l'auto-maintien avec arrêt prioritaire est…"
+        choices:
+          - t: "Moteur := (Marche OR Moteur) AND Arret_ok"
+            ok: true
+          - t: "Moteur := Marche OR (Moteur AND Arret_ok)"
+            why: Ici, appuyer sur Marche démarre même si l'arrêt est actionné ; la marche serait prioritaire.
+          - t: "Moteur := Marche AND Arret_ok"
+            why: Sans le terme Moteur, pas de mémoire ; le moteur s'arrête dès qu'on relâche Marche.
+        e: Le ET avec Arret_ok en dernier garantit que l'arrêt coupe tout, quoi qu'il arrive.
+      - id: api-ladder.5
+        type: qcm
+        level: 1
+        q: Combien de temps un contact « front montant » reste-t-il vrai ?
+        choices:
+          - t: Un seul cycle automate
+            ok: true
+          - t: Tant que l'entrée est à 1
+            why: C'est le comportement d'un contact NO ordinaire.
+          - t: Une seconde
+            why: Aucune durée fixe ; c'est lié au cycle.
+        e: Idéal pour compter un appui ou déclencher une action une seule fois.
+      - id: api-ladder.6
+        type: flash
+        level: 1
+        q: Dessine (ou décris) le réseau d'auto-maintien marche/arrêt.
+        back: |
+          Un barreau : [Marche NO en parallèle avec contact Moteur NO] en série avec [Arrêt] → bobine Moteur.
+
+          Arrêt étant câblé NF, on utilise son contact NO dans le programme. Logique : Moteur := (Marche OR Moteur) AND Arret_ok.
+        e: Arrêt prioritaire, pas de redémarrage automatique à la remise sous tension.
+  # ------------------------------------------------------------------ GRAFCET
+  - id: api-grafcet
+    title: Le GRAFCET
+    en: GRAFCET (sequential function charts)
+    goal: Lire et construire un GRAFCET simple, et appliquer ses règles d'évolution.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: La recette de cuisine
+          body: |
+            Une recette est une suite d'étapes, et on ne passe à la suivante que quand une condition est remplie : « quand l'eau bout, mets les pâtes ; quand 10 minutes sont passées, égoutte ». Le **GRAFCET** décrit ainsi le fonctionnement d'une machine.
+        - level: 2
+          title: Étapes et transitions
+          body: |
+            - Une **étape** (un carré numéroté) est une situation stable de la machine. Elle est **active** ou **inactive**. L'étape **initiale** (double carré) est active au démarrage.
+            - À chaque étape sont associées des **actions** (un rectangle à droite) : sortir un vérin, faire tourner un moteur.
+            - Une **transition** (un petit trait horizontal) sépare deux étapes. Elle porte une **réceptivité** : la condition pour passer à la suite (un capteur, une temporisation, un bouton).
+
+            Règle essentielle : une transition est **franchie** quand l'étape qui la précède est active **et** que sa réceptivité est vraie. L'étape précédente se désactive, la suivante s'active.
+
+            ```svg caption="GRAFCET d'un poste de perçage : chaque étape attend le capteur qui confirme la fin de son action."
+            <svg viewBox="0 0 460 334" width="460" role="img" aria-label="GRAFCET d'un cycle de perçage en cinq étapes">
+              <defs><marker id="ar-api1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="a"/></marker></defs>
+              <g transform="translate(0,14)">
+              <rect class="soft" x="60" y="10" width="40" height="30"/>
+              <rect class="s" x="64" y="14" width="32" height="22"/>
+              <text class="tb" x="80" y="30" text-anchor="middle">0</text>
+              <line class="s" x1="80" y1="40" x2="80" y2="70"/>
+              <line class="s" x1="68" y1="55" x2="92" y2="55"/>
+              <text class="t" x="102" y="59">départ cycle · pièce présente</text>
+              <rect class="soft" x="60" y="70" width="40" height="30"/>
+              <text class="tb" x="80" y="90" text-anchor="middle">1</text>
+              <line class="s" x1="100" y1="85" x2="130" y2="85"/>
+              <rect class="hl" x="130" y="72" width="190" height="26"/>
+              <text class="t" x="140" y="89">serrer la pièce (A+)</text>
+              <line class="s" x1="80" y1="100" x2="80" y2="130"/>
+              <line class="s" x1="68" y1="115" x2="92" y2="115"/>
+              <text class="t" x="102" y="119">a1 : pièce serrée</text>
+              <rect class="soft" x="60" y="130" width="40" height="30"/>
+              <text class="tb" x="80" y="150" text-anchor="middle">2</text>
+              <line class="s" x1="100" y1="145" x2="130" y2="145"/>
+              <rect class="hl" x="130" y="132" width="190" height="26"/>
+              <text class="t" x="140" y="149">descendre le foret (B+)</text>
+              <line class="s" x1="80" y1="160" x2="80" y2="190"/>
+              <line class="s" x1="68" y1="175" x2="92" y2="175"/>
+              <text class="t" x="102" y="179">b1 : foret en bas</text>
+              <rect class="soft" x="60" y="190" width="40" height="30"/>
+              <text class="tb" x="80" y="210" text-anchor="middle">3</text>
+              <line class="s" x1="100" y1="205" x2="130" y2="205"/>
+              <rect class="hl" x="130" y="192" width="190" height="26"/>
+              <text class="t" x="140" y="209">remonter le foret (B−)</text>
+              <line class="s" x1="80" y1="220" x2="80" y2="250"/>
+              <line class="s" x1="68" y1="235" x2="92" y2="235"/>
+              <text class="t" x="102" y="239">b0 : foret en haut</text>
+              <rect class="soft" x="60" y="250" width="40" height="30"/>
+              <text class="tb" x="80" y="270" text-anchor="middle">4</text>
+              <line class="s" x1="100" y1="265" x2="130" y2="265"/>
+              <rect class="hl" x="130" y="252" width="190" height="26"/>
+              <text class="t" x="140" y="269">desserrer (A−)</text>
+              <line class="s" x1="80" y1="280" x2="80" y2="310"/>
+              <line class="s" x1="68" y1="295" x2="92" y2="295"/>
+              <text class="t" x="102" y="299">a0 : pièce desserrée</text>
+              <line class="s" x1="80" y1="310" x2="30" y2="310"/>
+              <line class="s" x1="30" y1="310" x2="30" y2="4"/>
+              <line class="s" x1="30" y1="4" x2="80" y2="4"/>
+              <line class="s" x1="80" y1="4" x2="80" y2="9" marker-end="url(#ar-api1)"/>
+              </g>
+            </svg>
+            ```
+          check:
+            q: L'étape 2 est active, le foret descend. Le capteur a1 (pièce serrée) change d'état. Que se passe-t-il ?
+            choices:
+              - t: Rien, seule la réceptivité b1 qui suit l'étape 2 peut la faire évoluer
+                ok: true
+              - t: On revient à l'étape 1
+                why: Une transition n'est franchie que si l'étape qui la précède est active.
+              - t: On passe à l'étape 3
+                why: C'est b1 (foret en bas) qui fait passer à l'étape 3.
+        - level: 3
+          title: Les règles d'évolution
+          body: |
+            1. **Situation initiale** : les étapes initiales sont actives au démarrage.
+            2. **Franchissement** : une transition est franchissable si **toutes** les étapes qui la précèdent sont actives et que sa réceptivité est vraie.
+            3. Franchir une transition **active** toutes les étapes suivantes et **désactive** toutes les précédentes.
+            4. Les transitions franchissables en même temps sont franchies **simultanément**.
+            5. Une étape à la fois activée et désactivée **reste active**.
+
+            **Structures** :
+            - **divergence en OU** (un trait simple avec plusieurs transitions) : un **choix** entre plusieurs suites, selon la réceptivité vraie ;
+            - **divergence en ET** (double trait) : plusieurs séquences **en parallèle**, qui se rejoignent par une convergence en ET (double trait), franchie quand toutes les branches ont terminé.
+
+            **Réceptivités temporisées** : `3 s/X2` signifie « 3 secondes après l'activation de l'étape 2 ».
+        - level: 4
+          title: Sous le capot
+          body: |
+            Le GRAFCET est une **machine à états** normalisée (norme CEI 60848), et l'équivalent en programmation d'automate est le **SFC**. On peut aussi le traduire à la main en Ladder ou en ST : une variable par étape, activée (Set) quand sa transition d'entrée est franchie, désactivée (Reset) quand sa transition de sortie l'est.
+
+            **Actions** : continues (la sortie est vraie tant que l'étape est active), conditionnelles (seulement si une condition est vraie), mémorisées (mise à 1 à une étape, remise à 0 à une autre).
+
+            Un bon GRAFCET décrit aussi ce qui se passe **quand ça ne marche pas** : chaque étape qui attend un capteur a une **temporisation de surveillance** qui mène à une étape de défaut.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Au-delà du cycle normal, pense aux **modes de marche et d'arrêt** : marche manuelle, cycle par cycle, arrêt en fin de cycle, arrêt d'urgence et reprise (le guide GEMMA les structure).
+            - Chaque mouvement commandé doit être **confirmé** par un capteur, avec un délai maximal (sinon : défaut « vérin bloqué »).
+            - Dessine le GRAFCET **avant** de programmer : il sert aussi de documentation pour le dépannage.
+      recap:
+        - "Étape (carré) + actions ; transition (trait) + réceptivité."
+        - "Franchissement : étapes précédentes actives ET réceptivité vraie."
+        - "Divergence OU = choix ; divergence ET (double trait) = parallélisme."
+        - "Temporisation de surveillance sur chaque attente de capteur."
+        - "Penser aux modes de marche et d'arrêt (GEMMA)."
+      pieges: [ing-etape-sans-timeout]
+    vocab:
+      - étape = step
+      - transition = transition
+      - réceptivité = transition condition
+      - étape initiale = initial step
+      - divergence en ET / OU = parallel / alternative branch
+      - action mémorisée = stored (set/reset) action
+      - diagramme fonctionnel en séquence = sequential function chart (SFC)
+      - modes de marche et d'arrêt = operating modes (GEMMA)
+    exercises:
+      - id: api-grafcet.1
+        type: qcm
+        level: 1
+        q: Quand une transition est-elle franchie ?
+        choices:
+          - t: Quand toutes les étapes qui la précèdent sont actives et que sa réceptivité est vraie
+            ok: true
+          - t: Dès que sa réceptivité est vraie
+            why: Il faut aussi que l'étape précédente soit active.
+          - t: Au cycle suivant, quoi qu'il arrive
+            why: Une transition attend sa condition.
+        e: C'est la règle 2 ; elle rend le comportement indépendant des signaux qui ne concernent pas l'étape en cours.
+      - id: api-grafcet.2
+        type: numeric
+        level: 1
+        q: Une divergence en ET ouvre trois branches parallèles. Combien d'étapes deviennent actives en même temps au franchissement ?
+        answer: 3
+        tol: 0.001
+        calc: "3"
+        e: Une par branche. Elles évoluent ensuite indépendamment jusqu'à la convergence en ET.
+      - id: api-grafcet.3
+        type: qcm
+        level: 2
+        q: Que représente un double trait horizontal dans un GRAFCET ?
+        choices:
+          - t: Une divergence ou une convergence en ET (séquences simultanées)
+            ok: true
+          - t: Une divergence en OU (choix)
+            why: Le OU est représenté par un trait simple.
+          - t: Une étape initiale
+            why: L'étape initiale est un double carré.
+        e: La convergence en ET attend que toutes les branches soient arrivées à leur dernière étape.
+      - id: api-grafcet.4
+        type: qcm
+        level: 2
+        q: À l'étape 1, un vérin doit sortir, confirmé par le capteur a1. Le vérin se bloque. Que se passe-t-il dans un GRAFCET sans surveillance ?
+        piege: ing-etape-sans-timeout
+        choices:
+          - t: La machine reste indéfiniment à l'étape 1, sans alarme
+            ok: true
+          - t: Le GRAFCET passe à l'étape suivante au bout d'un moment
+            why: Sans réceptivité vraie, aucune transition n'est franchie.
+          - t: L'automate s'arrête en défaut
+            why: Pour lui, attendre est un fonctionnement normal.
+        e: Ajoute une transition « 5 s/X1 ET NON a1 » vers une étape de défaut qui prévient l'opérateur.
+      - id: api-grafcet.5
+        type: qcm
+        level: 1
+        q: "Que signifie la réceptivité « 3 s/X2 » ?"
+        choices:
+          - t: Vraie 3 secondes après l'activation de l'étape 2
+            ok: true
+          - t: Vraie toutes les 3 secondes
+            why: Ce n'est pas une horloge périodique.
+          - t: L'étape 2 dure au plus 3 secondes
+            why: C'est une condition de transition, qui n'est franchie que si l'étape 2 est active depuis 3 s.
+        e: Pratique pour une temporisation (attente de stabilisation, durée de chauffe).
+      - id: api-grafcet.6
+        type: flash
+        level: 1
+        q: Définis étape, action, transition et réceptivité.
+        back: |
+          **Étape** : situation stable du système, active ou inactive (carré numéroté).
+          **Action** : ce que fait le système quand l'étape est active (rectangle à droite).
+          **Transition** : passage possible entre étapes (trait horizontal).
+          **Réceptivité** : condition logique associée à la transition (capteur, temps, bouton).
+        e: Alternance obligatoire, jamais deux étapes ni deux transitions à la suite.
+  # ------------------------------------------------------------------ temporisations
+  - id: api-tempos
+    title: Temporisations et compteurs
+    en: Timers and counters
+    goal: Choisir entre TON, TOF et TP, utiliser un compteur, et éviter les erreurs d'appel des blocs.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: La minuterie d'escalier
+          body: |
+            Tu appuies sur l'interrupteur de l'escalier : la lumière s'allume, puis s'éteint toute seule deux minutes plus tard. Une porte automatique reste ouverte encore trois secondes après le dernier passage. Ce sont des **temporisations**.
+        - level: 2
+          title: Trois temporisations normalisées
+          body: |
+            - **TON** (retard à l'enclenchement) : la sortie passe à 1 quand l'entrée est restée à 1 pendant la durée **PT**. Si l'entrée retombe avant, rien ne se passe. Sert à **filtrer** et à **attendre**.
+            - **TOF** (retard au déclenchement) : la sortie passe à 1 tout de suite, et reste à 1 pendant PT **après** que l'entrée est retombée. Sert à **prolonger**.
+            - **TP** (impulsion) : un front montant de l'entrée donne une impulsion de durée PT exactement.
+
+            **Compteurs** : **CTU** compte les fronts montants de son entrée ; sa sortie passe à 1 quand la valeur atteint la présélection PV. **CTD** décompte. Une entrée de remise à zéro les réinitialise.
+
+            ```svg caption="Chronogramme : TON n'enclenche qu'après PT et ignore les impulsions courtes ; TOF prolonge de PT après la retombée de l'entrée."
+            <svg viewBox="0 0 460 180" width="460" role="img" aria-label="Chronogramme des temporisations TON et TOF">
+              <defs><marker id="ar-api2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="a"/></marker></defs>
+              <polyline class="s" points="40,40 80,40 80,20 260,20 260,40 340,40 340,20 370,20 370,40 440,40"/>
+              <polyline class="as" points="40,95 140,95 140,75 260,75 260,95 440,95"/>
+              <polyline class="ws" points="40,150 80,150 80,130 320,130 320,150 340,150 340,130 430,130 430,150 440,150"/>
+              <text class="tb" x="4" y="35">IN</text>
+              <text class="ta" x="4" y="90">TON</text>
+              <text class="tw" x="4" y="145">TOF</text>
+              <line class="as" x1="80" y1="110" x2="140" y2="110" marker-start="url(#ar-api2)" marker-end="url(#ar-api2)"/>
+              <text class="ta" x="100" y="124">PT</text>
+              <line class="ws" x1="260" y1="165" x2="320" y2="165" marker-start="url(#ar-api2)" marker-end="url(#ar-api2)"/>
+              <text class="tw" x="280" y="178">PT</text>
+              <text class="tm" x="300" y="114">trop courte : ignorée</text>
+            </svg>
+            ```
+          check:
+            q: Un capteur de niveau clignote à cause des vagues, et la pompe démarre et s'arrête sans cesse. Quelle temporisation ajouter sur le signal du capteur ?
+            choices:
+              - t: Un TON, pour n'agir que si le niveau est vu pendant une durée minimale
+                ok: true
+              - t: Un TP
+                why: Il donnerait une impulsion à chaque clignotement.
+              - t: Un compteur
+                why: Compter les clignotements ne les filtre pas.
+        - level: 3
+          title: Exemples d'usage
+          body: |
+            - **Filtrer** : `TON(IN := Niveau_haut, PT := T#2s)` ; la pompe ne réagit qu'à un niveau stable 2 s.
+            - **Prolonger** : `TOF(IN := Presence, PT := T#5s)` ; le convoyeur tourne encore 5 s après le passage de la dernière pièce.
+            - **Surveiller un mouvement** : `TON(IN := Cde_sortie AND NOT Capteur_sorti, PT := T#3s)` ; si la sortie passe à 1, le vérin n'est pas arrivé en 3 s : défaut.
+            - **Compter** : `CTU(CU := Piece_vue, R := Carton_evacue, PV := 12)` ; la sortie signale un carton plein.
+
+            En texte structuré, une temporisation est une **instance** de bloc qu'on appelle à chaque cycle :
+
+            ```text
+            TempoNiveau(IN := Niveau_haut, PT := T#2s);
+            Pompe := TempoNiveau.Q;
+            ```
+        - level: 4
+          title: Sous le capot
+          body: |
+            Une temporisation est un compteur de temps logiciel, mis à jour **quand le bloc est appelé**. Deux conséquences :
+            - si l'appel est dans une condition (`IF … THEN TempoNiveau(…)`), le temps n'avance plus quand la condition est fausse, et la temporisation ne voit pas la retombée de son entrée ;
+            - la résolution réelle dépend du cycle : une temporisation de 5 ms dans un cycle de 10 ms dure en pratique 10 ms.
+
+            Les temporisations **rémanentes** (TONR) gardent le temps accumulé quand l'entrée retombe (compteur d'heures de fonctionnement, par exemple).
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Documente chaque valeur de temporisation : pourquoi 2 s et pas 0,5 s ?
+            - N'enchaîne pas des dizaines de temporisations pour faire une séquence : c'est le rôle du GRAFCET.
+            - Les comptages rapides (codeurs, cadences élevées) vont sur des modules de comptage matériel, pas sur CTU.
+      recap:
+        - "TON : retard à l'enclenchement (filtrer, attendre)."
+        - "TOF : retard au déclenchement (prolonger)."
+        - "TP : impulsion de durée fixe."
+        - "CTU/CTD : compteurs avec présélection PV et remise à zéro."
+        - "Appeler chaque instance de temporisation à chaque cycle, hors des IF."
+      pieges: [ing-tempo-dans-if, ing-impulsion-cycle]
+    vocab:
+      - temporisation = timer
+      - retard à l'enclenchement = on-delay timer (TON)
+      - retard au déclenchement = off-delay timer (TOF)
+      - impulsion = pulse timer (TP)
+      - compteur = counter (CTU, CTD)
+      - présélection = preset value (PV)
+      - instance = instance
+      - temporisation rémanente = retentive timer
+    exercises:
+      - id: api-tempos.1
+        type: qcm
+        level: 1
+        q: Un convoyeur doit continuer à tourner 5 secondes après que la dernière pièce a quitté le capteur. Quelle temporisation ?
+        choices:
+          - t: TOF
+            ok: true
+          - t: TON
+            why: TON retarde l'enclenchement, pas l'arrêt.
+          - t: TP
+            why: TP donnerait une impulsion fixe au début, pas un prolongement à la fin.
+        e: TOF garde sa sortie à 1 pendant PT après la retombée de l'entrée.
+      - id: api-tempos.2
+        type: qcm
+        level: 2
+        q: Un TON de PT = 2 s reçoit une entrée à 1 pendant 1,5 s, puis à 0. Que fait sa sortie ?
+        choices:
+          - t: Elle reste à 0
+            ok: true
+          - t: Elle passe à 1 pendant 0,5 s
+            why: Le TON remet son temps à zéro dès que l'entrée retombe.
+          - t: Elle passe à 1 à 2 s
+            why: L'entrée n'est pas restée à 1 assez longtemps.
+        e: C'est ce qui en fait un filtre contre les signaux trop brefs.
+      - id: api-tempos.3
+        type: qcm
+        level: 2
+        q: "En ST, une temporisation est appelée seulement dans un bloc IF Auto THEN … END_IF. On passe en manuel pendant qu'elle compte, puis on revient en auto. Que risque-t-on ?"
+        piege: ing-tempo-dans-if
+        choices:
+          - t: Elle n'a pas été mise à jour pendant le manuel ; son état au retour est incohérent
+            ok: true
+          - t: Rien, une temporisation tourne toute seule
+            piege: true
+            why: Elle n'avance que quand son instance est appelée.
+          - t: L'automate s'arrête en défaut
+            why: Aucun défaut n'est signalé ; c'est ce qui rend le bug sournois.
+        e: Appelle les instances à chaque cycle, et mets la condition dans leur entrée IN.
+      - id: api-tempos.4
+        type: numeric
+        level: 1
+        q: Un CTU de présélection PV = 12 compte des pièces. Combien de fronts montants faut-il pour que sa sortie passe à 1 ?
+        answer: 12
+        tol: 0.001
+        calc: "12"
+        e: La sortie Q passe à 1 quand la valeur courante atteint PV. Une remise à zéro (entrée R) relance le comptage.
+      - id: api-tempos.5
+        type: qcm
+        level: 2
+        q: Comment détecter qu'un vérin commandé n'est pas arrivé en fin de course ?
+        choices:
+          - t: TON sur (commande active ET capteur de fin de course absent), avec un PT un peu supérieur au temps normal du mouvement
+            ok: true
+          - t: TOF sur le capteur de fin de course
+            why: Il prolonge la présence du capteur, il ne mesure pas le retard.
+          - t: Un compteur sur la commande
+            why: Compter les commandes ne dit rien de l'arrivée.
+        e: Si la sortie du TON passe à 1, le mouvement a dépassé son temps normal, c'est un défaut à signaler.
+      - id: api-tempos.6
+        type: flash
+        level: 1
+        q: Décris TON, TOF et TP en une phrase chacun.
+        back: |
+          **TON** : la sortie monte si l'entrée reste à 1 pendant PT (retard à l'enclenchement).
+          **TOF** : la sortie monte tout de suite et reste à 1 pendant PT après la retombée de l'entrée (retard au déclenchement).
+          **TP** : un front montant de l'entrée produit une impulsion de durée PT.
+        e: Ce sont les blocs standard de la norme CEI 61131-3.
+  # ------------------------------------------------------------------ sécurité
+  - id: api-securite
+    title: Sécurité des machines
+    en: Machine safety
+    goal: Connaître les principes d'un arrêt d'urgence et d'une fonction de sécurité, et les erreurs qui tuent.
+    minutes: 13
+    lesson:
+      steps:
+        - level: 1
+          title: Le bouton coup de poing
+          body: |
+            Sur toute machine, un gros bouton rouge sur fond jaune : l'**arrêt d'urgence**. Tout le monde sait qu'il arrête tout. Il doit fonctionner même si l'automate a planté, même si un fil est coupé, même si un contact s'est soudé. Une fonction de sécurité est conçue pour marcher **quand le reste tombe en panne**.
+        - level: 2
+          title: Les principes
+          body: |
+            - **Sécurité positive** : une défaillance (fil coupé, alimentation perdue) doit mener à l'état sûr. D'où les contacts **NF** : le circuit est fermé en fonctionnement normal, et toute coupure provoque l'arrêt.
+            - **Ouverture forcée** (ou positive) : les contacts de sécurité sont ouverts mécaniquement par l'organe de commande, même s'ils sont soudés.
+            - **Redondance** : deux canaux indépendants, pour qu'une seule panne ne supprime pas la fonction.
+            - **Surveillance** : un **relais de sécurité** ou un **automate de sécurité** vérifie la cohérence des deux canaux et détecte les pannes.
+            - **Pas de redémarrage automatique** : après un arrêt d'urgence ou une coupure, la remise en marche exige une action volontaire (réarmement, puis marche).
+
+            Un programme d'automate standard **ne suffit pas** à réaliser une fonction de sécurité.
+          check:
+            q: Pourquoi un bouton d'arrêt d'urgence utilise-t-il un contact normalement fermé ?
+            choices:
+              - t: Pour qu'un fil coupé ou un contact défaillant provoque l'arrêt, au lieu d'empêcher l'arrêt sans que personne le sache
+                ok: true
+              - t: Parce que c'est moins cher
+                why: Le coût n'a rien à voir, c'est un principe de sécurité.
+              - t: Pour consommer moins
+                why: Le circuit est même alimenté en permanence.
+        - level: 3
+          title: Arrêts et normes
+          body: |
+            **Catégories d'arrêt** (EN 60204-1) :
+            - **catégorie 0** : coupure immédiate de l'énergie des actionneurs (arrêt non contrôlé) ;
+            - **catégorie 1** : arrêt contrôlé (freinage par le variateur), puis coupure de l'énergie ;
+            - **catégorie 2** : arrêt contrôlé en gardant l'énergie, **interdit** pour un arrêt d'urgence.
+
+            **Niveau de performance** : l'appréciation du risque (EN ISO 12100) donne, selon la gravité, la fréquence d'exposition et la possibilité d'éviter le danger, un **niveau de performance requis** (PLr de a à e, norme EN ISO 13849-1), qui impose l'architecture (redondance, surveillance) et la qualité des composants.
+
+            **Schéma type** : bouton d'arrêt d'urgence à deux contacts NF → relais de sécurité → deux contacteurs en série sur l'alimentation des moteurs, dont les **contacts miroirs** reviennent au relais pour vérifier qu'ils sont bien retombés.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Pourquoi deux contacteurs en série ?** Un contacteur peut rester collé (contacts soudés). Avec deux contacteurs en série, un seul suffit à couper. Et grâce aux **contacts miroirs** (mécaniquement liés aux contacts de puissance), le relais de sécurité refuse de réarmer si l'un des deux est resté collé.
+
+            **Pourquoi pas le logiciel seul ?** Un programme peut contenir un bug, un processeur peut se figer avec ses sorties à 1, une sortie à transistor peut claquer en court-circuit. Les automates de sécurité ont deux processeurs qui se surveillent, des sorties testées en permanence, et un logiciel certifié.
+
+            **Diagnostic et temps de réaction** : une fonction de sécurité doit détecter ses propres défauts au plus tard à la prochaine sollicitation, et agir dans un temps compatible avec la vitesse d'approche du danger (qui fixe aussi la distance des protections).
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - **Ne shunte jamais une sécurité** (strap sur un contact de porte « pour tester ») : c'est l'une des premières causes d'accidents graves. Si un essai l'exige, procédure écrite, autorisation, et mesures compensatoires.
+            - **Consignation** avant toute intervention : électrique, mais aussi pneumatique, hydraulique, mécanique (charges suspendues, ressorts).
+            - Teste périodiquement les arrêts d'urgence et les verrouillages de protecteurs.
+            - Sur une ligne de lumière, le **système de sécurité des personnes** (fouille et fermeture de la cabane, verrouillage des portes, obturateurs de faisceau) est indépendant du contrôle-commande : aucune commande logicielle ne peut l'outrepasser.
+      recap:
+        - "Sécurité positive : contacts NF, défaillance = état sûr."
+        - "Ouverture forcée, redondance (2 canaux), surveillance (relais ou automate de sécurité)."
+        - "Arrêt d'urgence : catégorie 0 ou 1, jamais 2 ; pas de redémarrage automatique."
+        - "PLr (EN ISO 13849-1) issu de l'appréciation du risque."
+        - "Jamais de shunt de sécurité ; consignation de toutes les énergies."
+      pieges: [ing-securite-logicielle, ing-redemarrage-auto, ing-shunt-securite]
+    vocab:
+      - arrêt d'urgence = emergency stop (E-stop)
+      - sécurité positive = fail-safe
+      - ouverture forcée = positive (direct) opening
+      - relais de sécurité = safety relay
+      - automate de sécurité = safety PLC
+      - redondance = redundancy
+      - niveau de performance requis = required performance level (PLr)
+      - appréciation du risque = risk assessment
+    exercises:
+      - id: api-securite.1
+        type: qcm
+        level: 1
+        q: On déverrouille un arrêt d'urgence enfoncé. La machine…
+        piege: ing-redemarrage-auto
+        choices:
+          - t: reste arrêtée ; il faut réarmer puis relancer volontairement
+            ok: true
+          - t: redémarre là où elle s'était arrêtée
+            piege: true
+            why: Un redémarrage automatique surprendrait la personne qui vient d'intervenir.
+          - t: redémarre au début de son cycle
+            why: Pas davantage ; toute remise en marche doit être volontaire.
+        e: Déverrouiller l'AU autorise seulement le réarmement ; la marche reste une action distincte.
+      - id: api-securite.2
+        type: qcm
+        level: 2
+        q: Quelle catégorie d'arrêt est interdite pour un arrêt d'urgence ?
+        choices:
+          - t: La catégorie 2 (arrêt contrôlé en gardant l'énergie)
+            ok: true
+          - t: La catégorie 0
+            why: La coupure immédiate est autorisée (et souvent utilisée).
+          - t: La catégorie 1
+            why: Arrêt contrôlé puis coupure, c'est autorisé, utile pour freiner une charge lourde.
+        e: Après un arrêt d'urgence, l'énergie des actionneurs dangereux doit être coupée.
+      - id: api-securite.3
+        type: qcm
+        level: 2
+        q: Peut-on réaliser l'arrêt d'urgence d'une machine uniquement dans le programme d'un automate standard ?
+        piege: ing-securite-logicielle
+        choices:
+          - t: Non, il faut un relais ou un automate de sécurité et une coupure câblée
+            ok: true
+          - t: Oui, si le programme est bien testé
+            piege: true
+            why: Un automate standard peut se figer avec ses sorties actives ; ses sorties peuvent claquer en court-circuit.
+          - t: Oui, avec un watchdog
+            why: Le watchdog aide au diagnostic, il ne garantit pas la coupure.
+        e: L'automate standard peut être informé de l'arrêt d'urgence, mais la coupure doit être assurée par la chaîne de sécurité.
+      - id: api-securite.4
+        type: qcm
+        level: 2
+        q: Un collègue propose de ponter le contact de porte d'une machine pour faire un réglage porte ouverte. Que réponds-tu ?
+        piege: ing-shunt-securite
+        choices:
+          - t: Non ; on utilise un mode de réglage prévu (vitesse réduite, commande maintenue) ou une procédure autorisée
+            ok: true
+          - t: D'accord si on fait attention
+            piege: true
+            why: C'est le scénario type des accidents graves.
+          - t: D'accord, mais seulement cinq minutes
+            why: Le danger ne dépend pas de la durée prévue ; et le pont est souvent oublié.
+        e: Les machines prévoient des modes de réglage sûrs ; sinon, une procédure écrite et validée définit des mesures compensatoires.
+      - id: api-securite.5
+        type: qcm
+        level: 3
+        q: Pourquoi met-on deux contacteurs en série, avec leurs contacts miroirs surveillés par le relais de sécurité ?
+        choices:
+          - t: Si l'un reste collé, l'autre coupe quand même, et le relais refuse de réarmer tant que le défaut existe
+            ok: true
+          - t: Pour doubler la puissance
+            why: En série, ils ne doublent pas la puissance.
+          - t: Pour couper plus vite
+            why: Ils coupent en même temps ; c'est la tolérance à une panne qui est recherchée.
+        e: Redondance (deux canaux) et surveillance (contacts miroirs) : les deux piliers d'une fonction de sécurité.
+      - id: api-securite.6
+        type: flash
+        level: 1
+        q: Cite les grands principes d'une fonction de sécurité machine.
+        back: |
+          Sécurité positive (NF, défaillance → état sûr) ; ouverture forcée des contacts ; redondance (deux canaux) ; surveillance (relais ou automate de sécurité) ; coupure câblée de l'énergie ; pas de redémarrage automatique ; niveau de performance adapté au risque (PLr).
+        e: Et une organisation autour, consignation, tests périodiques, aucun shunt.

@@ -1,0 +1,327 @@
+id: cf08
+track: cpp
+title: Texte avec std::string
+goal: Manipuler du texte en C++ — concaténer, chercher, découper, convertir — et reconnaître les chaînes « à la C ».
+level: fondations
+requires: [cf07]
+concepts: [string, find, substr, stod, string_view]
+lesson:
+  minutes: 15
+  intro: |
+    En C++, le texte a deux visages : `std::string`, un vrai objet qui gère sa mémoire et ressemble au `str` de Python (en modifiable), et les **chaînes à la C** (`"texte"`, `const char*`), un simple tableau de caractères terminé par un zéro, hérité du C. Les littéraux entre guillemets sont des chaînes C : c'est la source de pièges surprenants, comme `"a" + "b"` qui ne compile pas.
+  steps:
+    - level: 1
+      title: Un texte qui se modifie
+      body: |
+        ```cpp
+        #include <string>
+        std::string nom = "PT100";
+        nom += "-A";              // "PT100-A"
+        nom[0] = 'p';             // modifiable : "pT100-A"
+        nom.size();               // 7
+        ```
+
+        Contrairement au `str` de Python, une `std::string` est **modifiable** sur place. Elle se compare avec `==`, `<` (ordre alphabétique), se concatène avec `+`, et connaît sa taille.
+
+        Et comme en C++ tout a un type : `'A'` (apostrophes) est un `char`, **un** caractère ; `"A"` (guillemets) est une chaîne. Ce ne sont pas des choses interchangeables.
+    - level: 2
+      title: Chercher, extraire, convertir
+      code: |
+        #include <iostream>
+        #include <string>
+
+        int main() {
+            std::string trame = "T=23.51;H=45.2";
+            std::size_t pos = trame.find(';');                 // position du ';'
+            std::string partie_t = trame.substr(0, pos);       // "T=23.51"
+            std::string partie_h = trame.substr(pos + 1);      // "H=45.2"
+            double t = std::stod(partie_t.substr(2));          // texte -> double
+            int n = std::stoi("42");                           // texte -> int
+            std::string rapport = "T vaut " + std::to_string(t) + " et n = " + std::to_string(n);
+            std::cout << partie_h << " | " << t + 1 << " | " << rapport << '\n';
+            if (trame.find("P=") == std::string::npos) {
+                std::cout << "pas de pression dans la trame\n";
+            }
+        }
+      out: |
+        H=45.2 | 24.51 | T vaut 23.510000 et n = 42
+        pas de pression dans la trame
+      body: |
+        | Python | C++ |
+        | --- | --- |
+        | `len(s)` | `s.size()` |
+        | `s.find(x)` (−1 si absent) | `s.find(x)` (**`std::string::npos`** si absent) |
+        | `s[a:b]` | `s.substr(a, longueur)` — attention, **longueur**, pas position de fin |
+        | `float(s)`, `int(s)` | `std::stod(s)`, `std::stoi(s)` |
+        | `str(x)` | `std::to_string(x)` |
+        | `x in s` | `s.find(x) != std::string::npos` (ou `s.contains(x)` en C++23) |
+    - level: 3
+      title: Découper une ligne
+      body: |
+        Pas de `split` tout fait dans la bibliothèque standard : on l'écrit une fois, avec `find` et `substr`, ou avec un `std::istringstream` et `std::getline`, qui lit jusqu'à un séparateur.
+      code: |
+        #include <iostream>
+        #include <sstream>
+        #include <string>
+        #include <vector>
+
+        std::vector<std::string> decouper(const std::string& ligne, char sep) {
+            std::vector<std::string> champs;
+            std::istringstream flux(ligne);
+            std::string champ;
+            while (std::getline(flux, champ, sep)) {
+                champs.push_back(champ);
+            }
+            return champs;
+        }
+
+        int main() {
+            auto c = decouper("2026-09-28;PT100-A;21.54;OK", ';');
+            std::cout << c.size() << " champs, capteur " << c[1] << ", valeur x2 = " << std::stod(c[2]) * 2 << '\n';
+        }
+      out: |
+        4 champs, capteur PT100-A, valeur x2 = 43.08
+    - level: 4
+      title: Les chaînes à la C et leurs pièges
+      body: |
+        Un littéral `"bonjour"` n'est **pas** une `std::string` : c'est un tableau de `char` constant, terminé par un caractère nul `'\0'`, qui se comporte comme un **pointeur** vers son premier caractère (on détaille les pointeurs au cours 11). Conséquences :
+
+        - `"a" + "b"` **ne compile pas** : on ne peut pas additionner deux pointeurs. Il faut qu'au moins un opérande soit une `std::string` : `std::string("a") + "b"`, ou `"a"s + "b"` (avec `using namespace std::string_literals;`).
+        - `"abc" + 1` **compile**… et vaut `"bc"` : c'est de l'arithmétique de pointeur (on avance d'un caractère). Écrire `"Mesure n°" + n` avec un entier `n` ne produit donc pas du tout ce que tu crois.
+        - Comparer deux `const char*` avec `==` compare les **adresses**, pas le texte. Avec des `std::string`, `==` compare bien le texte.
+
+        Et `std::stod` lève une exception `std::invalid_argument` si le texte n'est pas un nombre (comme la `ValueError` de Python) : à attraper quand les données viennent de l'extérieur.
+      code: |
+        #include <iostream>
+        #include <string>
+
+        int main() {
+            int n = 3;
+            std::cout << "Mesure n°" + n << '\n';                 // arithmétique de pointeur !
+            std::cout << "Mesure n°" + std::to_string(n) << '\n'; // correct
+            try {
+                double v = std::stod("N/A");
+                std::cout << v << '\n';
+            } catch (const std::invalid_argument&) {
+                std::cout << "valeur illisible\n";
+            }
+        }
+      out: |
+        ure n°
+        Mesure n°3
+        valeur illisible
+      flags: [-Wno-string-plus-int]
+      after: |
+        La première ligne affiche `ure n°` : le pointeur a avancé de 3 caractères, en sautant « M », « e » et « s ». Le compilateur clang avertit (`adding 'int' to a string does not append to the string`).
+    - level: 5
+      title: string_view, et le texte en embarqué
+      body: |
+        **`std::string_view`** (C++17) est une **vue** sur un texte existant, sans copie : juste un pointeur et une longueur. Idéal pour un paramètre de fonction qui ne fait que lire du texte, qu'il vienne d'une `std::string` ou d'un littéral :
+
+        ```cpp
+        bool est_commande(std::string_view s) { return s.starts_with("CMD:"); }
+        ```
+
+        Attention : une vue ne possède pas le texte. Si le texte d'origine disparaît, la vue pendouille (même piège que les références).
+
+        **En embarqué**, `std::string` et la classe `String` d'Arduino allouent de la mémoire dynamiquement ; sur un petit microcontrôleur, des concaténations répétées fragmentent le tas jusqu'au plantage après quelques heures. On préfère alors un tampon de taille fixe et `snprintf` :
+
+        ```cpp
+        char buf[48];
+        snprintf(buf, sizeof buf, "T=%.2f;H=%.1f\n", t, h);
+        Serial.print(buf);
+        ```
+  recap:
+    - "`std::string` : modifiable, `+`, `+=`, `==`, `size()`, `find`, `substr(pos, longueur)`."
+    - "`find` renvoie `std::string::npos` si rien n'est trouvé ; `std::stod`/`std::stoi` lèvent une exception sur un texte invalide."
+    - "`'A'` est un `char`, `\"A\"` une chaîne. Les littéraux sont des chaînes C : `\"a\" + \"b\"` ne compile pas, `\"abc\" + 1` vaut `\"bc\"`."
+    - "`std::to_string(x)` pour convertir un nombre en texte avant de concaténer."
+    - "`std::string_view` pour lire sans copier ; en embarqué, tampon fixe + `snprintf`."
+  pieges: [cpp-litteral-plus-int, cpp-npos]
+exercises:
+  - id: cf08.1
+    type: predict
+    level: 1
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+      #include <string>
+
+      int main() {
+          std::string s = "capteur";
+          s += "_42";
+          std::cout << s.size() << " " << s.substr(0, 3) << " " << s.substr(8) << '\n';
+      }
+    answer: 10 cap 42
+    e: "`s` devient `capteur_42` (10 caractères). `substr(0, 3)` : 3 caractères depuis 0. `substr(8)` : tout depuis la position 8."
+  - id: cf08.2
+    type: predict
+    level: 2
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+      #include <string>
+
+      int main() {
+          std::string s = "0123456789";
+          std::cout << s.substr(2, 5) << '\n';
+      }
+    answer: "23456"
+    trap_answers: ["234"]
+    e: "Le second argument de `substr` est une **longueur** (5 caractères), pas une position de fin comme dans `s[2:5]` en Python."
+  - id: cf08.3
+    type: qcm
+    level: 2
+    q: "Que fait `std::cout << \"Erreur n°\" + 2;` ?"
+    piege: cpp-litteral-plus-int
+    choices:
+      - t: "Affiche `reur n°` : on avance le pointeur de 2 caractères."
+        ok: true
+      - t: "Affiche `Erreur n°2`."
+        piege: true
+        why: "Ce serait le cas en JavaScript. En C++, un littéral est un pointeur vers des caractères : `+ 2` le décale."
+      - t: "Ne compile pas."
+        why: "Ça compile (clang avertit). C'est `\"a\" + \"b\"`, deux littéraux, qui ne compile pas."
+    e: "Pour construire du texte avec un nombre : `\"Erreur n°\" + std::to_string(2)`, ou `std::format` (C++20)."
+  - id: cf08.4
+    type: bug
+    level: 2
+    q: "Ce code doit afficher `absent` quand la trame ne contient pas de `P=`. Il affiche toujours `présent`. Quelle ligne corriger ?"
+    code: |
+      #include <iostream>
+      #include <string>
+
+      int main() {
+          std::string trame = "T=21.5;H=40";
+          if (trame.find("P=") >= 0) {
+              std::cout << "présent\n";
+          } else {
+              std::cout << "absent\n";
+          }
+      }
+    bad: 6
+    fix: '    if (trame.find("P=") != std::string::npos) {'
+    piege: cpp-npos
+    e: "`find` renvoie un `size_t` non signé : il est **toujours** ≥ 0. Quand rien n'est trouvé, il renvoie `std::string::npos` (la plus grande valeur possible), pas −1. Il faut comparer à `npos`."
+  - id: cf08.5
+    type: predict
+    level: 2
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+      #include <string>
+
+      int main() {
+          std::string a = "10";
+          std::string b = "9";
+          std::cout << (a < b) << " " << (std::stoi(a) < std::stoi(b)) << " " << a + b << '\n';
+      }
+    answer: 1 0 109
+    e: "Comme en Python, deux textes se comparent caractère par caractère : `\"10\" < \"9\"` est vrai (1). Convertis avec `stoi` pour comparer des nombres. Et `+` concatène : `\"109\"`."
+  - id: cf08.6
+    type: cloze
+    level: 1
+    q: "Complète pour convertir la valeur de la trame en `double` et l'afficher multipliée par 2."
+    lang: cpp
+    tpl: |
+      #include <iostream>
+      #include <string>
+
+      int main() {
+          std::string trame = "V=3.30";
+          std::size_t pos = trame.⟦0⟧('=');
+          double v = std::⟦1⟧(trame.⟦2⟧(pos + 1));
+          std::cout << v * 2 << '\n';
+      }
+    blanks:
+      - [find]
+      - [stod]
+      - [substr]
+    verify: compile
+    e: "`find` repère le `=`, `substr(pos + 1)` prend la suite, `stod` convertit en `double`."
+  - id: cf08.7
+    type: code
+    level: 2
+    lang: cpp
+    q: |
+      Écris `double valeur_de(const std::string& trame, const std::string& cle)` qui cherche `cle=` dans une trame du type `"T=21.5;H=40;P=1013"` et renvoie la valeur qui suit, jusqu'au `;` suivant (ou la fin). Si la clé est absente, lève `std::invalid_argument`.
+    start: |
+      #include <stdexcept>
+      #include <string>
+
+      double valeur_de(const std::string& trame, const std::string& cle) {
+          return 0.0;  // à compléter
+      }
+    sol: |
+      #include <stdexcept>
+      #include <string>
+
+      double valeur_de(const std::string& trame, const std::string& cle) {
+          const std::string motif = cle + "=";
+          std::size_t debut = std::string::npos;
+          std::size_t pos = 0;
+          while ((pos = trame.find(motif, pos)) != std::string::npos) {
+              if (pos == 0 || trame[pos - 1] == ';') {
+                  debut = pos + motif.size();
+                  break;
+              }
+              pos += 1;
+          }
+          if (debut == std::string::npos) {
+              throw std::invalid_argument("clé absente : " + cle);
+          }
+          std::size_t fin = trame.find(';', debut);
+          return std::stod(trame.substr(debut, fin == std::string::npos ? std::string::npos : fin - debut));
+      }
+    tests: |
+      #include <cassert>
+      #include <cmath>
+      #include <iostream>
+      int main() {
+          assert(std::fabs(valeur_de("T=21.5;H=40;P=1013", "H") - 40.0) < 1e-9);
+          assert(std::fabs(valeur_de("T=21.5;H=40;P=1013", "P") - 1013.0) < 1e-9);
+          assert(std::fabs(valeur_de("TT=9;T=21.5", "T") - 21.5) < 1e-9);
+          bool leve = false;
+          try { valeur_de("T=1", "H"); } catch (const std::invalid_argument&) { leve = true; }
+          assert(leve);
+          std::cout << "OK\n";
+      }
+    hint: "Cherche `cle + \"=\"`, mais vérifie que ce motif est en début de trame ou juste après un `;` (sinon `T=` serait trouvé dans `TT=`). Ensuite, cherche le `;` suivant."
+    e: "Le cas `TT=9;T=21.5` est le piège : un simple `find(\"T=\")` tomberait sur `TT=`. Vérifier le caractère qui précède rend la recherche robuste. Un vrai parseur de trames fait toujours ce genre de vérification."
+  - id: cf08.8
+    type: qcm
+    level: 1
+    q: "Quelle est la différence entre `'x'` et `\"x\"` en C++ ?"
+    choices:
+      - t: "`'x'` est un `char` (un caractère), `\"x\"` est une chaîne (2 caractères avec le zéro final)."
+        ok: true
+      - t: "Aucune, comme en Python."
+        why: "En Python, `'x'` et `\"x\"` sont identiques. En C++, ce sont deux types différents."
+      - t: "`\"x\"` est une `std::string`."
+        why: "Un littéral entre guillemets est une chaîne C (`const char[2]`), convertible en `std::string` mais pas identique."
+    e: "`s.find('x')` et `s.find(\"x\")` marchent tous les deux, mais `char c = \"x\";` ne compile pas."
+  - id: cf08.9
+    type: flash
+    level: 2
+    q: "Pourquoi éviter `String` (Arduino) ou `std::string` dans la boucle d'un petit microcontrôleur, et que faire à la place ?"
+    back: "Chaque concaténation peut allouer de la mémoire sur le tas. À la longue, le tas se **fragmente** : il reste de la mémoire libre, mais en morceaux trop petits, et une allocation finit par échouer (plantage après des heures). À la place : un tampon `char buf[N]` de taille fixe et `snprintf(buf, sizeof buf, ...)`."
+    e: "Sur un ESP32 (320 ko de RAM), le problème est moins aigu que sur un Uno (2 ko), mais le principe reste : pas d'allocation dans une boucle temps réel."
+  - id: cf08.10
+    type: predict
+    level: 3
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+      #include <string>
+
+      int main() {
+          std::string s = "abc";
+          s[1] = 'X';
+          s.push_back('!');
+          std::string t = s;
+          t[0] = 'Z';
+          std::cout << s << " " << t << '\n';
+      }
+    answer: aXc! ZXc!
+    trap_answers: ["ZXc! ZXc!"]
+    e: "Une `std::string` est modifiable (`s[1] = 'X'`). Et `std::string t = s;` fait une **vraie copie** : modifier `t` ne touche pas `s`. En C++, les objets sont copiés par défaut (l'inverse de Python)."

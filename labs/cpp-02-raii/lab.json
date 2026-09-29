@@ -1,0 +1,11 @@
+{
+  "id": "cpp-02",
+  "ordre": 12,
+  "lang": "cpp",
+  "genre": "lab",
+  "niveau": "avancé",
+  "minutes": 50,
+  "titre": "RAII : des ressources qui se rendent seules",
+  "modules": ["cpp03", "cpp04", "cpp05"],
+  "resume": "Un gardien de port matériel et une section critique écrits trop vite : fuites, doubles fermetures, état mal restauré. Corrige la classe jusqu'à zéro fuite."
+}

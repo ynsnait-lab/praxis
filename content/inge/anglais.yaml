@@ -1,0 +1,990 @@
+id: anglais
+title: Communication technique, anglais et français
+en: Technical communication in English and French
+desc: Lire une fiche technique en anglais, nombres et unités, faux amis, écrire un mail ou un rapport, parler en réunion, et écrire un français technique correct.
+intro: |
+  Un ingénieur passe une bonne partie de son temps à lire, écrire et expliquer, souvent en anglais. Dans un laboratoire international, c'est la langue de travail avec les collègues et les fournisseurs.
+
+  Ici, pas de grammaire scolaire : les situations réelles (une fiche technique, un mail à un fournisseur, une réunion), les pièges qui coûtent cher (un nombre mal lu, un faux ami), et les règles d'écriture d'un rapport en français, notées dans ton mémoire.
+notions:
+  # ------------------------------------------------------------------ datasheet
+  - id: ang-datasheet
+    title: Lire une fiche technique en anglais
+    en: Reading an English datasheet
+    goal: Trouver vite l'information utile dans une fiche technique et distinguer valeurs limites, garanties et typiques.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: La carte d'identité du composant
+          body: |
+            Capteur, régulateur, moteur, roulement : chaque composant a sa **fiche technique** (*datasheet*), presque toujours en anglais. Elle fait parfois 80 pages. L'art n'est pas de tout lire, mais de savoir **où** chercher, et de ne pas se tromper de colonne.
+        - level: 2
+          title: La structure type
+          body: |
+            Presque toutes les fiches de composants électroniques suivent le même plan :
+            - **Features / Applications / Description** : le résumé commercial, optimiste ;
+            - **Absolute Maximum Ratings** : les limites à ne **jamais** dépasser, même un instant. Ce ne sont **pas** des conditions de fonctionnement ;
+            - **Recommended Operating Conditions** : la plage où le composant est prévu pour fonctionner ;
+            - **Electrical Characteristics** : le tableau des performances, avec des colonnes **Min / Typ / Max** et des **Test Conditions** ;
+            - **Typical Performance Characteristics** : des courbes, **typiques**, pas garanties ;
+            - **Application Information** : schémas conseillés, calculs de composants ;
+            - **Package / Mechanical Data** et **Ordering Information** (les suffixes de la référence).
+          check:
+            q: Pour dimensionner ton montage, quelle colonne du tableau Electrical Characteristics utiliser ?
+            choices:
+              - t: Min ou Max, selon le cas le plus défavorable
+                ok: true
+                why: Seules les valeurs Min et Max sont garanties (dans les conditions indiquées).
+              - t: Typ
+                why: Typ est une valeur habituelle, pas une garantie ; une partie des composants fait moins bien.
+              - t: Absolute Maximum Ratings
+                why: Ce sont des limites de destruction, pas des performances.
+        - level: 3
+          title: Le vocabulaire clé
+          body: |
+            | Anglais | Français |
+            | --- | --- |
+            | rating, rated | valeur nominale, assignée |
+            | derating | déclassement (réduction avec la température) |
+            | typical / guaranteed | typique / garanti |
+            | accuracy | justesse, exactitude |
+            | precision, repeatability | fidélité, répétabilité |
+            | range, full scale (FS) | étendue, pleine échelle |
+            | offset, drift | décalage, dérive |
+            | supply voltage | tension d'alimentation |
+            | quiescent current | courant de repos |
+            | sink / source current | courant absorbé / fourni |
+            | stroke, travel | course |
+            | backlash, runout | jeu, faux-rond |
+            | load rating (C, C0) | capacité de charge dynamique, statique |
+            | holding torque | couple de maintien |
+            | duty cycle | rapport cyclique, cycle de service |
+            | lead time | délai d'approvisionnement |
+            | end of life (EOL) | fin de fabrication |
+
+            **Exemple** : « Accuracy: ±0.5 °C (typ), ±1.5 °C (max), T_A = −40 °C to +85 °C ». On conçoit avec **±1,5 °C** sur toute la plage.
+        - level: 4
+          title: Sous le capot
+          body: |
+            - **Les notes de bas de tableau changent tout** : « Guaranteed by design, not production tested », « measured with 1 kΩ load », « T_A = 25 °C unless otherwise noted ». Une performance à 25 °C peut être bien pire à 85 °C.
+            - **Les courbes sont typiques** : elles montrent une tendance, pas une garantie.
+            - **Preliminary** ou **Advance Information** : la fiche peut encore changer. Pour les microcontrôleurs, il existe aussi des **errata** (bugs connus du silicium) à lire absolument.
+            - **Le suffixe de référence** (plage de température, boîtier, conditionnement) fait partie du composant : le même circuit existe souvent en version 0-70 °C et −40-125 °C.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Garde la fiche **exacte** (révision) avec ton dossier de conception, et note la page de chaque valeur utilisée.
+            - Les fiches standard ne parlent presque jamais de **vide**, de **cryogénie** ou de **rayonnement** : pose la question au fabricant, par écrit.
+            - Lis la **note d'application** (*application note*) : elle contient souvent le schéma qui marche et les pièges du composant.
+      recap:
+        - "Absolute Maximum Ratings = limites de destruction, pas de fonctionnement."
+        - "Concevoir avec Min/Max garantis, jamais avec Typ."
+        - "Toujours lire les Test Conditions et les notes de bas de tableau."
+        - "Courbes = typiques ; Preliminary = peut changer ; errata pour les MCU."
+        - "Le suffixe de la référence (température, boîtier) compte."
+      pieges: [ing-typique-garanti, ing-absolute-max, ing-precision-accuracy]
+    vocab:
+      - fiche technique = datasheet
+      - valeurs limites absolues = absolute maximum ratings
+      - conditions de fonctionnement recommandées = recommended operating conditions
+      - conditions de mesure = test conditions
+      - note d'application = application note
+      - référence de commande = ordering code (part number)
+      - délai d'approvisionnement = lead time
+      - fin de fabrication = end of life (EOL)
+    exercises:
+      - id: ang-datasheet.1
+        type: qcm
+        level: 1
+        q: "Que signifie la section « Absolute Maximum Ratings » ?"
+        piege: ing-absolute-max
+        choices:
+          - t: Des limites à ne jamais dépasser, sous peine de dégrader ou détruire le composant
+            ok: true
+          - t: Les conditions normales de fonctionnement
+            piege: true
+            why: Ce sont des limites de survie ; les performances ne sont garanties que dans les Recommended Operating Conditions.
+          - t: Les meilleures performances possibles
+            why: Ce sont des limites, pas des performances.
+        e: Fonctionner en permanence près de ces valeurs réduit la durée de vie, même sans destruction immédiate.
+      - id: ang-datasheet.2
+        type: qcm
+        level: 1
+        q: "Un capteur indique « Accuracy: ±0.5 °C (typ), ±1.5 °C (max) ». Quelle valeur utiliser dans ton budget d'erreur ?"
+        piege: ing-typique-garanti
+        choices:
+          - t: ±1,5 °C
+            ok: true
+          - t: ±0,5 °C
+            piege: true
+            why: C'est une valeur typique ; certains exemplaires font moins bien, jusqu'au maximum garanti.
+          - t: ±1 °C, la moyenne des deux
+            why: On prend la valeur garantie, pas une moyenne.
+        e: Le typique décrit un exemplaire moyen ; ton montage doit fonctionner avec n'importe quel exemplaire.
+      - id: ang-datasheet.3
+        type: qcm
+        level: 1
+        q: "« Quiescent current: 5 µA » signifie…"
+        choices:
+          - t: le courant consommé par le circuit lui-même, au repos (sans charge)
+            ok: true
+          - t: le courant de sortie maximal
+            why: Ce serait « output current » ou « maximum load current ».
+          - t: le courant de court-circuit
+            why: Ce serait « short-circuit current ».
+        e: C'est le chiffre clé pour l'autonomie d'un montage sur batterie.
+      - id: ang-datasheet.4
+        type: qcm
+        level: 1
+        q: "Un fournisseur écrit « Lead time: 16 weeks ». Que comprends-tu ?"
+        choices:
+          - t: Il faut compter 16 semaines entre la commande et la livraison
+            ok: true
+          - t: La garantie dure 16 semaines
+            why: La garantie se dit « warranty ».
+          - t: Le produit sera en fin de vie dans 16 semaines
+            why: Ce serait « end of life » ou « last time buy ».
+        e: Un délai long met souvent l'achat sur le chemin critique du projet.
+      - id: ang-datasheet.5
+        type: qcm
+        level: 2
+        q: Tu dois traduire « justesse » (l'absence d'erreur systématique) dans une spécification en anglais. Quel mot ?
+        piege: ing-precision-accuracy
+        choices:
+          - t: accuracy (ou trueness)
+            ok: true
+          - t: precision
+            piege: true
+            why: En métrologie anglaise, precision désigne la fidélité (la dispersion), pas la justesse.
+          - t: resolution
+            why: La résolution est le plus petit pas mesurable.
+        e: accuracy ≈ justesse/exactitude ; precision ≈ fidélité/répétabilité.
+      - id: ang-datasheet.6
+        type: flash
+        level: 1
+        q: Quelles sont les grandes sections d'une fiche technique de composant ?
+        back: |
+          Features / Description → Absolute Maximum Ratings → Recommended Operating Conditions → Electrical Characteristics (Min/Typ/Max, Test Conditions) → Typical Performance Characteristics (courbes) → Pin Configuration → Application Information → Package / Mechanical Data → Ordering Information.
+        e: Commence par Electrical Characteristics et Absolute Maximum Ratings ; le reste se lit selon le besoin.
+  # ------------------------------------------------------------------ nombres
+  - id: ang-nombres
+    title: Nombres, dates et unités entre français et anglais
+    en: Numbers, dates and units in French and English
+    goal: Lire et écrire correctement les nombres, les dates et les unités impériales rencontrées dans les documents anglo-saxons.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: « 1,234 »
+          body: |
+            Pour un Français, « 1,234 » vaut un peu plus de un. Pour un Anglais ou un Américain, c'est mille deux cent trente-quatre. Sur une commande ou une cote, cette confusion coûte cher. Les dates et les unités réservent les mêmes surprises.
+        - level: 2
+          title: Les différences qui piègent
+          body: |
+            | | Français | Anglais |
+            | --- | --- | --- |
+            | séparateur décimal | virgule : 3,14 | point : 3.14 |
+            | milliers | espace : 1 234 567 | virgule : 1,234,567 |
+            | 10⁹ | un milliard | one billion |
+            | 10¹² | mille milliards (un billion) | one trillion |
+            | date | 04/03/2026 = 4 mars | US : 04/03/2026 = April 3 |
+
+            La date au format **ISO 8601** (`2026-03-04`) est la seule qui ne se lit que d'une façon, et elle se trie correctement dans les noms de fichiers.
+
+            Les fiches américaines utilisent encore des **unités impériales** : pouces, livres, psi, degrés Fahrenheit.
+          check:
+            q: Un devis américain indique « $1,250.50 ». Combien cela fait-il ?
+            choices:
+              - t: Mille deux cent cinquante dollars et cinquante cents
+                ok: true
+              - t: Un dollar vingt-cinq
+                why: La virgule sépare les milliers en anglais, le point les décimales.
+              - t: Cent vingt-cinq mille cinquante dollars
+                why: Relis les séparateurs, virgule pour les milliers, point pour les décimales.
+        - level: 3
+          title: Conversions utiles
+          body: |
+            | Unité | Valeur |
+            | --- | --- |
+            | 1 inch (in, ″) | 25,4 mm (exactement) |
+            | 1 mil, 1 thou | 0,001 in = 25,4 µm |
+            | 1 foot (ft) | 304,8 mm |
+            | 1 pound (lb) | 0,4536 kg |
+            | 1 pound-force (lbf) | 4,448 N |
+            | 1 psi | 6,895 kPa ≈ 0,069 bar |
+            | 1 oz·in (couple) | 7,06 mN·m |
+            | 1 lbf·ft | 1,356 N·m |
+            | °F → °C | (θ − 32) × 5/9 |
+
+            **Lire à voix haute** : « 3.5 » se dit *three point five* (jamais *comma*) ; « 0.25 » *zero point two five* ; « ±0.1 mm » *plus or minus zero point one millimetre* ; « 2 × 10⁻⁶ » *two times ten to the minus six*.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Milliard et billion** : le français suit l'échelle « longue » (un billion = 10¹²), l'anglais moderne l'échelle « courte » (one billion = 10⁹). Un « billion » dans un article anglais est un milliard.
+
+            **Les couples moteurs** sont souvent donnés en oz·in ou lbf·in dans les fiches américaines de moteurs pas à pas : un couple de maintien de « 40 oz-in » ne fait que 0,28 N·m.
+
+            **Les données CSV** : un tableur français exporte `3,14` avec des `;` comme séparateurs de colonnes. Un programme qui attend `3.14` et des `,` lira tout de travers, ou lira `3,14` comme deux colonnes. En Python : `pandas.read_csv(f, sep=";", decimal=",")`.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Quand tu écris en anglais : point décimal, unités SI, et dates ISO (ou le mois en lettres : *3 October 2026*).
+            - Noms de fichiers de mesures : `2026-09-28_cryostat_essai3.csv`, ils se trient dans l'ordre chronologique.
+            - Face à une cote en pouces sur un plan, convertis une fois, note la conversion, et garde l'original sur le plan.
+      recap:
+        - "Décimales : virgule (FR), point (EN) ; milliers : espace (FR), virgule (EN)."
+        - "One billion = un milliard (10⁹)."
+        - "Dates US = mois/jour ; utiliser l'ISO 2026-09-28."
+        - "1 in = 25,4 mm ; 1 lbf = 4,448 N ; 1 psi ≈ 0,069 bar ; °C = (°F − 32)·5/9."
+        - "CSV français : sep=';', decimal=','."
+      pieges: [ing-separateur-decimal, ing-date-us, ing-unites-imperiales]
+    vocab:
+      - virgule (décimale) = decimal point
+      - séparateur de milliers = thousands separator
+      - un milliard = one billion
+      - pouce = inch
+      - livre-force = pound-force (lbf)
+      - plus ou moins = plus or minus
+      - dix puissance moins six = ten to the minus six
+      - date au format ISO = ISO date (YYYY-MM-DD)
+    exercises:
+      - id: ang-nombres.1
+        type: numeric
+        level: 1
+        q: Une cote vaut 0.5 in. Combien en mm ?
+        answer: 12.7
+        tol: 0.001
+        unit: mm
+        calc: 0.5 * 25.4
+        trap_values:
+          - v: 1.27
+            why: 1 inch = 25,4 mm, pas 2,54 mm (c'est 2,54 cm).
+        piege: ing-unites-imperiales
+        e: $0{,}5 \times 25{,}4 = 12{,}7$ mm.
+      - id: ang-nombres.2
+        type: numeric
+        level: 1
+        q: Un four est réglé à 350 °F. Combien en °C ?
+        answer: 176.7
+        tol: 0.01
+        unit: °C
+        calc: (350 - 32) * 5 / 9
+        trap_values:
+          - v: 194.4
+            why: Il faut d'abord retirer 32, puis multiplier par 5/9.
+        piege: ing-unites-imperiales
+        e: $(350 - 32) \times 5/9 \approx 177$ °C.
+      - id: ang-nombres.3
+        type: numeric
+        level: 2
+        q: Un moteur pas à pas américain annonce un couple de maintien de 40 oz·in. Combien en N·m ?
+        answer: 0.2825
+        tol: 0.02
+        unit: N·m
+        calc: 40 * 0.00706155
+        trap_values:
+          - v: 40
+            why: Les oz·in ne sont pas des N·m ; 1 oz·in ≈ 7 mN·m.
+        piege: ing-unites-imperiales
+        e: $40 \times 7{,}06 \times 10^{-3} \approx 0{,}28$ N·m.
+      - id: ang-nombres.4
+        type: numeric
+        level: 1
+        q: Une piste de circuit imprimé mesure 5 mil de large. Combien en µm ?
+        answer: 127
+        tol: 0.001
+        unit: µm
+        calc: 5 * 25.4
+        trap_values:
+          - v: 5
+            why: Un mil n'est pas un millimètre ; c'est un millième de pouce, 25,4 µm.
+        e: 5 × 25,4 = 127 µm.
+      - id: ang-nombres.5
+        type: numeric
+        level: 2
+        q: Un capteur américain est limité à 30 psi. Combien en bar ?
+        answer: 2.068
+        tol: 0.01
+        unit: bar
+        calc: 30 * 0.0689476
+        e: 30 × 0,0689 ≈ 2,07 bar.
+      - id: ang-nombres.6
+        type: qcm
+        level: 1
+        q: Un rapport américain est daté du 03/04/2026. De quelle date s'agit-il ?
+        piege: ing-date-us
+        choices:
+          - t: Le 4 mars 2026
+            ok: true
+          - t: Le 3 avril 2026
+            piege: true
+            why: Aux États-Unis, le mois vient en premier.
+          - t: Impossible à dire
+            why: Pour un document américain, c'est bien le 4 mars ; pour un document britannique, ce serait le 3 avril. D'où l'intérêt de l'ISO.
+        e: 2026-03-04 en ISO lève toute ambiguïté.
+      - id: ang-nombres.7
+        type: qcm
+        level: 2
+        q: Un fichier CSV exporté d'un Excel français est lu en Python avec `pandas.read_csv(f)`. Tout se retrouve dans une seule colonne. Pourquoi ?
+        piege: ing-separateur-decimal
+        choices:
+          - t: Le fichier utilise « ; » comme séparateur et « , » comme décimale ; il faut sep=";" et decimal=","
+            ok: true
+          - t: Le fichier est corrompu
+            why: Il est juste au format français.
+          - t: Il faut l'ouvrir en binaire
+            why: C'est un fichier texte ; seuls les séparateurs posent problème.
+        e: pandas.read_csv(f, sep=";", decimal=",").
+      - id: ang-nombres.8
+        type: flash
+        level: 1
+        q: Comment dit-on à voix haute 3.5, 0.25, ±0.1 mm et 2 × 10⁻⁶ ?
+        back: |
+          3.5 : three point five
+          0.25 : zero point two five (ou point two five)
+          ±0.1 mm : plus or minus zero point one millimetre
+          2 × 10⁻⁶ : two times ten to the minus six
+        e: Jamais « comma » pour la décimale en anglais.
+  # ------------------------------------------------------------------ faux amis
+  - id: ang-faux-amis
+    title: Les faux amis techniques
+    en: Technical false friends
+    goal: Éviter les faux amis courants et techniques entre français et anglais.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: « Actually »
+          body: |
+            « The motor is actually stopped » ne veut pas dire « le moteur est actuellement arrêté », mais « le moteur est **en fait** arrêté ». Les **faux amis** ressemblent à des mots français mais veulent dire autre chose. Parfois c'est drôle ; dans une spécification, ça peut coûter cher.
+        - level: 2
+          title: Les faux amis du quotidien professionnel
+          body: |
+            | Anglais | Veut dire | Et pas | Qui se dit |
+            | --- | --- | --- | --- |
+            | actually | en fait | actuellement | currently |
+            | eventually | finalement, à terme | éventuellement | possibly, if needed |
+            | sensible | raisonnable | sensible | sensitive |
+            | to control | commander, maîtriser | contrôler (vérifier) | to check, to inspect |
+            | to assist | aider | assister à | to attend |
+            | library | bibliothèque | librairie | bookshop |
+            | to realize | se rendre compte | réaliser (faire) | to carry out, to build |
+            | internship | stage | — | (a stage = une étape) |
+            | training | formation | — | (a formation = une formation géologique) |
+            | schedule | planning | — | (planning = la planification) |
+          check:
+            q: « We will eventually replace the pump » signifie…
+            choices:
+              - t: Nous finirons par remplacer la pompe
+                ok: true
+              - t: Nous remplacerons éventuellement la pompe (si besoin)
+                why: C'est le faux ami ; « éventuellement » se dit possibly ou if necessary.
+              - t: Nous remplaçons la pompe en ce moment
+                why: Ce serait « we are currently replacing ».
+        - level: 3
+          title: Les faux amis techniques
+          body: |
+            | Français | Anglais correct | Piège |
+            | --- | --- | --- |
+            | tension (électrique) | voltage | *tension* = tension mécanique |
+            | résistance (composant) | resistor | *resistance* = la grandeur |
+            | résistance (d'un matériau) | strength | |
+            | précision | accuracy (justesse) / precision (fidélité) | |
+            | course (d'un vérin) | stroke, travel | *course* = cours, formation |
+            | palier, roulement | bearing | |
+            | pas (d'une vis) | pitch | |
+            | jeu | backlash, clearance | *game* ! |
+            | effort | force, load | *effort* = effort humain |
+            | couple | torque | *couple* = une paire |
+            | intensité | current | *intensity* = en optique |
+            | capacité (condensateur) | capacitance | *capacity* = contenance, charge admissible |
+            | plan (dessin) | drawing | *plan* = projet, plan d'action |
+            | cote | dimension | |
+            | ajustement | fit | |
+            | matériel | equipment, hardware | *material* = matériau |
+            | cahier des charges | specification, requirements | |
+            | devis / facture | quote / invoice | |
+        - level: 4
+          title: Sous le capot
+          body: |
+            Les deux langues ont puisé dans le latin et le vieux français, puis les sens ont dérivé chacun de leur côté. *Control* a gardé le sens de « diriger » : **control engineering** est l'automatique, un **control system** est un système de commande (ou de contrôle-commande), et un **controller** est un correcteur ou un automate. Pour « vérifier », l'anglais dit *check*, *inspect*, *verify*.
+
+            Même logique pour *precision* : en métrologie anglaise, c'est la fidélité (dispersion). « Précis » au sens courant se traduit souvent mieux par *accurate*.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - En cas de doute sur un terme technique, cherche-le dans une base terminologique (IATE, la base de l'Union européenne, ou le dictionnaire de ta discipline) plutôt que dans un traducteur généraliste.
+            - Dans un laboratoire international, tu entendras ces mots tous les jours : note ceux qui te surprennent.
+            - Relis tes spécifications en anglais en traquant *control*, *precision*, *tension*, *eventually* : ce sont les plus fréquents.
+      recap:
+        - "actually = en fait ; eventually = finalement ; sensible = raisonnable."
+        - "control = commander (control engineering = automatique) ; contrôler = check, inspect."
+        - "tension électrique = voltage ; résistance (composant) = resistor ; couple = torque."
+        - "précision : accuracy (justesse) / precision (fidélité)."
+        - "matériel = equipment/hardware ; matériau = material ; stage = internship."
+      pieges: [ing-faux-amis, ing-precision-accuracy]
+    vocab:
+      - en fait = actually
+      - actuellement = currently
+      - éventuellement = possibly (if necessary)
+      - vérifier, contrôler = to check, to inspect
+      - automatique (discipline) = control engineering
+      - tension (électrique) = voltage
+      - couple (moteur) = torque
+      - matériau = material
+    exercises:
+      - id: ang-faux-amis.1
+        type: qcm
+        level: 1
+        q: Comment traduire « La tension d'alimentation est de 24 V » ?
+        piege: ing-faux-amis
+        choices:
+          - t: The supply voltage is 24 V.
+            ok: true
+          - t: The supply tension is 24 V.
+            piege: true
+            why: Tension désigne en anglais une tension mécanique (dans un câble, une courroie).
+          - t: The alimentation tension is 24 V.
+            why: Deux faux amis dans la même phrase.
+        e: Voltage pour l'électricité ; tension pour la mécanique.
+      - id: ang-faux-amis.2
+        type: qcm
+        level: 1
+        q: Comment dire « Il faut contrôler les pièces à réception » ?
+        piege: ing-faux-amis
+        choices:
+          - t: The parts must be inspected on receipt.
+            ok: true
+          - t: The parts must be controlled on receipt.
+            piege: true
+            why: To control, c'est commander ou maîtriser ; pour vérifier, on dit inspect ou check.
+          - t: The parts must be realized on receipt.
+            why: To realize veut dire se rendre compte.
+        e: Contrôle qualité = quality inspection (ou quality control, au sens de maîtrise de la qualité).
+      - id: ang-faux-amis.3
+        type: qcm
+        level: 1
+        q: Comment traduire « la course du vérin » ?
+        choices:
+          - t: the cylinder stroke
+            ok: true
+          - t: the cylinder course
+            why: Course en anglais signifie cours, formation, ou trajectoire générale.
+          - t: the cylinder race
+            why: Race, c'est une course sportive.
+        e: Stroke pour un vérin, travel pour un axe ou une platine.
+      - id: ang-faux-amis.4
+        type: qcm
+        level: 1
+        q: Tu commandes des résistances de 10 kΩ à un fournisseur anglais. Tu écris…
+        choices:
+          - t: 10 kΩ resistors
+            ok: true
+          - t: 10 kΩ resistances
+            why: Resistance est la grandeur physique ; le composant est un resistor.
+          - t: 10 kΩ strengths
+            why: Strength est la résistance mécanique d'un matériau.
+        e: Même logique, capacitor (composant) et capacitance (grandeur), inductor et inductance.
+      - id: ang-faux-amis.5
+        type: qcm
+        level: 2
+        q: « The results are actually better than expected » signifie…
+        choices:
+          - t: Les résultats sont en fait meilleurs que prévu
+            ok: true
+          - t: Les résultats sont actuellement meilleurs que prévu
+            why: Actuellement se dit currently ou at the moment.
+          - t: Les résultats sont finalement meilleurs que prévu
+            why: Ce serait eventually ou in the end.
+        e: Actually introduit une précision ou une surprise, souvent en début de phrase.
+      - id: ang-faux-amis.6
+        type: qcm
+        level: 2
+        q: Comment dire « le matériel de l'expérience » (les appareils) ?
+        choices:
+          - t: the experimental equipment (ou hardware)
+            ok: true
+          - t: the experimental material
+            why: Material, c'est le matériau (acier, aluminium) ; les appareils, c'est equipment.
+          - t: the experimental stuff
+            why: Trop familier dans un document technique.
+        e: Equipment est indénombrable, pas de « equipments ».
+      - id: ang-faux-amis.7
+        type: flash
+        level: 1
+        q: Donne la bonne traduction de - tension électrique, couple, jeu, pas de vis, palier, matériau, stage, formation.
+        back: |
+          tension électrique = voltage ; couple = torque ; jeu = backlash (ou clearance) ; pas de vis = pitch ; palier = bearing ; matériau = material ; stage = internship ; formation = training.
+        e: Et contrôler (vérifier) = to check ou to inspect, pas to control.
+  # ------------------------------------------------------------------ écrire
+  - id: ang-ecrire
+    title: Écrire un mail et un rapport technique en anglais
+    en: Writing technical emails and reports in English
+    goal: Rédiger un mail technique clair, avec une demande précise, et structurer un rapport.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Lu en trente secondes
+          body: |
+            Un bon mail technique se lit en trente secondes et obtient une réponse. Un mauvais se lit trois fois et obtient… une question. La différence ne tient pas au niveau d'anglais, mais à la structure.
+        - level: 2
+          title: Les principes
+          body: |
+            - **Un sujet par mail**, et un **objet** précis (projet, référence, question).
+            - **L'essentiel d'abord** (*bottom line up front*, BLUF) : la demande ou la conclusion dès la première phrase.
+            - **Le contexte ensuite**, court : juste ce qu'il faut pour répondre.
+            - **Une demande explicite, avec une échéance** : qui doit faire quoi, pour quand.
+            - **Des nombres avec leurs unités**, des références exactes, des pièces jointes bien nommées.
+            - **Poli mais direct** : l'anglais professionnel est moins cérémonieux que le français.
+
+            **Rapport** : résumé (*summary*) en tête, puis contexte, méthode, résultats, discussion, conclusion et suites à donner (*next steps*). Figures avec légendes et unités.
+          check:
+            q: Quel objet de mail est le meilleur ?
+            choices:
+              - t: "Vacuum compatibility of SM-42 motor – decision needed by 10 Oct"
+                ok: true
+              - t: "Question"
+                why: Le destinataire ne sait ni de quoi il s'agit ni si c'est urgent.
+              - t: "Hello!!"
+                why: Aucune information, et ça ressemble à un spam.
+        - level: 3
+          title: Phrases utiles et exemple
+          body: |
+            | Anglais | Français |
+            | --- | --- |
+            | I'm contacting you regarding… | Je vous contacte au sujet de… |
+            | Following our call on Monday, … | Suite à notre appel de lundi… |
+            | Could you please send me… ? | Pourriez-vous m'envoyer… ? |
+            | Would it be possible to… ? | Serait-il possible de… ? |
+            | …by Friday 3 October, if possible. | …d'ici vendredi 3 octobre, si possible. |
+            | Please find attached… / I've attached… | Vous trouverez ci-joint… |
+            | We are experiencing an issue with… | Nous rencontrons un problème avec… |
+            | Let me know if you need more information. | N'hésitez pas si vous avez besoin de précisions. |
+            | Thank you in advance. Best regards, | Merci d'avance. Cordialement, |
+
+            ```mail
+            Subject: Vacuum compatibility – SM-42 stepper motor (quote Q-2026-0412)
+
+            Hello Ms Keller,
+
+            Could you confirm whether the SM-42 stepper motor can be used in vacuum at 1 × 10⁻⁶ mbar, and if so, which lubricant and cable insulation it uses?
+
+            Context: we plan to install four of these motors inside a sample chamber (bake-out at 80 °C maximum). The standard version is quoted in Q-2026-0412. We need to decide by 10 October to keep our assembly schedule.
+
+            If a vacuum version exists, could you also send its datasheet and lead time?
+
+            Thank you in advance.
+            Best regards,
+            Alex Durand
+            Sample Environment team
+            ```
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Le registre** : « Madame, Monsieur, je vous prie d'agréer… » n'a pas d'équivalent utile. En anglais, *Hello* ou *Dear* + nom, puis directement le sujet. Avec des collègues : *Hi Marc,*.
+
+            **Rapport** : la voix passive (« The sample was cooled to 80 K ») reste courante dans les méthodes ; la voix active (« We cooled the sample ») est de plus en plus admise et souvent plus claire. Passé pour ce qui a été fait, présent pour les faits établis (« Copper has a high thermal conductivity »).
+
+            **Mots à éviter** : *soon*, *ASAP*, *some*, *a few*, *about* sans chiffre. Remplace-les par une date, un nombre, une valeur.
+
+            **Phrases courtes** : moins de 20 mots, une idée par phrase. Les lecteurs non natifs (la plupart de tes interlocuteurs) te remercieront.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            Avant d'envoyer, relis en cinq points :
+            1. la demande est-elle dans les deux premières lignes ?
+            2. l'échéance est-elle explicite ?
+            3. les nombres ont-ils leurs unités, les références sont-elles exactes ?
+            4. la pièce jointe est-elle bien jointe (et bien nommée) ?
+            5. le destinataire peut-il répondre sans poser de question ?
+
+            Même méthode en français : objet précis, demande d'abord, échéance, formule de politesse sobre.
+      recap:
+        - "Un sujet par mail, objet précis, demande dès la première phrase (BLUF)."
+        - "Contexte court, échéance explicite, nombres avec unités."
+        - "Please find attached / Could you please… / Best regards."
+        - "Rapport : summary, context, method, results, discussion, next steps."
+        - "Pas de soon/ASAP/some : une date, un nombre."
+      pieges: [ing-mail-sans-demande]
+    vocab:
+      - objet (d'un mail) = subject line
+      - pièce jointe = attachment
+      - ci-joint = attached, enclosed
+      - échéance = deadline
+      - devis = quote (quotation)
+      - relance = follow-up (reminder)
+      - résumé (d'un rapport) = summary (abstract)
+      - suites à donner = next steps (action items)
+    exercises:
+      - id: ang-ecrire.1
+        type: qcm
+        level: 1
+        q: Comment dire « Vous trouverez ci-joint le plan de la pièce » ?
+        choices:
+          - t: Please find attached the drawing of the part.
+            ok: true
+          - t: You will find joined the plan of the piece.
+            why: Joined, plan et piece sont trois calques du français.
+          - t: Here is attached the plan.
+            why: Plan désigne un projet ; un plan technique est un drawing.
+        e: Plus simple encore, « I've attached the drawing of the part ».
+      - id: ang-ecrire.2
+        type: qcm
+        level: 1
+        q: Que signifie « bottom line up front » (BLUF) ?
+        choices:
+          - t: Mettre la conclusion ou la demande dès le début du message
+            ok: true
+          - t: Mettre la signature en haut
+            why: Non ; c'est l'information essentielle qui monte en tête.
+          - t: Écrire en gras
+            why: C'est une question d'ordre, pas de mise en forme.
+        e: Le lecteur pressé sait immédiatement ce qu'on attend de lui.
+      - id: ang-ecrire.3
+        type: qcm
+        level: 2
+        q: Quelle formulation de demande est la meilleure ?
+        piege: ing-mail-sans-demande
+        choices:
+          - t: Could you send us the vacuum-compatible version's datasheet by Friday 3 October?
+            ok: true
+          - t: It would be nice to have some information about vacuum at some point.
+            piege: true
+            why: Quelle information ? Pour quand ? Le destinataire ne peut pas agir.
+          - t: Send datasheet ASAP.
+            why: Trop sec, et ASAP n'est pas une échéance.
+        e: Une demande = une action précise + une échéance, formulée poliment.
+      - id: ang-ecrire.4
+        type: qcm
+        level: 1
+        q: Dans quel ordre structurer un rapport technique ?
+        choices:
+          - t: Résumé, contexte, méthode, résultats, discussion, conclusion et suites
+            ok: true
+          - t: Méthode, résultats, résumé, contexte
+            why: Le résumé vient en premier, pour le lecteur pressé.
+          - t: Résultats seulement, le reste est inutile
+            why: Sans méthode ni contexte, les résultats ne sont ni vérifiables ni réutilisables.
+        e: Beaucoup de lecteurs ne liront que le résumé et la conclusion ; ils doivent se suffire à eux-mêmes.
+      - id: ang-ecrire.5
+        type: qcm
+        level: 2
+        q: Comment commencer un mail à un fournisseur dont tu connais le nom (Ms Keller) ?
+        choices:
+          - t: Hello Ms Keller, (ou Dear Ms Keller,)
+            ok: true
+          - t: Dear Sir or Madam,
+            why: Réservé au cas où on ne connaît pas le destinataire.
+          - t: Madam Keller,
+            why: Calque du français, qui sonne étrange en anglais.
+        e: Avec un collègue proche, « Hi Marc, » suffit.
+      - id: ang-ecrire.6
+        type: flash
+        level: 1
+        q: Quelles vérifications faire avant d'envoyer un mail technique ?
+        back: |
+          1. La demande est dans les deux premières lignes.
+          2. L'échéance est explicite.
+          3. Les nombres ont leurs unités, les références sont exactes.
+          4. La pièce jointe est jointe et bien nommée.
+          5. Le destinataire peut répondre sans poser de question.
+        e: Et un objet de mail qui dit de quoi il s'agit.
+  # ------------------------------------------------------------------ oral
+  - id: ang-oral
+    title: Réunions et échanges oraux en anglais
+    en: Meetings and conversations in English
+    goal: Demander de répéter, reformuler, faire un point d'avancement, exprimer un désaccord et épeler une référence.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: Oser demander
+          body: |
+            En réunion en anglais, la vraie difficulté n'est pas le vocabulaire : c'est d'oser dire qu'on n'a pas compris. Quelques phrases toutes prêtes, et tout devient plus simple. Dans une équipe internationale, tout le monde a un accent ; être clair compte bien plus qu'être parfait.
+        - level: 2
+          title: Les situations courantes
+          body: |
+            - **Faire répéter** : *Sorry, could you repeat that?* / *Could you say that more slowly, please?*
+            - **Vérifier qu'on a compris** : *Just to make sure I understand: you mean that…?* / *So, if I understood correctly, …*
+            - **Faire un point** : ce qui est fait, ce qui est en cours, ce qui bloque.
+            - **Exprimer un désaccord** poliment : *I see your point, but I'm concerned that…* / *Have we considered…?*
+            - **Proposer** : *What if we…?* / *I suggest we…*
+            - **Conclure** : *So the action items are…*
+          check:
+            q: Tu n'as pas compris une valeur annoncée par un collègue. Que dis-tu ?
+            choices:
+              - t: "Sorry, could you repeat the value? Was that fifteen or fifty?"
+                ok: true
+              - t: Rien, tu demanderas plus tard
+                why: Une valeur mal comprise, c'est une erreur qui se propage.
+              - t: "What?"
+                why: Trop brusque, et ça ne précise pas ce qui manque.
+        - level: 3
+          title: Phrases et alphabet
+          body: |
+            **Un point d'avancement en quatre phrases** :
+            > *The motor is installed. The wiring is in progress; I expect to finish by Thursday. One issue: the encoder signal is noisy. I'll check the grounding tomorrow.*
+
+            **Fin de réunion** :
+            > *So the action items are: I'll check the grounding, and Marc will order the new cable. Next meeting on Monday.*
+
+            **Épeler une référence** (alphabet de l'OTAN) : Alfa, Bravo, Charlie, Delta, Echo, Foxtrot, Golf, Hotel, India, Juliett, Kilo, Lima, Mike, November, Oscar, Papa, Quebec, Romeo, Sierra, Tango, Uniform, Victor, Whiskey, X-ray, Yankee, Zulu. « SM-42 » : *Sierra Mike, four two*.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Les nombres à l'oral** : *thirteen* et *thirty*, *fifteen* et *fifty* se distinguent surtout par l'accent tonique (*thir-TEEN* contre *THIR-ty*), difficile à entendre au téléphone. Pour une valeur importante, confirme **chiffre par chiffre** : *one-five, fifteen*.
+
+            **Pièges de prononciation** fréquents chez les francophones : le *th*, le *h* aspiré (*hardware*, *heat*), l'accent tonique (*deVELop*, *eLECtrical*, *comPONent*), les terminaisons *-ed*. Personne n'attend un accent parfait ; on attend d'être compris.
+
+            **Le silence n'est pas un accord** : dans beaucoup de cultures de travail, ne rien dire en réunion est interprété comme « d'accord ». Si tu as un doute, dis-le.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Prépare trois phrases clés avant une réunion (ton avancement, ta question, ta proposition).
+            - Note les *action items* pendant la réunion, et envoie un court résumé écrit juste après : c'est la meilleure assurance contre les malentendus.
+            - Au téléphone avec un fournisseur, répète les nombres et les références, et confirme par écrit.
+      recap:
+        - "Faire répéter, reformuler (If I understood correctly…), ne jamais laisser passer un doute."
+        - "Point d'avancement : fait, en cours, bloquant, prochaine action."
+        - "Désaccord poli : I see your point, but I'm concerned that…"
+        - "Nombres importants : confirmer chiffre par chiffre (fifteen = one-five)."
+        - "Alphabet OTAN pour épeler ; résumé écrit après la réunion."
+      pieges: [ing-thirteen-thirty]
+    vocab:
+      - point d'avancement = status update
+      - ordre du jour = agenda
+      - compte rendu = minutes (meeting notes)
+      - actions à mener = action items
+      - reformuler = to rephrase
+      - épeler = to spell
+      - être d'accord / pas d'accord = to agree / to disagree
+      - bloquant = blocking issue
+    exercises:
+      - id: ang-oral.1
+        type: qcm
+        level: 1
+        q: Au téléphone, un fournisseur annonce un délai de « fifteen weeks ». Comment éviter toute confusion avec « fifty » ?
+        piege: ing-thirteen-thirty
+        choices:
+          - t: Répéter chiffre par chiffre, « One-five, fifteen weeks, correct? », puis confirmer par écrit
+            ok: true
+          - t: Rien, c'est clair
+            piege: true
+            why: Fifteen et fifty se confondent facilement au téléphone ; l'accent tonique ne suffit pas toujours.
+          - t: Demander de parler plus fort
+            why: Le problème n'est pas le volume, c'est la ressemblance des deux mots.
+        e: Même réflexe pour thirteen/thirty, fourteen/forty, etc.
+      - id: ang-oral.2
+        type: qcm
+        level: 1
+        q: Quelle phrase exprime poliment un désaccord ?
+        choices:
+          - t: I see your point, but I'm concerned that the motor will overheat in vacuum.
+            ok: true
+          - t: You're wrong.
+            why: Trop brutal ; ça ferme la discussion.
+          - t: Maybe, I don't know, whatever.
+            why: Ça n'exprime ni l'accord ni le désaccord, et ça ne donne pas d'argument.
+        e: Reconnaître le point de l'autre, puis donner ton argument, factuellement.
+      - id: ang-oral.3
+        type: qcm
+        level: 1
+        q: Comment épeler « B » avec l'alphabet de l'OTAN ?
+        choices:
+          - t: Bravo
+            ok: true
+          - t: Bob
+            why: Ce n'est pas l'alphabet normalisé, qu'il vaut mieux utiliser pour éviter les ambiguïtés.
+          - t: Beta
+            why: C'est une lettre grecque, pas le mot de code de l'alphabet OTAN.
+        e: Alfa, Bravo, Charlie, Delta, Echo…
+      - id: ang-oral.4
+        type: qcm
+        level: 2
+        q: Quel point d'avancement est le plus utile ?
+        choices:
+          - t: "The motor is installed, the wiring will be done by Thursday; the encoder signal is noisy and I'll check the grounding tomorrow."
+            ok: true
+          - t: "It's going fine."
+            why: Aucune information exploitable.
+          - t: "I did a lot of things this week."
+            why: Ni résultat, ni problème, ni prochaine étape.
+        e: Fait, en cours avec échéance, problème, prochaine action.
+      - id: ang-oral.5
+        type: qcm
+        level: 2
+        q: Que faire juste après une réunion où des actions ont été décidées ?
+        choices:
+          - t: Envoyer un court résumé écrit avec les actions, les responsables et les échéances
+            ok: true
+          - t: Rien, tout le monde a entendu
+            why: Chacun a pu comprendre autre chose, surtout dans une langue qui n'est pas la sienne.
+          - t: Attendre la prochaine réunion pour en reparler
+            why: Les malentendus auront eu le temps de coûter cher.
+        e: Le compte rendu (minutes) fait foi et sert de liste de tâches.
+      - id: ang-oral.6
+        type: flash
+        level: 1
+        q: Donne cinq phrases utiles en réunion.
+        back: |
+          Sorry, could you repeat that?
+          Just to make sure I understand: you mean that…?
+          I see your point, but I'm concerned that…
+          What if we…?
+          So the action items are…
+        e: Et « Let me check and get back to you » quand tu ne sais pas encore.
+  # ------------------------------------------------------------------ français technique
+  - id: ang-francais
+    title: Écrire un français technique correct
+    en: Writing correct technical French
+    goal: Écrire nombres, unités et symboles selon les règles, et éviter les fautes et anglicismes courants d'un rapport.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: La forme qui trahit le fond
+          body: |
+            Un excellent travail présenté avec des « 10mm », des « 5 Kgs » et des fautes d'accord perd la moitié de sa crédibilité. Un rapport, un mémoire ou une documentation se lisent aussi à leur forme. Les règles sont peu nombreuses et s'apprennent une fois pour toutes.
+        - level: 2
+          title: Les règles essentielles
+          body: |
+            **Nombres et unités** :
+            - une **espace** entre le nombre et l'unité : 10 mm, 25 °C, 50 % (espace **insécable**, pour qu'ils ne soient pas séparés en fin de ligne) ;
+            - les symboles sont **invariables** et sans point : 5 kg (et non 5 kgs ni 5 kg.), 3 min (et non 3 mn ni 3 mins) ;
+            - la **casse** compte : k minuscule pour kilo, mais M majuscule pour méga ; majuscule pour les unités tirées d'un nom propre (N, Pa, W, V, A, K, Hz) ;
+            - la virgule décimale (3,14) et l'espace pour les milliers (12 500).
+
+            **Style** : des phrases courtes, une idée par phrase, la voix active, des termes précis (« le vérin sort en 0,5 s » plutôt que « le vérin est rapide »).
+          check:
+            q: Laquelle de ces écritures est correcte ?
+            choices:
+              - t: 5 kg
+                ok: true
+              - t: 5 Kg
+                why: K majuscule désigne le kelvin ; le préfixe kilo est un k minuscule.
+              - t: 5 kgs
+                why: Les symboles d'unités sont invariables.
+        - level: 3
+          title: Les tableaux de référence
+          body: |
+            | Correct | Incorrect |
+            | --- | --- |
+            | 10 mm | 10mm, 10 mms, 10 m.m. |
+            | 25 °C | 25°C, 25 ° C, 25 °c |
+            | 3 min, 2 h, 30 s | 3 mn, 2 hrs, 30 sec |
+            | 1 kW, 100 kPa | 1 KW, 100 Kpa |
+            | 12 V, 50 Hz | 12 v, 50 hz |
+            | 1,5 × 10⁻³ | 1.5E-3 (dans un texte) |
+            | 200 mm × 150 mm | 200x150mm |
+
+            **Fautes fréquentes dans les rapports** :
+            - participe passé avec *avoir* : « les mesures **que** nous avons effectué**es** » (accord avec le COD placé avant) ;
+            - « quel**le** que soit la température » ;
+            - « censé » (supposé) et « sensé » (raisonnable) ;
+            - « davantage » (plus) et « d'avantage » (de bénéfice) ;
+            - « en revanche » plutôt que « par contre » dans un écrit soigné.
+
+            **Anglicismes à éviter** à l'écrit : *impacter* (avoir un effet sur), *deadline* (échéance), *feedback* (retour), *process* (procédé, processus), *digital* (numérique), *réaliser* au sens de se rendre compte, *supporter* au sens de prendre en charge.
+        - level: 4
+          title: Sous le capot
+          body: |
+            Les règles d'écriture des unités viennent du **Système international** (brochure du BIPM) : un symbole est une entité mathématique, pas une abréviation, d'où l'absence de point et de pluriel. La typographie française (Lexique des règles typographiques de l'Imprimerie nationale) ajoute l'espace insécable avant « : ; ! ? » et à l'intérieur des guillemets « ».
+
+            **Saisir une espace insécable** : Ctrl+Maj+Espace dans Word, Option+Espace sur Mac dans beaucoup d'applications, `~` ou `\,` en LaTeX (ou le paquet `siunitx`, qui fait tout seul `\SI{10}{\milli\metre}`).
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Relis à voix haute : les phrases trop longues et les répétitions sautent aux oreilles.
+            - Passe un correcteur (Antidote, LanguageTool) avant de rendre un rapport ou ton mémoire.
+            - Définis chaque sigle à sa première apparition : « analyse des modes de défaillance, de leurs effets et de leur criticité (AMDEC) ».
+            - Garde une feuille de style pour tes rapports (unités, abréviations, termes du projet) : la cohérence compte autant que la correction.
+      recap:
+        - "Espace insécable entre nombre et unité : 10 mm, 25 °C, 50 %."
+        - "Symboles invariables et sans point : kg, min, s, h ; casse exacte (k, M, N, Pa)."
+        - "Virgule décimale, espace pour les milliers, × pour multiplier."
+        - "Accords du participe passé, quel que soit, censé/sensé."
+        - "Pas d'anglicismes à l'écrit : impacter, deadline, feedback, réaliser (= comprendre)."
+      pieges: [ing-ecriture-unites]
+    vocab:
+      - espace insécable = non-breaking space
+      - symbole d'unité = unit symbol
+      - accord du participe passé = past participle agreement
+      - anglicisme = anglicism
+      - relecture = proofreading
+      - feuille de style = style sheet (style guide)
+      - sigle = acronym
+      - mémoire (de fin d'études) = thesis (dissertation)
+    exercises:
+      - id: ang-francais.1
+        type: qcm
+        level: 1
+        q: Quelle écriture est correcte ?
+        piege: ing-ecriture-unites
+        choices:
+          - t: 25 °C
+            ok: true
+          - t: 25°C
+            piege: true
+            why: Il faut une espace entre le nombre et le symbole °C.
+          - t: 25 ° C
+            why: Le symbole est °C, en un seul bloc.
+        e: La règle vaut pour toutes les unités, y compris le pourcentage (50 %). Seuls les degrés d'angle s'accolent (45°).
+      - id: ang-francais.2
+        type: qcm
+        level: 1
+        q: Comment écrire trois minutes en symbole ?
+        choices:
+          - t: 3 min
+            ok: true
+          - t: 3 mn
+            why: « mn » n'est pas le symbole de la minute.
+          - t: 3 mins
+            why: Les symboles sont invariables.
+        e: De même, 2 h (et non 2 hrs) et 30 s (et non 30 sec).
+      - id: ang-francais.3
+        type: qcm
+        level: 2
+        q: Quelle phrase est correctement accordée ?
+        choices:
+          - t: Les mesures que nous avons effectuées sont reproductibles.
+            ok: true
+          - t: Les mesures que nous avons effectué sont reproductibles.
+            why: Avec avoir, le participe s'accorde avec le complément d'objet direct placé avant (« que », mis pour « les mesures »).
+          - t: Les mesures que nous avons effectués sont reproductibles.
+            why: Mesures est féminin pluriel.
+        e: Si le COD est après le verbe, pas d'accord, « nous avons effectué les mesures ».
+      - id: ang-francais.4
+        type: qcm
+        level: 1
+        q: Par quoi remplacer « Ce changement va impacter le planning » dans un rapport ?
+        choices:
+          - t: Ce changement aura un effet sur le calendrier (ou décalera le calendrier).
+            ok: true
+          - t: Ce changement va impacter la deadline.
+            why: Deux anglicismes au lieu d'un.
+          - t: Ce changement va impacter le planning de manière impactante.
+            why: Plus lourd, et toujours l'anglicisme.
+        e: Préférer un verbe précis, affecter, retarder, modifier, qui dit en plus comment.
+      - id: ang-francais.5
+        type: qcm
+        level: 1
+        q: Quelle écriture de puissance est correcte ?
+        piege: ing-ecriture-unites
+        choices:
+          - t: 1,5 kW
+            ok: true
+          - t: 1,5 KW
+            piege: true
+            why: Le préfixe kilo s'écrit k minuscule (K majuscule est le kelvin).
+          - t: 1.5 kw
+            why: Virgule décimale en français, et W majuscule (le watt vient d'un nom propre).
+        e: Même logique, kPa, kN, kHz, mais MPa, MHz (méga en majuscule).
+      - id: ang-francais.6
+        type: flash
+        level: 1
+        q: Résume les règles d'écriture des nombres et des unités en français.
+        back: |
+          Espace insécable entre le nombre et l'unité (10 mm, 25 °C, 50 %) ; symboles invariables, sans point (kg, min, s, h) ; casse exacte (k minuscule, M majuscule, N, Pa, W, V, Hz en majuscule) ; virgule décimale ; espace pour les milliers (12 500) ; signe × pour multiplier (200 mm × 150 mm).
+        e: Seuls les degrés d'angle s'accolent au nombre (45°).

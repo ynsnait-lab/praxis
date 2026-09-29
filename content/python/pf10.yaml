@@ -1,0 +1,326 @@
+id: pf10
+track: python
+title: Fichiers et erreurs
+goal: Lire et écrire des fichiers de mesures, et écrire du code qui survit aux données sales sans cacher les vrais problèmes.
+level: fondations
+requires: [pf09]
+concepts: [fichiers, with, try, csv, exceptions]
+lesson:
+  minutes: 17
+  intro: |
+    Les données d'un essai vivent dans des fichiers. Et les fichiers réels sont sales : une ligne tronquée par une coupure, un champ vide, une virgule à la place d'un point, un fichier absent. Un bon programme de traitement ne plante pas au premier défaut… sans pour autant les passer sous silence. Ce cours donne les deux outils : les fichiers et les exceptions.
+  steps:
+    - level: 1
+      title: Ouvrir, lire, fermer
+      body: |
+        Un fichier se manipule en trois temps : l'**ouvrir** (`open`), le **lire ou l'écrire**, le **fermer**. La forme à utiliser toujours est le bloc `with`, qui ferme le fichier automatiquement à la sortie du bloc, même en cas d'erreur :
+
+        ```python
+        with open("mesures.csv", encoding="utf-8") as f:
+            for ligne in f:
+                print(ligne.strip())
+        ```
+
+        Le deuxième argument de `open` est le **mode** :
+        - `"r"` lecture (par défaut) ;
+        - `"w"` écriture — **le fichier existant est vidé** dès l'ouverture ;
+        - `"a"` ajout à la fin (*append*) ;
+        - `"x"` création, erreur si le fichier existe déjà.
+
+        Précise toujours `encoding="utf-8"` : sans ça, l'encodage par défaut dépend du système (et Windows n'utilise pas forcément UTF-8).
+    - level: 2
+      title: Quand ça tourne mal, une exception
+      body: |
+        Quand une opération échoue, Python **lève une exception** : un objet qui décrit l'erreur, et qui remonte jusqu'à ce que quelqu'un l'**attrape**. Personne ne l'attrape ? Le programme s'arrête avec un traceback.
+
+        On attrape avec `try` / `except` :
+      code: |
+        valeurs = ["21.5", "22,0", "", "abc", "23.1"]
+        propres, rejets = [], []
+        for v in valeurs:
+            try:
+                propres.append(float(v))
+            except ValueError:
+                rejets.append(v)
+        print(propres)
+        print(rejets)
+      run: true
+      out: |
+        [21.5, 23.1]
+        ['22,0', '', 'abc']
+      after: |
+        Le bloc `try` est tenté ; si une `ValueError` survient, Python saute dans le bloc `except ValueError`, puis continue après. Les autres types d'erreur, eux, ne sont **pas** attrapés : ils remontent normalement. C'est voulu.
+    - level: 3
+      title: Lire un vrai fichier CSV
+      body: |
+        Le module `csv` gère les séparateurs, les guillemets et les champs vides mieux qu'un `split` à la main. `csv.DictReader` donne chaque ligne sous forme de dictionnaire, avec les noms de colonnes de la première ligne.
+
+        Ici, on écrit d'abord un petit fichier pour l'exemple, puis on le relit en comptant les lignes rejetées.
+      code: |
+        import csv
+
+        with open("essai.csv", "w", encoding="utf-8") as f:
+            f.write("temps_s;temp_c\n0;21.5\n1;21.9\n2;\n3;22.4\n4;erreur\n")
+
+        temps, temp = [], []
+        rejets = 0
+        with open("essai.csv", encoding="utf-8", newline="") as f:
+            for n, ligne in enumerate(csv.DictReader(f, delimiter=";"), start=2):
+                try:
+                    t = float(ligne["temps_s"])
+                    v = float(ligne["temp_c"])
+                except ValueError:
+                    rejets += 1
+                    print(f"ligne {n} ignorée : {ligne}")
+                    continue
+                temps.append(t)
+                temp.append(v)
+        print(temps, temp, f"{rejets} rejet(s)")
+      run: true
+      out: |
+        ligne 4 ignorée : {'temps_s': '2', 'temp_c': ''}
+        ligne 6 ignorée : {'temps_s': '4', 'temp_c': 'erreur'}
+        [0.0, 1.0, 3.0] [21.5, 21.9, 22.4] 2 rejet(s)
+      after: |
+        Trois bonnes pratiques visibles ici : on **compte et signale** les lignes rejetées (avec leur numéro), on n'attrape **que** `ValueError`, et `newline=""` est recommandé par la documentation du module `csv`.
+    - level: 4
+      title: Attraper juste ce qu'il faut
+      body: |
+        Le pire réflexe est le `except:` nu (ou `except Exception:` partout) : il **avale toutes les erreurs**, y compris tes fautes de frappe (`NameError`), et même Ctrl+C pour le `except:` nu. Le programme « marche »… en produisant des résultats faux, sans rien dire.
+
+        Règles :
+        - **Attrape l'exception précise** que tu sais traiter : `ValueError` pour une conversion, `FileNotFoundError` pour un fichier absent, `KeyError` pour une clé.
+        - **Garde le `try` court** : seulement la ligne qui peut échouer.
+        - Si tu ne sais pas quoi faire de l'erreur, **ne l'attrape pas** : un plantage clair vaut mieux qu'un résultat faux.
+        - Tu peux lever tes propres erreurs : `raise ValueError("pression négative")`.
+
+        Deux compléments : `else:` s'exécute si le `try` a réussi, `finally:` s'exécute **dans tous les cas** (pour libérer une ressource). Le `with` est en fait un `try/finally` déguisé.
+      code: |
+        def lire_config(chemin):
+            try:
+                with open(chemin, encoding="utf-8") as f:
+                    return f.read()
+            except FileNotFoundError:
+                print(f"{chemin} absent : configuration par défaut")
+                return ""
+
+        print(repr(lire_config("introuvable.ini")))
+      run: true
+      out: |
+        introuvable.ini absent : configuration par défaut
+        ''
+    - level: 5
+      title: Chemins de fichiers avec pathlib
+      body: |
+        Pour manipuler des **chemins** (dossiers, extensions, existence), le module moderne est `pathlib` :
+
+        ```python
+        from pathlib import Path
+
+        dossier = Path("donnees") / "2026-09-28"      # l'opérateur / assemble les chemins
+        dossier.mkdir(parents=True, exist_ok=True)
+        fichier = dossier / "essai_01.csv"
+        fichier.write_text("t;v\n0;1.5\n", encoding="utf-8")
+        print(fichier.exists(), fichier.suffix, fichier.stem)   # True .csv essai_01
+        for p in sorted(Path("donnees").rglob("*.csv")):        # tous les CSV, récursivement
+            print(p)
+        ```
+
+        `Path` gère les séparateurs (`/` sur Mac et Linux, `\` sur Windows) à ta place : ton script marche sur les deux.
+
+        > [!piege] Le mode "w"
+        > `open(fichier, "w")` **vide le fichier au moment de l'ouverture**, avant même que tu écrives. Ouvrir en `"w"` le fichier que tu voulais lire, ou le rapport d'hier, c'est le perdre. Pour ajouter, `"a"` ; pour ne jamais écraser, `"x"`.
+  recap:
+    - "Toujours `with open(chemin, mode, encoding=\"utf-8\") as f:` ; le fichier est fermé à la sortie du bloc."
+    - "Modes : `\"r\"` lire, `\"w\"` écrire (vide le fichier !), `\"a\"` ajouter, `\"x\"` créer sans écraser."
+    - "`try:` / `except TypeErreurPrecise:` ; jamais de `except:` nu ; `try` le plus court possible."
+    - "Compte et signale les lignes rejetées au lieu de les ignorer en silence."
+    - "`csv.DictReader` pour les CSV, `pathlib.Path` pour les chemins."
+  pieges: [py-except-nu, py-mode-w]
+exercises:
+  - id: pf10.1
+    type: qcm
+    level: 1
+    q: "Pourquoi préférer `with open(...) as f:` à `f = open(...)` suivi de `f.close()` ?"
+    choices:
+      - t: "Le fichier est fermé automatiquement, même si une erreur survient dans le bloc."
+        ok: true
+      - t: "`with` lit le fichier plus vite."
+        why: "Aucune différence de vitesse."
+      - t: "`open` sans `with` ne permet pas d'écrire."
+        why: "Les deux permettent d'écrire."
+    e: "Avec `f.close()` écrit à la main, une erreur entre l'ouverture et la fermeture laisse le fichier ouvert (et parfois des données non écrites sur le disque). `with` garantit la fermeture."
+  - id: pf10.2
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      with open("f.txt", "w", encoding="utf-8") as f:
+          f.write("ligne 1\n")
+      with open("f.txt", "w", encoding="utf-8") as f:
+          f.write("ligne 2\n")
+      with open("f.txt", encoding="utf-8") as f:
+          print(f.read().strip())
+    answer: ligne 2
+    trap_answers:
+      - |
+        ligne 1
+        ligne 2
+    piege: py-mode-w
+    e: "Le deuxième `open(..., \"w\")` **vide** le fichier avant d'écrire. Pour accumuler, il fallait `\"a\"` (append)."
+  - id: pf10.3
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      def convertir(v):
+          try:
+              return float(v)
+          except ValueError:
+              return None
+
+      print([convertir(x) for x in ["1.5", "N/A", "2e3", " 7 "]])
+    answer: "[1.5, None, 2000.0, 7.0]"
+    e: "`float` accepte la notation scientifique (`2e3`) et les espaces autour. `\"N/A\"` lève `ValueError`, attrapée : la fonction renvoie `None`."
+  - id: pf10.4
+    type: bug
+    level: 2
+    q: "Ce code est censé ignorer les valeurs non numériques. Mais une faute de frappe (`flaot`) fait que **toutes** les valeurs sont ignorées, sans aucun message. Quelle ligne est le vrai problème de conception ?"
+    code: |
+      valeurs = ["1.5", "2.5", "x"]
+      propres = []
+      for v in valeurs:
+          try:
+              propres.append(flaot(v))
+          except:
+              pass
+      print(propres)
+    bad: 6
+    fix: "    except ValueError:"
+    piege: py-except-nu
+    e: |
+      La faute de frappe `flaot` provoque une `NameError`… qu'un `except:` nu avale. Résultat : une liste vide et aucune explication.
+
+      Avec `except ValueError:`, la `NameError` n'aurait pas été attrapée : le programme aurait planté immédiatement en montrant la faute. Attrape seulement ce que tu sais traiter.
+  - id: pf10.5
+    type: qcm
+    level: 2
+    q: "Tu veux ouvrir un fichier de résultats pour y ajouter une ligne à chaque essai, sans perdre les précédentes. Quel mode ?"
+    piege: py-mode-w
+    choices:
+      - t: "`\"a\"`"
+        ok: true
+      - t: "`\"w\"`"
+        piege: true
+        why: "Vide le fichier à chaque ouverture : tu ne garderais que le dernier essai."
+      - t: "`\"r\"`"
+        why: "Lecture seule : l'écriture lèverait une erreur."
+      - t: "`\"x\"`"
+        why: "Échoue si le fichier existe déjà, donc dès le deuxième essai."
+    e: "`\"a\"` (append) positionne l'écriture à la fin du fichier, et le crée s'il n'existe pas."
+  - id: pf10.6
+    type: code
+    level: 2
+    q: |
+      Écris `lire_valeurs(lignes)` qui reçoit une liste de lignes de texte (comme celles d'un fichier) et renvoie un tuple `(valeurs, n_rejets)` : les nombres lisibles (virgule décimale acceptée, lignes vides ignorées sans compter comme rejet), et le nombre de lignes non convertibles.
+    start: |
+      def lire_valeurs(lignes):
+          ...
+    sol: |
+      def lire_valeurs(lignes):
+          valeurs = []
+          rejets = 0
+          for ligne in lignes:
+              texte = ligne.strip()
+              if not texte:
+                  continue
+              try:
+                  valeurs.append(float(texte.replace(",", ".")))
+              except ValueError:
+                  rejets += 1
+          return valeurs, rejets
+    tests: |
+      v, r = lire_valeurs(["1.5\n", "2,5\n", "\n", "abc\n", "  3 "])
+      assert v == [1.5, 2.5, 3.0], v
+      assert r == 1, r
+      assert lire_valeurs([]) == ([], 0)
+      print("OK")
+    e: "Trois cas distincts, trois traitements : ligne vide (ignorée, normale), valeur convertible (gardée), valeur illisible (comptée). Mélanger les deux premiers dans les rejets gonflerait artificiellement le taux d'erreur."
+  - id: pf10.7
+    type: cloze
+    level: 1
+    q: Complète pour lire toutes les lignes d'un fichier dans une liste, sans les retours à la ligne.
+    tpl: |
+      with open("capteurs.txt", "w", encoding="utf-8") as f:
+          f.write("PT100-A\nPT100-B\n")
+      ⟦0⟧ open("capteurs.txt", encoding="utf-8") ⟦1⟧ f:
+          noms = [ligne.⟦2⟧() for ligne in f]
+      print(noms)
+    blanks:
+      - [with]
+      - [as]
+      - [strip, rstrip]
+    run: true
+    out: "['PT100-A', 'PT100-B']"
+    e: "Parcourir un fichier ouvert donne ses lignes une par une, **avec** le `\\n` final : d'où le `strip()`."
+  - id: pf10.8
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      def f():
+          try:
+              print("essai")
+              return 1
+          finally:
+              print("nettoyage")
+
+      print(f())
+    answer: |
+      essai
+      nettoyage
+      1
+    e: "`finally` s'exécute **toujours**, même quand le `try` fait `return` : c'est ce qui le rend fiable pour fermer un port série ou couper une alimentation. La valeur 1 est renvoyée après."
+  - id: pf10.9
+    type: flash
+    level: 2
+    q: "Associe l'exception à sa cause : `FileNotFoundError`, `ValueError`, `KeyError`, `IndexError`, `ZeroDivisionError`."
+    back: |
+      - `FileNotFoundError` : fichier absent
+      - `ValueError` : bon type, mauvaise valeur (`float("abc")`)
+      - `KeyError` : clé absente d'un dict
+      - `IndexError` : index hors d'une liste
+      - `ZeroDivisionError` : division par zéro
+    e: "Connaître ces noms permet d'attraper exactement la bonne erreur, et de lire un traceback en une seconde."
+  - id: pf10.10
+    type: predict
+    level: 3
+    q: Qu'affiche ce script ?
+    code: |
+      def verifier(p):
+          if p < 0:
+              raise ValueError(f"pression négative : {p}")
+          return p
+
+      for p in [1.2, -0.5]:
+          try:
+              print(verifier(p))
+          except ValueError as e:
+              print("refusé :", e)
+    answer: |
+      1.2
+      refusé : pression négative : -0.5
+    e: "`raise` lève une exception avec un message. `except ValueError as e` récupère l'objet exception ; `print(e)` affiche son message."
+  - id: pf10.11
+    type: parsons
+    level: 2
+    q: "Reconstruis une fonction qui ajoute une ligne `horodatage;valeur` à un journal CSV sans jamais effacer les lignes précédentes."
+    lang: python
+    lines:
+      - "def journaliser(chemin, horodatage, valeur):"
+      - "    with open(chemin, \"a\", encoding=\"utf-8\") as f:"
+      - "        f.write(f\"{horodatage};{valeur}\\n\")"
+    extra:
+      - "    with open(chemin, \"w\", encoding=\"utf-8\") as f:"
+      - "    f = open(chemin, \"a\")"
+    e: "Mode `\"a\"` pour ajouter, `with` pour garantir la fermeture, et un `\\n` explicite : `write` n'ajoute pas de retour à la ligne tout seul."

@@ -1,0 +1,325 @@
+id: pf04
+track: python
+title: Conditions
+goal: Faire prendre des décisions à un programme, dans le bon ordre, sans conditions qui mentent.
+level: fondations
+requires: [pf03]
+concepts: [if, booleens, truthiness]
+lesson:
+  minutes: 13
+  intro: |
+    Un programme devient utile quand il réagit : couper le chauffage au-dessus d'un seuil, signaler une mesure aberrante, choisir une unité d'affichage. C'est le rôle de `if`. La syntaxe se retient en cinq minutes ; les pièges, eux, se cachent dans l'**ordre** des conditions et dans ce que Python considère comme « vrai ».
+  steps:
+    - level: 1
+      title: Un aiguillage
+      body: |
+        Une condition, c'est un **aiguillage** sur une voie ferrée : selon la réponse à une question oui/non, le programme part d'un côté ou de l'autre.
+
+        ```python
+        if temperature > 80:
+            print("ALARME : surchauffe")
+        else:
+            print("Température normale")
+        ```
+
+        - La question est posée après `if`, suivie de **deux-points** `:`.
+        - Le bloc à exécuter si c'est vrai est **décalé** de 4 espaces.
+        - `else:` (facultatif) donne le bloc à exécuter sinon.
+
+        Une seule des deux branches s'exécute, jamais les deux.
+    - level: 2
+      title: Plusieurs cas avec elif
+      body: |
+        Pour plus de deux cas, on enchaîne avec `elif` (contraction de *else if*). Python teste les conditions **dans l'ordre** et exécute **la première qui est vraie**, puis saute tout le reste.
+      code: |
+        def classer(t_c):
+            if t_c < 0:
+                return "gel"
+            elif t_c < 15:
+                return "froid"
+            elif t_c < 30:
+                return "normal"
+            else:
+                return "chaud"
+
+        for t in [-5, 0, 14.9, 15, 29, 42]:
+            print(t, classer(t))
+      run: true
+      out: |
+        -5 gel
+        0 froid
+        14.9 froid
+        15 normal
+        29 normal
+        42 chaud
+      after: |
+        Remarque qu'à la ligne `elif t_c < 15`, pas besoin d'écrire `0 <= t_c < 15` : si on arrive là, c'est que `t_c < 0` était faux. L'ordre des `elif` porte une partie de la logique.
+    - level: 3
+      title: Combiner des conditions
+      body: |
+        On combine avec `and` (les deux), `or` (au moins une), `not` (l'inverse), et on teste l'appartenance avec `in`.
+      code: |
+        tension = 3.2
+        mode = "mesure"
+        capteurs_ok = ["PT100-A", "PT100-B"]
+
+        if 3.0 <= tension <= 3.6 and mode == "mesure":
+            print("alimentation OK")
+        if "PT100-C" not in capteurs_ok:
+            print("PT100-C absent")
+        if not capteurs_ok:
+            print("aucun capteur")
+      run: true
+      out: |
+        alimentation OK
+        PT100-C absent
+      check:
+        q: "Que vaut `x > 5 or x < 2 and x != 0` quand `x = 0` ?"
+        choices:
+          - t: "`False`"
+            ok: true
+            why: "`and` est prioritaire sur `or` : c'est `(x > 5) or ((x < 2) and (x != 0))` → `False or (True and False)` → `False`."
+          - t: "`True`"
+            why: "Ce serait le cas si `or` passait avant `and`. Dans le doute, mets des parenthèses : c'est gratuit et lisible."
+    - level: 4
+      title: Ce que Python considère comme vrai
+      body: |
+        Après `if`, on peut mettre **n'importe quelle valeur**, pas seulement un booléen. Python la convertit en vrai ou faux selon une règle simple : sont **fausses** les valeurs « vides » ou nulles :
+
+        `False`, `None`, `0`, `0.0`, `""` (texte vide), `[]` (liste vide), `{}` (dict vide).
+
+        Tout le reste est **vrai**. C'est pratique (`if liste:` = « si la liste n'est pas vide »), mais c'est un piège dans un cas précis : **une mesure qui vaut 0 est une vraie mesure**, et pourtant `if mesure:` la considère comme absente.
+
+        Autre piège classique : `if choix == "a" or "b":` est **toujours vrai**. Python le lit `(choix == "a") or ("b")`, et `"b"` est un texte non vide, donc vrai. Il faut `choix == "a" or choix == "b"`, ou mieux `choix in ("a", "b")`.
+      code: |
+        mesure = 0.0
+        if mesure:
+            print("mesure présente")
+        else:
+            print("pas de mesure ?!")      # alors que 0.0 est une vraie mesure
+
+        if mesure is not None:
+            print("mesure présente :", mesure)
+
+        choix = "z"
+        print(bool(choix == "a" or "b"))   # toujours vrai !
+        print(choix in ("a", "b"))
+      run: true
+      out: |
+        pas de mesure ?!
+        mesure présente : 0.0
+        True
+        False
+    - level: 5
+      title: Écrire des conditions lisibles
+      body: |
+        Quelques habitudes de pro :
+
+        - **Teste l'absence avec `is None`**, pas avec `if not x` quand 0 est une valeur possible. `None` est la valeur conventionnelle « rien » en Python.
+        - **Nomme les conditions compliquées** : `surchauffe = t > T_MAX and duree > 10` puis `if surchauffe:`. Le code se lit comme une phrase.
+        - **Ordonne les `elif` du plus restrictif au plus large**, sinon un cas large avale les suivants.
+        - **Évite les conditions redondantes** : `if ok == True:` s'écrit `if ok:`.
+        - **Traite d'abord les cas d'erreur et sors** (on verra avec les fonctions : `return` tôt), pour éviter les pyramides de `if` imbriqués.
+
+        > [!astuce] Le `match`
+        > Depuis Python 3.10, `match valeur:` suivi de `case "a": ...` permet d'écrire un aiguillage sur des valeurs précises, un peu comme le `switch` du C. Pour des plages de valeurs, `if`/`elif` reste la bonne solution.
+  recap:
+    - "`if cond:` / `elif cond:` / `else:` ; le bloc est décalé de 4 espaces. La **première** condition vraie gagne."
+    - Ordonne les `elif` du cas le plus restrictif au plus large.
+    - "`and` passe avant `or` ; dans le doute, des parenthèses."
+    - "Sont fausses : `False`, `None`, `0`, `0.0`, `\"\"`, `[]`, `{}`. Une mesure à 0 est fausse : teste `is None`."
+    - "`x == \"a\" or \"b\"` est toujours vrai : écris `x in (\"a\", \"b\")`."
+  pieges: [py-ordre-elif, py-or-constante, py-zero-faux]
+exercises:
+  - id: pf04.1
+    type: predict
+    level: 1
+    q: Qu'affiche ce script ?
+    code: |
+      p = 2.5
+      if p > 3:
+          print("haute")
+      elif p > 2:
+          print("moyenne")
+      elif p > 1:
+          print("basse")
+      else:
+          print("vide")
+    answer: moyenne
+    e: "Python teste dans l'ordre : `p > 3` faux, `p > 2` vrai → il affiche `moyenne` et **saute** le reste, même si `p > 1` est vrai aussi."
+  - id: pf04.2
+    type: predict
+    level: 2
+    q: "Ce script doit classer une température. Qu'affiche-t-il pour `t = 35` ?"
+    code: |
+      t = 35
+      if t > 0:
+          print("positive")
+      elif t > 30:
+          print("chaude")
+      else:
+          print("négative ou nulle")
+    answer: positive
+    trap_answers: ["chaude"]
+    piege: py-ordre-elif
+    e: |
+      `t > 0` est vrai, donc c'est la première branche qui s'exécute. Le `elif t > 30` n'est **jamais** atteint pour une valeur positive : il est mort.
+
+      Correction : tester le cas le plus restrictif d'abord (`if t > 30` puis `elif t > 0`).
+  - id: pf04.3
+    type: qcm
+    level: 2
+    q: "`reponse = \"non\"`. Que fait `if reponse == \"oui\" or \"o\": print(\"ok\")` ?"
+    piege: py-or-constante
+    choices:
+      - t: "Il affiche `ok`."
+        ok: true
+        why: "`\"o\"` est un texte non vide, donc vrai. La condition entière est vraie quelle que soit la réponse."
+      - t: "Il n'affiche rien."
+        piege: true
+        why: "C'est l'intention, mais pas ce que Python comprend : il lit `(reponse == \"oui\") or (\"o\")`."
+      - t: "Une `SyntaxError`."
+        why: "La syntaxe est valide, c'est la logique qui est fausse."
+    e: "`or` ne « distribue » pas la comparaison. Écris `reponse in (\"oui\", \"o\")`, ou `reponse == \"oui\" or reponse == \"o\"`."
+  - id: pf04.4
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      for v in [0, 1, "", "0", [], [0], None]:
+          print(bool(v), end=" ")
+    answer: False True False True False True False
+    e: |
+      Sont faux : `0`, `""`, `[]`, `None`. Mais `"0"` est un texte **non vide** (il contient le caractère 0) donc vrai, et `[0]` est une liste qui contient un élément, donc vraie.
+
+      (`end=" "` demande à `print` de finir par un espace au lieu d'un retour à la ligne.)
+  - id: pf04.5
+    type: bug
+    level: 2
+    q: "Ce code doit afficher un avertissement quand aucune mesure n'a été lue (`mesure` vaut `None`). Mais il se déclenche aussi quand le capteur mesure exactement 0 °C. Quelle ligne corriger ?"
+    code: |
+      def lire_capteur():
+          return 0.0     # le capteur mesure 0 °C
+      mesure = lire_capteur()
+      if not mesure:
+          print("capteur muet !")
+      else:
+          print("mesure :", mesure)
+    bad: 4
+    fix: |
+      if mesure is None:
+    piege: py-zero-faux
+    e: "`not 0.0` est vrai, car 0.0 est « faux » en Python. Pour tester l'absence de valeur, compare explicitement à `None` avec `is None`."
+  - id: pf04.6
+    type: cloze
+    level: 1
+    q: Complète pour afficher `OK` si `u` est entre 4.5 et 5.5 inclus, `HORS PLAGE` sinon.
+    tpl: |
+      u = 5.1
+      ⟦0⟧ 4.5 <= u <= 5.5:
+          print("OK")
+      ⟦1⟧:
+          print("HORS PLAGE")
+    blanks:
+      - [if]
+      - [else]
+    run: true
+    out: OK
+    e: "L'encadrement `4.5 <= u <= 5.5` est l'écriture la plus lisible d'une plage. N'oublie pas le `:` après la condition et après `else`."
+  - id: pf04.7
+    type: code
+    level: 1
+    q: |
+      Écris `etat_batterie(v)` qui renvoie :
+      - `"critique"` si `v < 3.3`,
+      - `"faible"` si `3.3 <= v < 3.6`,
+      - `"ok"` sinon.
+    start: |
+      def etat_batterie(v):
+          ...
+    sol: |
+      def etat_batterie(v):
+          if v < 3.3:
+              return "critique"
+          elif v < 3.6:
+              return "faible"
+          else:
+              return "ok"
+    tests: |
+      assert etat_batterie(3.0) == "critique"
+      assert etat_batterie(3.3) == "faible", "3.3 est la borne basse de 'faible'"
+      assert etat_batterie(3.59) == "faible"
+      assert etat_batterie(3.6) == "ok"
+      assert etat_batterie(4.2) == "ok"
+      print("OK")
+    e: "Grâce à l'ordre des tests, la deuxième condition n'a pas besoin de répéter `v >= 3.3`. Les tests vérifient justement les **bornes** (3.3 et 3.6) : c'est là que se cachent les erreurs."
+  - id: pf04.8
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      a, b = 5, 0
+      if b != 0 and a / b > 1:
+          print("grand")
+      else:
+          print("pas calculable ou petit")
+    answer: pas calculable ou petit
+    e: |
+      `and` s'arrête dès que le premier terme est faux : c'est l'**évaluation paresseuse** (*short-circuit*). Ici `b != 0` est faux, donc `a / b` n'est **jamais** calculé, et il n'y a pas de `ZeroDivisionError`.
+
+      L'ordre des termes compte : `a / b > 1 and b != 0` planterait.
+  - id: pf04.9
+    type: qcm
+    level: 1
+    q: "Quelle est la façon la plus pythonique de tester si une liste `defauts` n'est pas vide ?"
+    choices:
+      - t: "`if defauts:`"
+        ok: true
+      - t: "`if len(defauts) > 0 == True:`"
+        why: "Toujours faux ! C'est un encadrement, lu `len(defauts) > 0 and 0 == True`, et `0 == True` est faux. Illisible et incorrect."
+      - t: "`if defauts != None:`"
+        why: "Une liste vide n'est pas `None` : ce test serait vrai pour `[]`."
+    e: "Une liste vide est fausse, une liste non vide est vraie. `if defauts:` se lit « s'il y a des défauts »."
+  - id: pf04.10
+    type: flash
+    level: 1
+    q: Cite les valeurs considérées comme fausses par `if` en Python.
+    back: "`False`, `None`, `0`, `0.0`, `\"\"` (texte vide), `[]`, `()`, `{}`, `set()` — tout ce qui est « nul » ou « vide ». Tout le reste est vrai."
+    e: "Piège associé : une mesure nulle (0 ou 0.0) est fausse. Pour tester l'absence, `is None`."
+  - id: pf04.11
+    type: parsons
+    level: 2
+    q: "Reconstruis une fonction qui renvoie la catégorie d'un débit `q` (en L/min) : `nul` s'il vaut 0, `faible` en dessous de 5, `normal` sinon. Attention aux intrus."
+    lang: python
+    lines:
+      - "def categorie(q):"
+      - "    if q == 0:"
+      - "        return \"nul\""
+      - "    elif q < 5:"
+      - "        return \"faible\""
+      - "    return \"normal\""
+    extra:
+      - "    if not q:"
+      - "    elif q > 5:"
+    e: |
+      Ici `q == 0` est explicite, ce qui est plus clair que `if not q` (qui accepterait aussi `None` sans le dire).
+
+      Le dernier `return` n'a pas besoin de `else` : on n'y arrive que si les deux cas précédents étaient faux.
+  - id: pf04.12
+    type: predict
+    level: 3
+    q: Qu'affiche ce script ?
+    code: |
+      x = 7
+      print(x > 5 and "grand" or "petit")
+      x = 2
+      print(x > 5 and "grand" or "petit")
+      print(x > 5 and "")
+    answer: |
+      grand
+      petit
+      False
+    e: |
+      `and` et `or` ne renvoient pas forcément `True`/`False` : ils renvoient **l'un de leurs opérandes**. `a and b` renvoie `a` si `a` est faux, sinon `b`. `a or b` renvoie `a` si `a` est vrai, sinon `b`.
+
+      Donc `x > 5 and "grand"` vaut `"grand"` si x > 5, sinon `False`… d'où la dernière ligne. L'idiome moderne et sûr est l'expression conditionnelle : `"grand" if x > 5 else "petit"`.

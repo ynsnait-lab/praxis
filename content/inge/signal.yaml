@@ -1,0 +1,769 @@
+id: signal
+title: Traitement du signal
+en: Signal processing
+desc: Signaux périodiques, échantillonnage et repliement, FFT, filtrage numérique, bruit et rapport signal sur bruit.
+intro: |
+  Dès qu'une mesure est numérisée, elle devient une suite de nombres qu'on filtre, qu'on analyse et qu'on interprète. Quelques règles (Shannon, résolution d'une FFT, décibels) évitent de voir des fréquences qui n'existent pas, ou de rater celles qui existent.
+
+  Les exemples de code tournent en Python pur : tu peux les modifier et les relancer.
+notions:
+  # ------------------------------------------------------------------ signaux
+  - id: sig-signaux
+    title: Signaux périodiques, valeurs moyenne et efficace, harmoniques
+    en: Periodic signals, mean and RMS values, harmonics
+    goal: Caractériser un signal périodique (fréquence, moyenne, efficace) et comprendre sa décomposition en harmoniques.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: Les notes de musique
+          body: |
+            Un diapason produit une note pure : une seule fréquence. Une guitare qui joue la même note sonne différemment, parce que son son contient, en plus de la fréquence de base, des fréquences multiples plus faibles : les **harmoniques**. C'est ce mélange qui donne le timbre.
+        - level: 2
+          title: Ce qui décrit un signal périodique
+          body: |
+            - **Période** $T$ : la durée d'un motif ; **fréquence** $f = 1/T$ (en hertz).
+            - **Valeur crête** : le maximum atteint.
+            - **Valeur moyenne** : la composante continue (0 pour une sinusoïde centrée).
+            - **Valeur efficace** (RMS) : la valeur continue qui fournirait la même puissance.
+
+            **Fourier** : tout signal périodique est une somme de sinusoïdes, à la fréquence fondamentale $f$ et à ses multiples $2f$, $3f$… Un signal carré contient les harmoniques **impaires** ($3f$, $5f$, $7f$…) d'amplitudes décroissantes en $1/n$. Plus un signal a des fronts raides, plus il contient d'harmoniques élevées.
+          check:
+            q: Quelles fréquences contient un signal carré symétrique de 1 kHz ?
+            choices:
+              - t: 1 kHz, 3 kHz, 5 kHz, 7 kHz… (harmoniques impaires)
+                ok: true
+              - t: Seulement 1 kHz
+                why: Seule une sinusoïde pure ne contient qu'une fréquence.
+              - t: 1 kHz, 2 kHz, 3 kHz… toutes les harmoniques
+                why: La symétrie d'un carré (rapport cyclique 50 %) annule les harmoniques paires.
+        - level: 3
+          title: Les formules
+          body: |
+            $$\bar u = \frac{1}{T}\int_0^T u\,dt \qquad U_{eff} = \sqrt{\frac{1}{T}\int_0^T u^2\,dt}$$
+
+            | Signal (amplitude $\hat U$) | Moyenne | Efficace |
+            | --- | --- | --- |
+            | sinusoïde centrée | 0 | $\hat U/\sqrt 2$ |
+            | carré 0/$\hat U$, rapport cyclique $\alpha$ | $\alpha\,\hat U$ | $\sqrt{\alpha}\,\hat U$ |
+            | carré symétrique ±$\hat U$ | 0 | $\hat U$ |
+            | triangle centré | 0 | $\hat U/\sqrt 3$ |
+
+            **Composante continue + alternatif** : $U_{eff} = \sqrt{U_{moy}^2 + U_{alt,eff}^2}$. Une sinusoïde de 2 V d'amplitude sur 1 V continu : $\sqrt{1 + 2} \approx 1{,}73$ V.
+
+            **Série de Fourier du carré** ±$\hat U$ : $\dfrac{4\hat U}{\pi}\left(\sin\omega t + \dfrac{1}{3}\sin 3\omega t + \dfrac{1}{5}\sin 5\omega t + \dots\right)$.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Pourquoi les sinusoïdes ?** Ce sont les seuls signaux qui traversent un système linéaire (filtre, circuit RC, structure mécanique) **sans changer de forme** : seules leur amplitude et leur phase changent. En décomposant un signal en sinusoïdes, on peut traiter chacune séparément et additionner les résultats. C'est ce qui rend Bode, les filtres et la FFT si puissants.
+
+            **Fronts raides = hautes fréquences** : un signal numérique de 1 MHz avec des fronts de 1 ns contient de l'énergie jusqu'à des centaines de MHz. C'est l'origine des problèmes de compatibilité électromagnétique (rayonnement, diaphonie).
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Un multimètre TRMS mesure la vraie valeur efficace ; un modèle ordinaire suppose une sinusoïde (voir l'alternatif).
+            - Un oscilloscope avec fonction FFT montre directement les harmoniques : utile pour identifier une source de bruit (50 Hz et ses harmoniques, découpage d'une alimentation, vitesse de rotation d'une machine).
+            - Des harmoniques de 50 Hz sur une mesure trahissent souvent une boucle de masse ou un couplage avec le secteur.
+      recap:
+        - "f = 1/T ; moyenne = composante continue ; efficace = équivalent en puissance."
+        - "Sinus : efficace = crête/√2 ; carré 0/U de rapport α : moyenne α·U, efficace √α·U."
+        - "U_eff² = U_moy² + U_alt,eff²."
+        - "Fourier : somme de sinusoïdes ; carré = harmoniques impaires en 1/n."
+        - "Fronts raides = contenu haute fréquence."
+      pieges: [ing-moyenne-efficace]
+    vocab:
+      - période = period
+      - fréquence = frequency
+      - valeur moyenne = mean (DC) value
+      - valeur efficace = RMS value
+      - harmonique = harmonic
+      - fondamentale = fundamental
+      - série de Fourier = Fourier series
+      - rapport cyclique = duty cycle
+    exercises:
+      - id: sig-signaux.1
+        type: numeric
+        level: 1
+        q: Un signal se répète toutes les 2 ms. Sa fréquence ?
+        answer: 500
+        tol: 0.001
+        unit: Hz
+        calc: 1 / 2e-3
+        e: $f = 1/T = 1/0{,}002 = 500$ Hz.
+      - id: sig-signaux.2
+        type: numeric
+        level: 2
+        q: Signal carré 0/5 V, rapport cyclique 25 %. Valeur moyenne ?
+        answer: 1.25
+        tol: 0.01
+        unit: V
+        calc: 0.25 * 5
+        e: $\alpha\,\hat U = 0{,}25 \times 5 = 1{,}25$ V.
+      - id: sig-signaux.3
+        type: numeric
+        level: 2
+        q: Même signal carré 0/5 V à 25 %. Valeur efficace ?
+        answer: 2.5
+        tol: 0.01
+        unit: V
+        calc: sqrt(0.25) * 5
+        trap_values:
+          - v: 1.25
+            why: C'est la valeur moyenne. L'efficace vaut √α × U, toujours supérieure ou égale à la moyenne.
+          - v: 3.536
+            why: C'est 5/√2, valable pour une sinusoïde seulement.
+        piege: ing-moyenne-efficace
+        e: $\sqrt{0{,}25} \times 5 = 2{,}5$ V. Une résistance alimentée par ce signal chauffe comme sous 2,5 V continus, pas 1,25 V.
+      - id: sig-signaux.4
+        type: numeric
+        level: 3
+        q: Une sinusoïde d'amplitude 2 V est superposée à une composante continue de 1 V. Valeur efficace totale ?
+        answer: 1.732
+        tol: 0.01
+        unit: V
+        calc: sqrt(1**2 + (2 / sqrt(2))**2)
+        trap_values:
+          - v: 2.414
+            why: On n'additionne pas les valeurs efficaces ; on additionne leurs carrés.
+        e: $\sqrt{1^2 + (2/\sqrt 2)^2} = \sqrt{1 + 2} \approx 1{,}73$ V.
+      - id: sig-signaux.5
+        type: numeric
+        level: 1
+        q: Fréquence de l'harmonique 3 d'un signal de 50 Hz ?
+        answer: 150
+        tol: 0.001
+        unit: Hz
+        calc: 3 * 50
+        e: L'harmonique de rang n est à n fois la fondamentale, 3 × 50 = 150 Hz.
+      - id: sig-signaux.6
+        type: flash
+        level: 1
+        q: Quelle différence entre valeur moyenne et valeur efficace ?
+        back: |
+          **Moyenne** : la moyenne arithmétique du signal sur une période, sa composante continue (nulle pour une sinusoïde centrée).
+          **Efficace** (RMS) : la racine de la moyenne du carré ; c'est la tension continue qui produirait la même puissance dans une résistance. Toujours ≥ |moyenne|.
+        e: Un voltmètre en mode DC affiche la moyenne ; en mode AC (TRMS), l'efficace de la partie variable.
+  # ------------------------------------------------------------------ échantillonnage
+  - id: sig-echantillonnage
+    title: Échantillonnage, Shannon et repliement
+    en: Sampling, Nyquist and aliasing
+    goal: Choisir une fréquence d'échantillonnage et prévoir la fréquence apparente d'un signal sous-échantillonné.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Les roues qui tournent à l'envers
+          body: |
+            Dans les films, les roues d'une diligence semblent parfois tourner lentement, s'arrêter ou même tourner à l'envers. La caméra prend 24 images par seconde : si la roue fait presque un tour complet entre deux images, on a l'impression qu'elle a juste un peu reculé.
+
+            Une carte d'acquisition qui échantillonne trop lentement fait exactement la même chose avec un signal.
+        - level: 2
+          title: Deux points par période, au minimum
+          body: |
+            **Échantillonner**, c'est relever la valeur d'un signal à intervalles réguliers, à la **fréquence d'échantillonnage** $f_e$.
+
+            **Théorème de Shannon-Nyquist** : pour pouvoir reconstituer un signal, il faut échantillonner à **plus de deux fois** sa fréquence maximale :
+            $$f_e > 2\,f_{max}$$
+            La moitié de $f_e$ s'appelle la **fréquence de Nyquist**.
+
+            Si le signal contient des fréquences au-dessus de $f_e/2$, elles ne disparaissent pas : elles se **replient** et apparaissent à une fréquence plus basse, **impossible à distinguer** d'un vrai signal. C'est le **repliement** (*aliasing*).
+
+            ```svg caption="Repliement : un signal de 900 Hz (trait fin) échantillonné à 1 kHz (points) donne exactement les mêmes échantillons qu'un signal de 100 Hz (pointillés)."
+            <svg viewBox="0 0 460 195" width="460" role="img" aria-label="Illustration du repliement d'un signal de 900 Hz échantillonné à 1 kHz">
+              <line class="grid" x1="40" y1="90" x2="440" y2="90"/>
+              <polyline class="s2" points="40,90.0 42,76.1 44,63.2 46,52.5 48,44.8 50,40.6 52,40.4 54,44.1 56,51.5 58,61.9 60,74.5 62,88.4 64,102.4 66,115.5 68,126.4 70,134.6 72,139.1 74,139.8 76,136.5 78,129.5 80,119.4 82,106.9 84,93.1 86,79.1 88,65.9 90,54.6 92,46.2 94,41.2 96,40.1 98,43.0 100,49.5 102,59.4 104,71.6 106,85.3 108,99.4 110,112.7 112,124.2 114,133.0 116,138.4 118,140.0 120,137.6 122,131.4 124,121.9 126,109.9 128,96.3 130,82.2 132,68.7 134,56.9 136,47.8 138,42.0 140,40.0 142,42.0 144,47.8 146,56.9 148,68.7 150,82.2 152,96.3 154,109.9 156,121.9 158,131.4 160,137.6 162,140.0 164,138.4 166,133.0 168,124.2 170,112.7 172,99.4 174,85.3 176,71.6 178,59.4 180,49.5 182,43.0 184,40.1 186,41.2 188,46.2 190,54.6 192,65.9 194,79.1 196,93.1 198,106.9 200,119.4 202,129.5 204,136.5 206,139.8 208,139.1 210,134.6 212,126.4 214,115.5 216,102.4 218,88.4 220,74.5 222,61.9 224,51.5 226,44.1 228,40.4 230,40.6 232,44.8 234,52.5 236,63.2 238,76.1 240,90.0 242,103.9 244,116.8 246,127.5 248,135.2 250,139.4 252,139.6 254,135.9 256,128.5 258,118.1 260,105.5 262,91.6 264,77.6 266,64.5 268,53.6 270,45.4 272,40.9 274,40.2 276,43.5 278,50.5 280,60.6 282,73.1 284,86.9 286,100.9 288,114.1 290,125.4 292,133.8 294,138.8 296,139.9 298,137.0 300,130.5 302,120.6 304,108.4 306,94.7 308,80.6 310,67.3 312,55.8 314,47.0 316,41.6 318,40.0 320,42.4 322,48.6 324,58.1 326,70.1 328,83.7 330,97.8 332,111.3 334,123.1 336,132.2 338,138.0 340,140.0 342,138.0 344,132.2 346,123.1 348,111.3 350,97.8 352,83.7 354,70.1 356,58.1 358,48.6 360,42.4 362,40.0 364,41.6 366,47.0 368,55.8 370,67.3 372,80.6 374,94.7 376,108.4 378,120.6 380,130.5 382,137.0 384,139.9 386,138.8 388,133.8 390,125.4 392,114.1 394,100.9 396,86.9 398,73.1 400,60.6 402,50.5 404,43.5 406,40.2 408,40.9 410,45.4 412,53.6 414,64.5 416,77.6 418,91.6 420,105.5 422,118.1 424,128.5 426,135.9 428,139.6 430,139.4 432,135.2 434,127.5 436,116.8 438,103.9 440,90.0"/>
+              <polyline class="ws dash" points="40,90.0 44,93.1 48,96.3 52,99.4 56,102.4 60,105.5 64,108.4 68,111.3 72,114.1 76,116.8 80,119.4 84,121.9 88,124.2 92,126.4 96,128.5 100,130.5 104,132.2 108,133.8 112,135.2 116,136.5 120,137.6 124,138.4 128,139.1 132,139.6 136,139.9 140,140.0 144,139.9 148,139.6 152,139.1 156,138.4 160,137.6 164,136.5 168,135.2 172,133.8 176,132.2 180,130.5 184,128.5 188,126.4 192,124.2 196,121.9 200,119.4 204,116.8 208,114.1 212,111.3 216,108.4 220,105.5 224,102.4 228,99.4 232,96.3 236,93.1 240,90.0 244,86.9 248,83.7 252,80.6 256,77.6 260,74.5 264,71.6 268,68.7 272,65.9 276,63.2 280,60.6 284,58.1 288,55.8 292,53.6 296,51.5 300,49.5 304,47.8 308,46.2 312,44.8 316,43.5 320,42.4 324,41.6 328,40.9 332,40.4 336,40.1 340,40.0 344,40.1 348,40.4 352,40.9 356,41.6 360,42.4 364,43.5 368,44.8 372,46.2 376,47.8 380,49.5 384,51.5 388,53.6 392,55.8 396,58.1 400,60.6 404,63.2 408,65.9 412,68.7 416,71.6 420,74.5 424,77.6 428,80.6 432,83.7 436,86.9 440,90.0"/>
+              <circle class="a" cx="40" cy="90.0" r="4.5"/>
+              <circle class="a" cx="80" cy="119.4" r="4.5"/>
+              <circle class="a" cx="120" cy="137.6" r="4.5"/>
+              <circle class="a" cx="160" cy="137.6" r="4.5"/>
+              <circle class="a" cx="200" cy="119.4" r="4.5"/>
+              <circle class="a" cx="240" cy="90.0" r="4.5"/>
+              <circle class="a" cx="280" cy="60.6" r="4.5"/>
+              <circle class="a" cx="320" cy="42.4" r="4.5"/>
+              <circle class="a" cx="360" cy="42.4" r="4.5"/>
+              <circle class="a" cx="400" cy="60.6" r="4.5"/>
+              <circle class="a" cx="440" cy="90.0" r="4.5"/>
+              <text class="t" x="40" y="170">trait fin : vrai signal, 900 Hz</text>
+              <text class="tw" x="40" y="188">pointillés : ce que voient les échantillons, 100 Hz</text>
+            </svg>
+            ```
+          check:
+            q: On échantillonne à 1 kHz un signal qui contient une composante à 900 Hz. Que voit-on dans les données ?
+            choices:
+              - t: Une fausse composante à 100 Hz
+                ok: true
+                why: 900 Hz se replie à |900 − 1000| = 100 Hz.
+              - t: La composante à 900 Hz
+                why: Elle est au-dessus de fe/2 = 500 Hz, donc impossible à représenter correctement.
+              - t: Rien, elle disparaît
+                why: Elle ne disparaît pas ; elle se déguise en basse fréquence.
+        - level: 3
+          title: Calculer la fréquence repliée
+          body: |
+            Un signal de fréquence $f$ échantillonné à $f_e$ apparaît à la fréquence
+            $$f_{apparente} = |f - k\,f_e|$$
+            avec $k$ l'entier qui ramène le résultat entre 0 et $f_e/2$.
+
+            - 900 Hz à $f_e = 1$ kHz : $|900 - 1000| = 100$ Hz.
+            - 2,2 kHz à $f_e = 2$ kHz : $|2200 - 2000| = 200$ Hz.
+            - 50 Hz à $f_e = 49$ Hz : $|50 - 49| = 1$ Hz (une lente oscillation fantôme).
+
+            **Règle pratique** : on échantillonne 5 à 10 fois plus vite que la plus haute fréquence utile, et on place un **filtre anti-repliement** analogique avant le convertisseur pour supprimer ce qui dépasse $f_e/2$.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Pourquoi c'est irréversible** : une fois échantillonnés, $\sin(2\pi\,900\,t)$ et $-\sin(2\pi\,100\,t)$ donnent **exactement** les mêmes nombres aux instants $t = n/1000$. Aucun traitement après coup ne peut les distinguer. Le seul remède est d'empêcher les hautes fréquences d'arriver au convertisseur : le filtre anti-repliement doit être **analogique**, placé **avant** l'échantillonnage.
+
+            **Pourquoi « plus de deux fois »** et pas « deux fois » : à exactement $2f$, on peut tomber pile sur les passages à zéro de la sinusoïde et ne rien voir.
+
+            **Le repliement a aussi des usages** : les stroboscopes, et le sous-échantillonnage volontaire de signaux à bande étroite en radio.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Une oscillation lente « inexpliquée » dans des données échantillonnées peut être un repliement : change $f_e$ et regarde si la fréquence apparente change aussi (un vrai signal ne bouge pas).
+            - Beaucoup de convertisseurs sigma-delta intègrent un filtre numérique anti-repliement très efficace, mais un filtre RC simple devant reste utile.
+            - Un oscilloscope numérique réglé sur une base de temps trop lente peut afficher un signal replié : si l'image est étrange, change le calibre de temps.
+      recap:
+        - "Shannon : fe > 2·f_max ; fe/2 = fréquence de Nyquist."
+        - "Au-dessus de fe/2 : repliement à |f − k·fe|, indiscernable d'un vrai signal."
+        - "En pratique fe ≈ 5 à 10 × f_max."
+        - "Filtre anti-repliement analogique AVANT le convertisseur."
+        - "Test : changer fe ; une fréquence repliée bouge, une vraie non."
+      pieges: [ing-repliement]
+    vocab:
+      - échantillonnage = sampling
+      - fréquence d'échantillonnage = sampling rate
+      - théorème de Shannon = Nyquist-Shannon sampling theorem
+      - fréquence de Nyquist = Nyquist frequency
+      - repliement de spectre = aliasing
+      - filtre anti-repliement = anti-aliasing filter
+      - sous-échantillonnage = undersampling
+      - stroboscopique = stroboscopic
+    exercises:
+      - id: sig-echantillonnage.1
+        type: numeric
+        level: 1
+        q: Un signal utile contient des fréquences jusqu'à 5 kHz. Fréquence d'échantillonnage minimale théorique, en kHz ?
+        answer: 10
+        tol: 0.01
+        unit: kHz
+        calc: 2 * 5
+        e: Plus de 2 × 5 = 10 kHz en théorie ; en pratique, on vise 25 à 50 kHz.
+      - id: sig-echantillonnage.2
+        type: numeric
+        level: 2
+        q: Une vibration à 900 Hz est échantillonnée à 1 kHz. À quelle fréquence apparaît-elle dans les données ?
+        answer: 100
+        tol: 0.001
+        unit: Hz
+        calc: abs(900 - 1000)
+        trap_values:
+          - v: 900
+            why: 900 Hz dépasse fe/2 = 500 Hz ; elle ne peut pas apparaître à sa vraie fréquence.
+        piege: ing-repliement
+        e: $|900 - 1000| = 100$ Hz.
+      - id: sig-echantillonnage.3
+        type: numeric
+        level: 2
+        q: Un parasite à 2,2 kHz entre dans un système échantillonné à 2 kHz. Fréquence apparente, en Hz ?
+        answer: 200
+        tol: 0.001
+        unit: Hz
+        calc: abs(2200 - 2000)
+        piege: ing-repliement
+        e: $|2200 - 1 \times 2000| = 200$ Hz, bien dans la bande 0-1000 Hz, donc indiscernable d'un vrai signal à 200 Hz.
+      - id: sig-echantillonnage.4
+        type: qcm
+        level: 2
+        q: Où placer le filtre anti-repliement ?
+        piege: ing-repliement
+        choices:
+          - t: En analogique, avant le convertisseur
+            ok: true
+          - t: En numérique, après l'acquisition
+            piege: true
+            why: Après échantillonnage, les fréquences repliées sont mélangées au signal utile ; plus aucun filtre ne peut les séparer.
+          - t: Nulle part, il suffit d'échantillonner à 2 × f_max
+            why: Le bruit et les parasites ont souvent des fréquences bien plus hautes que le signal utile.
+        e: Seul un filtre avant l'échantillonnage peut empêcher le repliement.
+      - id: sig-echantillonnage.5
+        type: qcm
+        level: 3
+        q: Une oscillation lente de 1 Hz apparaît dans des mesures échantillonnées à 49 Hz, près d'une machine alimentée en 50 Hz. Comment vérifier que c'est un repliement ?
+        choices:
+          - t: Changer la fréquence d'échantillonnage ; si la fréquence apparente change, c'est un repliement
+            ok: true
+          - t: Augmenter le gain
+            why: Tout serait amplifié pareil, sans rien révéler.
+          - t: Moyenner plus de mesures
+            why: La composante repliée est un vrai signal pour les données ; la moyenne ne la supprime pas forcément.
+        e: 50 Hz échantillonné à 49 Hz donne |50 − 49| = 1 Hz. À 48 Hz, ce serait 2 Hz.
+      - id: sig-echantillonnage.6
+        type: flash
+        level: 1
+        q: Énonce le théorème de Shannon et sa conséquence pratique.
+        back: |
+          Un signal dont la fréquence maximale est f_max peut être reconstitué à partir de ses échantillons si fe > 2·f_max.
+
+          En pratique : échantillonner 5 à 10 fois plus vite que f_max, et filtrer en analogique tout ce qui dépasse fe/2 avant le convertisseur, sinon ces fréquences se replient.
+        e: fe/2 est appelée fréquence de Nyquist.
+  # ------------------------------------------------------------------ FFT
+  - id: sig-fft
+    title: La FFT et le spectre
+    en: The FFT and spectrum analysis
+    goal: Régler une analyse spectrale (fréquence d'échantillonnage, nombre de points, fenêtre) et lire un spectre.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: L'égaliseur de la chaîne hi-fi
+          body: |
+            Les barres lumineuses d'un égaliseur montrent, en direct, combien il y a de graves, de médiums et d'aigus dans la musique. C'est un **spectre** : la répartition d'un signal selon les fréquences. La **FFT** est l'algorithme qui le calcule.
+        - level: 2
+          title: Du temps aux fréquences
+          body: |
+            La **transformée de Fourier discrète** prend $N$ échantillons d'un signal et calcule, pour une série de fréquences régulièrement espacées, l'amplitude et la phase de la sinusoïde correspondante. La **FFT** (*Fast Fourier Transform*) est la manière rapide de la calculer.
+
+            Deux réglages décident de ce qu'on peut voir :
+            - la **fréquence d'échantillonnage** $f_e$ fixe la fréquence maximale visible : $f_e/2$ ;
+            - la **durée d'acquisition** $T = N/f_e$ fixe la **résolution** en fréquence : $\Delta f = 1/T$.
+
+            Pour séparer deux fréquences proches, il faut **mesurer longtemps**.
+          check:
+            q: Pour distinguer deux vibrations à 50,0 Hz et 50,5 Hz, que faut-il ?
+            choices:
+              - t: Une acquisition d'au moins 2 s (Δf = 0,5 Hz), idéalement plus
+                ok: true
+              - t: Une fréquence d'échantillonnage très élevée
+                why: fe fixe la fréquence maximale, pas la résolution.
+              - t: Un filtre passe-bas
+                why: Il ne sépare pas deux fréquences voisines.
+        - level: 3
+          title: Les formules et un exemple
+          body: |
+            $$\Delta f = \frac{f_e}{N} = \frac{1}{T} \qquad f_{max} = \frac{f_e}{2}$$
+
+            **Exemple** : $f_e = 10$ kHz, $N = 1024$ : $\Delta f \approx 9{,}8$ Hz, fréquences visibles jusqu'à 5 kHz, durée d'acquisition 0,1 s.
+
+            **Amplitude** : pour une sinusoïde qui tombe pile sur une case (*bin*), l'amplitude vaut $2|X_k|/N$.
+
+            Une petite transformée de Fourier discrète, écrite à la main (Python pur) :
+          code: |
+            import cmath, math
+
+            fe, N = 1000.0, 50                  # 1 kHz, 50 points → Δf = fe/N = 20 Hz
+            x = [math.sin(2 * math.pi * 120 * n / fe) + 0.5 * math.sin(2 * math.pi * 300 * n / fe)
+                 for n in range(N)]
+
+            def dft(x):
+                N = len(x)
+                return [sum(x[n] * cmath.exp(-2j * math.pi * k * n / N) for n in range(N))
+                        for k in range(N // 2)]
+
+            for k, c in enumerate(dft(x)):
+                amplitude = 2 * abs(c) / N
+                if amplitude > 0.1:
+                    print(f"{k * fe / N:.0f} Hz : amplitude {amplitude:.2f}")
+          run: true
+          out: |
+            120 Hz : amplitude 1.00
+            300 Hz : amplitude 0.50
+          after: |
+            Remplace 120 par 130 Hz (entre deux cases) et relance : l'énergie s'étale sur plusieurs cases voisines. C'est la **fuite spectrale**.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Fuite spectrale** : la FFT suppose que le bloc de $N$ points se répète à l'infini. Si le signal ne contient pas un nombre entier de périodes dans le bloc, la jonction crée une discontinuité, et l'énergie « fuit » sur les cases voisines. Remède : multiplier le bloc par une **fenêtre** (Hann, Hamming, flat-top) qui ramène doucement les bords à zéro, au prix d'un pic un peu plus large.
+
+            **Compléter par des zéros** (*zero-padding*) rend le spectre plus lisse à l'œil, mais n'améliore **pas** la vraie résolution, qui reste $1/T$.
+
+            **Pourquoi « rapide »** : la DFT directe coûte $N^2$ opérations ; la FFT, $N \log_2 N$. Pour $N = 1\,048\,576$, c'est environ 50 000 fois moins.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - En Python : `numpy.fft.rfft` pour les signaux réels, `scipy.signal.welch` pour moyenner plusieurs FFT (spectre bien moins bruité).
+            - Analyse vibratoire : un pic à la fréquence de rotation (balourd), à deux fois (désalignement), aux fréquences d'engrènement ou de roulement (défauts).
+            - Identifier une source de bruit : 50 Hz et harmoniques (secteur), dizaines de kHz (alimentation à découpage, PWM de variateur), fréquence propre d'une structure.
+      recap:
+        - "Δf = fe/N = 1/T ; f_max = fe/2."
+        - "Résolution fine = acquisition longue, pas fe élevée."
+        - "Amplitude d'une sinusoïde : 2|X_k|/N (si elle tombe sur une case)."
+        - "Fuite spectrale → fenêtre (Hann…) ; zero-padding n'améliore pas la résolution."
+        - "Moyenner plusieurs FFT (Welch) pour un spectre propre."
+      pieges: [ing-fft-resolution, ing-fuite-spectrale]
+    vocab:
+      - transformée de Fourier rapide = fast Fourier transform (FFT)
+      - spectre = spectrum
+      - résolution fréquentielle = frequency resolution
+      - case, raie = bin, line
+      - fuite spectrale = spectral leakage
+      - fenêtre de Hann = Hann window
+      - complétion par des zéros = zero-padding
+      - densité spectrale de puissance = power spectral density (PSD)
+    exercises:
+      - id: sig-fft.1
+        type: numeric
+        level: 1
+        q: FFT de 1024 points à fe = 10 kHz. Résolution en fréquence, en Hz ?
+        answer: 9.766
+        tol: 0.01
+        unit: Hz
+        calc: 10000 / 1024
+        trap_values:
+          - v: 5000
+            why: C'est la fréquence maximale visible (fe/2), pas la résolution.
+        e: $\Delta f = 10\,000/1024 \approx 9{,}8$ Hz.
+      - id: sig-fft.2
+        type: numeric
+        level: 2
+        q: Quelle durée d'acquisition faut-il pour obtenir une résolution de 0,5 Hz ?
+        answer: 2
+        tol: 0.01
+        unit: s
+        calc: 1 / 0.5
+        piege: ing-fft-resolution
+        e: $T = 1/\Delta f = 2$ s, quelle que soit la fréquence d'échantillonnage.
+      - id: sig-fft.3
+        type: numeric
+        level: 1
+        q: Avec fe = 10 kHz, quelle est la plus haute fréquence visible dans le spectre, en kHz ?
+        answer: 5
+        tol: 0.01
+        unit: kHz
+        calc: 10 / 2
+        e: La fréquence de Nyquist, fe/2 = 5 kHz.
+      - id: sig-fft.4
+        type: qcm
+        level: 2
+        q: On complète un bloc de 1000 points avec 3000 zéros avant la FFT. La résolution réelle…
+        piege: ing-fft-resolution
+        choices:
+          - t: ne change pas ; le spectre est seulement interpolé
+            ok: true
+          - t: est quatre fois meilleure
+            piege: true
+            why: Les zéros n'apportent aucune information ; la durée réellement mesurée reste la même.
+          - t: est quatre fois moins bonne
+            why: Elle ne se dégrade pas non plus.
+        e: La résolution vraie vaut 1/T, où T est la durée des données réelles.
+      - id: sig-fft.5
+        type: qcm
+        level: 2
+        q: Le pic d'une sinusoïde pure apparaît étalé sur plusieurs cases voisines. Que faire ?
+        piege: ing-fuite-spectrale
+        choices:
+          - t: Appliquer une fenêtre (Hann par exemple) avant la FFT
+            ok: true
+          - t: Augmenter la fréquence d'échantillonnage
+            why: Cela ne résout pas la discontinuité aux bords du bloc.
+          - t: Rien, c'est normal et sans conséquence
+            why: La fuite masque les petits pics voisins et fausse les amplitudes.
+        e: La fenêtre atténue la discontinuité aux bords du bloc, et donc la fuite.
+      - id: sig-fft.6
+        type: flash
+        level: 2
+        q: Quels paramètres fixent la fréquence maximale et la résolution d'une FFT ?
+        back: |
+          **Fréquence maximale** : fe/2 (fixée par la fréquence d'échantillonnage).
+          **Résolution** : Δf = fe/N = 1/T (fixée par la durée d'acquisition T).
+
+          Pour voir haut : échantillonner vite. Pour voir fin : mesurer longtemps.
+        e: Et N = fe × T, le nombre de points, en découle.
+  # ------------------------------------------------------------------ filtrage numérique
+  - id: sig-filtrage
+    title: Filtrer une mesure en numérique
+    en: Digital filtering
+    goal: Utiliser une moyenne glissante, un filtre du premier ordre ou un filtre médian, en connaissant leur retard.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: Lisser une courbe à la main
+          body: |
+            Face à une courbe qui tremble, on a naturellement envie de tracer une ligne « moyenne » à travers les points. Un filtre numérique fait ça, point par point, en temps réel.
+        - level: 2
+          title: Trois filtres à connaître
+          body: |
+            - **Moyenne glissante** : la moyenne des $N$ derniers points. Simple et efficace contre le bruit aléatoire.
+            - **Filtre du premier ordre** (lissage exponentiel) : `y += alpha * (x - y)`. L'équivalent numérique du filtre RC ; une seule variable à mémoriser.
+            - **Filtre médian** : la valeur du milieu des $N$ derniers points triés. Imbattable contre les **pics isolés** (une mesure aberrante), qu'une moyenne étalerait.
+
+            Le prix à payer est toujours le même : **un filtre retarde**. Plus il lisse, plus la mesure filtrée réagit tard. Dans une boucle de régulation, ce retard peut la rendre instable.
+          check:
+            q: Une mesure est propre, mais contient parfois un point aberrant isolé (parasite). Quel filtre choisir ?
+            choices:
+              - t: Un filtre médian sur 3 ou 5 points
+                ok: true
+              - t: Une moyenne glissante sur 50 points
+                why: Elle étale le pic sur 50 points au lieu de le supprimer, et ajoute beaucoup de retard.
+              - t: Aucun filtre ne peut rien
+                why: Le médian est fait pour ça.
+        - level: 3
+          title: Les formules
+          body: |
+            **Premier ordre** échantillonné à la période $\Delta t$, de constante de temps $\tau$ :
+            $$y_n = y_{n-1} + \alpha\,(x_n - y_{n-1}) \qquad \alpha = \frac{\Delta t}{\tau + \Delta t}$$
+
+            **Moyenne glissante** sur $N$ points : retard moyen d'environ $(N-1)/2$ échantillons. Elle **annule** complètement les fréquences multiples de $f_e/N$ : une moyenne sur exactement 20 ms (20 points à 1 kHz) supprime le 50 Hz et ses harmoniques.
+
+            Simulation d'un échelon bruité, lissé par un premier ordre ($\tau = 0{,}2$ s) :
+          code: |
+            import math
+
+            dt, tau = 0.01, 0.2                 # période 10 ms, constante de temps 0,2 s
+            alpha = dt / (tau + dt)             # ≈ 0,048
+
+            y = 0.0
+            for n in range(101):
+                vrai = 0.0 if n < 20 else 1.0           # échelon à t = 0,2 s
+                bruit = 0.3 * math.sin(2.7 * n)         # bruit rapide (pseudo-aléatoire)
+                x = vrai + bruit
+                y += alpha * (x - y)                    # filtre du premier ordre
+                if n % 20 == 0:
+                    print(f"t = {n * dt:4.2f} s   mesure = {x:5.2f}   filtré = {y:5.2f}")
+          run: true
+          out: |
+            t = 0.00 s   mesure =  0.00   filtré =  0.00
+            t = 0.20 s   mesure =  0.83   filtré =  0.05
+            t = 0.40 s   mesure =  1.28   filtré =  0.65
+            t = 0.60 s   mesure =  0.71   filtré =  0.86
+            t = 0.80 s   mesure =  1.21   filtré =  0.96
+            t = 1.00 s   mesure =  0.95   filtré =  0.98
+          after: |
+            La mesure brute saute de 0,71 à 1,28, la sortie filtrée est bien plus stable… mais elle n'atteint 63 % de l'échelon qu'au bout de τ = 0,2 s. Filtrer, c'est choisir entre calme et réactivité.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Filtres RIF et RII** : la moyenne glissante est un filtre à réponse impulsionnelle **finie** (RIF, *FIR*) : chaque sortie ne dépend que d'un nombre fini d'entrées. Le premier ordre est à réponse impulsionnelle **infinie** (RII, *IIR*) : il réutilise sa propre sortie, et un pic d'entrée l'influence (de moins en moins) pour toujours.
+
+            Les RIF peuvent avoir une **phase linéaire** (un retard pur, sans déformation), les RII sont plus économes en calcul pour une même sélectivité.
+
+            **Choisir $\alpha$** : $\alpha$ proche de 1 → peu de filtrage ; proche de 0 → filtrage fort et lent. La fréquence de coupure équivalente vaut environ $f_c \approx \dfrac{1}{2\pi\tau}$.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Filtre pour l'**affichage** : tu peux lisser fort. Filtre dans une **boucle de régulation** : lisse le moins possible (voir la stabilité).
+            - Médian + moyenne en cascade : on supprime les pics, puis on lisse.
+            - En Python, `scipy.signal` fournit la conception de filtres (Butterworth, etc.) et `filtfilt`, qui filtre dans les deux sens pour annuler le retard, utilisable **après coup**, pas en temps réel.
+      recap:
+        - "Moyenne glissante (RIF) : retard ≈ (N − 1)/2 échantillons ; annule les multiples de fe/N."
+        - "Premier ordre (RII) : y += α(x − y), α = Δt/(τ + Δt)."
+        - "Médian : contre les pics isolés."
+        - "Tout filtre retarde ; dans une boucle, filtrer le moins possible."
+        - "filtfilt : sans retard, mais seulement hors temps réel."
+      pieges: [ing-retard-boucle]
+    vocab:
+      - filtre numérique = digital filter
+      - moyenne glissante = moving average
+      - lissage exponentiel = exponential smoothing
+      - filtre médian = median filter
+      - réponse impulsionnelle finie / infinie = finite / infinite impulse response (FIR / IIR)
+      - retard de groupe = group delay
+      - point aberrant = outlier
+      - phase linéaire = linear phase
+    exercises:
+      - id: sig-filtrage.1
+        type: numeric
+        level: 2
+        q: Filtre du premier ordre échantillonné toutes les 10 ms, constante de temps voulue 1 s. Valeur de α ?
+        answer: 0.0099
+        tol: 0.01
+        calc: 0.01 / (1 + 0.01)
+        trap_values:
+          - v: 100
+            why: α est un coefficient entre 0 et 1, Δt/(τ + Δt).
+        e: $\alpha = 0{,}01/1{,}01 \approx 0{,}0099$.
+      - id: sig-filtrage.2
+        type: numeric
+        level: 2
+        q: Moyenne glissante sur 10 points à 1 kHz. Retard moyen introduit, en ms ?
+        answer: 4.5
+        tol: 0.01
+        unit: ms
+        calc: (10 - 1) / 2 * 1
+        e: $(N - 1)/2 = 4{,}5$ échantillons, soit 4,5 ms à 1 kHz.
+      - id: sig-filtrage.3
+        type: numeric
+        level: 2
+        q: On échantillonne à 1 kHz une mesure polluée par du 50 Hz. Sur combien de points faire une moyenne glissante pour supprimer ce 50 Hz ?
+        answer: 20
+        tol: 0.001
+        unit: points
+        calc: 1000 / 50
+        e: 20 points couvrent exactement une période de 50 Hz (20 ms) ; la moyenne d'une période complète de sinusoïde vaut zéro.
+      - id: sig-filtrage.4
+        type: qcm
+        level: 2
+        q: On filtre fortement la mesure d'une boucle de régulation de position. Que risque-t-on ?
+        piege: ing-retard-boucle
+        choices:
+          - t: Des oscillations, car le filtre ajoute du retard dans la boucle
+            ok: true
+          - t: Rien, une mesure plus propre est toujours meilleure
+            piege: true
+            why: Le retard du filtre réduit la marge de phase.
+          - t: Une erreur statique
+            why: Un filtre de gain unitaire ne crée pas d'erreur statique.
+        e: Filtrer une mesure de régulation se fait avec une coupure bien au-dessus de la bande passante de la boucle.
+      - id: sig-filtrage.5
+        type: qcm
+        level: 1
+        q: Quel filtre supprime un point aberrant isolé sans l'étaler ?
+        choices:
+          - t: Le filtre médian
+            ok: true
+          - t: La moyenne glissante
+            why: Elle répartit le pic sur N points.
+          - t: Le premier ordre
+            why: Il le lisse mais en garde une trace qui décroît lentement.
+        e: Le médian ignore une valeur extrême tant qu'elle reste minoritaire dans la fenêtre.
+      - id: sig-filtrage.6
+        type: flash
+        level: 2
+        q: Écris l'équation d'un filtre numérique du premier ordre et le calcul de α.
+        back: |
+          y = y + α·(x − y)   (à chaque échantillon)
+          α = Δt / (τ + Δt), avec Δt la période d'échantillonnage et τ la constante de temps voulue.
+
+          α proche de 1 : peu de filtrage ; α proche de 0 : filtrage fort et lent.
+        e: C'est la version numérique du filtre RC, fréquence de coupure ≈ 1/(2πτ).
+  # ------------------------------------------------------------------ bruit
+  - id: sig-bruit
+    title: Bruit et rapport signal sur bruit
+    en: Noise and signal-to-noise ratio
+    goal: Exprimer un rapport signal sur bruit, connaître les sources de bruit et les moyens de l'améliorer.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: Parler dans une salle bruyante
+          body: |
+            Dans une salle calme, on comprend quelqu'un qui chuchote. Dans un bar bruyant, il faut crier. Ce qui compte n'est pas le volume de la voix seule, mais sa **différence** avec le bruit ambiant. Pour une mesure, c'est le **rapport signal sur bruit**.
+        - level: 2
+          title: D'où vient le bruit
+          body: |
+            - **Bruit thermique** : l'agitation des électrons dans toute résistance, inévitable, d'autant plus fort que la résistance, la température et la bande passante sont grandes.
+            - **Bruit de quantification** : l'erreur d'arrondi d'un convertisseur (± ½ LSB).
+            - **Parasites couplés** : le 50 Hz du secteur, les commutations des variateurs et des alimentations à découpage, les boucles de masse.
+            - **Bruit du capteur** lui-même, et des amplificateurs.
+
+            Le **rapport signal sur bruit** (RSB, *SNR*) compare la puissance du signal à celle du bruit, en décibels.
+          check:
+            q: Une mesure est polluée par une composante à 50 Hz très régulière. D'où vient-elle le plus probablement ?
+            choices:
+              - t: D'un couplage avec le secteur (boucle de masse, câble près d'un câble de puissance)
+                ok: true
+              - t: Du bruit thermique
+                why: Le bruit thermique est aléatoire et réparti sur toutes les fréquences.
+              - t: Du bruit de quantification
+                why: Il n'a pas de raison d'être à 50 Hz.
+        - level: 3
+          title: Les formules
+          body: |
+            $$RSB_{dB} = 10 \log_{10}\frac{P_{signal}}{P_{bruit}} = 20 \log_{10}\frac{U_{signal,eff}}{U_{bruit,eff}}$$
+
+            **Convertisseur idéal de $N$ bits** (sinusoïde pleine échelle) :
+            $$RSB_{max} \approx 6{,}02\,N + 1{,}76\ \text{dB}$$
+            12 bits : 74 dB ; 16 bits : 98 dB. Chaque bit ajoute environ 6 dB.
+
+            **Moyenner** $n$ mesures (bruit aléatoire) améliore le RSB de $10\log_{10} n$ dB : 100 mesures, +20 dB.
+
+            **Bruit thermique** d'une résistance : $U_{eff} = \sqrt{4\,k_B\,T\,R\,B}$ ($k_B = 1{,}38 \times 10^{-23}$ J/K, $B$ : bande passante). 1 MΩ à 300 K sur 10 kHz : environ 13 µV.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Bruit blanc** : sa puissance est répartie uniformément en fréquence. D'où l'intérêt de **réduire la bande passante** au strict nécessaire : diviser la bande par 100 divise la puissance de bruit par 100 (et son amplitude par 10).
+
+            **Détection synchrone** (amplificateur à verrouillage, *lock-in*) : on module le phénomène à une fréquence connue, puis on ne garde que ce qui varie à cette fréquence exacte. On extrait ainsi des signaux des milliers de fois plus faibles que le bruit. C'est une technique courante en instrumentation de laboratoire.
+
+            **Nombre de bits effectifs** : ENOB = (RSB mesuré − 1,76)/6,02. Un convertisseur « 16 bits » qui mesure 80 dB n'a que 13 bits effectifs.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Câbles de signal blindés, paires torsadées, éloignés des câbles de puissance, croisés à angle droit s'il le faut.
+            - Liaisons différentielles ou 4-20 mA pour les longues distances.
+            - Masses en étoile, pas de boucles de masse (voir les alimentations).
+            - Amplifier **près du capteur**, avant que le signal faible ne voyage.
+            - Mesurer le bruit **avant** de le filtrer : son spectre (FFT) dit souvent d'où il vient.
+      recap:
+        - "RSB = 10·log(P_s/P_b) = 20·log(U_s/U_b)."
+        - "CAN idéal : 6,02·N + 1,76 dB (≈ 6 dB par bit)."
+        - "Moyenner n mesures : +10·log(n) dB."
+        - "Bruit thermique √(4kTRB) : réduire la bande passante réduit le bruit."
+        - "Blindage, torsade, différentiel, masse en étoile, amplifier près du capteur."
+      pieges: [ing-db-10-20, ing-resolution-precision]
+    vocab:
+      - rapport signal sur bruit = signal-to-noise ratio (SNR)
+      - bruit thermique = thermal (Johnson) noise
+      - bruit blanc = white noise
+      - bande passante = bandwidth
+      - blindage = shielding
+      - nombre de bits effectifs = effective number of bits (ENOB)
+      - détection synchrone = lock-in detection
+      - couplage = coupling
+    exercises:
+      - id: sig-bruit.1
+        type: numeric
+        level: 1
+        q: RSB maximal théorique d'un convertisseur idéal de 12 bits, en dB ?
+        answer: 74
+        tol: 0.01
+        unit: dB
+        calc: 6.02 * 12 + 1.76
+        e: $6{,}02 \times 12 + 1{,}76 \approx 74$ dB.
+      - id: sig-bruit.2
+        type: numeric
+        level: 1
+        q: Un signal de 1 V efficace est accompagné d'un bruit de 1 mV efficace. RSB en dB ?
+        answer: 60
+        tol: 0.01
+        unit: dB
+        calc: 20 * log10(1 / 1e-3)
+        trap_values:
+          - v: 30
+            why: Pour un rapport de tensions, c'est 20·log, pas 10·log.
+        piege: ing-db-10-20
+        e: $20 \log_{10}(1000) = 60$ dB.
+      - id: sig-bruit.3
+        type: numeric
+        level: 2
+        q: De combien de dB s'améliore le RSB en moyennant 100 mesures affectées d'un bruit aléatoire ?
+        answer: 20
+        tol: 0.01
+        unit: dB
+        calc: 10 * log10(100)
+        trap_values:
+          - v: 40
+            why: La puissance du bruit est divisée par 100, soit 10·log(100) = 20 dB (l'amplitude par 10).
+        e: $10 \log_{10}(100) = 20$ dB, soit une amplitude de bruit divisée par 10.
+      - id: sig-bruit.4
+        type: numeric
+        level: 3
+        q: Bruit thermique d'une résistance de 1 MΩ à 300 K sur une bande de 10 kHz, en µV efficaces ?
+        answer: 12.87
+        tol: 0.02
+        unit: µV
+        calc: sqrt(4 * 1.38e-23 * 300 * 1e6 * 1e4) * 1e6
+        e: $\sqrt{4 \times 1{,}38 \times 10^{-23} \times 300 \times 10^6 \times 10^4} \approx 12{,}9$ µV. Non négligeable devant un signal de jauge de quelques mV.
+      - id: sig-bruit.5
+        type: qcm
+        level: 2
+        q: Un convertisseur annoncé 16 bits mesure un RSB de 80 dB. Combien de bits effectifs ?
+        piege: ing-resolution-precision
+        choices:
+          - t: Environ 13
+            ok: true
+          - t: "16"
+            piege: true
+            why: Le nombre de bits nominal ne tient pas compte du bruit ; ENOB = (80 − 1,76)/6,02 ≈ 13.
+          - t: Environ 8
+            why: Recalcule avec ENOB = (RSB − 1,76)/6,02.
+        e: Les 3 derniers bits ne font que numériser du bruit.
+      - id: sig-bruit.6
+        type: flash
+        level: 1
+        q: Cite quatre moyens de réduire le bruit sur une mesure.
+        back: |
+          Réduire la bande passante au nécessaire (filtrage) ; moyenner ; blinder et torsader les câbles, les éloigner de la puissance ; liaisons différentielles ou 4-20 mA ; masse en étoile ; amplifier près du capteur ; détection synchrone pour les signaux très faibles.
+        e: Et commencer par identifier la source grâce au spectre.

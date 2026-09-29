@@ -1,0 +1,287 @@
+domain: signal
+exercises:
+- id: ig.sig01
+  type: qcm
+  level: 1
+  q: 'Le théorème de Shannon-Nyquist impose une fréquence d''échantillonnage :'
+  choices:
+  - t: Égale à la fréquence maximale du signal
+    ok: false
+  - t: Égale à la moitié de la fréquence maximale
+    ok: false
+  - t: Strictement supérieure au double de la fréquence maximale du signal
+    ok: true
+  - t: Sans rapport avec le contenu du signal
+    ok: false
+  e: 'fe > 2·fmax. Exemple canonique : l''audio à 44,1 kHz pour une bande utile de 20 kHz, la marge servant au filtre anti-repliement. Échantillonner pile à 2·fmax ne suffit pas en pratique — il n''y a alors aucune place pour le filtre.'
+  src: calibre
+- id: ig.sig02
+  type: qcm
+  level: 2
+  q: Signal à 7 kHz échantillonné à 10 kHz sans filtre anti-repliement. À quelle fréquence apparaît-il dans le spectre ?
+  choices:
+  - t: 2 kHz
+    ok: false
+  - t: 5 kHz
+    ok: false
+  - t: 3 kHz
+    ok: true
+  - t: 7 kHz
+    ok: false
+  e: 'Repliement autour de fe : |10 − 7| = 3 kHz. Le calcul général est |f − k·fe| pour l''entier k le plus proche. Le danger est que rien ne distingue cette raie parasite d''un vrai signal à 3 kHz : une fois l''échantillonnage fait, l''erreur est irrécupérable.'
+  src: calibre
+- id: ig.sig03
+  type: qcm
+  level: 2
+  q: 'Le filtre anti-repliement doit être placé :'
+  choices:
+  - t: Avant le convertisseur analogique-numérique, en analogique
+    ok: true
+  - t: Il est inutile si l'on échantillonne assez vite
+    ok: false
+  - t: Indifféremment
+    ok: false
+  - t: Après le convertisseur analogique-numérique, en numérique
+    ok: false
+  e: 'Obligatoirement en analogique, AVANT l''échantillonnage : une fois le repliement produit, aucun traitement numérique ne peut le défaire, puisque la fréquence parasite se superpose exactement à une fréquence légitime. C''est une des rares opérations d''une chaîne d''acquisition qui soit strictement irréversible.'
+  src: calibre
+- id: ig.sig04
+  type: qcm
+  level: 2
+  q: 'FFT sur 2048 points échantillonnés à 20 kHz. Résolution fréquentielle :'
+  choices:
+  - t: ≈ 100 Hz
+    ok: false
+  - t: ≈ 9,8 Hz
+    ok: true
+  - t: ≈ 20 Hz
+    ok: false
+  - t: ≈ 2,4 Hz
+    ok: false
+  e: 'Δf = fe/N = 20000/2048 ≈ 9,8 Hz. Autre lecture, plus parlante : Δf = 1/durée d''acquisition, ici 1/0,1024 s. Pour affiner la résolution il faut donc acquérir plus LONGTEMPS — augmenter la fréquence d''échantillonnage à N constant la dégrade au contraire.'
+  src: calibre
+- id: ig.sig05
+  type: qcm
+  level: 2
+  q: 'Appliquer une fenêtre de Hann avant une FFT permet :'
+  choices:
+  - t: D'augmenter la résolution fréquentielle
+    ok: false
+  - t: De supprimer le repliement
+    ok: false
+  - t: De réduire les fuites spectrales, au prix d'un élargissement des raies
+    ok: true
+  - t: D'éliminer le bruit
+    ok: false
+  e: 'Une FFT suppose le signal périodique sur la fenêtre : une discontinuité aux bords étale l''énergie sur tout le spectre. La fenêtre annule doucement le signal aux extrémités. Le compromis est inévitable — Hann ou Hamming pour une analyse générale, flat-top pour mesurer précisément une amplitude, rectangulaire uniquement pour un signal parfaitement synchrone.'
+  src: calibre
+- id: ig.sig06
+  type: qcm
+  level: 2
+  q: 'Valeur efficace (RMS) d''un signal sinusoïdal d''amplitude crête A :'
+  choices:
+  - t: A·√2
+    ok: false
+  - t: A/2
+    ok: false
+  - t: A
+    ok: false
+  - t: A/√2
+    ok: true
+  e: 'A/√2 ≈ 0,707·A, pour un sinus seulement. Un signal carré symétrique a une valeur efficace égale à son amplitude, un triangle A/√3. D''où l''importance d''un multimètre « True RMS » : un appareil bas de gamme suppose un sinus et se trompe lourdement sur un signal découpé.'
+  src: calibre
+- id: ig.sig07
+  type: qcm
+  level: 2
+  q: 'Une atténuation de −3 dB en puissance correspond à :'
+  choices:
+  - t: Une puissance divisée par 2
+    ok: true
+  - t: Une puissance divisée par 10
+    ok: false
+  - t: Une tension divisée par 2
+    ok: false
+  - t: Une puissance divisée par 3
+    ok: false
+  e: '−3 dB = puissance divisée par 2, ce qui correspond à une tension divisée par √2. C''est par convention le point de coupure d''un filtre. À retenir aussi : −6 dB = tension divisée par 2, −20 dB = tension divisée par 10.'
+  src: calibre
+- id: ig.sig08
+  type: qcm
+  level: 3
+  q: 'Tu moyennes 100 spectres successifs d''un signal bruité. Le niveau de bruit aléatoire est réduit d''un facteur :'
+  choices:
+  - t: '100'
+    ok: false
+  - t: '10'
+    ok: true
+  - t: √10
+    ok: false
+  - t: '1000'
+    ok: false
+  e: 'Le bruit aléatoire décroît en √N = √100 = 10, soit 20 dB de gain, tandis que la composante déterministe reste intacte. Cette loi en racine explique le rendement décroissant du moyennage : passer de 100 à 400 acquisitions ne gagne qu''un facteur 2 de plus, pour quatre fois plus de temps de mesure.'
+  src: calibre
+- id: ig.sig09
+  type: qcm
+  level: 2
+  q: 'Un filtre à moyenne glissante sur N échantillons est :'
+  choices:
+  - t: Un filtre passe-bande
+    ok: false
+  - t: Un filtre passe-haut
+    ok: false
+  - t: Un filtre passe-bas à phase linéaire
+    ok: true
+  - t: Un filtre non causal
+    ok: false
+  e: 'C''est le filtre RIF le plus simple : passe-bas, à phase linéaire (donc sans distorsion de forme), très facile à implémenter. Défaut : sa réponse fréquentielle est médiocre, avec des lobes secondaires importants et des zéros de transmission à fe/N — mais son excellent rapport simplicité/efficacité en fait le réflexe du débruitage embarqué.'
+  src: calibre
+- id: ig.sig10
+  type: qcm
+  level: 3
+  q: 'Comparé à un filtre RII (récursif), un filtre RIF de mêmes performances fréquentielles :'
+  choices:
+  - t: Nécessite plus de coefficients, mais est toujours stable et peut être à phase linéaire
+    ok: true
+  - t: Est toujours instable
+    ok: false
+  - t: Nécessite moins de coefficients
+    ok: false
+  - t: Ne peut pas être implémenté en numérique
+    ok: false
+  e: 'Le RIF n''a pas de boucle de retour : stabilité garantie et phase linéaire possible, mais il faut beaucoup plus de coefficients — parfois un facteur 10 — donc plus de calcul. Le RII atteint une sélectivité donnée à moindre coût mais peut devenir instable et déforme la phase. Choix courant : RIF quand la forme d''onde compte, RII quand les ressources sont comptées.'
+  src: calibre
+- id: ig.sig11
+  type: qcm
+  level: 2
+  q: 'La convolution de deux signaux dans le domaine temporel correspond, dans le domaine fréquentiel, à :'
+  choices:
+  - t: Une dérivation
+    ok: false
+  - t: Une multiplication de leurs transformées
+    ok: true
+  - t: Une addition
+    ok: false
+  - t: Une convolution également
+    ok: false
+  e: 'Convolution temporelle ↔ multiplication fréquentielle, et réciproquement. C''est le théorème qui fonde tout le filtrage : filtrer, c''est convoluer par une réponse impulsionnelle, ou multiplier par une réponse en fréquence. C''est aussi ce qui rend la FFT si utile — une convolution longue devient un simple produit.'
+  src: calibre
+- id: ig.sig12
+  type: qcm
+  level: 2
+  q: 'Le spectre d''un signal périodique est constitué :'
+  choices:
+  - t: D'un spectre continu
+    ok: false
+  - t: De raies discrètes aux multiples de la fréquence fondamentale
+    ok: true
+  - t: D'une seule raie
+    ok: false
+  - t: D'un bruit blanc
+    ok: false
+  e: 'Périodicité dans le temps ⇒ discrétisation en fréquence : des raies à f₀, 2f₀, 3f₀... Un signal apériodique ou transitoire, lui, donne un spectre continu. C''est cette dualité qui permet d''identifier une machine tournante à son spectre : les raies trahissent la vitesse et ses harmoniques.'
+  src: calibre
+- id: ig.sig13
+  type: qcm
+  level: 3
+  q: 'Une détection synchrone (amplificateur à verrouillage de phase) permet :'
+  choices:
+  - t: D'extraire un signal de très faible amplitude noyé dans le bruit, en connaissant sa fréquence et sa phase
+    ok: true
+  - t: De générer un signal de référence
+    ok: false
+  - t: D'amplifier tous les signaux également
+    ok: false
+  - t: De supprimer le repliement
+    ok: false
+  e: 'On multiplie le signal par une référence à la fréquence attendue, puis on filtre très étroitement : seule la composante cohérente avec la référence survit, tout le reste est rejeté. On récupère ainsi des signaux 60 dB sous le niveau de bruit. Technique reine en mesure physique — spectroscopie, ponts de mesure, capteurs à très faible signal.'
+  src: calibre
+- id: ig.sig14
+  type: qcm
+  level: 2
+  q: 'Un rapport signal/bruit de 40 dB correspond à un rapport d''amplitudes de :'
+  choices:
+  - t: '40'
+    ok: false
+  - t: 10 000
+    ok: false
+  - t: '4'
+    ok: false
+  - t: '100'
+    ok: true
+  e: En amplitude, 40 dB = 10^(40/20) = 100. En PUISSANCE, le même 40 dB correspond à un rapport de 10 000, car le coefficient est 10 au lieu de 20. Toujours vérifier si l'on parle d'amplitude ou de puissance avant de convertir un décibel.
+  src: calibre
+- id: ig.sig15
+  type: qcm
+  level: 2
+  q: 'Rapport signal/bruit maximal théorique d''un convertisseur 12 bits idéal :'
+  choices:
+  - t: ≈ 36 dB
+    ok: false
+  - t: ≈ 144 dB
+    ok: false
+  - t: ≈ 74 dB
+    ok: true
+  - t: ≈ 12 dB
+    ok: false
+  e: 'SNR ≈ 6,02·n + 1,76 = 6,02×12 + 1,76 ≈ 74 dB. Règle simple : environ 6 dB par bit. Un CAN 16 bits plafonne donc vers 98 dB, un 24 bits vers 146 dB — valeur purement théorique, le bruit du montage limitant bien avant.'
+  src: calibre
+- id: ig.sig16
+  type: qcm
+  level: 3
+  q: 'Suréchantillonner d''un facteur 4 puis moyenner permet de gagner environ :'
+  choices:
+  - t: Aucun gain
+    ok: false
+  - t: 1 bit de résolution effective
+    ok: true
+  - t: 4 bits
+    ok: false
+  - t: 2 bits
+    ok: false
+  e: 'Chaque quadruplement de la fréquence d''échantillonnage suivi d''un filtrage/décimation gagne 1 bit (6 dB) : le bruit de quantification s''étale sur une bande 4 fois plus large, dont on ne garde qu''un quart. Gagner 3 bits demanderait un suréchantillonnage ×64. C''est le principe exploité à l''extrême par les convertisseurs sigma-delta.'
+  src: calibre
+- id: ig.sig17
+  type: qcm
+  level: 2
+  q: 'Le facteur de qualité Q d''un filtre passe-bande vaut :'
+  choices:
+  - t: La fréquence centrale divisée par la largeur de bande à −3 dB
+    ok: true
+  - t: L'ordre du filtre
+    ok: false
+  - t: Le gain maximal du filtre
+    ok: false
+  - t: La largeur de bande divisée par la fréquence centrale
+    ok: false
+  e: 'Q = f₀/Δf : un Q élevé signifie un filtre très sélectif, donc une bande étroite. Un Q de 100 à 1 kHz correspond à une bande de 10 Hz. Attention, un Q élevé implique aussi une réponse transitoire longue — sélectivité et rapidité sont antagonistes.'
+  src: calibre
+- id: ig.sig18
+  type: qcm
+  level: 2
+  q: 'Le spectre d''un signal carré symétrique contient :'
+  choices:
+  - t: Le fondamental et toutes les harmoniques
+    ok: false
+  - t: Le fondamental et les harmoniques impaires uniquement
+    ok: true
+  - t: Uniquement le fondamental
+    ok: false
+  - t: Uniquement les harmoniques paires
+    ok: false
+  e: Harmoniques impaires seulement (3, 5, 7...), d'amplitude décroissante en 1/n, en raison de la symétrie du signal. Un signal triangulaire aussi, mais en 1/n². C'est cette richesse harmonique qui rend les signaux découpés si perturbateurs en CEM — un simple signal d'horloge pollue jusqu'à des dizaines de MHz.
+  src: calibre
+- id: ig.sig19
+  type: qcm
+  level: 3
+  q: 'L''autocorrélation d''un signal est particulièrement utile pour :'
+  choices:
+  - t: Détecter une périodicité cachée dans du bruit
+    ok: true
+  - t: Mesurer son amplitude
+    ok: false
+  - t: Filtrer les hautes fréquences
+    ok: false
+  - t: Calculer sa valeur moyenne
+    ok: false
+  e: 'Le bruit blanc ne se corrèle qu''avec lui-même à retard nul, alors qu''une composante périodique produit des pics à chaque multiple de sa période. On révèle ainsi une périodicité invisible sur le signal brut. Usage typique : détection d''un défaut de roulement ou d''engrenage dans un signal vibratoire très bruité.'
+  src: calibre

@@ -1,0 +1,13 @@
+{
+  "id": "py-06",
+  "ordre": 6,
+  "lang": "python",
+  "genre": "lab",
+  "niveau": "avancé",
+  "minutes": 40,
+  "titre": "Faire taire ruff et mypy --strict",
+  "modules": ["py09", "py10"],
+  "resume": "Le code marche et ses tests passent. Le lab n'est réussi que lorsque ruff et mypy --strict n'ont plus rien à dire.",
+  "outils": ["ruff", "mypy"],
+  "fichiers": ["conversion.py"]
+}

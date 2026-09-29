@@ -1,0 +1,297 @@
+id: pf11
+track: python
+title: Modules, bibliothèque standard et environnements
+goal: Réutiliser le code des autres (et le tien) avec import, connaître les modules utiles, et installer des paquets proprement sur ton Mac.
+level: fondations
+requires: [pf10]
+concepts: [import, stdlib, venv, pip, main]
+lesson:
+  minutes: 15
+  intro: |
+    Python est livré « piles incluses » : des centaines de modules pour les dates, les fichiers, les statistiques, le JSON, le temps, l'aléatoire… Et des centaines de milliers de paquets en plus (NumPy, pyserial, Matplotlib) s'installent en une commande. Savoir importer, organiser ses propres modules et isoler les dépendances d'un projet, c'est passer du script bricolé à l'outil qu'on garde.
+  steps:
+    - level: 1
+      title: Une boîte à outils qu'on ouvre
+      body: |
+        Un **module** est simplement un fichier `.py` qui contient des fonctions et des variables prêtes à l'emploi. `import` l'ouvre et donne accès à son contenu :
+
+        ```python
+        import math
+        math.sqrt(2)          # on préfixe par le nom du module
+        ```
+
+        Variantes :
+        - `from math import sqrt, pi` → on utilise directement `sqrt(2)` ;
+        - `import statistics as st` → un alias plus court, `st.mean(...)` ;
+        - `from math import *` → importe tout, à **éviter** : on ne sait plus d'où vient chaque nom, et on risque d'écraser les siens.
+
+        Tes propres fichiers sont aussi des modules : si `conversions.py` est dans le même dossier que ton script, `import conversions` fonctionne.
+    - level: 2
+      title: La bibliothèque standard utile à un ingénieur
+      body: |
+        | Module | Pour quoi faire |
+        | --- | --- |
+        | `math` | racine, trigo, exp, log, π, `isclose` |
+        | `statistics` | moyenne, médiane, écart-type |
+        | `random` | tirages aléatoires, simulation |
+        | `time` | pause (`sleep`), chronométrage (`perf_counter`) |
+        | `datetime` | dates et heures, horodatage, durées |
+        | `pathlib` | chemins de fichiers |
+        | `csv`, `json` | formats d'échange |
+        | `collections` | `Counter`, `defaultdict`, `deque` |
+        | `argparse` | options en ligne de commande (`--port /dev/ttyUSB0`) |
+        | `logging` | journaux horodatés, plutôt que des `print` |
+      code: |
+        import statistics as st
+        from datetime import datetime, timedelta
+        from collections import Counter
+
+        m = [21.5, 21.9, 22.4, 21.7, 35.0]
+        print(st.mean(m), st.median(m), round(st.stdev(m), 2))
+
+        debut = datetime(2026, 9, 28, 8, 30)
+        fin = debut + timedelta(hours=2, minutes=45)
+        print(fin.strftime("%d/%m/%Y %H:%M"), fin - debut)
+
+        print(Counter("PAPAYE").most_common(2))
+      run: true
+      out: |
+        24.5 21.9 5.88
+        28/09/2026 11:15 2:45:00
+        [('P', 2), ('A', 2)]
+      after: |
+        Regarde la moyenne (24.5) et la médiane (21.9) : une seule valeur aberrante (35.0) tire la moyenne vers le haut, pas la médiane. Pour des mesures bruitées avec des pics, la médiane est souvent plus robuste.
+    - level: 3
+      title: Organiser ton code en modules
+      body: |
+        Dès qu'un script grossit, on sépare : les fonctions réutilisables dans un module, le programme principal dans un autre.
+
+        ```text
+        mon_outil/
+        ├── conversions.py      # def bar_vers_pa(...), def c_vers_k(...)
+        ├── analyse.py          # import conversions ; le programme principal
+        └── test_conversions.py # les tests (pytest, dans les labs)
+        ```
+
+        Un détail important : quand Python **importe** un module, il **exécute tout son contenu**. Pour qu'un fichier puisse être à la fois importé (sans rien lancer) et exécuté comme programme, on protège le code « principal » par :
+
+        ```python
+        def main():
+            ...
+
+        if __name__ == "__main__":
+            main()
+        ```
+
+        `__name__` vaut `"__main__"` quand le fichier est lancé directement (`python3 analyse.py`), et le nom du module quand il est importé. Le bloc ne s'exécute donc que dans le premier cas.
+    - level: 4
+      title: Comment Python trouve un module (et le piège du nom)
+      body: |
+        Pour `import random`, Python cherche dans l'ordre : **le dossier du script lancé**, puis les dossiers de la bibliothèque standard, puis les paquets installés. Le premier trouvé gagne.
+
+        Conséquence : si tu nommes ton propre fichier `random.py`, `math.py`, `csv.py` ou `serial.py`, c'est **ton fichier** qui est importé à la place du vrai module. Les erreurs sont déroutantes : `AttributeError: module 'random' has no attribute 'randint'`, alors que la fonction existe bien.
+
+        Autre point : un module n'est exécuté **qu'une fois** par programme, même importé dix fois ; les imports suivants réutilisent le module déjà chargé.
+      check:
+        q: "Ton script `serial.py` fait `import serial` puis `serial.Serial(\"/dev/ttyUSB0\")`. Erreur : `AttributeError: module 'serial' has no attribute 'Serial'`. Pourquoi ?"
+        choices:
+          - t: "Le script s'importe lui-même, car son nom masque le paquet pyserial."
+            ok: true
+            why: "Le dossier du script est cherché en premier. Renomme ton fichier, par exemple `lecture_serie.py`, et supprime le dossier `__pycache__` créé à côté."
+          - t: "pyserial n'est pas installé."
+            why: "Ce serait `ModuleNotFoundError: No module named 'serial'`, pas une `AttributeError`."
+          - t: "Il faut écrire `from serial import *`."
+            why: "Ça ne change rien : c'est toujours ton propre fichier qui est trouvé en premier."
+    - level: 5
+      title: Installer des paquets sur ton Mac, proprement
+      body: |
+        Les paquets externes s'installent avec `pip` depuis PyPI. Mais on ne les installe **jamais** dans le Python du système : on crée un **environnement virtuel** (*venv*) par projet, un dossier `.venv` qui contient un Python isolé avec ses propres paquets. Chaque projet a ainsi ses versions, sans conflit.
+
+        Sur ton Mac (avec le Python de Homebrew, qui refuse d'ailleurs les `pip install` globaux) :
+
+        ```shell
+        cd ~/chemin/du/projet
+        python3 -m venv .venv            # crée l'environnement (une fois)
+        source .venv/bin/activate        # l'active (à chaque nouveau terminal)
+        python -m pip install pyserial numpy pytest
+        python -m pip freeze > requirements.txt   # fige les versions
+        deactivate                       # en sortir
+        ```
+
+        Quand il est actif, le terminal affiche `(.venv)` au début de l'invite. VS Code le détecte et te propose de l'utiliser. Sur un autre poste (ou ton PC), `python -m pip install -r requirements.txt` réinstalle exactement les mêmes versions.
+
+        Dans les labs Praxis, `./praxis setup` fait tout ça pour toi, et le dossier `.venv` est ignoré par git (on ne versionne jamais un venv).
+  recap:
+    - "`import module`, `from module import nom`, `import module as alias` ; jamais `from x import *`."
+    - Importer un module exécute son code (une seule fois) ; protège le programme principal par `if __name__ == \"__main__\":`.
+    - Ne nomme jamais un fichier comme un module existant (`random.py`, `serial.py`, `math.py`).
+    - "Un venv par projet : `python3 -m venv .venv`, `source .venv/bin/activate`, `python -m pip install ...`."
+    - "Moyenne vs médiane : la médiane résiste aux valeurs aberrantes."
+  pieges: [py-module-homonyme, py-import-etoile]
+exercises:
+  - id: pf11.1
+    type: qcm
+    level: 1
+    q: "Après `from math import sqrt`, quelle écriture est correcte ?"
+    choices:
+      - t: "`sqrt(16)`"
+        ok: true
+      - t: "`math.sqrt(16)`"
+        why: "`from math import sqrt` importe seulement le nom `sqrt`, pas le nom `math` : `NameError`."
+      - t: "`math::sqrt(16)`"
+        why: "`::` est une syntaxe C++, pas Python."
+    e: "`import math` donne accès à `math.sqrt` ; `from math import sqrt` donne directement `sqrt`. Les deux sont bons, sois simplement cohérent."
+  - id: pf11.2
+    type: predict
+    level: 2
+    q: "Le fichier `outils.py` contient `print(\"chargement\")` puis `def f(): return 1`. Qu'affiche ce script placé à côté ?"
+    code: |
+      import outils
+      import outils
+      print(outils.f())
+    answer: |
+      chargement
+      1
+    trap_answers:
+      - |
+        chargement
+        chargement
+        1
+    norun: true
+    e: "Importer exécute le module, mais **une seule fois** par programme : le deuxième `import` réutilise le module déjà chargé. D'où l'intérêt du bloc `if __name__ == \"__main__\":` pour que rien ne se lance à l'import."
+  - id: pf11.3
+    type: qcm
+    level: 2
+    q: "Tu crées `random.py` pour tester le module `random`, avec `import random` puis `random.randint(1, 6)`. Que se passe-t-il ?"
+    piege: py-module-homonyme
+    choices:
+      - t: "`AttributeError` : ton fichier s'importe lui-même au lieu du module standard."
+        ok: true
+      - t: "Ça marche normalement."
+        piege: true
+        why: "Le dossier du script est prioritaire dans la recherche des modules : c'est ton `random.py` qui est trouvé."
+      - t: "`SyntaxError`."
+        why: "Il n'y a aucune erreur de syntaxe."
+    e: "Ne nomme jamais un fichier comme un module de la bibliothèque standard ou un paquet que tu utilises. Après avoir renommé, supprime aussi `__pycache__` qui garde une version compilée."
+  - id: pf11.4
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      import statistics as st
+      m = [10, 11, 10, 12, 100]
+      print(st.mean(m), st.median(m))
+    answer: 28.6 11
+    e: "Une seule valeur aberrante (100) fait bondir la moyenne à 28.6, alors que la médiane (la valeur du milieu une fois triées : 10, 10, 11, 12, 100) reste à 11."
+  - id: pf11.5
+    type: cloze
+    level: 1
+    q: "Complète pour que `main()` ne s'exécute que si le fichier est lancé directement, pas s'il est importé."
+    tpl: |
+      def main():
+          print("analyse lancée")
+
+      if ⟦0⟧ == "⟦1⟧":
+          main()
+    blanks:
+      - [__name__]
+      - [__main__]
+    run: true
+    out: analyse lancée
+    e: "`__name__` vaut `\"__main__\"` pour le fichier lancé, et le nom du module (par exemple `\"analyse\"`) quand il est importé."
+  - id: pf11.6
+    type: code
+    level: 2
+    q: |
+      Avec le module `statistics`, écris `resume(v)` qui renvoie un dict `{"n": ..., "moyenne": ..., "mediane": ..., "ecart_type": ...}`. Pour moins de 2 valeurs, l'écart-type vaut `0.0`. Pour une liste vide, lève une `ValueError`.
+    start: |
+      import statistics
+
+      def resume(v):
+          ...
+    sol: |
+      import statistics
+
+      def resume(v):
+          if not v:
+              raise ValueError("aucune valeur")
+          return {
+              "n": len(v),
+              "moyenne": statistics.mean(v),
+              "mediane": statistics.median(v),
+              "ecart_type": statistics.stdev(v) if len(v) >= 2 else 0.0,
+          }
+    tests: |
+      import math
+      r = resume([2, 4, 4, 4, 5, 5, 7, 9])
+      assert r["n"] == 8 and r["moyenne"] == 5 and r["mediane"] == 4.5
+      assert math.isclose(r["ecart_type"], 2.138, rel_tol=1e-3), r["ecart_type"]
+      assert resume([3])["ecart_type"] == 0.0
+      try:
+          resume([])
+      except ValueError:
+          pass
+      else:
+          raise AssertionError("liste vide : ValueError attendue")
+      print("OK")
+    hint: "`statistics.stdev` exige au moins 2 valeurs ; utilise une expression conditionnelle `a if cond else b`."
+    e: "`stdev` est l'écart-type **d'échantillon** (division par n − 1). `pstdev` est l'écart-type de la population entière (division par n). Pour des mesures, c'est en général `stdev`."
+  - id: pf11.7
+    type: flash
+    level: 1
+    q: "Les 3 commandes pour créer un environnement virtuel, l'activer et y installer pyserial sur Mac ?"
+    back: |
+      ```shell
+      python3 -m venv .venv
+      source .venv/bin/activate
+      python -m pip install pyserial
+      ```
+    e: "Sur Windows, l'activation est `.venv\\Scripts\\activate`. Et `python -m pip` garantit que le pip utilisé est celui du Python actif."
+  - id: pf11.8
+    type: qcm
+    level: 2
+    q: "Pourquoi éviter `from math import *` et `from statistics import *` dans le même fichier ?"
+    piege: py-import-etoile
+    choices:
+      - t: "Des noms peuvent s'écraser en silence, et on ne sait plus d'où vient chaque fonction."
+        ok: true
+        why: "Par exemple, les deux modules pourraient définir un même nom : le second import gagne, sans avertissement."
+      - t: "C'est interdit par Python."
+        why: "C'est autorisé, juste déconseillé."
+      - t: "Ça ralentit beaucoup le programme."
+        why: "Le coût est négligeable. Le problème est la lisibilité et les collisions de noms."
+    e: "Un lecteur (toi dans six mois) doit pouvoir savoir d'un coup d'œil d'où vient chaque nom. `import math` ou `from math import sqrt, pi` le permettent."
+  - id: pf11.9
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      from datetime import date
+      d1 = date(2026, 9, 1)
+      d2 = date(2026, 12, 25)
+      print((d2 - d1).days)
+    answer: "115"
+    e: "Soustraire deux dates donne un `timedelta`, dont `.days` est le nombre de jours : 29 jours restants en septembre + 31 + 30 + 25 = 115."
+  - id: pf11.10
+    type: code
+    level: 2
+    q: |
+      Avec `collections.Counter`, écris `defaut_le_plus_frequent(codes)` qui renvoie le code le plus fréquent d'une liste, ou `None` si la liste est vide.
+    start: |
+      from collections import Counter
+
+      def defaut_le_plus_frequent(codes):
+          ...
+    sol: |
+      from collections import Counter
+
+      def defaut_le_plus_frequent(codes):
+          if not codes:
+              return None
+          return Counter(codes).most_common(1)[0][0]
+    tests: |
+      assert defaut_le_plus_frequent(["E1", "E3", "E1", "E2", "E1"]) == "E1"
+      assert defaut_le_plus_frequent([]) is None
+      assert defaut_le_plus_frequent(["X"]) == "X"
+      print("OK")
+    e: "`most_common(1)` renvoie une liste d'un tuple `[(code, nombre)]` : d'où le `[0][0]`."

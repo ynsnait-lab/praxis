@@ -1,0 +1,20 @@
+repo:
+  url: https://github.com/ynsnait-lab/praxis
+  pages: https://ynsnait-lab.github.io/praxis/
+labs_intro: |
+  Les labs vivent dans le dépôt, dossier `labs/`. Une fois le dépôt cloné, dans le dossier du projet :
+
+  ```shell
+  ./praxis doctor        # vérifie Python, le compilateur C++, CMake
+  ./praxis setup         # crée .venv et y installe pytest, ruff, mypy, NumPy
+  ./praxis next          # propose le prochain lab
+  ./praxis check py-01   # tests du lab, plus ruff, mypy ou les sanitizers selon le lab
+  ./praxis hint py-01    # affiche l'indice suivant
+  ```
+
+  Pour le C++ sur macOS : `xcode-select --install` installe le compilateur (clang), puis `brew install cmake ninja`.
+
+  Dans VS Code, ouvre le dossier du projet : les extensions recommandées sont proposées automatiquement, et *Terminal → Exécuter la tâche → Praxis : vérifier le lab* vérifie le lab du fichier ouvert.
+
+  > [!astuce] La méthode
+  > Lis les tests qui échouent **avant** le code : chaque test rouge est une question précise. Corrige sans toucher aux tests, relance, et coche « fait » ici quand tout est vert.

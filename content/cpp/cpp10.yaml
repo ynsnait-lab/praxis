@@ -1,0 +1,762 @@
+id: cpp10
+track: cpp
+title: Gestion d’erreurs
+goal: Choisir entre exception, code retour et optional selon la contrainte système.
+level: avance
+requires:
+- cpp04
+concepts:
+- exceptions-cpp
+- optional
+- expected
+- noexcept
+lesson:
+  minutes: 18
+  intro: |
+    Un capteur qui ne répond pas, une trame corrompue, un fichier de configuration absent : ces problèmes n'ont pas la même nature, et C++ offre plusieurs façons de les signaler. Exceptions, codes d'erreur, `std::optional`, `std::expected`, `assert` : chaque outil a son terrain, et le mauvais choix donne soit du code illisible, soit des erreurs ignorées en silence. Ce module t'apprend à choisir, y compris sur microcontrôleur, où les exceptions sont souvent interdites.
+  steps:
+    - level: 1
+      title: Trois façons de signaler un problème à l'atelier
+      body: |
+        - **Tirer l'alarme** (exception) : le travail en cours s'arrête, et l'alarme remonte jusqu'à quelqu'un qui sait quoi faire. Impossible à ignorer, mais brutal : on la réserve aux incidents rares.
+        - **Allumer un voyant sur la pièce** (code d'erreur) : la pièce continue sur la chaîne avec un voyant rouge, et le poste suivant doit le regarder. Léger et prévisible, mais un poste distrait peut ne pas le voir.
+        - **La boîte peut être vide** (`std::optional`) : « voici la mesure… ou rien, le capteur n'était pas prêt ». Une absence normale, pas une panne.
+
+        Et pour les erreurs du programmeur lui-même (une hypothèse violée dans le code), l'**arrêt d'urgence** : `assert`.
+    - level: 2
+      title: Les outils et leur terrain
+      body: |
+        - **Exceptions** : `throw std::runtime_error("message");` ; `try { … } catch (const std::exception& e) { … }`. On lance par valeur, on attrape par **référence constante**, du plus précis au plus général. Hiérarchie standard : `std::exception`, puis `std::logic_error` (`invalid_argument`, `out_of_range`) et `std::runtime_error` (`system_error`…). Pendant la remontée, RAII libère tout.
+        - `noexcept` promet qu'aucune exception ne sortira ; si une en sort quand même, `std::terminate` arrête le programme.
+        - **Codes d'erreur** : un `enum class Erreur { aucune, timeout, crc };` renvoyé par la fonction, avec `[[nodiscard]]` pour que l'appelant ne puisse pas l'ignorer sans avertissement.
+        - **`std::optional<T>`** : une valeur ou rien (`std::nullopt`). `if (auto v = lire())`, `*v`, `v.value_or(defaut)`.
+        - **`std::expected<T, E>`** (C++23) : une valeur **ou** une erreur typée qui explique pourquoi. Le meilleur des deux mondes : explicite comme un code d'erreur, pratique comme `optional`.
+        - **`assert(condition)`** : vérifie un invariant en mise au point ; supprimé quand `NDEBUG` est défini (compilation de production).
+      check:
+        q: "`lire_temperature()` peut légitimement ne rien renvoyer : le capteur n'a pas encore fini sa conversion. Meilleur type de retour ?"
+        choices:
+          - t: "`std::optional<double>`"
+            ok: true
+            why: L'absence de valeur est un cas normal et fréquent : l'appelant réessaiera plus tard. Rien d'exceptionnel.
+          - t: "`double`, avec une exception si le capteur n'est pas prêt"
+            why: Une exception pour un cas fréquent et attendu est lourde et coûteuse ; elle est faite pour l'exceptionnel.
+          - t: "`double`, en renvoyant -999 si le capteur n'est pas prêt"
+            why: Une valeur magique finit toujours par être prise pour une vraie mesure (moyenne faussée, courbe absurde).
+    - level: 3
+      title: Optional, code d'erreur, exception
+      code: |
+        #include <cerrno>
+        #include <cstdlib>
+        #include <iostream>
+        #include <optional>
+        #include <stdexcept>
+        #include <string>
+        #include <vector>
+
+        std::optional<double> parser_mesure(const std::string& s) {      // absence = cas normal
+            if (s.empty()) return std::nullopt;
+            char* fin = nullptr;
+            errno = 0;
+            double v = std::strtod(s.c_str(), &fin);
+            if (fin != s.c_str() + s.size() || errno == ERANGE) return std::nullopt;
+            return v;
+        }
+
+        enum class Erreur { aucune, trame_courte, mauvais_entete, crc };
+
+        [[nodiscard]] Erreur verifier(const std::vector<unsigned char>& t) {   // code d'erreur
+            if (t.size() < 3) return Erreur::trame_courte;
+            if (t[0] != 0xAA) return Erreur::mauvais_entete;
+            unsigned somme = 0;
+            for (std::size_t i = 0; i + 1 < t.size(); ++i) somme += t[i];
+            return (somme % 256 == t.back()) ? Erreur::aucune : Erreur::crc;
+        }
+
+        double charger_gain(const std::string& nom) {                    // erreur rare : exception
+            if (nom.empty()) throw std::invalid_argument("nom de voie vide");
+            if (nom != "ADC1") throw std::runtime_error("voie inconnue : " + nom);
+            return 1.02;
+        }
+
+        int main() {
+            for (const std::string s : {"21.5", "abc", "21.5x", ""}) {
+                auto v = parser_mesure(s);
+                std::cout << '"' << s << "\" → " << (v ? std::to_string(*v) : "invalide") << '\n';
+            }
+            std::cout << parser_mesure("oups").value_or(-1.0) << '\n';
+
+            std::vector<unsigned char> t{0xAA, 0x01, 0xAB};
+            std::cout << (verifier(t) == Erreur::aucune ? "trame OK" : "trame rejetée") << '\n';
+
+            for (const std::string nom : {"ADC1", "ADC9", ""}) {
+                try {
+                    std::cout << "gain " << charger_gain(nom) << '\n';
+                } catch (const std::invalid_argument& e) {              // le plus précis d'abord
+                    std::cout << "argument invalide : " << e.what() << '\n';
+                } catch (const std::exception& e) {
+                    std::cout << "erreur : " << e.what() << '\n';
+                }
+            }
+        }
+      out: |
+        "21.5" → 21.500000
+        "abc" → invalide
+        "21.5x" → invalide
+        "" → invalide
+        -1
+        trame OK
+        gain 1.02
+        gain erreur : voie inconnue : ADC9
+        gain argument invalide : nom de voie vide
+      after: |
+        Pour `"ADC9"` et `""`, le mot « gain » s'affiche avant l'erreur : `std::cout << "gain "` est exécuté, puis l'appel lève l'exception au milieu de l'instruction. Une exception interrompt tout, y compris une ligne à moitié écrite.
+    - level: 4
+      title: std::expected et le coût réel des exceptions
+      body: |
+        Les exceptions C++ sont dites « à coût nul » : tant qu'aucune n'est lancée, le chemin normal ne paie presque rien. En revanche, **lancer** coûte cher : allocation de l'objet exception, recherche dans des tables, remontée de la pile, souvent des microsecondes. Et la taille du code augmente. D'où le choix de nombreux projets embarqués de compiler avec `-fno-exceptions` : temps d'exécution imprévisible et mémoire comptée ne font pas bon ménage avec elles.
+
+        `std::expected<T, E>` (C++23) répond à ce besoin : une fonction renvoie soit sa valeur, soit une erreur typée, sans exception. Ses opérations `transform` et `and_then` enchaînent les traitements en laissant passer l'erreur telle quelle. Ce code demande `-std=c++23` (GCC 12 et plus, Clang récent).
+      code: |
+        #include <expected>
+        #include <iostream>
+        #include <string>
+
+        enum class ErreurCapteur { timeout, crc, hors_plage };
+
+        std::string texte(ErreurCapteur e) {
+            switch (e) {
+                case ErreurCapteur::timeout: return "délai dépassé";
+                case ErreurCapteur::crc: return "somme de contrôle fausse";
+                case ErreurCapteur::hors_plage: return "valeur hors plage";
+            }
+            return "?";
+        }
+
+        std::expected<double, ErreurCapteur> lire_temperature(int essai) {   // valeur OU erreur
+            if (essai == 1) return std::unexpected(ErreurCapteur::timeout);
+            if (essai == 2) return std::unexpected(ErreurCapteur::crc);
+            return 21.5;
+        }
+
+        void jamais_d_exception() noexcept {
+            // throw 1;   ← compilerait, mais appellerait std::terminate
+        }
+
+        int main() {
+            for (int essai = 1; essai <= 3; ++essai) {
+                auto r = lire_temperature(essai);
+                if (r) std::cout << "essai " << essai << " : " << *r << " °C\n";
+                else std::cout << "essai " << essai << " : " << texte(r.error()) << '\n';
+            }
+            auto k = lire_temperature(3).transform([](double c) { return c + 273.15; });
+            std::cout << k.value() << " K\n";
+            jamais_d_exception();
+            std::cout << "noexcept : " << noexcept(jamais_d_exception()) << '\n';
+        }
+      flags: [-std=c++23]
+      out: |
+        essai 1 : délai dépassé
+        essai 2 : somme de contrôle fausse
+        essai 3 : 21.5 °C
+        294.65 K
+        noexcept : 1
+    - level: 5
+      title: Sur le terrain
+      body: |
+        | Situation | Outil |
+        |---|---|
+        | Absence normale d'une valeur (capteur pas prêt, clé absente) | `std::optional<T>` |
+        | Échec attendu à expliquer (trame invalide, délai dépassé), code rapide ou embarqué | `enum class` + `[[nodiscard]]`, ou `std::expected<T, E>` |
+        | Échec rare qu'on ne peut pas traiter sur place (configuration absente au démarrage) | exception |
+        | Bug du programmeur (hypothèse violée) | `assert`, `static_assert` |
+
+        - On lance par valeur, on attrape par `const&`, du plus précis au plus général.
+        - Destructeurs et déplacements : `noexcept`.
+        - Pas d'exceptions dans une boucle rapide pour gérer un cas courant : c'est du contrôle de flux déguisé, et c'est lent.
+        - En embarqué : sur un AVR (Arduino Uno) les exceptions n'existent pas ; sur ESP32 (ESP-IDF), elles sont désactivées par défaut. Conçois tes interfaces avec des codes d'erreur ou `std::expected`.
+        - Ne laisse jamais un code d'erreur être ignoré en silence : `[[nodiscard]]`, et `-Werror` en intégration continue.
+  recap:
+    - "`std::optional` : valeur ou rien, pour une absence normale."
+    - "Code d'erreur `enum class` + `[[nodiscard]]`, ou `std::expected` (C++23) : échec attendu, explicite, sans exception."
+    - "Exception : rare et non traitable sur place ; `throw` par valeur, `catch` par `const&`."
+    - "`noexcept` violé = `std::terminate` ; lancer une exception coûte cher."
+    - "`assert` pour les bugs du programmeur, supprimé avec `NDEBUG`."
+  pieges: [cpp-code-retour-ignore, cpp-catch-par-valeur]
+exercises:
+- id: cpp10.1
+  type: qcm
+  level: 2
+  concepts:
+  - optional
+  q: Une fonction `lire_temperature()` peut légitimement ne rien renvoyer (capteur non prêt). Meilleur type de retour ?
+  choices:
+  - t: '`std::optional<double>`'
+    ok: true
+    why: 'Encode l’absence dans le type : l’appelant ne peut pas l’ignorer par accident.'
+  - t: '`double`, avec `-999.0` en cas d’échec'
+    ok: false
+    why: 'Valeur sentinelle : un jour elle deviendra une mesure valide, et personne ne la teste.'
+  - t: '`double`, et lever une exception'
+    ok: false
+    why: L’absence est un cas **normal** ici, pas exceptionnel.
+  - t: '`bool lire_temperature(double& out)`'
+    ok: false
+    why: Fonctionne (style C), mais oblige à déclarer la variable avant et le résultat n’est pas composable.
+  e: |-
+    ```cpp
+    std::optional<double> lire_temperature();
+
+    if (auto t = lire_temperature()) {
+        utiliser(*t);
+    } else {
+        log("capteur non prêt");
+    }
+    double v = lire_temperature().value_or(0.0);
+    ```
+
+    `NaN` est parfois un bon choix pour un flottant (il se propage et se teste avec `isnan`), mais `optional` marche pour **tous** les types et se lit sans commentaire.
+
+    Si tu as besoin de dire **pourquoi** ça a échoué : `std::expected<double, Erreur>` (C++23) ou un `enum class` de code retour.
+- id: cpp10.2
+  type: qcm
+  level: 3
+  concepts:
+  - exceptions-cpp
+  q: Pourquoi les exceptions sont-elles souvent désactivées (`-fno-exceptions`) en embarqué ?
+  choices:
+  - t: Coût mémoire (tables de déroulement) et temps de propagation non borné
+    ok: true
+    why: Le chemin nominal est gratuit, mais le déroulement n’est pas déterministe — rédhibitoire sous contrainte temps réel dur.
+  - t: Elles ne fonctionnent pas sur ARM
+    ok: false
+    why: Elles fonctionnent, elles coûtent.
+  - t: Elles sont plus lentes que les codes retour même sans erreur
+    ok: false
+    why: 'Faux : « zero-cost » sur le chemin nominal.'
+  - t: Le standard les interdit en embarqué
+    ok: false
+    why: Aucune interdiction.
+  e: |-
+    Les exceptions sont **zero-cost quand rien ne se passe** : aucun test ajouté sur le chemin normal. Le prix se paie ailleurs :
+    - **Flash** : tables de déroulement + le code de RTTI, typiquement 10–40 ko. Sur un MCU avec 64 ko, c’est éliminatoire.
+    - **Déterminisme** : le temps de propagation dépend de la profondeur de pile → pas de borne haute garantie.
+
+    Sans exceptions, on revient à :
+    `enum class Err { Ok, Timeout, Crc };` + `std::optional` / `std::expected` / `[[nodiscard]]`.
+
+    Sur PC ou sur Linux embarqué (le cas de la plupart des bancs de mesure), garde-les : elles rendent le code correct plus court.
+- id: cpp10.3
+  type: qcm
+  level: 3
+  concepts:
+  - noexcept
+  q: Que se passe-t-il si une exception s’échappe d’une fonction marquée `noexcept` ?
+  choices:
+  - t: '`std::terminate` est appelé — le programme s’arrête'
+    ok: true
+    why: Pas de propagation, pas de catch possible.
+  - t: Elle se propage normalement
+    ok: false
+    why: Non, `noexcept` n’est pas une suggestion.
+  - t: Elle est convertie en code d’erreur
+    ok: false
+    why: Aucune conversion.
+  - t: Erreur de compilation
+    ok: false
+    why: Le compilateur ne peut pas toujours le savoir statiquement.
+  e: |-
+    `noexcept` est une **promesse**, vérifiée à l’exécution par la terminaison brutale.
+
+    À marquer `noexcept` :
+    - **Destructeurs** (implicite depuis C++11).
+    - **Constructeurs et affectations de déplacement** — sinon `std::vector` copie au lieu de déplacer lors des réallocations. C’est le cas le plus rentable en pratique.
+    - `swap`.
+    - Les fonctions qui ne peuvent visiblement pas lever (accesseurs triviaux).
+
+    À ne **pas** marquer : tout ce qui alloue, ouvre un fichier, ou appelle du code que tu ne contrôles pas.
+- id: cpp10.4
+  type: code
+  level: 3
+  concepts:
+  - optional
+  - exceptions-cpp
+  q: 'Écris `std::optional<double> parser_mesure(const std::string& s)` : convertit la chaîne en double. Renvoie `std::nullopt` si la chaîne est vide, non numérique, ou contient des caractères en trop après le nombre.'
+  lang: cpp
+  start: |-
+    #include <optional>
+    #include <string>
+
+    std::optional<double> parser_mesure(const std::string& s) {
+        // ton code
+    }
+  sol: |-
+    #include <optional>
+    #include <string>
+    #include <cstdlib>
+
+    std::optional<double> parser_mesure(const std::string& s) {
+        if (s.empty()) return std::nullopt;
+        try {
+            std::size_t pos = 0;
+            double v = std::stod(s, &pos);
+            while (pos < s.size() && std::isspace(static_cast<unsigned char>(s[pos]))) ++pos;
+            if (pos != s.size()) return std::nullopt;
+            return v;
+        } catch (...) {
+            return std::nullopt;
+        }
+    }
+  tests: |-
+    #include <cassert>
+    #include <cmath>
+    #include <iostream>
+    int main() {
+        assert(parser_mesure("20.5").value() == 20.5);
+        assert(parser_mesure("-3").value() == -3.0);
+        assert(parser_mesure(" 1.5 ").value() == 1.5);
+        assert(!parser_mesure("").has_value());
+        assert(!parser_mesure("abc").has_value());
+        assert(!parser_mesure("12abc").has_value());
+        assert(!parser_mesure("1.2.3").has_value());
+        std::cout << "OK\n";
+    }
+  e: |-
+    Le piège de cet exercice est `"12abc"` : `std::stod` s’arrête au premier caractère invalide et renvoie 12 **sans se plaindre**. Sans le paramètre `pos`, tu acceptes silencieusement des données corrompues.
+
+    C’est exactement ce qui transforme une ligne de log tronquée en mesure fantôme dans ton jeu de données.
+
+    `std::from_chars` (C++17, `<charconv>`) est l’alternative moderne : pas d’exception, pas de locale, renvoie un `ptr` et un `ec`, et c’est nettement plus rapide. Sur GCC, le support flottant existe depuis la version 11.
+- id: cpp10.5
+  type: predict
+  level: 2
+  concepts:
+  - optional
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    #include <optional>
+    std::optional<double> lire(bool ok) {
+        if (!ok) return std::nullopt;
+        return 20.5;
+    }
+    int main() {
+        auto a = lire(true);
+        auto b = lire(false);
+        std::cout << a.has_value() << b.has_value() << " ";
+        std::cout << *a << " " << b.value_or(-1.0) << "\n";
+    }
+  answer: 10 20.5 -1
+  e: |-
+    `std::optional<T>` encode « une valeur ou rien » **dans le type** : l'appelant ne peut pas oublier le cas absent par accident.
+
+    L'API :
+    ```cpp
+    if (a) { … }              // conversion booléenne
+    a.has_value()
+    *a  /  a.value()          // value() lève std::bad_optional_access si vide
+    a.value_or(defaut)
+    a.reset()
+    ```
+
+    ⚠️ `*a` sur un optional vide est un **UB**, pas une exception. Utilise `value()` si tu veux l'exception, ou teste avant.
+
+    Coût : `sizeof(optional<double>)` = 16 octets (8 pour le double, 1 pour le drapeau, 7 de bourrage). Pas d'allocation.
+
+    En C++23, `and_then` / `transform` / `or_else` permettent de chaîner sans imbriquer les `if`.
+- id: cpp10.6
+  type: qcm
+  level: 2
+  concepts:
+  - exceptions-cpp
+  q: Que signifie « les exceptions C++ sont à coût nul » (zero-cost) ?
+  choices:
+  - t: Aucune instruction ajoutée sur le chemin **sans erreur** ; le coût est payé au moment du lancement, plus la taille des tables
+    ok: true
+    why: Contrairement aux codes de retour, qui ajoutent un test après chaque appel.
+  - t: Elles ne coûtent rien du tout
+    ok: false
+    why: Le déroulement est lent (microsecondes) et les tables occupent de la Flash.
+  - t: Elles sont plus rapides que les codes de retour
+    ok: false
+    why: Sur le chemin nominal oui, sur le chemin d’erreur non — 100 à 1000× plus lent.
+  - t: Le compilateur les supprime
+    ok: false
+    why: Elles sont bien présentes.
+  e: |-
+    Modèle « table-driven » : le compilateur génère des tables de déroulement séparées du code. Sur le chemin nominal, **aucune instruction supplémentaire** — pas même un test de drapeau.
+
+    Le prix :
+    - **Taille** : 10 à 40 ko de tables + RTTI. Rédhibitoire sur un MCU à 64 ko.
+    - **Temps de lancement** : recherche dans les tables, déroulement de la pile → microsecondes, non borné.
+
+    D'où la règle : **les exceptions sont pour ce qui est exceptionnel.** Une mesure hors plage n'est pas exceptionnelle, c'est le quotidien : renvoie un `optional` ou un code d'erreur.
+
+    En embarqué temps réel : `-fno-exceptions -fno-rtti`, et la bibliothèque standard se réduit aux parties qui n'en dépendent pas.
+
+    Sur PC ou Linux embarqué (le cas de la plupart des bancs de mesure), garde-les : elles rendent le code correct plus court.
+- id: cpp10.7
+  type: bug
+  level: 3
+  concepts:
+  - exceptions-cpp
+  q: Cette fonction fuit en cas d’exception. Clique sur la ligne fautive.
+  lang: cpp
+  code: |-
+    void traiter(const std::string& chemin) {
+        Tampon* t = new Tampon(1024);
+        charger(chemin, *t);      // peut lever
+        analyser(*t);
+        delete t;
+    }
+  bad: 2
+  fix: '    auto t = std::make_unique<Tampon>(1024);'
+  e: |-
+    Si `charger` ou `analyser` lève, le `delete` ligne 5 est **sauté** : fuite mémoire.
+
+    C'est précisément le problème que RAII résout. Avec `std::make_unique`, le destructeur du `unique_ptr` s'exécute pendant le déroulement de la pile, quoi qu'il arrive.
+
+    ```cpp
+    void traiter(const std::string& chemin) {
+        auto t = std::make_unique<Tampon>(1024);
+        charger(chemin, *t);
+        analyser(*t);
+    }   // libéré, même sur exception
+    ```
+
+    Encore mieux : `Tampon t(1024);` sur la **pile**, si sa taille le permet — pas d'allocation du tout.
+
+    Règle générale : **si tu écris `new` ou `delete` dans du code applicatif, tu as probablement tort.** Ces mots-clés appartiennent à l'implémentation des classes de ressources, pas au code métier.
+
+    Les trois garanties d'exception, du plus fort au plus faible : *nothrow* (ne lève jamais), *forte* (l'état est inchangé en cas d'échec), *de base* (aucune fuite, invariants préservés). Vise au minimum la garantie de base **partout**.
+- id: cpp10.8
+  type: cloze
+  level: 3
+  concepts:
+  - expected
+  - optional
+  q: 'Un code d’erreur typé, sans exception : l’approche embarquée.'
+  lang: cpp
+  tpl: |-
+    #include <cstdint>
+
+    enum class Err : uint8_t { Ok = 0, Timeout, Crc, HorsPlage };
+
+    struct Resultat {
+        Err err;
+        int32_t valeur;
+        explicit operator ⟦0⟧() const noexcept { return err == Err::Ok; }
+    };
+
+    [[⟦1⟧]] Resultat lire_capteur() noexcept;
+  blanks:
+  - - bool
+  - - nodiscard
+  e: |-
+    `enum class` (portée forte) : impossible de confondre `Err::Timeout` avec un entier quelconque, et pas de pollution du namespace.
+
+    `explicit operator bool()` permet `if (auto r = lire_capteur())` sans autoriser les conversions accidentelles en `int`.
+
+    `[[nodiscard]]` est le point clé : **le compilateur avertit si tu ignores le résultat**. C'est la faiblesse historique des codes de retour — on les oublie. `[[nodiscard]]` la corrige.
+
+    ```cpp
+    lire_capteur();            // warning: ignoring return value
+    auto r = lire_capteur();
+    if (!r) return r.err;
+    utiliser(r.valeur);
+    ```
+
+    En C++23, `std::expected<int32_t, Err>` fait tout ça de façon standard, avec chaînage (`and_then`). En attendant, `tl::expected` (une seule en-tête) ou ce motif maison.
+- id: cpp10.9
+  type: predict
+  level: 3
+  concepts:
+  - noexcept
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    #include <vector>
+    #include <type_traits>
+    struct A { A(A&&) noexcept {} A() = default; };
+    struct B { B(B&&) {}          B() = default; };
+    int main() {
+        std::cout << std::is_nothrow_move_constructible_v<A>
+                  << std::is_nothrow_move_constructible_v<B>
+                  << std::is_nothrow_move_constructible_v<std::vector<int>> << "\n";
+    }
+  answer: '101'
+  e: |-
+    `A` a un déplacement `noexcept`, `B` non. Conséquence concrète : dans un `std::vector<B>`, chaque réallocation **copie** au lieu de déplacer, silencieusement.
+
+    `std::vector<int>` est `nothrow` déplaçable : déplacer un vector, c'est échanger trois pointeurs, ça ne peut pas lever.
+
+    À marquer `noexcept` :
+    - constructeur et affectation de **déplacement** — le cas le plus rentable ;
+    - `swap` ;
+    - les destructeurs (implicite depuis C++11) ;
+    - les accesseurs triviaux.
+
+    À ne **pas** marquer : tout ce qui alloue, ouvre un fichier, ou appelle du code que tu ne contrôles pas.
+
+    Vérifie-le par un `static_assert` dans tes tests : c'est une régression facile à introduire et invisible autrement.
+
+    Rappel : si une exception s'échappe d'une fonction `noexcept`, c'est `std::terminate` — pas de propagation possible.
+- id: cpp10.10
+  type: code
+  level: 3
+  concepts:
+  - optional
+  q: 'Écris `std::optional<int> indice_de(const std::vector<int>& v, int x)` : renvoie l’index de la première occurrence, ou `nullopt`.'
+  lang: cpp
+  start: |-
+    #include <optional>
+    #include <vector>
+    #include <algorithm>
+
+    std::optional<int> indice_de(const std::vector<int>& v, int x) {
+        // ton code
+    }
+  sol: |-
+    #include <optional>
+    #include <vector>
+    #include <algorithm>
+
+    std::optional<int> indice_de(const std::vector<int>& v, int x) {
+        auto it = std::find(v.begin(), v.end(), x);
+        if (it == v.end()) return std::nullopt;
+        return static_cast<int>(it - v.begin());
+    }
+  tests: |-
+    #include <cassert>
+    #include <iostream>
+    int main() {
+        std::vector<int> v{5, 3, 8, 3};
+        assert(indice_de(v, 5).value() == 0);
+        assert(indice_de(v, 3).value() == 1 && "premiere occurrence");
+        assert(indice_de(v, 8).value() == 2);
+        assert(!indice_de(v, 42).has_value());
+        assert(!indice_de({}, 1).has_value());
+        assert(indice_de(v, 3).value_or(-1) == 1);
+        assert(indice_de(v, 42).value_or(-1) == -1);
+        std::cout << "OK\n";
+    }
+  e: |-
+    Pourquoi `optional<int>` plutôt que `-1` comme sentinelle : la sentinelle est **muette**. Rien n'oblige l'appelant à la tester, et le jour où `-1` devient une valeur légitime, tout casse en silence.
+
+    `optional` rend l'absence visible dans le **type**, donc dans la signature, donc dans la documentation, donc dans l'autocomplétion.
+
+    Détails :
+    - `it - v.begin()` donne un `ptrdiff_t` (signé) ; le cast explicite évite l'avertissement `-Wconversion`.
+    - Le test avec `{}` (liste vide) vérifie que la fonction accepte un temporaire — donc que le paramètre est bien `const&`.
+
+    Alternative sans optional : renvoyer un **itérateur** et comparer à `end()`, comme le fait la STL. Les deux sont idiomatiques ; `optional` est plus explicite pour une API applicative.
+- id: cpp10.11
+  type: qcm
+  level: 3
+  concepts:
+  - exceptions-cpp
+  q: Quelle exception attraper, et comment, dans un `catch` ?
+  choices:
+  - t: '`catch (const std::exception& e)` — par référence const, type le plus précis possible'
+    ok: true
+    why: Attraper par valeur provoque un découpage (slicing) qui perd le type dérivé et son message.
+  - t: '`catch (std::exception e)`'
+    ok: false
+    why: 'Par valeur : slicing, et une copie qui peut elle-même lever.'
+  - t: '`catch (...)` systématiquement'
+    ok: false
+    why: Utile en dernier recours au sommet, mais tu ne sais plus ce que tu attrapes.
+  - t: '`catch (std::exception* e)`'
+    ok: false
+    why: 'On ne lance jamais de pointeurs : qui le libérerait ?'
+  e: |-
+    ```cpp
+    try {
+        charger(chemin);
+    } catch (const std::filesystem::filesystem_error& e) {   // le plus précis
+        log("fichier : {}", e.what());
+    } catch (const std::exception& e) {                       // filet
+        log("erreur : {}", e.what());
+        throw;                                                 // re-lève telle quelle
+    }
+    ```
+
+    Trois règles :
+    1. **Toujours par référence const** — sinon slicing : un `filesystem_error` attrapé par valeur en `std::exception` perd son type et ses données.
+    2. **Du plus précis au plus général** : le premier `catch` compatible gagne, donc l'ordre compte.
+    3. `throw;` **nu** re-lève l'exception d'origine avec son type ; `throw e;` en crée une copie tronquée.
+
+    `catch (...)` a un usage légitime : au sommet de `main` ou dans un destructeur, pour éviter `std::terminate`.
+- id: cpp10.12
+  type: flash
+  level: 2
+  concepts:
+  - exceptions-cpp
+  - noexcept
+  q: 'Exception, code retour, optional, assert : lequel pour quelle situation ?'
+  back: |-
+    | Situation | Outil |
+    | --- | --- |
+    | Erreur de programmation (invariant violé) | `assert` — ne doit jamais arriver en production |
+    | Absence normale de valeur | `std::optional<T>` |
+    | Échec attendu, avec une **raison** | `std::expected<T, E>` (C++23) ou un enum + `[[nodiscard]]` |
+    | Échec exceptionnel, remontée sur plusieurs niveaux | **exception** |
+    | Contrainte temps réel dure, pas de tas | code retour typé |
+    | Erreur détectable à la compilation | `static_assert` / concepts |
+
+    Le critère décisif : **à quelle distance se trouve le code capable de traiter l'erreur ?** Proche → valeur de retour. Loin → exception.
+  e: |-
+    Les exceptions brillent quand l'erreur doit remonter 5 niveaux : sans elles, chaque niveau intermédiaire doit tester et propager, ce qui pollue tout le code.
+
+    Elles sont mauvaises quand l'erreur est fréquente et locale : lever pour « le capteur n'est pas prêt » à 1 kHz est absurde.
+
+    Une architecture saine mélange les deux : `optional`/code d'erreur dans les couches basses (pilote, protocole), exceptions à la frontière applicative (chargement de config, initialisation).
+
+    Et `assert` n'est pas une gestion d'erreur : c'est de la **documentation exécutable** de tes hypothèses.
+- id: cpp10.13
+  type: parsons
+  level: 3
+  concepts:
+  - optional
+  - expected
+  q: Reconstitue un parseur de trame qui renvoie une erreur typée sans exception.
+  lang: cpp
+  lines:
+  - enum class Err { Ok, TropCourt, EnteteInvalide, CrcFaux };
+  - ''
+  - struct Trame { uint8_t id; int16_t valeur; };
+  - ''
+  - struct Resultat { Err err; Trame trame; };
+  - ''
+  - '[[nodiscard]] Resultat parser(std::span<const uint8_t> octets) noexcept {'
+  - '    if (octets.size() != 5)                 return {Err::TropCourt, {}};'
+  - '    if (octets[0] != 0xAA)                  return {Err::EnteteInvalide, {}};'
+  - '    if (crc8(octets.first(4)) != octets[4]) return {Err::CrcFaux, {}};'
+  - '    const int16_t v = static_cast<int16_t>(octets[2] | (octets[3] << 8));'
+  - '    return {Err::Ok, Trame{octets[1], v}};'
+  - '}'
+  extra:
+  - '    throw std::runtime_error("trame invalide");'
+  - '    if (octets.size() < 5) return {};'
+  e: |-
+    L'ordre des vérifications suit le **coût croissant** : longueur d'abord (un test), puis en-tête (un accès), puis CRC (une boucle). Inutile de calculer un CRC sur une trame trop courte.
+
+    `std::span<const uint8_t>` porte pointeur **et** taille : impossible d'oublier de vérifier la longueur, et `.first(4)` produit une sous-vue sans copie.
+
+    Les intrus :
+    - `throw` viole le `noexcept` et le contexte embarqué.
+    - `return {}` renvoie `Err::Ok` (première valeur de l'enum) avec une trame vide — l'erreur passerait pour un succès. **Le pire type de bug.**
+
+    `[[nodiscard]]` garantit qu'un appelant distrait sera averti par le compilateur.
+
+    En C++23 : `std::expected<Trame, Err>`, avec chaînage `and_then`.
+  verify_prelude: |
+    #include <cstdint>
+    #include <span>
+    inline std::uint8_t crc8(std::span<const std::uint8_t>) { return 0; }
+- id: cpp10.14
+  type: qcm
+  level: 3
+  concepts:
+  - noexcept
+  q: Peut-on écrire un `try`/`catch` à l’intérieur d’une fonction `noexcept` ?
+  choices:
+  - t: 'Oui : `noexcept` interdit seulement qu’une exception **s’échappe** de la fonction'
+    ok: true
+    why: Attraper et traiter à l’intérieur est parfaitement légal, et souvent le bon motif.
+  - t: Non, `noexcept` interdit tout `try`
+    ok: false
+    why: Aucune restriction syntaxique.
+  - t: Oui, mais seulement `catch (...)`
+    ok: false
+    why: Tous les `catch` sont autorisés.
+  - t: Seulement si la fonction est aussi `const`
+    ok: false
+    why: Aucun rapport.
+  e: |-
+    ```cpp
+    void arreter() noexcept {
+        try {
+            fermer_port();      // peut lever
+        } catch (const std::exception& e) {
+            log("échec de fermeture : %s", e.what());
+            // on ne relève pas : la fonction reste noexcept
+        }
+    }
+    ```
+
+    C'est le motif standard pour un **destructeur** ou une fonction d'arrêt : on encapsule une opération faillible et on garantit qu'elle ne propage rien.
+
+    `noexcept` est une promesse vérifiée **à l'exécution** : si une exception s'échappe malgré tout, `std::terminate` est appelé — pas de propagation, pas de récupération possible.
+
+    Variante conditionnelle, utile en générique :
+    ```cpp
+    void f() noexcept(std::is_nothrow_move_constructible_v<T>);
+    ```
+    La fonction est `noexcept` **si et seulement si** le type sous-jacent l'est. C'est ce que fait la bibliothèque standard partout.
+- id: cpp10.15
+  type: predict
+  level: 3
+  concepts:
+  - exceptions-cpp
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    #include <stdexcept>
+    struct R {
+        const char* n;
+        ~R() { std::cout << "~" << n; }
+    };
+    void f() {
+        R a{"a"};
+        throw std::runtime_error("boum");
+    }
+    int main() {
+        try { f(); }
+        catch (const std::exception& e) { std::cout << "|" << e.what(); }
+        std::cout << "\n";
+    }
+  answer: ~a|boum
+  e: |-
+    Le **déroulement de pile** (stack unwinding) détruit tous les objets locaux des portées traversées, dans l'ordre inverse de construction, **avant** que le `catch` ne s'exécute.
+
+    C'est la garantie qui rend RAII et exceptions compatibles : aucune ressource n'est perdue quand une exception traverse ton code.
+
+    Note l'ordre : `~a` **puis** le message. Le destructeur passe pendant le déroulement, pas après.
+
+    Ce qui n'est **pas** détruit : la mémoire allouée par `new` sans propriétaire RAII, les descripteurs ouverts à la main, les verrous pris sans `lock_guard`. C'est exactement pourquoi on n'écrit plus de `new` nu.
+
+    `e.what()` renvoie un `const char*` valide tant que l'exception vit — ne le stocke pas au-delà du `catch`.
+- id: cpp10.16
+  type: qcm
+  level: 2
+  concepts:
+  - optional
+  q: '`std::optional<T&>` — pourquoi ça ne compile pas ?'
+  choices:
+  - t: 'Le standard ne l’autorise pas : une référence ne peut pas être réassignée, ce qui rendrait la sémantique ambiguë'
+    ok: true
+    why: '`opt = autre_ref` devrait-il rebinder ou affecter la valeur pointée ? Le comité a préféré interdire.'
+  - t: Ce serait trop coûteux
+    ok: false
+    why: Ce serait au contraire un simple pointeur.
+  - t: Les références ne peuvent pas être nulles
+    ok: false
+    why: Vrai, mais ce n’est pas la raison de l’interdiction.
+  - t: C’est autorisé depuis C++20
+    ok: false
+    why: Toujours pas ; la proposition revient régulièrement.
+  e: |-
+    Les alternatives selon l'intention :
+    - `T*` — le pointeur nul signifie « absent ». Simple, léger, idiomatique pour un paramètre optionnel non-propriétaire.
+    - `std::reference_wrapper<T>` — copiable et réassignable, stockable dans un `optional` ou un conteneur.
+    - `std::optional<std::reference_wrapper<T>>` — verbeux mais correct.
+
+    En pratique, pour un paramètre optionnel :
+    ```cpp
+    void calibrer(Mesure& m, const Coeffs* c = nullptr);   // clair et léger
+    ```
+
+    Retiens la distinction générale : un `optional<T>` **possède** une valeur ou rien ; un `T*` **observe** un objet ou rien. Ne les confonds pas — c'est la même distinction qu'entre `unique_ptr` (propriété) et pointeur nu (observation).

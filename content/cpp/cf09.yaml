@@ -1,0 +1,369 @@
+id: cf09
+track: cpp
+title: struct et class
+goal: Regrouper des données qui vont ensemble, protéger leurs règles avec une classe, et écrire des constructeurs et des méthodes const.
+level: fondations
+requires: [cf08]
+concepts: [struct, class, constructeur, encapsulation, const-methode]
+lesson:
+  minutes: 18
+  intro: |
+    Une mesure, ce n'est pas qu'un nombre : c'est une valeur, une unité, un instant, un capteur. Transporter ces quatre informations dans quatre variables séparées est une invitation au mélange. `struct` les regroupe en un seul type. Et quand ces données ont des **règles** (une consigne qui doit rester dans une plage, un buffer qui ne doit jamais déborder), la `class` permet de les faire respecter par construction.
+  steps:
+    - level: 1
+      title: Un formulaire avec des cases nommées
+      body: |
+        Une `struct` est un **formulaire** : un ensemble de cases nommées, chacune avec son type. On crée des formulaires remplis de ce modèle.
+
+        ```cpp
+        struct Mesure {
+            double valeur;
+            std::string unite;
+            uint32_t horodatage_ms;
+        };                                   // <- le point-virgule est obligatoire !
+
+        Mesure m{21.5, "°C", 120'000};
+        m.valeur += 0.1;                     // accès par le point
+        ```
+
+        C'est l'équivalent d'une `dataclass` Python. Un nouveau **type**, que tu peux passer à des fonctions, ranger dans un `std::vector<Mesure>`, renvoyer depuis une fonction.
+    - level: 2
+      title: Des structs dans des fonctions et des vecteurs
+      code: |
+        #include <iostream>
+        #include <string>
+        #include <vector>
+
+        struct Mesure {
+            std::string capteur;
+            double valeur = 0.0;        // valeur par défaut du membre
+            bool valide = true;
+        };
+
+        struct Resume {
+            double mini, maxi, moyenne;
+        };
+
+        Resume resumer(const std::vector<Mesure>& ms) {
+            Resume r{1e300, -1e300, 0.0};
+            int n = 0;
+            for (const Mesure& m : ms) {
+                if (!m.valide) continue;
+                r.mini = std::min(r.mini, m.valeur);
+                r.maxi = std::max(r.maxi, m.valeur);
+                r.moyenne += m.valeur;
+                ++n;
+            }
+            if (n > 0) r.moyenne /= n;
+            return r;
+        }
+
+        int main() {
+            std::vector<Mesure> ms{{"A", 21.5}, {"A", 22.1}, {"A", 85.0, false}, {"A", 21.8}};
+            Resume r = resumer(ms);
+            std::cout << r.mini << " " << r.maxi << " " << r.moyenne << '\n';
+        }
+      out: |
+        21.5 22.1 21.8
+      body: |
+        Une `struct` est parfaite pour **renvoyer plusieurs résultats** d'une fonction (ici `Resume`), et pour transporter des enregistrements. Les membres peuvent avoir une **valeur par défaut** (`double valeur = 0.0;`), ce qui évite le piège des membres non initialisés.
+    - level: 3
+      title: Une classe qui protège ses règles
+      body: |
+        Une **classe** ajoute deux choses : des **membres privés**, inaccessibles de l'extérieur, et des **méthodes** qui sont le seul moyen d'agir dessus. Le **constructeur** (une méthode qui porte le nom de la classe) initialise l'objet et peut refuser des valeurs invalides.
+
+        Exemple : une consigne de température qui doit toujours rester dans une plage.
+      code: |
+        #include <iostream>
+        #include <stdexcept>
+
+        class Consigne {
+        public:
+            Consigne(double mini, double maxi) : mini_(mini), maxi_(maxi), valeur_(mini) {
+                if (mini > maxi) throw std::invalid_argument("plage invalide");
+            }
+            void regler(double v) {                  // modifie l'objet
+                valeur_ = v < mini_ ? mini_ : (v > maxi_ ? maxi_ : v);
+            }
+            double valeur() const { return valeur_; }   // const : ne modifie rien
+        private:
+            double mini_, maxi_;
+            double valeur_;
+        };
+
+        int main() {
+            Consigne c(15.0, 80.0);
+            c.regler(95.0);
+            std::cout << c.valeur() << '\n';
+            c.regler(42.0);
+            std::cout << c.valeur() << '\n';
+            // c.valeur_ = 500;   // ERREUR : membre privé
+        }
+      out: |
+        80
+        42
+      after: |
+        - `public:` / `private:` : ce qui est accessible de l'extérieur ou non.
+        - `: mini_(mini), maxi_(maxi), valeur_(mini)` est la **liste d'initialisation** du constructeur : la façon correcte d'initialiser les membres.
+        - `double valeur() const` : le `const` après les parenthèses promet que la méthode ne modifie pas l'objet. On peut donc l'appeler sur un objet constant.
+        - Le `_` final (`valeur_`) est une convention courante pour repérer les membres privés.
+
+        **L'invariant** « la valeur est toujours dans `[mini, maxi]` » est garanti : aucun code extérieur ne peut le casser.
+    - level: 4
+      title: Les pièges de syntaxe des classes
+      body: |
+        **Le point-virgule après l'accolade.** `struct Mesure { ... }` sans `;` final provoque des erreurs déroutantes… souvent signalées sur la ligne **suivante**, voire dans un autre fichier si la déclaration est dans un en-tête.
+
+        **Le membre non initialisé.** Sans valeur par défaut ni initialisation dans le constructeur, un membre de type `int` ou `double` contient n'importe quoi, comme une variable locale. Donne toujours une valeur par défaut aux membres.
+
+        **Le « most vexing parse ».** `Consigne c();` ne crée **pas** un objet avec le constructeur par défaut : C++ le lit comme la **déclaration d'une fonction** `c` sans paramètre qui renvoie une `Consigne`. L'erreur apparaît plus loin, quand tu essaies d'utiliser `c`. Avec les accolades, pas d'ambiguïté : `Consigne c{};`.
+
+        **Copie par défaut.** `Consigne d = c;` crée une **copie** indépendante (contrairement à Python, où ce serait le même objet). Modifier `d` ne touche pas `c`.
+      code: |
+        #include <iostream>
+
+        struct Compteur {
+            int valeur = 0;
+            void incrementer() { ++valeur; }
+        };
+
+        int main() {
+            Compteur a;
+            a.incrementer();
+            Compteur b = a;       // copie indépendante
+            b.incrementer();
+            b.incrementer();
+            std::cout << a.valeur << " " << b.valeur << '\n';
+        }
+      out: |
+        1 3
+    - level: 5
+      title: struct ou class ?
+      body: |
+        Techniquement, `struct` et `class` sont presque identiques : la seule différence est que les membres sont **publics par défaut** dans une `struct` et **privés par défaut** dans une `class`. L'usage fixe la convention :
+
+        - **`struct`** pour un simple **paquet de données** sans règle entre elles : une mesure, un point 3D, un résultat, une trame décodée.
+        - **`class`** dès qu'il y a un **invariant** à protéger ou une ressource à gérer : un buffer circulaire, un pilote de capteur, un régulateur PID avec son état interne.
+
+        En embarqué, les `struct` servent aussi à décrire la disposition exacte de données binaires (l'en-tête d'une trame, la carte des registres d'un périphérique).
+  recap:
+    - "`struct Nom { type membre; ... };` regroupe des données. Le `;` final est obligatoire."
+    - "Accès par `.`, initialisation `Mesure m{21.5, \"°C\"};`, valeurs par défaut des membres."
+    - "`class` : membres `private`, méthodes `public`, constructeur avec liste d'initialisation."
+    - "`const` après une méthode : elle ne modifie pas l'objet. `Classe x();` déclare une fonction ; écris `Classe x{};`."
+    - "Les objets C++ se **copient** à l'affectation. `struct` pour les données, `class` pour les invariants."
+  pieges: [cpp-struct-point-virgule, cpp-most-vexing-parse, cpp-variable-non-initialisee]
+exercises:
+  - id: cf09.1
+    type: predict
+    level: 1
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+
+      struct Point {
+          double x = 0.0;
+          double y = 0.0;
+      };
+
+      int main() {
+          Point p{3.0, 4.0};
+          Point q;
+          q.x = p.x * 2;
+          std::cout << q.x << " " << q.y << " " << p.y << '\n';
+      }
+    answer: 6 0 4
+    e: "`q` utilise les valeurs par défaut des membres (0.0), puis `q.x` est modifié. `p` est initialisé avec les accolades dans l'ordre des membres."
+  - id: cf09.2
+    type: bug
+    level: 1
+    q: "Ce fichier ne compile pas, avec une erreur qui pointe la ligne `int main() {`. Où est la vraie faute ?"
+    code: |
+      #include <string>
+
+      struct Capteur {
+          std::string nom;
+          double gain = 1.0;
+      }
+
+      int main() {
+          Capteur c{"PT100", 2.0};
+          return 0;
+      }
+    bad: 6
+    fix: "};"
+    piege: cpp-struct-point-virgule
+    e: "Il manque le `;` après l'accolade fermante de la `struct`. Le compilateur s'en aperçoit en lisant la suite, d'où une erreur signalée plus bas. Réflexe : erreur incompréhensible juste après une `struct` ou une `class` → vérifie le `};`."
+  - id: cf09.3
+    type: predict
+    level: 2
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+
+      struct Stock {
+          int quantite = 10;
+      };
+
+      void retirer(Stock s, int n) { s.quantite -= n; }
+      void retirer_ref(Stock& s, int n) { s.quantite -= n; }
+
+      int main() {
+          Stock a;
+          retirer(a, 3);
+          retirer_ref(a, 4);
+          std::cout << a.quantite << '\n';
+      }
+    answer: "6"
+    trap_answers: ["3", "10"]
+    piege: cpp-passage-par-valeur
+    e: "`retirer` reçoit une **copie** de la struct : sans effet sur `a`. `retirer_ref` reçoit une référence : `a` passe de 10 à 6."
+  - id: cf09.4
+    type: qcm
+    level: 2
+    q: "`Capteur c();` suivi de `c.lire();` ne compile pas. Pourquoi ?"
+    piege: cpp-most-vexing-parse
+    choices:
+      - t: "`Capteur c();` déclare une fonction `c` qui renvoie un `Capteur`, pas un objet."
+        ok: true
+      - t: "Il manque un argument au constructeur."
+        piege: true
+        why: "Même si un constructeur sans argument existe, cette ligne ne l'appelle pas."
+      - t: "`lire` doit être déclarée `const`."
+        why: "Ce n'est pas le problème ici."
+    e: "C'est le « most vexing parse » : tout ce qui peut être lu comme une déclaration de fonction l'est. Écris `Capteur c;` ou `Capteur c{};`."
+  - id: cf09.5
+    type: cloze
+    level: 2
+    q: "Complète la classe : le compteur est privé, `valeur()` ne modifie pas l'objet, et le constructeur initialise le compteur."
+    lang: cpp
+    tpl: |
+      class Compteur {
+      ⟦0⟧:
+          explicit Compteur(int depart) ⟦1⟧ n_(depart) {}
+          void incrementer() { ++n_; }
+          int valeur() ⟦2⟧ { return n_; }
+      private:
+          int n_;
+      };
+    blanks:
+      - [public]
+      - [":"]
+      - [const]
+    verify: compile
+    e: "`public:` pour l'interface, `:` introduit la liste d'initialisation, `const` après la méthode promet de ne pas modifier l'objet. `explicit` empêche une conversion implicite d'un `int` en `Compteur` (bonne habitude pour les constructeurs à un paramètre)."
+  - id: cf09.6
+    type: code
+    level: 2
+    lang: cpp
+    q: |
+      Écris une `struct Statistiques { int n; double moyenne; double maxi; };` et une fonction `Statistiques calculer(const std::vector<double>& v)`. Pour un vecteur vide : `{0, 0.0, 0.0}`.
+    start: |
+      #include <vector>
+
+      struct Statistiques {
+          int n;
+          double moyenne;
+          double maxi;
+      };
+
+      Statistiques calculer(const std::vector<double>& v) {
+          return {0, 0.0, 0.0};  // à compléter
+      }
+    sol: |
+      #include <vector>
+
+      struct Statistiques {
+          int n;
+          double moyenne;
+          double maxi;
+      };
+
+      Statistiques calculer(const std::vector<double>& v) {
+          if (v.empty()) {
+              return {0, 0.0, 0.0};
+          }
+          double somme = 0.0;
+          double mx = v[0];
+          for (double x : v) {
+              somme += x;
+              if (x > mx) {
+                  mx = x;
+              }
+          }
+          return {static_cast<int>(v.size()), somme / static_cast<double>(v.size()), mx};
+      }
+    tests: |
+      #include <cassert>
+      #include <cmath>
+      #include <iostream>
+      int main() {
+          Statistiques s = calculer({2.0, 8.0, 5.0});
+          assert(s.n == 3 && std::fabs(s.moyenne - 5.0) < 1e-12 && s.maxi == 8.0);
+          Statistiques z = calculer({});
+          assert(z.n == 0 && z.moyenne == 0.0);
+          Statistiques neg = calculer({-3.0, -1.0});
+          assert(neg.maxi == -1.0);
+          std::cout << "OK\n";
+      }
+    e: "Initialiser `mx` à `v[0]` (et non à 0) fait marcher le cas où toutes les valeurs sont négatives : c'est ce que vérifie le dernier test."
+  - id: cf09.7
+    type: qcm
+    level: 1
+    q: "Quelle est la seule différence technique entre `struct` et `class` ?"
+    choices:
+      - t: "Les membres sont publics par défaut dans une `struct`, privés par défaut dans une `class`."
+        ok: true
+      - t: "Une `struct` ne peut pas avoir de méthodes."
+        why: "Elle peut en avoir, comme une classe (c'est une différence avec le C)."
+      - t: "Une `class` est allouée sur le tas, une `struct` sur la pile."
+        why: "L'emplacement mémoire ne dépend pas du mot-clé, mais de la façon dont l'objet est créé."
+    e: "La différence est de convention : `struct` pour un paquet de données ouvert, `class` pour un objet qui protège ses règles."
+  - id: cf09.8
+    type: predict
+    level: 2
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+      #include <vector>
+
+      struct Mesure {
+          double v;
+      };
+
+      int main() {
+          std::vector<Mesure> ms{{1.0}, {2.0}};
+          Mesure m = ms[0];
+          m.v = 10.0;
+          Mesure& r = ms[1];
+          r.v = 20.0;
+          std::cout << ms[0].v << " " << ms[1].v << '\n';
+      }
+    answer: 1 20
+    trap_answers: ["10 20"]
+    e: "`Mesure m = ms[0];` copie l'élément : modifier `m` ne change pas le vecteur. `Mesure& r = ms[1];` est une référence vers l'élément : la modification l'atteint."
+  - id: cf09.9
+    type: flash
+    level: 2
+    q: "Qu'est-ce qu'un **invariant** de classe ? Donne un exemple."
+    back: "Une propriété qui doit toujours être vraie pour un objet valide, garantie par le constructeur et préservée par chaque méthode publique. Exemple : dans un buffer circulaire, `0 <= taille <= capacite` ; dans une consigne, `mini <= valeur <= maxi`."
+    e: "C'est précisément pour protéger un invariant qu'on rend les membres privés : si n'importe quel code pouvait écrire `valeur_ = 500`, l'invariant ne voudrait plus rien dire."
+  - id: cf09.10
+    type: parsons
+    level: 3
+    q: "Reconstruis une classe `Moyenneur` qui accumule des valeurs et renvoie leur moyenne (0 si aucune)."
+    lang: cpp
+    lines:
+      - "class Moyenneur {"
+      - "public:"
+      - "    void ajouter(double x) { somme_ += x; ++n_; }"
+      - "    double moyenne() const { return n_ == 0 ? 0.0 : somme_ / n_; }"
+      - "private:"
+      - "    double somme_ = 0.0;"
+      - "    int n_ = 0;"
+      - "};"
+    extra:
+      - "    double moyenne() const { ++n_; return somme_ / n_; }"
+      - "}"
+    verify: compile
+    e: "Les membres ont une valeur par défaut, `moyenne()` est `const` et gère le cas vide. Les intrus : une méthode `const` qui modifie `n_` (erreur de compilation), et une accolade fermante sans le `;` obligatoire."

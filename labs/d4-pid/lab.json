@@ -1,0 +1,15 @@
+{
+  "id": "d4",
+  "ordre": 25,
+  "lang": "cpp",
+  "genre": "defi",
+  "niveau": "avancé",
+  "minutes": 180,
+  "titre": "Régulateur PID en virgule fixe",
+  "modules": ["cpp01", "cpp09", "cpp12"],
+  "resume": "Un PID entier pour un microcontrôleur sans FPU : types de largeur fixe, produits en 64 bits, sortie saturée, intégrale sans emballement.",
+  "interdits": [
+    {"fichier": "pid.cpp", "motif": "\\b(float|double)\\b", "message": "aucun flottant dans le chemin de calcul"},
+    {"fichier": "pid.hpp", "motif": "\\b(float|double)\\b", "message": "aucun flottant dans le chemin de calcul"}
+  ]
+}

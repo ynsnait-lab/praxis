@@ -1,0 +1,11 @@
+{
+  "id": "py-03",
+  "ordre": 3,
+  "lang": "python",
+  "genre": "lab",
+  "niveau": "avancé",
+  "minutes": 45,
+  "titre": "Un pipeline de générateurs",
+  "modules": ["py05", "py06"],
+  "resume": "Lire, filtrer, lisser et détecter des fronts sur un flux de mesures potentiellement infini, en mémoire constante."
+}

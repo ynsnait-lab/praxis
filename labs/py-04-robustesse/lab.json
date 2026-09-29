@@ -1,0 +1,11 @@
+{
+  "id": "py-04",
+  "ordre": 4,
+  "lang": "python",
+  "genre": "lab",
+  "niveau": "avancé",
+  "minutes": 45,
+  "titre": "Une acquisition qui ne meurt pas",
+  "modules": ["py07"],
+  "resume": "Exception dédiée, tri d'un lot sans jamais s'arrêter, chronomètre en context manager et décorateur de nouvelles tentatives."
+}

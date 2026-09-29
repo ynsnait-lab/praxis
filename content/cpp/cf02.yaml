@@ -1,0 +1,349 @@
+id: cf02
+track: cpp
+title: Variables et types
+goal: Déclarer des variables typées, initialisées, et choisir le bon type — y compris les entiers à taille fixe de l'embarqué.
+level: fondations
+requires: [cf01]
+concepts: [types, initialisation, const, cstdint]
+lesson:
+  minutes: 16
+  intro: |
+    En Python, une variable est une étiquette qu'on peut recoller sur n'importe quelle valeur. En C++, une variable est une **boîte d'une forme précise**, décidée une fois pour toutes : elle ne contiendra jamais que des entiers, ou que des nombres à virgule. Cette rigidité est ce qui permet au compilateur de détecter des erreurs avant l'exécution et de produire du code rapide. Elle apporte aussi ses pièges, dont le plus célèbre : la boîte jamais remplie.
+  steps:
+    - level: 1
+      title: Une boîte d'une forme précise
+      body: |
+        Déclarer une variable, c'est réserver une boîte en mémoire en donnant **son type** et **son nom** :
+
+        ```cpp
+        int nb_mesures = 0;          // un entier
+        double temperature = 21.5;   // un nombre à virgule
+        bool alarme = false;         // vrai / faux
+        char unite = 'C';            // UN caractère, entre apostrophes
+        ```
+
+        Une fois déclarée, `temperature` ne pourra jamais contenir de texte : `temperature = "chaud";` est refusé à la compilation. C'est ce qu'on appelle le **typage statique**.
+    - level: 2
+      title: Les types de base
+      body: |
+        | Type | Contient | Taille typique (PC 64 bits) | Exemple |
+        | --- | --- | --- | --- |
+        | `int` | entier signé | 4 octets (±2,1 milliards) | `int n = -42;` |
+        | `double` | nombre à virgule, ~15 chiffres significatifs | 8 octets | `double v = 3.3;` |
+        | `float` | nombre à virgule, ~7 chiffres | 4 octets | `float f = 3.3f;` |
+        | `bool` | `true` ou `false` | 1 octet | `bool ok = true;` |
+        | `char` | un caractère (un petit entier) | 1 octet | `char c = 'A';` |
+        | `std::string` | du texte (`#include <string>`) | variable | `std::string nom = "PT100";` |
+
+        Par défaut, prends `double` pour les grandeurs physiques et `int` pour compter. Un **littéral** `3.3` est un `double` ; `3.3f` (avec `f`) est un `float`.
+
+        Le mot-clé **`auto`** laisse le compilateur déduire le type depuis la valeur initiale : `auto x = 3.3;` fait de `x` un `double`. Le type est toujours fixé, simplement tu ne l'écris pas.
+      code: |
+        #include <iostream>
+        #include <string>
+
+        int main() {
+            int n = 7;
+            double moyenne = 21.54;
+            auto seuil = 30.0;            // double
+            std::string capteur = "PT100-A";
+            char unite = 'C';
+            std::cout << capteur << " : " << moyenne << " °" << unite
+                      << " (n=" << n << ", seuil=" << seuil << ")\n";
+            std::cout << sizeof(int) << " " << sizeof(double) << " " << sizeof(char) << '\n';
+        }
+      out: |
+        PT100-A : 21.54 °C (n=7, seuil=30)
+        4 8 1
+      after: |
+        `sizeof(type)` donne la taille en octets. Remarque que `std::cout` affiche `30.0` comme `30` : l'affichage par défaut supprime les zéros inutiles.
+    - level: 3
+      title: Initialiser, toujours — et avec des accolades
+      body: |
+        C++ offre plusieurs façons d'initialiser. La forme moderne recommandée utilise des **accolades** :
+
+        ```cpp
+        int n{5};
+        double gain{2.5};
+        int compteur{};      // accolades vides : zéro
+        ```
+
+        L'avantage : les accolades **interdisent les conversions qui perdent de l'information** (le *narrowing*). `int n = 3.7;` compile et tronque silencieusement à 3 ; `int n{3.7};` est une **erreur de compilation**.
+
+        Et les **constantes** : `const double G = 9.81;` ne peut plus être modifiée. `constexpr` va plus loin : la valeur est calculée **à la compilation** (idéal pour les tailles de tableaux et les paramètres fixes d'un firmware).
+      code: |
+        #include <iostream>
+
+        int main() {
+            int a = 3.7;          // compile (avec un warning) : a vaut 3
+            // int b{3.7};        // ERREUR de compilation : narrowing
+            constexpr double PI = 3.141592653589793;
+            constexpr int N_ECHANTILLONS = 1024;
+            const double rayon = 0.02;
+            std::cout << a << " " << PI * rayon * rayon << " " << N_ECHANTILLONS / 2 << '\n';
+        }
+      out: |
+        3 0.00125664 512
+      flags: [-Wno-literal-conversion, -Wno-float-conversion]
+      check:
+        q: "Que vaut `n` après `int n = 9.99;` ?"
+        choices:
+          - t: "9"
+            ok: true
+            why: "La conversion `double` → `int` **tronque** vers zéro : la partie décimale est jetée, il n'y a pas d'arrondi."
+          - t: "10"
+            why: "Il n'y a pas d'arrondi. Pour arrondir : `std::lround(9.99)` (dans `<cmath>`)."
+          - t: "Une erreur de compilation."
+            why: "Avec `=`, ça compile (un avertissement au mieux). C'est `int n{9.99};` qui serait refusé."
+    - level: 4
+      title: La boîte jamais remplie
+      body: |
+        Voici le piège n°1 du C++ : une variable locale déclarée **sans valeur initiale** contient… n'importe quoi. Ce qui traînait dans cette zone de mémoire. La lire est un **comportement indéfini** (*undefined behavior*, UB) : le standard n'impose rien, le programme peut afficher une valeur aléatoire, marcher par hasard sur ton Mac et échouer sur l'ESP32, ou même être « optimisé » de façon absurde par le compilateur.
+
+        ```cpp
+        int total;                 // valeur indéterminée !
+        for (int i = 0; i < 3; ++i) {
+            total += i;            // UB : on part de n'importe quoi
+        }
+        ```
+
+        Python t'aurait arrêté avec une `NameError`. C++ te laisse faire. Défense : **toujours initialiser** (`int total{};` ou `int total = 0;`), compiler avec `-Wall` (qui détecte beaucoup de cas : `variable 'total' is uninitialized when used here`), et utiliser les sanitizers.
+
+        Deuxième surprise : **`char` est un petit entier**. `'A'` vaut 65 (code ASCII), `'0'` vaut 48. D'où l'astuce classique `'7' - '0'` qui donne l'entier 7… et le piège `std::cout << (char)65` qui affiche `A`, pas 65.
+      code: |
+        #include <iostream>
+
+        int main() {
+            char c = 'A';
+            std::cout << c << " " << (int)c << " " << c + 1 << '\n';
+            char chiffre = '7';
+            int valeur = chiffre - '0';
+            std::cout << valeur * 2 << '\n';
+        }
+      out: |
+        A 65 66
+        14
+    - level: 5
+      title: Les entiers à taille fixe de l'embarqué
+      body: |
+        La taille d'un `int` **n'est pas fixée** par le standard (au moins 16 bits). Il fait 32 bits sur ton Mac et sur un ESP32… mais **16 bits** sur un Arduino Uno (AVR), où il déborde à 32 767 ! Pour du code embarqué ou des échanges binaires (trames, registres), on utilise les types de `<cstdint>`, dont la taille est **garantie** :
+
+        | Type | Bits | Plage |
+        | --- | --- | --- |
+        | `uint8_t` | 8, non signé | 0 à 255 |
+        | `int8_t` | 8, signé | −128 à 127 |
+        | `uint16_t` / `int16_t` | 16 | 0 à 65 535 / −32 768 à 32 767 |
+        | `uint32_t` / `int32_t` | 32 | 0 à ~4,29 milliards / ±2,1 milliards |
+        | `uint64_t` / `int64_t` | 64 | très grand |
+
+        Règles pratiques :
+        - octets d'une trame, registres, valeurs brutes d'ADC → `uint8_t`, `uint16_t` ;
+        - compteurs de temps (`millis()`) → `uint32_t` ;
+        - grandeurs physiques calculées → `float` sur microcontrôleur (l'ESP32 a une unité de calcul flottant simple précision), `double` sur PC.
+  recap:
+    - "Chaque variable a un type fixé à la déclaration : `int`, `double`, `bool`, `char`, `std::string`… `auto` le déduit."
+    - "Initialise **toujours**. Lire une variable non initialisée est un comportement indéfini."
+    - "Accolades `int n{3.7};` : les conversions qui perdent de l'information deviennent des erreurs."
+    - "`const` : non modifiable ; `constexpr` : connu à la compilation."
+    - "Embarqué : `uint8_t`, `int16_t`, `uint32_t`… de `<cstdint>` ; un `int` fait 16 bits sur AVR."
+  pieges: [cpp-variable-non-initialisee, cpp-conversion-implicite, cpp-int-16-bits]
+exercises:
+  - id: cf02.1
+    type: predict
+    level: 1
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+
+      int main() {
+          int a = 7;
+          double b = 7;
+          int c = 7.9;
+          std::cout << a / 2 << " " << b / 2 << " " << c << '\n';
+      }
+    answer: 3 3.5 7
+    trap_answers: ["3.5 3.5 8", "3 3.5 8"]
+    flags: [-Wno-literal-conversion, -Wno-float-conversion]
+    piege: cpp-conversion-implicite
+    e: |
+      - `a / 2` : entier divisé par entier → division entière → 3.
+      - `b / 2` : `b` est un `double` (le 7 a été converti à l'initialisation) → 3.5.
+      - `int c = 7.9` : conversion vers `int` par **troncature** → 7 (pas d'arrondi).
+  - id: cf02.2
+    type: qcm
+    level: 1
+    q: "Que contient `x` après `int x;` déclaré à l'intérieur d'une fonction, sans autre instruction ?"
+    piege: cpp-variable-non-initialisee
+    choices:
+      - t: "Une valeur indéterminée : la lire est un comportement indéfini."
+        ok: true
+      - t: "0"
+        piege: true
+        why: "C'est vrai pour les variables **globales** (et `static`), jamais pour les variables locales."
+      - t: "Rien, le compilateur refuse la déclaration."
+        why: "La déclaration est légale. C'est sa lecture avant affectation qui pose problème."
+    e: "Initialise toujours : `int x{};` (zéro) ou `int x = valeur;`. `-Wall` signale beaucoup de lectures non initialisées, les sanitizers le reste."
+  - id: cf02.3
+    type: bug
+    level: 2
+    q: "Ce programme doit afficher la somme 0 + 1 + 2 + 3 = 6, mais il affiche un nombre différent à chaque exécution. Quelle ligne corriger ?"
+    code: |
+      #include <iostream>
+
+      int main() {
+          int somme;
+          for (int i = 0; i < 4; ++i) {
+              somme += i;
+          }
+          std::cout << somme << '\n';
+      }
+    bad: 4
+    fix: "    int somme = 0;"
+    piege: cpp-variable-non-initialisee
+    e: "`somme` démarre avec ce qui traîne en mémoire. Chaque `+=` part de cette valeur. Le résultat « aléatoire » est typique d'une variable non initialisée."
+  - id: cf02.4
+    type: qcm
+    level: 2
+    q: "Laquelle de ces lignes est refusée par le compilateur ?"
+    piege: cpp-conversion-implicite
+    choices:
+      - t: "`int n{2.5};`"
+        ok: true
+        why: "L'initialisation par accolades interdit la perte d'information (narrowing)."
+      - t: "`int n = 2.5;`"
+        why: "Acceptée (tronquée à 2), au mieux avec un avertissement."
+      - t: "`double d{2};`"
+        why: "`int` → `double` ne perd rien : accepté."
+      - t: "`auto n = 2.5;`"
+        why: "Aucune conversion : `n` est simplement un `double`."
+    e: "C'est la raison principale de préférer les accolades : elles transforment un bug silencieux en erreur de compilation."
+  - id: cf02.5
+    type: predict
+    level: 2
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+
+      int main() {
+          char a = '5';
+          char b = '3';
+          std::cout << a + b << " " << (a - '0') + (b - '0') << '\n';
+      }
+    answer: 104 8
+    trap_answers: ["53 8", "8 8"]
+    e: "Un `char` est un petit entier : `'5'` vaut 53 et `'3'` vaut 51 (codes ASCII), leur somme vaut 104. Retrancher `'0'` (48) convertit un chiffre-caractère en sa valeur. Et `a + b` est calculé en `int` : `cout` affiche un nombre, pas un caractère."
+  - id: cf02.6
+    type: cloze
+    level: 1
+    q: "Complète avec des types à taille fixe : un octet non signé et un compteur 32 bits non signé."
+    lang: cpp
+    tpl: |
+      #include <cstdint>
+      #include <iostream>
+
+      int main() {
+          ⟦0⟧ octet = 200;
+          ⟦1⟧ ticks = 4000000000u;
+          std::cout << static_cast<int>(octet) << " " << ticks << '\n';
+      }
+    blanks:
+      - [uint8_t, std::uint8_t]
+      - [uint32_t, std::uint32_t]
+    verify: compile
+    e: "`uint8_t` va de 0 à 255, `uint32_t` jusqu'à ~4,29 milliards. On convertit `octet` en `int` pour l'afficher, sinon `cout` le traiterait comme un caractère (le 200ᵉ de la table)."
+  - id: cf02.7
+    type: predict
+    level: 3
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <cstdint>
+      #include <iostream>
+
+      int main() {
+          uint8_t x = 65;
+          std::cout << x << " " << +x << '\n';
+      }
+    answer: A 65
+    trap_answers: ["65 65"]
+    e: "`uint8_t` est en pratique un `unsigned char` : `cout` l'affiche comme un **caractère** (65 = `A`). Le `+` unaire le promeut en `int`, qui s'affiche comme un nombre. Piège fréquent en déboguant des trames d'octets."
+  - id: cf02.8
+    type: qcm
+    level: 2
+    q: "Sur un Arduino Uno (AVR 8 bits), `int n = 30000; n = n + 5000;`. Que vaut `n` ?"
+    piege: cpp-int-16-bits
+    choices:
+      - t: "Débordement : un `int` fait 16 bits sur AVR (max 32 767). Formellement indéfini, en pratique une valeur négative."
+        ok: true
+      - t: "35 000"
+        piege: true
+        why: "Ce serait le cas sur un ESP32 ou un PC, où `int` fait 32 bits."
+      - t: "32 767 (saturation)"
+        why: "Les entiers ne saturent pas automatiquement en C++."
+    e: "Le même code donne des résultats différents selon la cible. D'où la règle de l'embarqué : `int32_t` quand la plage compte, jamais un `int` dont on suppose la taille."
+  - id: cf02.9
+    type: predict
+    level: 1
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+      #include <string>
+
+      int main() {
+          auto a = 5;
+          auto b = 5.0;
+          auto c = std::string("5");
+          std::cout << a / 2 << " " << b / 2 << " " << c + c << '\n';
+      }
+    answer: 2 2.5 55
+    e: "`auto` déduit `int` pour `5`, `double` pour `5.0`, `std::string` pour la chaîne. Le type est donc fixé comme si tu l'avais écrit, avec les mêmes règles (division entière pour `a`, concaténation pour `c`)."
+  - id: cf02.10
+    type: flash
+    level: 1
+    q: "Plages de `uint8_t`, `int16_t`, `uint16_t` et `uint32_t` ?"
+    back: |
+      - `uint8_t` : 0 à 255
+      - `int16_t` : −32 768 à 32 767
+      - `uint16_t` : 0 à 65 535
+      - `uint32_t` : 0 à 4 294 967 295
+    e: "Un ADC 12 bits (ESP32) donne 0 à 4095 : il tient dans un `uint16_t`."
+  - id: cf02.11
+    type: qcm
+    level: 2
+    q: "Pour une constante physique utilisée dans tout un firmware (par exemple la période d'échantillonnage en µs), quelle déclaration préférer ?"
+    choices:
+      - t: "`constexpr uint32_t PERIODE_US = 1000;`"
+        ok: true
+        why: "Connue à la compilation, typée, non modifiable, avec l'unité dans le nom."
+      - t: "`#define PERIODE_US 1000`"
+        why: "Fonctionne, mais une macro n'a ni type ni portée : c'est un simple remplacement de texte. À éviter en C++ moderne."
+      - t: "`int periode = 1000;`"
+        why: "Modifiable par erreur, et sans unité."
+    e: "`constexpr` remplace avantageusement les `#define` du C : même coût nul à l'exécution, mais avec un type vérifié et une portée."
+  - id: cf02.12
+    type: code
+    level: 1
+    lang: cpp
+    q: |
+      Écris `double celsius_vers_fahrenheit(double c)` : $F = C \times \dfrac{9}{5} + 32$.
+
+      Attention au piège de la division entière dans `9/5`.
+    start: |
+      double celsius_vers_fahrenheit(double c) {
+          return 0.0;  // à remplacer
+      }
+    sol: |
+      double celsius_vers_fahrenheit(double c) {
+          return c * 9.0 / 5.0 + 32.0;
+      }
+    tests: |
+      #include <cassert>
+      #include <cmath>
+      #include <iostream>
+      int main() {
+          assert(std::fabs(celsius_vers_fahrenheit(0) - 32.0) < 1e-9);
+          assert(std::fabs(celsius_vers_fahrenheit(100) - 212.0) < 1e-9);
+          assert(std::fabs(celsius_vers_fahrenheit(37) - 98.6) < 1e-9);
+          std::cout << "OK\n";
+      }
+    piege: cpp-division-entiere
+    e: "Écrire `c * (9 / 5) + 32` donnerait `c * 1 + 32`, car `9 / 5` vaut 1 en division entière. Écrire les littéraux en `9.0` et `5.0` (ou multiplier d'abord, `c * 9 / 5`) règle le problème."

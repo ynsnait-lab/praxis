@@ -1,0 +1,742 @@
+id: py14
+track: python
+title: 'Concurrence : threads, asyncio, process'
+goal: Choisir le bon modèle selon que tu es bloqué par l’I/O ou par le CPU.
+level: avance
+requires:
+- py12
+concepts:
+- gil
+- threads
+- asyncio
+- multiprocessing
+lesson:
+  minutes: 20
+  intro: |
+    Interroger cinq instruments l'un après l'autre, quand chacun met 300 ms à répondre, c'est 1,5 s par cycle. Les interroger « en même temps », c'est 300 ms. Mais « en même temps » recouvre trois outils très différents en Python : les **threads**, **asyncio** et les **processus**. Le bon choix dépend d'une seule question : ton programme **attend** (instruments, réseau, disque) ou **calcule** ?
+  steps:
+    - level: 1
+      title: Un cuisinier, plusieurs plats
+      body: |
+        Un seul cuisinier peut préparer trois plats **à la fois** : il lance les pâtes, et pendant qu'elles cuisent, il coupe les légumes, puis surveille la sauce. Il ne travaille jamais sur deux choses dans la même seconde, mais il **n'attend jamais les bras croisés**. C'est la **concurrence** : elle sert quand le temps est fait d'attentes.
+
+        Pour éplucher deux fois plus de légumes, il n'y a pas de secret : il faut **deux cuisiniers**. C'est le **parallélisme** : il sert quand le temps est fait de calcul.
+
+        En Python (CPython classique), les threads se partagent un seul couteau, le **GIL** : un seul thread exécute du Python à un instant donné. Parfait pour attendre, inutile pour calculer plus vite.
+    - level: 2
+      title: Trois outils, deux familles de problèmes
+      body: |
+        - **Limité par les attentes** (*I/O-bound*) : réponses d'instruments, réseau, disque. Deux outils :
+          - **threads** (`threading`, `concurrent.futures.ThreadPoolExecutor`) : le système alterne entre eux, même au milieu d'une opération. Ils partagent la mémoire, donc il faut protéger les données partagées (`threading.Lock`) ou les faire circuler par une `queue.Queue` ;
+          - **asyncio** : un seul thread, des **coroutines** (`async def`) qui rendent la main volontairement à chaque `await`. `asyncio.gather` lance plusieurs attentes en même temps, `asyncio.wait_for` impose un délai maximal. Règle d'or : **aucun appel bloquant** (`time.sleep`, lecture série synchrone) dans une coroutine.
+        - **Limité par le calcul** (*CPU-bound*) : **processus** (`multiprocessing`, `concurrent.futures.ProcessPoolExecutor`). Chacun a son propre interpréteur et son propre GIL, donc un vrai parallélisme sur plusieurs cœurs. Les données échangées sont copiées (sérialisées), et le programme doit être protégé par `if __name__ == "__main__":`.
+        - Appeler `f()` quand `f` est définie avec `async def` n'exécute rien : cela crée une coroutine, qu'il faut `await`-er ou confier à `asyncio.run`.
+      check:
+        q: Un calcul pur Python (sans NumPy) prend 8 s. Tu le répartis sur 4 threads d'un Mac à 4 cœurs, avec CPython classique. Durée ?
+        choices:
+          - t: Toujours environ 8 s, voire un peu plus
+            ok: true
+            why: Le GIL ne laisse qu'un thread exécuter du Python à la fois ; les threads se relaient au lieu de calculer en parallèle.
+          - t: Environ 2 s
+            why: Il faudrait 4 processus pour cela (ou un calcul NumPy qui relâche le GIL).
+          - t: Le programme plante
+            why: Rien ne plante, ça ne va simplement pas plus vite.
+    - level: 3
+      title: asyncio, plusieurs instruments en même temps
+      body: |
+        Ni les threads ni `asyncio.run` ne fonctionnent dans l'interpréteur de l'app : ce code et le suivant s'affichent avec leur sortie réelle, à relancer sur ton Mac.
+      code: |
+        import asyncio
+        import time
+
+        async def interroger(nom, delai):
+            await asyncio.sleep(delai)          # attente qui rend la main (simule l'instrument)
+            return f"{nom} : OK"
+
+        async def principal():
+            t0 = time.perf_counter()
+            resultats = await asyncio.gather(
+                interroger("multimètre", 0.3),
+                interroger("thermomètre", 0.2),
+                interroger("jauge", 0.1),
+            )
+            print(resultats)
+            print(f"durée ≈ {time.perf_counter() - t0:.1f} s")    # la plus longue, pas la somme
+            try:
+                await asyncio.wait_for(interroger("oscilloscope", 5), timeout=0.2)
+            except TimeoutError:
+                print("oscilloscope : délai dépassé")
+
+        asyncio.run(principal())
+      out: |
+        ['multimètre : OK', 'thermomètre : OK', 'jauge : OK']
+        durée ≈ 0.3 s
+        oscilloscope : délai dépassé
+    - level: 3
+      title: Threads, verrou et file d'attente
+      code: |
+        import queue
+        import threading
+
+        compteur = 0
+        verrou = threading.Lock()
+
+        def incrementer(n):
+            global compteur
+            for _ in range(n):
+                with verrou:                    # une seule modification à la fois
+                    compteur += 1
+
+        threads = [threading.Thread(target=incrementer, args=(100_000,)) for _ in range(4)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()                            # attendre la fin de chacun
+        print(compteur)
+
+        file = queue.Queue()                    # déjà protégée pour plusieurs threads
+        FIN = object()                          # sentinelle d'arrêt
+
+        def acquisition():
+            for v in [20.1, 20.4, 20.9]:
+                file.put(v)
+            file.put(FIN)
+
+        def traitement():
+            while (v := file.get()) is not FIN:
+                print(f"traité : {v:.1f}")
+
+        producteur = threading.Thread(target=acquisition)
+        consommateur = threading.Thread(target=traitement)
+        producteur.start()
+        consommateur.start()
+        producteur.join()
+        consommateur.join()
+      out: |
+        400000
+        traité : 20.1
+        traité : 20.4
+        traité : 20.9
+      after: |
+        Le schéma **producteur / consommateur** est le squelette de presque tous les programmes d'acquisition : un thread lit l'instrument au rythme de l'instrument, un autre traite et enregistre, et la file absorbe les écarts de vitesse.
+    - level: 4
+      title: Sous le capot, rendre la main
+      body: |
+        Une boucle d'événements comme celle d'asyncio n'a rien de magique : c'est une file de tâches qu'on fait avancer **à tour de rôle**, chacune jusqu'au moment où elle rend la main. Les générateurs suffisent pour la reconstruire (asyncio ajoute les minuteries et la surveillance des entrées-sorties).
+
+        Le même jeu de rôle montre la **situation de concurrence** (*race condition*) : si une tâche est interrompue entre la **lecture** d'une variable partagée et son **écriture**, une autre tâche peut lire l'ancienne valeur, et l'une des deux écritures est perdue. Avec de vrais threads, l'interruption peut tomber n'importe où, de façon imprévisible ; ici elle est forcée par `yield`, donc le résultat est reproductible. Ce code tourne dans l'app.
+      code: |
+        from collections import deque
+
+        def ordonnanceur(taches):
+            file = deque(taches)
+            while file:
+                t = file.popleft()
+                try:
+                    next(t)                     # avancer jusqu'au prochain yield
+                    file.append(t)              # puis repasser en fin de file
+                except StopIteration:
+                    pass
+
+        def tache(nom, etapes):
+            for i in range(etapes):
+                print(f"{nom} : étape {i + 1}/{etapes}")
+                yield                           # « je rends la main » (l'équivalent d'un await)
+            print(f"{nom} : terminé")
+
+        ordonnanceur([tache("multimètre", 2), tache("jauge", 3)])
+
+        compteur = 0
+
+        def incrementer_naif(n):
+            global compteur
+            for _ in range(n):
+                lu = compteur                   # 1. lire
+                yield                           # l'autre tâche passe ici
+                compteur = lu + 1               # 2. écrire, en écrasant son travail
+
+        ordonnanceur([incrementer_naif(3), incrementer_naif(3)])
+        print("compteur :", compteur, "au lieu de 6")
+      run: true
+      out: |
+        multimètre : étape 1/2
+        jauge : étape 1/3
+        multimètre : étape 2/2
+        jauge : étape 2/3
+        multimètre : terminé
+        jauge : étape 3/3
+        jauge : terminé
+        compteur : 3 au lieu de 6
+    - level: 5
+      title: Sur le terrain
+      body: |
+        Choisir en dix secondes :
+
+        | Situation | Outil |
+        |---|---|
+        | Quelques instruments lents, code synchrone existant | threads (`ThreadPoolExecutor`) |
+        | Des dizaines de connexions réseau ou d'instruments | asyncio |
+        | Calcul lourd en Python pur | processus (`ProcessPoolExecutor`) |
+        | Calcul sur des tableaux | NumPy d'abord (il relâche le GIL) |
+
+        ```python
+        from concurrent.futures import ProcessPoolExecutor
+
+        def ajuster(fichier):
+            ...                                    # calcul lourd sur un fichier
+
+        if __name__ == "__main__":                 # obligatoire sur macOS et Windows
+            fichiers = [f"scan_{i:03d}.h5" for i in range(40)]
+            with ProcessPoolExecutor() as ex:      # un processus par cœur
+                resultats = list(ex.map(ajuster, fichiers))
+        ```
+
+        - Pour arrêter proprement un thread d'acquisition : un `threading.Event` que la boucle consulte (`while not stop.is_set():`), puis `join()`. On ne « tue » jamais un thread.
+        - Code bloquant à appeler depuis asyncio (pyserial synchrone, par exemple) : `await asyncio.to_thread(ser.read, 8)`.
+        - Une version de Python **sans GIL** (*free-threaded*) est officiellement prise en charge depuis Python 3.14, mais ce n'est pas celle installée par défaut, et toutes les bibliothèques ne la supportent pas encore.
+  recap:
+    - "Attendre (I/O) : threads ou asyncio. Calculer : processus ou NumPy."
+    - "GIL : un seul thread exécute du Python à la fois dans CPython classique."
+    - "Données partagées entre threads : `Lock`, ou mieux une `queue.Queue`."
+    - "asyncio : rendre la main à chaque `await`, jamais d'appel bloquant dans une coroutine."
+    - "Processus : `if __name__ == \"__main__\":` obligatoire, données copiées."
+  pieges: [py-gil-cpu, py-async-bloquant, py-race-condition]
+exercises:
+- id: py14.1
+  type: qcm
+  level: 2
+  concepts:
+  - gil
+  q: Tu as 4 cœurs et un calcul lourd purement CPU. Que donnent 4 threads Python (CPython classique) ?
+  choices:
+  - t: 'Aucun gain, parfois une perte : le GIL sérialise l’exécution du bytecode'
+    ok: true
+    why: Un seul thread exécute du bytecode Python à la fois. Le changement de contexte coûte en plus.
+  - t: Un gain d’environ 4×
+    ok: false
+    why: C’est ce qu’on obtient avec `multiprocessing`, pas avec des threads.
+  - t: Un gain de 2× environ
+    ok: false
+    why: Non, le GIL ne se partage pas à moitié.
+  - t: Une erreur à l’exécution
+    ok: false
+    why: Ça tourne, juste sans accélérer.
+  e: |-
+    Règle de décision :
+
+    | Nature du travail | Outil |
+    | --- | --- |
+    | Attente d’I/O (série, réseau, disque) | `threading` ou `asyncio` |
+    | Calcul pur Python | `multiprocessing` / `ProcessPoolExecutor` |
+    | Calcul NumPy / SciPy | souvent déjà parallèle en C, GIL relâché |
+
+    Le GIL est **relâché** pendant les I/O bloquantes et dans beaucoup de routines C (NumPy, zlib, compression). C’est pour ça que les threads accélèrent réellement une acquisition multi-instruments.
+
+    Python 3.13+ propose un mode « free-threaded » sans GIL (PEP 703), encore expérimental.
+- id: py14.2
+  type: qcm
+  level: 3
+  concepts:
+  - threads
+  q: Deux threads font `compteur += 1` un million de fois chacun. Résultat final ?
+  choices:
+  - t: 'Souvent inférieur à 2 000 000 : `+=` n’est pas atomique'
+    ok: true
+    why: C’est lire, ajouter, écrire — trois opérations, interruptibles entre elles.
+  - t: Toujours 2 000 000, le GIL protège
+    ok: false
+    why: Le GIL protège l’interpréteur, pas la cohérence de ta logique.
+  - t: Toujours 1 000 000
+    ok: false
+    why: Non, c’est aléatoire.
+  - t: Une exception
+    ok: false
+    why: 'Aucune : c’est le pire, ça échoue en silence.'
+  e: |-
+    Le GIL garantit qu’une **instruction bytecode** est atomique, pas une ligne de Python. `compteur += 1` se décompose en `LOAD`, `ADD`, `STORE`.
+
+    Protection :
+    ```python
+    verrou = threading.Lock()
+    with verrou:
+        compteur += 1
+    ```
+    Ou évite le partage : chaque thread accumule localement, on somme à la fin. **La donnée non partagée n’a pas besoin de verrou** — c’est toujours la meilleure solution.
+
+    `queue.Queue` est déjà thread-safe : c’est l’outil normal pour passer des mesures d’un thread d’acquisition à un thread de traitement.
+- id: py14.3
+  type: predict
+  level: 3
+  concepts:
+  - asyncio
+  q: Sortie ?
+  code: |-
+    import asyncio, time
+
+    async def tache(n):
+        await asyncio.sleep(0.1)
+        return n * 2
+
+    async def main():
+        t0 = time.perf_counter()
+        r = await asyncio.gather(tache(1), tache(2), tache(3))
+        print(r, round(time.perf_counter() - t0, 1))
+
+    asyncio.run(main())
+  answer: '[2, 4, 6] 0.1'
+  e: |-
+    `gather` lance les coroutines **concurremment** : 3 × 100 ms d’attente en parallèle → ~0,1 s, pas 0,3 s.
+
+    Points essentiels :
+    - `await` **rend la main** à la boucle d’événements. Un `time.sleep(0.1)` (bloquant) aurait donné 0,3 s et gelé toute l’application.
+    - `gather` conserve l’**ordre des arguments** dans le résultat, pas l’ordre d’achèvement.
+    - Une seule règle à retenir : **jamais d’appel bloquant dans une coroutine**. Sinon, `await asyncio.to_thread(fonction_bloquante, args)`.
+- id: py14.4
+  type: cloze
+  level: 3
+  concepts:
+  - threads
+  - multiprocessing
+  q: Parallélise proprement selon la nature du travail.
+  tpl: |-
+    from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+
+    # 20 instruments interrogés en réseau (attente d'I/O)
+    with ⟦0⟧(max_workers=8) as ex:
+        mesures = list(ex.map(interroger, adresses))
+
+    # FFT sur 200 blocs (calcul pur)
+    with ⟦1⟧() as ex:
+        spectres = list(ex.map(fft_bloc, blocs))
+  blanks:
+  - - ThreadPoolExecutor
+  - - ProcessPoolExecutor
+  e: |-
+    `concurrent.futures` donne la même API pour les deux : tu changes une classe.
+
+    Pièges de `ProcessPoolExecutor` :
+    - Les arguments et les résultats sont **sérialisés (pickle)** → coût réel, et les objets non picklables (socket, port série, lambda) passent mal.
+    - Sous Windows et macOS, le module principal est **réimporté** dans chaque processus → le garde `if __name__ == "__main__":` est **obligatoire**, sinon fork infini.
+
+    `ex.map` conserve l’ordre. `as_completed` traite les résultats dès qu’ils arrivent.
+- id: py14.5
+  type: qcm
+  level: 2
+  concepts:
+  - threads
+  q: Quel outil pour passer des mesures d’un thread d’acquisition vers un thread de traitement ?
+  choices:
+  - t: '`queue.Queue` — conçue pour ça, thread-safe, avec blocage et taille bornée'
+    ok: true
+    why: Elle gère le verrouillage, l’attente et la contre-pression (backpressure).
+  - t: Une `list` partagée
+    ok: false
+    why: '`append` est atomique sous le GIL, mais rien ne gère l’attente ni la limite de taille.'
+  - t: Une variable globale
+    ok: false
+    why: Course garantie dès qu’il y a plus d’une écriture.
+  - t: '`collections.deque` avec un `Lock` manuel'
+    ok: false
+    why: Ça marche, mais tu réimplémentes `Queue` avec plus de risques.
+  e: |-
+    ```python
+    q = queue.Queue(maxsize=1000)     # borne = contre-pression
+
+    # producteur (acquisition)
+    q.put(mesure)                     # bloque si plein → l'acquisition ralentit
+
+    # consommateur (traitement)
+    while (m := q.get()) is not SENTINELLE:
+        traiter(m)
+        q.task_done()
+    ```
+
+    Le `maxsize` est le point clé : sans borne, un consommateur plus lent que le producteur fait gonfler la file jusqu'à saturer la RAM. Avec une borne, le producteur ralentit — c'est la **contre-pression**.
+
+    Pour arrêter proprement, envoie une valeur sentinelle (`None` ou un objet dédié) plutôt que de tuer le thread : un thread Python ne se tue pas.
+
+    `queue.Queue` est aussi la brique de `ThreadPoolExecutor`.
+- id: py14.6
+  type: qcm
+  level: 3
+  concepts:
+  - gil
+  - threads
+  q: Dans quel cas des threads accélèrent-ils réellement un programme Python ?
+  choices:
+  - t: 'Quand le programme attend : réseau, port série, disque, ou appel C qui relâche le GIL'
+    ok: true
+    why: Le GIL est relâché pendant l’attente, donc les threads progressent en parallèle.
+  - t: Pour tout calcul, si on en met assez
+    ok: false
+    why: 'Le GIL sérialise le bytecode Python : aucun gain sur du calcul pur.'
+  - t: Uniquement sur une machine à un cœur
+    ok: false
+    why: Le nombre de cœurs ne change pas ce raisonnement.
+  - t: Jamais, il faut toujours des processus
+    ok: false
+    why: 'Faux : sur de l’I/O, les threads sont plus simples et plus efficaces que des processus.'
+  e: |-
+    Le GIL est **relâché** dans trois situations :
+    1. Les appels bloquants d'entrée/sortie (`read`, `recv`, `open`).
+    2. Les routines C longues qui le relâchent explicitement : NumPy, zlib, hashlib, la plupart des bibliothèques scientifiques.
+    3. `time.sleep`.
+
+    Cas typique en instrumentation : interroger 20 instruments réseau, chacun avec 100 ms de latence.
+    - Séquentiel : 2 s.
+    - 8 threads : ~0,3 s.
+    - Le CPU ne fait rien pendant ce temps — c'est bien de l'attente, pas du calcul.
+
+    Pour du calcul pur : `ProcessPoolExecutor`, ou déléguer à NumPy qui relâche déjà le GIL.
+
+    Python 3.13+ propose un interpréteur « free-threaded » sans GIL (PEP 703), encore expérimental et plus lent en monothread.
+- id: py14.7
+  type: predict
+  level: 3
+  concepts:
+  - asyncio
+  q: Sortie ?
+  code: |-
+    import asyncio
+
+    async def tache(n, d):
+        await asyncio.sleep(d)
+        return n
+
+    async def main():
+        r = await asyncio.gather(tache("a", 0.03), tache("b", 0.01))
+        print(r)
+        for f in asyncio.as_completed([tache("c", 0.03), tache("d", 0.01)]):
+            print(await f, end=" ")
+
+    asyncio.run(main())
+  answer: |-
+    ['a', 'b']
+    d c
+  e: |-
+    Deux façons de récolter des résultats concurrents :
+    - `gather` conserve l'**ordre des arguments**, quelle que soit la vitesse de chacun. Tu attends que tout soit fini.
+    - `as_completed` livre dans l'**ordre d'achèvement** : le plus rapide en premier. Tu commences à traiter avant la fin de tout.
+
+    Choisis `as_completed` quand tu peux traiter au fil de l'eau (afficher, écrire), `gather` quand tu as besoin de la correspondance avec les entrées.
+
+    Attention : par défaut, `gather` **propage la première exception** et laisse les autres tâches tourner. `gather(..., return_exceptions=True)` renvoie les exceptions comme des résultats — souvent ce que tu veux quand tu interroges 20 instruments dont un est en panne.
+
+    En 3.11+, `asyncio.TaskGroup` est l'API recommandée : elle annule proprement les tâches restantes en cas d'échec.
+- id: py14.8
+  type: bug
+  level: 3
+  concepts:
+  - asyncio
+  q: Cette coroutine gèle toute l’application. Clique sur la ligne fautive.
+  code: |-
+    import asyncio, time, requests
+
+    async def interroger(url):
+        reponse = requests.get(url, timeout=5)
+        return reponse.json()
+
+    async def main():
+        await asyncio.gather(*(interroger(u) for u in urls))
+  bad: 4
+  fix: |2-
+        async with aiohttp.ClientSession() as s:
+            async with s.get(url) as r:
+                return await r.json()
+  e: |-
+    `requests.get` est **bloquant**. Dans une coroutine, il bloque la **boucle d'événements entière** : plus aucune autre tâche ne progresse pendant les 5 secondes. Tes 20 requêtes deviennent séquentielles, et tout le reste de l'application est gelé.
+
+    La règle absolue d'asyncio : **jamais d'appel bloquant dans une coroutine.** Ni `requests`, ni `time.sleep`, ni `open().read()` sur un gros fichier, ni un calcul de 200 ms.
+
+    Trois solutions :
+    1. Une bibliothèque asynchrone : `aiohttp`, `asyncpg`, `aioserial`.
+    2. `await asyncio.to_thread(fonction_bloquante, args)` — déporte dans un thread.
+    3. Pour du CPU : `await loop.run_in_executor(ProcessPoolExecutor(), f, args)`.
+
+    Diagnostic : `asyncio.run(main(), debug=True)` signale les callbacks qui prennent plus de 100 ms.
+- id: py14.9
+  type: code
+  level: 3
+  concepts:
+  - threads
+  q: 'Écris `Compteur` : `incrementer()` thread-safe, `valeur` en lecture. Utilise `threading.Lock`.'
+  lang: python
+  start: |-
+    import threading
+
+    class Compteur:
+        def __init__(self):
+            ...
+  sol: |-
+    import threading
+
+    class Compteur:
+        def __init__(self):
+            self._n = 0
+            self._verrou = threading.Lock()
+
+        def incrementer(self, de=1):
+            with self._verrou:
+                self._n += de
+
+        @property
+        def valeur(self):
+            with self._verrou:
+                return self._n
+  tests: |-
+    import threading
+    c = Compteur()
+    c.incrementer()
+    c.incrementer(5)
+    assert c.valeur == 6, c.valeur
+
+    c2 = Compteur()
+    def travail():
+        for _ in range(10000):
+            c2.incrementer()
+    fils = [threading.Thread(target=travail) for _ in range(4)]
+    for f in fils: f.start()
+    for f in fils: f.join()
+    assert c2.valeur == 40000, f"course detectee : {c2.valeur}"
+    print("OK")
+  e: |-
+    `self._n += de` se décompose en LOAD / ADD / STORE : trois instructions bytecode, interruptibles entre elles. Sans verrou, deux threads peuvent lire la même valeur et écrire le même résultat — un incrément est perdu. Le test avec 4 × 10 000 le révèle systématiquement.
+
+    `with self._verrou:` garantit la libération même en cas d'exception : c'est du RAII, exactement comme le `std::lock_guard` du C++.
+
+    Verrouiller aussi la **lecture** paraît excessif pour un entier, mais c'est la bonne habitude : dès que l'état comporte deux champs qui doivent rester cohérents (une valeur et son horodatage), une lecture non protégée peut voir un état intermédiaire.
+
+    Alternative sans verrou : donner à chaque thread son propre compteur et sommer à la fin. **La donnée non partagée n'a besoin d'aucune synchronisation** — c'est toujours la meilleure solution quand elle est possible.
+- id: py14.10
+  type: qcm
+  level: 3
+  concepts:
+  - multiprocessing
+  q: Pourquoi `if __name__ == "__main__":` est-il obligatoire avec `multiprocessing` sous Windows et macOS ?
+  choices:
+  - t: 'Ces plateformes démarrent les processus enfants par « spawn » : ils réimportent le module principal'
+    ok: true
+    why: Sans le garde, chaque enfant relance le code de démarrage → fork infini.
+  - t: C’est une convention de style
+    ok: false
+    why: Ici c’est une nécessité technique, pas du style.
+  - t: Pour accélérer le démarrage
+    ok: false
+    why: Aucun rapport.
+  - t: Parce que Windows n’a pas de processus
+    ok: false
+    why: Windows a des processus, mais pas de `fork()`.
+  e: |-
+    Trois méthodes de démarrage :
+    - **fork** (Linux par défaut) : l'enfant est une copie du parent, rien n'est réimporté.
+    - **spawn** (Windows, macOS depuis 3.8) : un interpréteur neuf **réimporte le module principal**, puis appelle la fonction cible.
+
+    Avec spawn, tout ce qui est au niveau module s'exécute dans chaque enfant. Sans garde, la création de processus se relance à l'infini.
+
+    Conséquences pratiques à retenir :
+    - Les arguments et les résultats passent par **pickle** : les lambdas, sockets, ports série et fichiers ouverts ne passent pas.
+    - Le coût de démarrage (~50 ms par processus) rend `multiprocessing` inutile pour des tâches courtes.
+    - L'état global du parent n'est **pas** partagé : chaque processus a sa propre mémoire.
+
+    Écris ton code comme si spawn était toujours actif : il sera portable.
+- id: py14.11
+  type: cloze
+  level: 3
+  concepts:
+  - asyncio
+  q: Interroge plusieurs instruments avec un délai maximal global, en tolérant les pannes.
+  tpl: |-
+    import asyncio
+
+    async def tout_interroger(adresses, delai=2.0):
+        taches = [interroger(a) for a in adresses]
+        try:
+            return await asyncio.⟦0⟧(
+                asyncio.gather(*taches, ⟦1⟧=True),
+                timeout=delai,
+            )
+        except ⟦2⟧:
+            return []
+  blanks:
+  - - wait_for
+  - - return_exceptions
+  - - TimeoutError
+    - asyncio.TimeoutError
+  e: |-
+    - `asyncio.wait_for(aw, timeout=…)` borne le temps total et **annule** la tâche si le délai est dépassé.
+    - `return_exceptions=True` : une panne d'instrument devient un objet exception dans la liste au lieu de faire échouer les 19 autres. Tu filtres ensuite :
+    ```python
+    ok = [r for r in resultats if not isinstance(r, Exception)]
+    ```
+    - Depuis Python 3.11, `asyncio.TimeoutError` **est** `TimeoutError` (le builtin) : les deux noms marchent.
+
+    En 3.11+, la forme moderne est plus lisible :
+    ```python
+    async with asyncio.timeout(delai):
+        async with asyncio.TaskGroup() as tg:
+            ...
+    ```
+    Le `TaskGroup` garantit qu'aucune tâche ne survit au bloc — c'est le RAII de l'asynchrone.
+- id: py14.12
+  type: flash
+  level: 2
+  concepts:
+  - threads
+  - gil
+  q: 'Threads, asyncio ou processus : comment choisir en 10 secondes ?'
+  back: |-
+    | Situation | Choix |
+    | --- | --- |
+    | Attente d'I/O, peu de tâches (< 50), code existant bloquant | **threads** (`ThreadPoolExecutor`) |
+    | Attente d'I/O, beaucoup de tâches (centaines), bibliothèques async | **asyncio** |
+    | Calcul pur Python | **processus** (`ProcessPoolExecutor`) |
+    | Calcul NumPy / SciPy | **rien** — c'est déjà en C, souvent déjà parallèle |
+    | Une seule tâche lente | **rien** — optimise l'algorithme d'abord |
+
+    Coût de création : thread ~50 µs, processus ~50 ms, tâche asyncio ~1 µs.
+  e: |-
+    Le vrai critère est : **suis-je bloqué par l'attente ou par le calcul ?** Un profilage de 30 secondes répond à la question.
+
+    Piège fréquent : ajouter de la concurrence à un programme dont le goulot est un algorithme quadratique. Tu obtiens la même lenteur, en plus compliqué et en moins déterministe.
+
+    Ordre d'intervention : mesurer → algorithme → vectorisation → concurrence. Dans cet ordre.
+- id: py14.13
+  type: predict
+  level: 3
+  concepts:
+  - threads
+  q: Sortie ?
+  code: |-
+    from concurrent.futures import ThreadPoolExecutor
+    import time
+
+    def lent(n):
+        time.sleep(0.05)
+        return n * n
+
+    t0 = time.perf_counter()
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        r = list(ex.map(lent, [1, 2, 3, 4]))
+    print(r, round(time.perf_counter() - t0, 1))
+  answer: '[1, 4, 9, 16] 0.1'
+  e: |-
+    Attention au résultat : 4 tâches de 50 ms sur 4 workers devraient prendre ~0,05 s, et `round(…, 1)` donnerait `0.1` ou `0.0` selon la surcharge. Ici la création du pool et l'ordonnancement poussent le total juste au-dessus de 0,05 s, d'où `0.1`.
+
+    Ce qui compte vraiment :
+    - `ex.map` conserve l'**ordre des entrées**, comme `map`.
+    - Le `with` appelle `shutdown(wait=True)` : à la sortie du bloc, toutes les tâches sont terminées.
+    - `time.sleep` relâche le GIL, donc les threads progressent réellement en parallèle.
+
+    Une exception levée dans une tâche est **re-levée au moment où tu consommes le résultat**, pas à la soumission. D'où l'importance du `list(...)` : sans lui, l'erreur passerait inaperçue.
+- id: py14.14
+  type: qcm
+  level: 3
+  concepts:
+  - threads
+  q: Ton thread d’acquisition doit s’arrêter quand l’utilisateur ferme l’application. Comment ?
+  choices:
+  - t: Un `threading.Event` que la boucle teste régulièrement
+    ok: true
+    why: 'Le seul mécanisme d’arrêt coopératif propre : le thread choisit le moment où il s’arrête.'
+  - t: '`thread.kill()`'
+    ok: false
+    why: 'N’existe pas : Python ne permet pas de tuer un thread.'
+  - t: Marquer le thread `daemon=True` et quitter
+    ok: false
+    why: 'Le thread est tué brutalement à la fin du programme : fichier non fermé, port non libéré, données perdues.'
+  - t: Lever une exception depuis le thread principal
+    ok: false
+    why: On ne peut pas injecter une exception dans un autre thread de façon fiable.
+  e: |-
+    ```python
+    arret = threading.Event()
+
+    def boucle():
+        with serial.Serial(port, timeout=0.2) as ser:
+            while not arret.is_set():
+                trame = ser.read(6)
+                if trame:
+                    traiter(trame)
+        log.info("acquisition arrêtée proprement")
+
+    t = threading.Thread(target=boucle)
+    t.start()
+    ...
+    arret.set()
+    t.join(timeout=5)
+    ```
+
+    Trois éléments indispensables :
+    1. Le `timeout` sur la lecture — sinon le thread reste bloqué et ne verra jamais l'`Event`.
+    2. `arret.set()` puis `t.join(timeout=…)` : on demande, puis on **attend** la fin.
+    3. Le `with` dans le thread garantit la libération de la ressource.
+
+    `daemon=True` reste utile pour un thread purement auxiliaire (heartbeat, log) dont l'interruption brutale est sans conséquence.
+- id: py14.15
+  type: parsons
+  level: 3
+  concepts:
+  - multiprocessing
+  - threads
+  q: Reconstitue un pipeline producteur/consommateur entre deux threads, avec arrêt propre.
+  lang: python
+  lines:
+  - import queue, threading
+  - ''
+  - 'FIN = object()          # sentinelle d''arrêt'
+  - ''
+  - 'def producteur(port, q, arret):'
+  - '    while not arret.is_set():'
+  - '        trame = port.read(6)'
+  - '        if len(trame) == 6:'
+  - '            q.put(trame)'
+  - '    q.put(FIN)'
+  - ''
+  - 'def consommateur(q, sortie):'
+  - '    while True:'
+  - '        item = q.get()'
+  - '        if item is FIN:'
+  - '            return'
+  - '        sortie.write(decoder(item))'
+  extra:
+  - '        if item == FIN:'
+  - '    while not q.empty():'
+  e: |-
+    Trois points de conception :
+    - La **sentinelle** `FIN` est un objet unique comparé avec `is`, pas `==` : `==` pourrait matcher une trame par accident, et surtout appellerait `__eq__` sur des types arbitraires. C'est le premier intrus.
+    - `while not q.empty()` (second intrus) est une course classique : la file peut être momentanément vide alors que le producteur va encore écrire. **`empty()` n'est jamais une condition d'arrêt fiable.**
+    - Le producteur pousse la sentinelle **après** sa boucle : le consommateur traite tout ce qui reste avant de sortir.
+
+    Avec plusieurs consommateurs, envoie autant de sentinelles qu'il y a de consommateurs — ou utilise `q.task_done()` + `q.join()`.
+- id: py14.16
+  type: qcm
+  level: 2
+  concepts:
+  - asyncio
+  q: '`async def f(): ...` puis `f()`. Que se passe-t-il ?'
+  choices:
+  - t: 'Rien ne s’exécute : on obtient un objet coroutine qu’il faut attendre ou ordonnancer'
+    ok: true
+    why: 'Python émet même un `RuntimeWarning: coroutine was never awaited` si on l’ignore.'
+  - t: La fonction s’exécute normalement
+    ok: false
+    why: Le corps ne démarre qu’au premier `await` ou via une tâche.
+  - t: Une erreur de syntaxe
+    ok: false
+    why: L’appel est valide.
+  - t: La fonction s’exécute dans un thread
+    ok: false
+    why: asyncio est monothread par défaut.
+  e: |-
+    Une fonction `async` appelée renvoie une **coroutine**, comme une fonction génératrice renvoie un générateur : rien n'est exécuté.
+
+    Trois façons de la faire tourner :
+    ```python
+    await f()                     # depuis une autre coroutine
+    asyncio.run(f())              # point d'entrée du programme
+    tache = asyncio.create_task(f())   # en arrière-plan, dans la boucle
+    ```
+
+    L'oubli du `await` est **l'erreur n°1** en asyncio, et elle est silencieuse : ton code « marche » mais ne fait rien. Le `RuntimeWarning` n'apparaît qu'au ramassage de l'objet, parfois bien plus tard.
+
+    Remède : active les avertissements (`python -W error::RuntimeWarning`) et annote tes fonctions — mypy signale un `Coroutine` utilisé là où un `float` est attendu.

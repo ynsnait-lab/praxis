@@ -1,0 +1,956 @@
+id: electrotech
+title: Électricité et électrotechnique
+en: Electrical engineering basics
+desc: Loi d'Ohm, circuits, alternatif et triphasé, condensateurs et bobines, et sécurité électrique.
+intro: |
+  L'électricité est invisible, ce qui la rend à la fois abstraite et dangereuse. Quelques lois simples (Ohm, Kirchhoff, la puissance) permettent pourtant de raisonner sur presque tout, du câble de capteur au moteur triphasé.
+
+  Chaque notion part d'une image concrète (l'eau dans les tuyaux reste la meilleure) avant d'arriver aux formules et à ce qui se passe vraiment.
+notions:
+  # ------------------------------------------------------------------ Ohm
+  - id: el-ohm
+    title: Tension, courant, résistance, puissance
+    en: Voltage, current, resistance, power
+    goal: Appliquer la loi d'Ohm et les formules de puissance, calculer une chute de tension dans un câble.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: L'eau dans les tuyaux
+          body: |
+            Imagine un château d'eau relié à un robinet par un tuyau :
+            - la **tension** (en volts), c'est la hauteur du château d'eau, la « poussée » ;
+            - le **courant** (en ampères), c'est le débit d'eau qui circule ;
+            - la **résistance** (en ohms), c'est l'étroitesse du tuyau, qui freine l'écoulement.
+
+            Plus la poussée est forte, plus ça coule ; plus le tuyau est étroit, moins ça coule. Une pile fait 1,5 V, une batterie de voiture 12 V, une prise 230 V.
+        - level: 2
+          title: Ce qui circule vraiment
+          body: |
+            Le courant est un déplacement de charges électriques (des électrons dans un métal). La tension se mesure toujours **entre deux points** : c'est une différence de « niveau électrique ». Sans différence, pas de courant.
+
+            Quand le courant traverse une résistance, l'énergie perdue devient de la **chaleur** (effet Joule). C'est voulu dans un radiateur ou un fusible, et c'est une perte dans un câble ou un transistor.
+          check:
+            q: Une résistance chauffante prévue pour 230 V est branchée sur 115 V. Sa puissance…
+            choices:
+              - t: est divisée par 4
+                ok: true
+                why: "P = U²/R : la moitié de la tension donne le quart de la puissance (la résistance ne change pas)."
+              - t: est divisée par 2
+                why: Le courant est divisé par 2 aussi, et P = U × I.
+              - t: ne change pas
+                why: La puissance dépend de la tension appliquée.
+        - level: 3
+          title: Les formules
+          body: |
+            $$U = R\,I \qquad P = U\,I = R\,I^2 = \frac{U^2}{R} \qquad E = P\,t$$
+
+            $U$ en volts (V), $I$ en ampères (A), $R$ en ohms (Ω), $P$ en watts (W), $E$ en joules (ou en kWh : 1 kWh = 3,6 MJ).
+
+            **Résistance d'un fil** :
+            $$R = \rho\,\frac{L}{S}$$
+            Cuivre : $\rho \approx 1{,}7 \times 10^{-8}$ Ω·m. **Le courant fait l'aller et le retour** : la longueur à prendre est celle des deux conducteurs.
+
+            **Exemple** : une alimentation 24 V qui débite 10 A dans un câble de 20 m en 1,5 mm². $R = 1{,}7 \times 10^{-8} \times 40 / 1{,}5 \times 10^{-6} \approx 0{,}45$ Ω, soit une chute de 4,5 V : il ne reste que 19,5 V au bout.
+        - level: 4
+          title: Sous le capot
+          body: |
+            Pourquoi $P = R I^2$ ? La puissance est l'énergie donnée à chaque charge (la tension) multipliée par le nombre de charges par seconde (le courant) : $P = U I$, puis on remplace $U$ par $R I$. Le carré explique pourquoi on transporte l'électricité en haute tension : pour la même puissance, un courant 10 fois plus faible divise les pertes dans les lignes par 100.
+
+            La résistance des métaux **augmente avec la température**. Un filament d'ampoule froid a une résistance bien plus faible qu'à chaud, d'où l'appel de courant à l'allumage.
+
+            Une résistance électronique a une **puissance nominale** (1/4 W, 1/2 W…). Au-delà, elle chauffe, dérive, puis brûle.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - **Multimètre** : une tension se mesure **en parallèle** (entre deux points) ; un courant **en série** (on ouvre le circuit), sur le calibre et les bornes « A » ; une résistance **hors tension**.
+            - Brancher un multimètre réglé en ampèremètre directement sur une alimentation, c'est un court-circuit : au mieux le fusible du multimètre saute.
+            - Sur les longs câbles en 24 V (capteurs, moteurs, électrovannes), vérifie la chute de tension : un équipement peut mal fonctionner avec quelques volts de moins.
+      recap:
+        - "U = R·I ; P = U·I = R·I² = U²/R ; E = P·t (1 kWh = 3,6 MJ)."
+        - "Moitié de la tension sur une résistance = quart de la puissance."
+        - "R = ρ·L/S, cuivre ρ ≈ 1,7·10⁻⁸ Ω·m, longueur aller + retour."
+        - "Résistances : respecter la puissance nominale."
+        - "Voltmètre en parallèle, ampèremètre en série, ohmmètre hors tension."
+      pieges: [ing-retour-cable, ing-puissance-resistance, ing-amperemetre]
+    vocab:
+      - tension = voltage
+      - courant = current
+      - résistance = resistance (le composant, resistor)
+      - puissance = power
+      - effet Joule = Joule heating (resistive heating)
+      - chute de tension = voltage drop
+      - résistivité = resistivity
+      - multimètre = multimeter
+    exercises:
+      - id: el-ohm.1
+        type: numeric
+        level: 1
+        q: Un radiateur électrique de 1000 W fonctionne sous 230 V. Quel courant absorbe-t-il ?
+        answer: 4.348
+        tol: 0.01
+        unit: A
+        calc: 1000 / 230
+        e: $I = P/U = 1000/230 \approx 4{,}35$ A. Et sa résistance vaut $U^2/P \approx 53$ Ω.
+      - id: el-ohm.2
+        type: numeric
+        level: 2
+        q: Une résistance de 100 Ω est soumise à 12 V. Quelle puissance dissipe-t-elle ?
+        answer: 1.44
+        tol: 0.01
+        unit: W
+        calc: 12**2 / 100
+        trap_values:
+          - v: 0.12
+            why: C'est le courant (en A). La puissance vaut U × I = 12 × 0,12.
+        piege: ing-puissance-resistance
+        e: $P = U^2/R = 144/100 = 1{,}44$ W. Une résistance 1/4 W brûlerait ; il en faut une de 2 W ou plus.
+      - id: el-ohm.3
+        type: numeric
+        level: 2
+        q: "Câble cuivre de 20 m (ρ = 1,7·10⁻⁸ Ω·m), section 1,5 mm², entre une alimentation et un équipement qui consomme 10 A. Chute de tension totale ?"
+        answer: 4.533
+        tol: 0.02
+        unit: V
+        calc: 1.7e-8 * 40 / 1.5e-6 * 10
+        trap_values:
+          - v: 2.267
+            why: Tu as oublié le conducteur de retour. Le courant parcourt 20 m à l'aller et 20 m au retour.
+        piege: ing-retour-cable
+        e: $R = 1{,}7 \times 10^{-8} \times 40 / 1{,}5 \times 10^{-6} \approx 0{,}45$ Ω, donc $\Delta U = 0{,}45 \times 10 \approx 4{,}5$ V. Sur du 24 V, c'est presque 20 %.
+      - id: el-ohm.4
+        type: numeric
+        level: 1
+        q: Un radiateur de 2 kW fonctionne 5 heures. Énergie consommée, en kWh ?
+        answer: 10
+        tol: 0.01
+        unit: kWh
+        calc: 2 * 5
+        e: $E = P\,t = 2 \text{ kW} \times 5 \text{ h} = 10$ kWh, soit 36 MJ.
+      - id: el-ohm.5
+        type: qcm
+        level: 1
+        q: Comment brancher un multimètre pour mesurer le courant consommé par un appareil ?
+        piege: ing-amperemetre
+        choices:
+          - t: En série, en ouvrant le circuit, sur les bornes et le calibre ampères
+            ok: true
+          - t: En parallèle sur l'alimentation, comme pour une tension
+            piege: true
+            why: En mode ampèremètre, le multimètre a une résistance quasi nulle. En parallèle, c'est un court-circuit.
+          - t: Hors tension
+            why: C'est la mesure de résistance qui se fait hors tension.
+        e: Pour éviter d'ouvrir le circuit, on peut aussi utiliser une pince ampèremétrique autour d'un seul conducteur.
+      - id: el-ohm.6
+        type: flash
+        level: 1
+        q: Relie tension, courant et résistance à l'analogie hydraulique.
+        back: |
+          Tension ↔ pression (ou hauteur d'eau), ce qui pousse.
+          Courant ↔ débit, ce qui circule.
+          Résistance ↔ étroitesse du tuyau, ce qui freine.
+        e: L'analogie marche très bien pour Ohm et Kirchhoff ; elle trouve ses limites avec les champs et l'alternatif.
+  # ------------------------------------------------------------------ Kirchhoff
+  - id: el-kirchhoff
+    title: Lois de Kirchhoff, série, parallèle et diviseurs
+    en: Kirchhoff's laws, series, parallel and dividers
+    goal: Combiner des résistances, calculer un pont diviseur et tenir compte de la charge.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Rivières et randonnées
+          body: |
+            À un confluent, toute l'eau qui arrive repart : rien ne se perd. Et quand tu fais une randonnée en boucle, tu reviens à ton altitude de départ : le total des montées égale le total des descentes.
+
+            Ce sont exactement les deux lois qui gouvernent tous les circuits électriques.
+        - level: 2
+          title: Nœuds et mailles
+          body: |
+            - **Loi des nœuds** : en un point de jonction, la somme des courants qui entrent égale la somme des courants qui sortent.
+            - **Loi des mailles** : en faisant le tour d'une boucle, la somme des tensions est nulle.
+
+            Conséquences :
+            - en **série**, les composants sont traversés par le **même courant**, et leurs tensions s'additionnent ;
+            - en **parallèle**, ils ont la **même tension**, et leurs courants s'additionnent.
+          check:
+            q: Deux résistances de 100 Ω en parallèle équivalent à…
+            choices:
+              - t: 50 Ω
+                ok: true
+                why: Deux chemins identiques côte à côte laissent passer deux fois plus de courant.
+              - t: 200 Ω
+                why: C'est la mise en série.
+              - t: 100 Ω
+                why: Le deuxième chemin ajoute du passage, la résistance baisse.
+        - level: 3
+          title: Les formules
+          body: |
+            $$R_{série} = R_1 + R_2 \qquad \frac{1}{R_{par}} = \frac{1}{R_1} + \frac{1}{R_2} \ \Rightarrow\ R_{par} = \frac{R_1 R_2}{R_1 + R_2}$$
+
+            **Pont diviseur** : deux résistances en série divisent une tension :
+            $$U_s = U \cdot \frac{R_2}{R_1 + R_2}$$
+
+            ```svg caption="Pont diviseur de tension. Sans charge, Us = 12 × 4,7/14,7 ≈ 3,84 V. Une charge RL (en pointillés) se met en parallèle sur R₂ et fait baisser Us."
+            <svg viewBox="0 0 460 220" width="460" role="img" aria-label="Schéma d'un pont diviseur avec une charge en parallèle">
+              <line class="s" x1="80" y1="20" x2="80" y2="92"/>
+              <circle class="s" cx="80" cy="110" r="18"/>
+              <line class="s" x1="80" y1="128" x2="80" y2="200"/>
+              <text class="tb" x="80" y="114" text-anchor="middle">U</text>
+              <text class="t" x="20" y="114">12 V</text>
+              <line class="s" x1="80" y1="20" x2="200" y2="20"/>
+              <line class="s" x1="200" y1="20" x2="200" y2="40"/>
+              <rect class="soft" x="190" y="40" width="20" height="50"/>
+              <line class="s" x1="200" y1="90" x2="200" y2="130"/>
+              <rect class="soft" x="190" y="130" width="20" height="50"/>
+              <line class="s" x1="200" y1="180" x2="200" y2="200"/>
+              <line class="s" x1="80" y1="200" x2="400" y2="200"/>
+              <line class="s" x1="200" y1="110" x2="400" y2="110"/>
+              <circle class="ink" cx="200" cy="110" r="3.5"/>
+              <line class="s2 dash" x1="300" y1="110" x2="300" y2="130"/>
+              <rect class="hl dash" x="290" y="130" width="20" height="50"/>
+              <line class="s2 dash" x1="300" y1="180" x2="300" y2="200"/>
+              <circle class="s" cx="400" cy="110" r="4"/>
+              <circle class="s" cx="400" cy="200" r="4"/>
+              <text class="t" x="218" y="70">R₁ 10 kΩ</text>
+              <text class="t" x="218" y="160">R₂ 4,7 kΩ</text>
+              <text class="tw" x="318" y="160">RL</text>
+              <text class="ta" x="410" y="160">Us</text>
+            </svg>
+            ```
+
+            **Exemple** : 12 V, $R_1 = 10$ kΩ, $R_2 = 4{,}7$ kΩ : $U_s = 12 \times 4{,}7/14{,}7 \approx 3{,}84$ V.
+        - level: 4
+          title: Sous le capot, le diviseur chargé
+          body: |
+            Dès qu'on branche quelque chose sur la sortie d'un diviseur, cette **charge** se met en **parallèle** sur $R_2$ et la tension baisse. Avec une charge de 4,7 kΩ sur l'exemple, $R_2$ devient 2,35 kΩ et $U_s$ tombe à 2,28 V.
+
+            Vu de sa sortie, un diviseur se comporte comme une source de tension $U_s$ en série avec une résistance $R_1 \parallel R_2$ : c'est le **théorème de Thévenin**, valable pour tout circuit linéaire. Règle pratique : la charge doit être au moins **10 fois** plus grande que $R_1 \parallel R_2$ pour une erreur inférieure à 10 %, **100 fois** pour moins de 1 %.
+
+            C'est pour ça qu'un diviseur n'est **pas une alimentation** : il sert à adapter un signal vers une entrée de mesure à haute impédance, pas à alimenter un circuit.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Adapter un signal 0-24 V à l'entrée 0-3,3 V d'un microcontrôleur : un diviseur, avec des résistances assez faibles pour que le courant d'entrée du convertisseur soit négligeable, et assez fortes pour ne pas consommer inutilement (quelques kΩ à quelques dizaines de kΩ).
+            - Un **potentiomètre** est un diviseur réglable ; c'est aussi un capteur de position simple.
+            - Un multimètre a une impédance d'entrée d'environ 10 MΩ : sur un circuit à très hautes résistances, la mesure elle-même charge le circuit et fausse le résultat.
+      recap:
+        - "Nœuds : Σ courants entrants = Σ sortants ; mailles : Σ tensions = 0."
+        - "Série : R₁ + R₂, même courant ; parallèle : R₁R₂/(R₁ + R₂), même tension."
+        - "Diviseur : Us = U·R₂/(R₁ + R₂)."
+        - "Une charge se met en parallèle sur R₂ : garder RL ≥ 10 × (R₁∥R₂)."
+        - "Thévenin : tout circuit linéaire = source + résistance série."
+      pieges: [ing-diviseur-charge]
+    vocab:
+      - loi des nœuds = Kirchhoff's current law (KCL)
+      - loi des mailles = Kirchhoff's voltage law (KVL)
+      - en série = in series
+      - en parallèle = in parallel
+      - pont diviseur = voltage divider
+      - charge = load
+      - impédance d'entrée = input impedance
+      - théorème de Thévenin = Thévenin's theorem
+    exercises:
+      - id: el-kirchhoff.1
+        type: numeric
+        level: 1
+        q: Résistance équivalente de 100 Ω en série avec l'ensemble (220 Ω en parallèle avec 330 Ω) ?
+        answer: 232
+        tol: 0.01
+        unit: Ω
+        calc: 100 + 220 * 330 / (220 + 330)
+        trap_values:
+          - v: 650
+            why: Tu as tout mis en série. 220 Ω et 330 Ω sont en parallèle.
+        e: $220 \parallel 330 = 72\,600/550 = 132$ Ω, plus 100 Ω en série, soit 232 Ω.
+      - id: el-kirchhoff.2
+        type: numeric
+        level: 1
+        q: Pont diviseur alimenté en 12 V, R₁ = 10 kΩ (en haut), R₂ = 4,7 kΩ (en bas). Tension de sortie à vide ?
+        answer: 3.837
+        tol: 0.01
+        unit: V
+        calc: 12 * 4.7 / (10 + 4.7)
+        trap_values:
+          - v: 8.163
+            why: C'est la tension aux bornes de R₁. La sortie est prise aux bornes de R₂.
+        e: $U_s = 12 \times 4{,}7/14{,}7 \approx 3{,}84$ V.
+      - id: el-kirchhoff.3
+        type: numeric
+        level: 2
+        q: On branche une charge de 4,7 kΩ sur la sortie de ce diviseur. Nouvelle tension de sortie ?
+        answer: 2.283
+        tol: 0.01
+        unit: V
+        calc: 12 * 2.35 / (10 + 2.35)
+        trap_values:
+          - v: 3.837
+            why: La charge se met en parallèle sur R₂ et fait baisser la tension de sortie.
+        piege: ing-diviseur-charge
+        e: $R_2 \parallel R_L = 2{,}35$ kΩ, donc $U_s = 12 \times 2{,}35/12{,}35 \approx 2{,}28$ V. Un diviseur n'est pas une alimentation.
+      - id: el-kirchhoff.4
+        type: numeric
+        level: 2
+        q: "On veut ramener 24 V à 3,3 V avec un diviseur, R₂ = 10 kΩ en bas. Quelle valeur de R₁, en kΩ ?"
+        answer: 62.73
+        tol: 0.01
+        unit: kΩ
+        calc: 10 * (24 / 3.3 - 1)
+        trap_values:
+          - v: 72.73
+            why: Tu as calculé R₁ + R₂. R₁ = R₂ × (U/Us − 1).
+        e: $U/U_s = (R_1 + R_2)/R_2$, donc $R_1 = 10 \times (24/3{,}3 - 1) \approx 62{,}7$ kΩ. En pratique, 62 kΩ (série E24) et une petite marge.
+      - id: el-kirchhoff.5
+        type: qcm
+        level: 1
+        q: En un nœud, 2 A et 3 A arrivent par deux fils, 1 A repart par un troisième. Que transporte le quatrième fil ?
+        choices:
+          - t: 4 A qui repartent du nœud
+            ok: true
+          - t: 6 A qui repartent
+            why: Il faut retirer le courant qui repart déjà par le troisième fil.
+          - t: Rien
+            why: Les courants entrants et sortants doivent s'équilibrer.
+        e: Entrants, 2 + 3 = 5 A ; sortants, 1 + x = 5, donc x = 4 A.
+      - id: el-kirchhoff.6
+        type: flash
+        level: 3
+        q: Qu'affirme le théorème de Thévenin, et à quoi sert-il en pratique ?
+        back: |
+          Vu de deux bornes, tout circuit linéaire (sources et résistances) se comporte comme **une source de tension en série avec une résistance**. On calcule la tension à vide (source) et la résistance vue des bornes, sources éteintes.
+
+          En pratique, il permet de prévoir immédiatement l'effet d'une charge : Us = U_th × RL / (RL + R_th).
+        e: Pour un diviseur, U_th = U·R₂/(R₁ + R₂) et R_th = R₁∥R₂.
+  # ------------------------------------------------------------------ alternatif
+  - id: el-alternatif
+    title: Courant alternatif, valeur efficace et cos φ
+    en: AC, RMS value and power factor
+    goal: Passer de la valeur crête à la valeur efficace, calculer une impédance et les puissances active, réactive et apparente.
+    minutes: 13
+    lesson:
+      steps:
+        - level: 1
+          title: Le courant qui va et vient
+          body: |
+            Dans une pile, le courant circule toujours dans le même sens : c'est le **continu**. Au secteur, il change de sens 50 fois par seconde (en Europe) : c'est l'**alternatif**.
+
+            Pour une ampoule ou un radiateur, peu importe le sens, ça chauffe pareil. Mais l'alternatif a un gros avantage : on peut facilement changer sa tension avec un **transformateur**, ce qui permet de transporter l'électricité loin, en haute tension.
+        - level: 2
+          title: Quelle valeur pour une tension qui change sans arrêt ?
+          body: |
+            La tension du secteur suit une sinusoïde qui monte à environ +325 V, redescend à −325 V, 50 fois par seconde. Pourtant, on dit « 230 V ». Pourquoi ?
+
+            230 V est la **valeur efficace** (RMS) : la tension continue qui chaufferait une résistance exactement autant. C'est elle qui compte pour la puissance, et c'est elle qu'affichent les multimètres.
+
+            Avec des bobines (moteurs, transformateurs) ou des condensateurs, le courant peut être **décalé** par rapport à la tension (déphasage φ). Une partie de l'énergie fait alors l'aller-retour entre le réseau et l'appareil sans être consommée : c'est la puissance **réactive**. Le **facteur de puissance** $\cos\varphi$ mesure la part réellement utile.
+
+            ```svg caption="Tension du secteur : 50 Hz, valeur crête 325 V, valeur efficace 230 V (= crête / √2)."
+            <svg viewBox="0 0 460 205" width="460" role="img" aria-label="Sinusoïde avec valeur crête et valeur efficace">
+              <defs><marker id="ar-el1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="a"/></marker></defs>
+              <line class="s2" x1="40" y1="100" x2="440" y2="100"/>
+              <line class="s2" x1="40" y1="20" x2="40" y2="180"/>
+              <line class="grid dash" x1="40" y1="30" x2="430" y2="30"/>
+              <line class="ws dash" x1="40" y1="50.5" x2="430" y2="50.5"/>
+              <polyline class="as" points="40,100.0 45,91.6 50,83.2 55,75.2 60,67.5 65,60.2 70,53.6 75,47.6 80,42.4 85,38.0 90,34.5 95,32.0 100,30.5 105,30.0 110,30.5 115,32.0 120,34.5 125,38.0 130,42.4 135,47.6 140,53.6 145,60.2 150,67.5 155,75.2 160,83.2 165,91.6 170,100.0 175,108.4 180,116.8 185,124.8 190,132.5 195,139.8 200,146.4 205,152.4 210,157.6 215,162.0 220,165.5 225,168.0 230,169.5 235,170.0 240,169.5 245,168.0 250,165.5 255,162.0 260,157.6 265,152.4 270,146.4 275,139.8 280,132.5 285,124.8 290,116.8 295,108.4 300,100.0 305,91.6 310,83.2 315,75.2 320,67.5 325,60.2 330,53.6 335,47.6 340,42.4 345,38.0 350,34.5 355,32.0 360,30.5 365,30.0 370,30.5 375,32.0 380,34.5 385,38.0 390,42.4 395,47.6 400,53.6 405,60.2 410,67.5 415,75.2 420,83.2 425,91.6 430,100.0"/>
+              <text class="t" x="185" y="26">Û = 325 V (crête)</text>
+              <text class="tw" x="185" y="46">U eff = 230 V</text>
+              <line class="as" x1="40" y1="192" x2="300" y2="192" marker-start="url(#ar-el1)" marker-end="url(#ar-el1)"/>
+              <text class="ta" x="60" y="184">T = 20 ms</text>
+              <text class="t" x="444" y="104">t</text>
+            </svg>
+            ```
+          check:
+            q: Un condensateur branché directement sur le secteur 230 V doit supporter au minimum…
+            choices:
+              - t: la tension crête, environ 325 V, plus une marge pour les surtensions
+                ok: true
+              - t: 230 V
+                why: 230 V est la valeur efficace ; la tension monte réellement à 325 V à chaque alternance.
+              - t: 115 V
+                why: Aucune raison de diviser par 2.
+        - level: 3
+          title: Les formules
+          body: |
+            $$U_{eff} = \frac{\hat U}{\sqrt 2} \ \ \text{(sinusoïde)} \qquad f = \frac{1}{T} \qquad \omega = 2\pi f$$
+
+            **Impédances** (le « Ohm » de l'alternatif, en Ω) :
+            - résistance : $Z_R = R$ ;
+            - bobine : $Z_L = L\,\omega$ (augmente avec la fréquence) ;
+            - condensateur : $Z_C = \dfrac{1}{C\,\omega}$ (diminue avec la fréquence).
+
+            **Puissances** :
+            - active $P = U I \cos\varphi$ (W), celle qui fait le travail ;
+            - réactive $Q = U I \sin\varphi$ (var) ;
+            - apparente $S = U I$ (VA), celle que les câbles doivent transporter. $S^2 = P^2 + Q^2$.
+
+            **Exemple** : un moteur monophasé sous 230 V absorbe 5 A avec $\cos\varphi = 0{,}8$. $P = 920$ W, $S = 1150$ VA, $Q = 690$ var.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Pourquoi √2 ?** La puissance dans une résistance vaut $u^2/R$. La moyenne de $\sin^2$ sur une période vaut 1/2, donc la puissance moyenne vaut $\hat U^2 / (2R) = (\hat U/\sqrt 2)^2 / R$. Ce rapport √2 n'est vrai que pour une sinusoïde : un signal carré de ±10 V a une valeur efficace de 10 V, un triangle $\hat U/\sqrt 3$.
+
+            **Les nombres complexes** rendent l'alternatif aussi simple que le continu : $Z_L = jL\omega$, $Z_C = 1/(jC\omega)$, et la loi d'Ohm $U = Z I$ s'applique avec les règles série/parallèle. Le module donne l'amplitude, l'argument donne le déphasage.
+
+            **Pourquoi le cos φ importe** : à puissance utile égale, un mauvais $\cos\varphi$ demande plus de courant, donc des câbles plus gros et plus de pertes. Les installations industrielles le compensent avec des batteries de condensateurs.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Un multimètre « **TRMS** » (*true RMS*) mesure la vraie valeur efficace de n'importe quelle forme d'onde ; un modèle bas de gamme suppose une sinusoïde et se trompe sur les signaux déformés (variateurs, alimentations à découpage).
+            - Les onduleurs, transformateurs et groupes électrogènes sont dimensionnés en **VA** (puissance apparente), pas en W.
+            - Pour voir la forme réelle d'une tension, rien ne remplace l'oscilloscope, avec une sonde différentielle isolée dès qu'on touche au secteur.
+      recap:
+        - "Secteur européen : 230 V efficaces, 325 V crête, 50 Hz (T = 20 ms)."
+        - "U_eff = Û/√2 pour une sinusoïde seulement."
+        - "Z_L = Lω, Z_C = 1/(Cω) ; en complexe jLω et 1/(jCω)."
+        - "P = UI·cos φ (W), Q = UI·sin φ (var), S = UI (VA)."
+        - "Multimètre TRMS pour les signaux non sinusoïdaux."
+      pieges: [ing-crete-efficace]
+    vocab:
+      - courant alternatif = alternating current (AC)
+      - courant continu = direct current (DC)
+      - valeur efficace = RMS value
+      - valeur crête = peak value
+      - déphasage = phase shift
+      - facteur de puissance = power factor
+      - puissance apparente = apparent power
+      - impédance = impedance
+    exercises:
+      - id: el-alternatif.1
+        type: numeric
+        level: 1
+        q: Valeur crête de la tension du secteur 230 V (efficace) ?
+        answer: 325.3
+        tol: 0.01
+        unit: V
+        calc: 230 * sqrt(2)
+        trap_values:
+          - v: 162.6
+            why: Tu as divisé par √2. La crête est plus grande que la valeur efficace.
+          - v: 650.5
+            why: C'est la valeur crête à crête (de −325 à +325 V).
+        piege: ing-crete-efficace
+        e: $\hat U = 230 \times \sqrt 2 \approx 325$ V.
+      - id: el-alternatif.2
+        type: numeric
+        level: 1
+        q: Une tension sinusoïdale a une amplitude (crête) de 10 V. Valeur efficace ?
+        answer: 7.071
+        tol: 0.01
+        unit: V
+        calc: 10 / sqrt(2)
+        e: $10/\sqrt 2 \approx 7{,}07$ V.
+      - id: el-alternatif.3
+        type: numeric
+        level: 2
+        q: Impédance d'un condensateur de 10 µF à 50 Hz ?
+        answer: 318.3
+        tol: 0.01
+        unit: Ω
+        calc: 1 / (2 * pi * 50 * 10e-6)
+        trap_values:
+          - v: 2000
+            why: Tu as oublié le 2π. ω = 2π·f.
+        e: $Z_C = 1/(2\pi \times 50 \times 10^{-5}) \approx 318$ Ω. À 50 kHz, elle ne vaudrait plus que 0,32 Ω.
+      - id: el-alternatif.4
+        type: numeric
+        level: 2
+        q: Un moteur monophasé absorbe 5 A sous 230 V avec cos φ = 0,8. Puissance active ?
+        answer: 920
+        tol: 0.01
+        unit: W
+        calc: 230 * 5 * 0.8
+        trap_values:
+          - v: 1150
+            why: C'est la puissance apparente (en VA). La puissance active tient compte du cos φ.
+        e: $P = U I \cos\varphi = 230 \times 5 \times 0{,}8 = 920$ W ; $S = 1150$ VA.
+      - id: el-alternatif.5
+        type: qcm
+        level: 2
+        q: Pourquoi utiliser un multimètre TRMS pour mesurer le courant absorbé par un variateur de vitesse ?
+        choices:
+          - t: Parce que ce courant n'est pas sinusoïdal, et qu'un multimètre ordinaire suppose une sinusoïde
+            ok: true
+          - t: Parce que le variateur produit du continu
+            why: Il absorbe un courant alternatif, mais très déformé.
+          - t: Parce que TRMS mesure la valeur crête
+            why: TRMS signifie true RMS, la vraie valeur efficace.
+        e: Un multimètre non TRMS calcule la valeur efficace à partir de la valeur moyenne redressée, en supposant une sinusoïde ; sur un signal déformé, l'erreur peut dépasser 30 %.
+      - id: el-alternatif.6
+        type: flash
+        level: 2
+        q: Donne les trois puissances en alternatif, leurs unités et la relation entre elles.
+        back: |
+          Active P = U·I·cos φ, en watts (W) : le travail utile.
+          Réactive Q = U·I·sin φ, en voltampères réactifs (var) : l'énergie qui fait l'aller-retour.
+          Apparente S = U·I, en voltampères (VA) : ce que le réseau et les câbles doivent transporter.
+
+          S² = P² + Q².
+        e: Le triangle des puissances, avec φ entre S et P.
+  # ------------------------------------------------------------------ triphasé
+  - id: el-triphase
+    title: Le triphasé
+    en: Three-phase power
+    goal: Utiliser tensions simples et composées, calculer une puissance et un courant en triphasé.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: Trois rameurs décalés
+          body: |
+            Un bateau avec un seul rameur avance par à-coups. Avec trois rameurs qui tirent chacun à leur tour, décalés d'un tiers de cycle, la poussée devient presque continue.
+
+            Le **triphasé**, c'est trois tensions alternatives décalées d'un tiers de période. L'industrie l'utilise pour presque tous les moteurs et les grosses puissances.
+        - level: 2
+          title: Phases, neutre, simple et composée
+          body: |
+            Un réseau triphasé a trois **phases** (L1, L2, L3), souvent un **neutre** (N) et la **terre** (PE). Deux tensions coexistent :
+            - la **tension simple**, entre une phase et le neutre : **230 V** ;
+            - la **tension composée**, entre deux phases : **400 V**.
+
+            Avantages : puissance délivrée régulière, champ tournant qui fait tourner les moteurs sans artifice, et plus de puissance transportée avec moins de cuivre qu'en monophasé.
+          check:
+            q: Sur un réseau 230/400 V, quelle tension mesures-tu entre deux phases ?
+            choices:
+              - t: 400 V
+                ok: true
+              - t: 460 V (230 + 230)
+                why: Les deux tensions sont décalées de 120°, elles ne s'additionnent pas simplement.
+              - t: 0 V
+                why: Ce serait le cas pour deux points de la même phase.
+        - level: 3
+          title: Les formules
+          body: |
+            $$U = \sqrt 3\,V \qquad P = \sqrt 3\,U\,I\,\cos\varphi$$
+
+            $V$ : tension simple (230 V), $U$ : tension composée (400 V), $I$ : courant dans chaque phase.
+
+            **Couplages** d'une charge (moteur, résistances) :
+            - **étoile** (Y) : chaque élément est entre une phase et le point commun, il voit 230 V ;
+            - **triangle** (Δ) : chaque élément est entre deux phases, il voit 400 V.
+
+            **Exemple** : un moteur de 11 kW (puissance mécanique utile) sur 400 V, $\cos\varphi = 0{,}85$, rendement 0,9. Puissance électrique absorbée : $11/0{,}9 = 12{,}2$ kW, courant par phase $I = 12\,200/(\sqrt 3 \times 400 \times 0{,}85) \approx 20{,}8$ A.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Pourquoi √3 ?** La tension entre deux phases est la différence de deux sinusoïdes de 230 V décalées de 120°. Géométriquement (vecteurs de Fresnel), c'est la base d'un triangle isocèle d'angle 120° : $2 \times 230 \times \sin 60° = 230\sqrt 3 \approx 400$ V.
+
+            **Charge équilibrée** : si les trois phases sont chargées pareil, la somme des trois courants est nulle à chaque instant. Le neutre ne transporte alors (en théorie) aucun courant. Les déséquilibres et certaines charges électroniques (harmoniques) le chargent à nouveau.
+
+            **Étoile ou triangle** : avec les mêmes résistances, le triangle absorbe **3 fois** plus de puissance que l'étoile (chaque résistance voit √3 fois plus de tension, donc 3 fois plus de puissance). C'est le principe du démarrage étoile-triangle des gros moteurs, qui limite l'appel de courant.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - **Ordre des phases** : il fixe le sens de rotation d'un moteur asynchrone. Pour inverser le sens, on **permute deux phases**.
+            - **Perte d'une phase** (monophasage) : le moteur continue à tourner en surchauffant, ou ne démarre plus. D'où les disjoncteurs moteurs et relais thermiques, qui protègent aussi contre les surcharges.
+            - Couleurs normalisées des conducteurs : phases **marron, noir, gris** ; neutre **bleu** ; terre **vert-jaune**.
+            - Avant toute intervention : consignation (voir la notion sécurité).
+      recap:
+        - "Réseau 230/400 V : 230 V phase-neutre, 400 V entre phases (U = √3·V)."
+        - "P = √3·U·I·cos φ (U entre phases, I par phase)."
+        - "Étoile : 230 V par élément ; triangle : 400 V, 3 fois plus de puissance."
+        - "Charge équilibrée : courant de neutre nul."
+        - "Inverser un moteur : permuter deux phases ; monophasage = surchauffe."
+      pieges: [ing-racine3]
+    vocab:
+      - triphasé = three-phase
+      - phase = phase (line)
+      - neutre = neutral
+      - terre = protective earth (PE), ground
+      - tension simple = phase-to-neutral voltage
+      - tension composée = line-to-line voltage
+      - couplage étoile / triangle = star (wye) / delta connection
+      - ordre des phases = phase sequence (rotation)
+    exercises:
+      - id: el-triphase.1
+        type: numeric
+        level: 1
+        q: Tension entre deux phases d'un réseau dont la tension phase-neutre vaut 230 V ?
+        answer: 398.4
+        tol: 0.01
+        unit: V
+        calc: 230 * sqrt(3)
+        trap_values:
+          - v: 460
+            why: Les deux tensions sont décalées de 120° ; on multiplie par √3, pas par 2.
+        e: $230 \times \sqrt 3 \approx 398$ V, arrondi à 400 V.
+      - id: el-triphase.2
+        type: numeric
+        level: 2
+        q: Une charge triphasée sous 400 V absorbe 10 A par phase avec cos φ = 0,85. Puissance active, en kW ?
+        answer: 5.889
+        tol: 0.01
+        unit: kW
+        calc: sqrt(3) * 400 * 10 * 0.85 / 1000
+        trap_values:
+          - v: 3.4
+            why: Tu as oublié le √3.
+          - v: 10.2
+            why: "Tu as multiplié par 3 au lieu de √3 avec la tension composée. Avec 400 V, c'est √3 ; avec 230 V, ce serait 3 : 3 × 230 × 10 × 0,85."
+        piege: ing-racine3
+        e: $P = \sqrt 3 \times 400 \times 10 \times 0{,}85 \approx 5{,}89$ kW (ou $3 \times 230 \times 10 \times 0{,}85$, même résultat).
+      - id: el-triphase.3
+        type: numeric
+        level: 3
+        q: "Moteur triphasé de 11 kW (puissance utile) sur 400 V, cos φ = 0,85, rendement 0,9. Courant par phase ?"
+        answer: 20.75
+        tol: 0.02
+        unit: A
+        calc: 11000 / (sqrt(3) * 400 * 0.85 * 0.9)
+        trap_values:
+          - v: 18.68
+            why: Tu as oublié le rendement. La puissance de plaque est la puissance mécanique utile ; le moteur absorbe plus.
+          - v: 35.95
+            why: Tu as oublié le √3.
+        e: $I = 11\,000/(\sqrt 3 \times 400 \times 0{,}85 \times 0{,}9) \approx 20{,}8$ A.
+      - id: el-triphase.4
+        type: qcm
+        level: 1
+        q: Un moteur asynchrone triphasé tourne dans le mauvais sens. Que faire ?
+        choices:
+          - t: Permuter deux des trois phases
+            ok: true
+          - t: Inverser la phase et le neutre
+            why: Un moteur triphasé n'utilise généralement pas le neutre, et ça ne changerait pas le sens.
+          - t: Permuter les trois phases (L1→L2→L3→L1)
+            why: Une permutation circulaire garde le même ordre des phases, donc le même sens.
+        e: Permuter deux phases inverse l'ordre de rotation du champ, donc le sens du moteur. Toujours hors tension.
+      - id: el-triphase.5
+        type: numeric
+        level: 2
+        q: Trois résistances identiques couplées en triangle sur un réseau 400 V, puis en étoile. Rapport de la puissance en triangle sur la puissance en étoile ?
+        answer: 3
+        tol: 0.01
+        calc: (400**2) / (230.94**2)
+        trap_values:
+          - v: 1.732
+            why: La tension par résistance est √3 fois plus grande, mais la puissance varie comme le carré de la tension.
+        e: En triangle, chaque résistance voit 400 V ; en étoile, 400/√3 ≈ 231 V. Rapport des puissances, (√3)² = 3.
+      - id: el-triphase.6
+        type: flash
+        level: 1
+        q: Donne les couleurs normalisées (Europe) des conducteurs de phase, de neutre et de terre.
+        back: |
+          Phases : marron, noir, gris.
+          Neutre : bleu.
+          Terre (PE) : vert-jaune, réservé exclusivement à la protection.
+        e: Dans les anciennes installations, d'autres couleurs peuvent exister ; on vérifie toujours avec un appareil, jamais à la couleur seule.
+  # ------------------------------------------------------------------ sécurité
+  - id: el-securite
+    title: Sécurité électrique
+    en: Electrical safety
+    goal: Connaître les effets du courant sur le corps, le rôle de la terre, du différentiel et du disjoncteur, et les étapes d'une consignation.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Ce qui tue, c'est le courant
+          body: |
+            Un oiseau posé sur une ligne à haute tension ne risque rien : il ne touche qu'un seul fil, aucun courant ne le traverse. Une personne qui touche un fil tout en ayant les pieds au sol ferme un circuit à travers son corps.
+
+            Le corps humain conduit (il est plein d'eau salée), et c'est le **courant qui le traverse** qui fait les dégâts, en passant souvent par le cœur.
+        - level: 2
+          title: Contacts directs et indirects
+          body: |
+            Le courant traverse le corps quand il touche deux points à des potentiels différents :
+            - **contact direct** : toucher une partie normalement sous tension (un fil dénudé, une borne) ;
+            - **contact indirect** : toucher une masse métallique (carcasse de machine, armoire) qui est passée sous tension à cause d'un défaut d'isolement.
+
+            Les protections :
+            - contre le contact direct : isolation, capots, armoires fermées, **très basse tension de sécurité** ;
+            - contre le contact indirect : **mise à la terre** des masses **et** **disjoncteur différentiel**.
+
+            Le **disjoncteur** ordinaire protège les **câbles** (surcharges, courts-circuits), pas les personnes : quelques dizaines de milliampères dans un corps suffisent à tuer, bien en dessous de son seuil.
+          check:
+            q: Quel dispositif protège les personnes contre un défaut d'isolement ?
+            choices:
+              - t: Le disjoncteur différentiel 30 mA, associé à la mise à la terre des masses
+                ok: true
+              - t: Le disjoncteur magnétothermique 16 A
+                why: Il ne déclenche qu'au-delà de 16 A (et bien plus pour un déclenchement rapide). Il protège les câbles.
+              - t: Le fusible de l'appareil
+                why: Il protège l'appareil et son cordon contre les surintensités, pas les personnes.
+        - level: 3
+          title: Les ordres de grandeur
+          body: |
+            $$I_{corps} = \frac{U_{contact}}{R_{corps}} \qquad R_{corps} \approx 1000 \text{ à } 2000\ \Omega \ \text{(beaucoup moins sur peau mouillée)}$$
+
+            Effets d'un courant alternatif 50 Hz (ordres de grandeur, ils dépendent de la durée et du trajet) :
+
+            | Courant | Effet |
+            | --- | --- |
+            | ≈ 0,5 mA | seuil de perception |
+            | ≈ 10 mA | contraction musculaire, on ne peut plus lâcher |
+            | ≈ 30 mA | risque de paralysie respiratoire |
+            | ≈ 75 mA et plus | risque de fibrillation cardiaque, mortel |
+
+            Sous 230 V, avec 2000 Ω, le courant vaut 115 mA : potentiellement mortel. D'où le seuil de **30 mA** des différentiels.
+
+            **Très basse tension de sécurité (TBTS)** : au plus 50 V alternatif ou 120 V continu en milieu sec (moins en milieu humide).
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Le différentiel** compare le courant qui part par la phase à celui qui revient par le neutre. Si une partie s'échappe ailleurs (par la terre ou par une personne) et que la différence atteint 30 mA, il coupe, en quelques dizaines de millisecondes.
+
+            **La terre** donne au courant de défaut un chemin franc : la carcasse en défaut est reliée à la terre, le courant de fuite apparaît immédiatement, et le différentiel coupe avant que quelqu'un ne touche la carcasse. Sans terre, la carcasse reste sous tension jusqu'au premier contact humain.
+
+            **Classe I** : appareil à masse métallique reliée à la terre (prise à 3 broches). **Classe II** : double isolation, pas de terre (symbole : deux carrés emboîtés).
+
+            **Énergie stockée** : un variateur de vitesse garde son bus continu chargé (environ 560 V continu sur un réseau 400 V) plusieurs minutes après la coupure. Une batterie peut débiter des milliers d'ampères en court-circuit (brûlures, projections de métal fondu).
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - En France, intervenir sur ou près d'installations électriques exige une **habilitation électrique** (norme NF C 18-510) adaptée : B0/H0 pour les non-électriciens qui travaillent à proximité, BR, B1, B2, BC… pour les interventions électriques.
+            - **Consignation** : séparer (ouvrir le sectionneur), **condamner** (cadenas personnel, étiquette), identifier, **vérifier l'absence de tension** (VAT) avec un appareil lui-même vérifié avant et après, et en haute tension mettre à la terre et en court-circuit.
+            - Attendre la décharge des condensateurs (le temps est indiqué sur les variateurs) et mesurer avant de toucher.
+            - Électronique : bracelet antistatique relié à la terre pour manipuler les cartes (décharges électrostatiques).
+      recap:
+        - "C'est le courant dans le corps qui tue : 30 mA peut suffire."
+        - "Contact direct : isolation, capots, TBTS (≤ 50 V AC, 120 V DC en milieu sec)."
+        - "Contact indirect : terre des masses + différentiel 30 mA."
+        - "Disjoncteur = protection des câbles ; différentiel = protection des personnes."
+        - "Consignation : séparer, condamner, identifier, VAT ; attendre la décharge des condensateurs."
+      pieges: [ing-disjoncteur-personnes, ing-condensateur-charge]
+    vocab:
+      - disjoncteur = circuit breaker
+      - disjoncteur différentiel = residual current device (RCD), GFCI (US)
+      - mise à la terre = earthing (grounding)
+      - défaut d'isolement = insulation fault
+      - consignation = lockout-tagout (LOTO)
+      - vérification d'absence de tension = voltage absence test
+      - très basse tension de sécurité = safety extra-low voltage (SELV)
+      - décharge électrostatique = electrostatic discharge (ESD)
+    exercises:
+      - id: el-securite.1
+        type: numeric
+        level: 1
+        q: Une personne touche une phase à 230 V, pieds au sol, avec une résistance de corps de 2000 Ω. Courant qui la traverse, en mA ?
+        answer: 115
+        tol: 0.01
+        unit: mA
+        calc: 230 / 2000 * 1000
+        e: $I = 230/2000 = 0{,}115$ A $= 115$ mA, dans la zone de la fibrillation cardiaque. Le différentiel 30 mA est là pour couper avant.
+      - id: el-securite.2
+        type: qcm
+        level: 1
+        q: Un disjoncteur 16 A protège-t-il une personne qui touche une phase ?
+        piege: ing-disjoncteur-personnes
+        choices:
+          - t: Non, il ne réagit qu'à des surintensités bien supérieures au courant dangereux pour le corps
+            ok: true
+          - t: Oui, il coupe dès qu'un courant anormal passe
+            piege: true
+            why: 115 mA, c'est un courant normal pour lui. Il laisse passer 16 A en permanence.
+          - t: Oui, s'il est de type magnétothermique
+            why: Magnétothermique signifie qu'il protège contre les surcharges (thermique) et les courts-circuits (magnétique). Toujours pas les personnes.
+        e: Seul un dispositif différentiel à haute sensibilité (30 mA) protège les personnes.
+      - id: el-securite.3
+        type: qcm
+        level: 2
+        q: Tu dois intervenir sur un variateur de vitesse que tu viens de couper. Que fais-tu avant de toucher son bornier ?
+        piege: ing-condensateur-charge
+        choices:
+          - t: Je consigne, j'attends le temps indiqué sur le variateur et je vérifie l'absence de tension sur le bus continu
+            ok: true
+          - t: Rien, il est coupé
+            piege: true
+            why: Ses condensateurs gardent plusieurs centaines de volts pendant plusieurs minutes.
+          - t: Je court-circuite ses bornes avec un tournevis pour le décharger
+            why: Dangereux, avec des projections de métal fondu. On attend et on mesure.
+        e: Le bus continu d'un variateur 400 V est chargé à environ 560 V. Le temps d'attente (souvent 5 à 15 minutes) est indiqué sur l'appareil.
+      - id: el-securite.4
+        type: qcm
+        level: 2
+        q: Quelles sont les limites de la très basse tension de sécurité en milieu sec ?
+        choices:
+          - t: 50 V alternatif, 120 V continu
+            ok: true
+          - t: 230 V alternatif, 400 V continu
+            why: Ce sont des tensions dangereuses.
+          - t: 5 V alternatif, 12 V continu
+            why: C'est bien plus bas que les limites ; ces tensions sont sûres, mais les limites sont plus hautes.
+        e: En milieu humide ou immergé, les limites descendent (par exemple 25 V alternatif ou 12 V alternatif).
+      - id: el-securite.5
+        type: qcm
+        level: 1
+        q: Que signifie le symbole de deux carrés emboîtés sur un appareil ?
+        choices:
+          - t: Classe II, double isolation, pas besoin de terre
+            ok: true
+          - t: L'appareil doit être relié à la terre
+            why: C'est l'inverse ; les appareils de classe I, eux, ont une borne de terre.
+          - t: Appareil étanche
+            why: L'étanchéité est indiquée par l'indice IP.
+        e: Un appareil de classe II ne doit pas être relié à la terre ; sa sécurité repose sur son isolation renforcée.
+      - id: el-securite.6
+        type: flash
+        level: 2
+        q: Quelles sont les étapes d'une consignation électrique ?
+        back: |
+          1. **Séparer** l'installation de sa source (sectionneur).
+          2. **Condamner** l'organe de séparation (cadenas personnel, étiquette).
+          3. **Identifier** l'équipement sur lequel on va travailler.
+          4. **Vérifier l'absence de tension** (VAT) avec un appareil adapté, testé avant et après.
+          5. En haute tension (et si nécessaire en basse tension), **mettre à la terre et en court-circuit**.
+        e: La consignation est faite par une personne habilitée ; chaque intervenant pose son propre cadenas.
+  # ------------------------------------------------------------------ RC / L
+  - id: el-rc
+    title: Condensateurs, bobines et constantes de temps
+    en: Capacitors, inductors and time constants
+    goal: Calculer une constante de temps RC ou L/R, une charge de condensateur, une énergie stockée et une surtension de bobine.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Le ballon et le volant
+          body: |
+            Un **condensateur** est comme un ballon qu'on gonfle : il stocke quelque chose (des charges électriques) et plus il est plein, plus il devient difficile d'en rajouter.
+
+            Une **bobine** est comme un volant d'inertie ou un vélo lancé : difficile à mettre en mouvement, et difficile à arrêter net. Elle s'oppose aux **variations** du courant.
+        - level: 2
+          title: Rien d'instantané
+          body: |
+            - La **tension** aux bornes d'un condensateur ne peut pas sauter d'un coup : il faut du temps pour le charger. À travers une résistance, il se charge vite au début puis de plus en plus lentement.
+            - Le **courant** dans une bobine ne peut pas s'arrêter d'un coup. Si on l'interrompt brutalement (on ouvre un contact, on bloque un transistor), la bobine produit une **surtension** énorme pour tenter de maintenir le courant : étincelles aux contacts, transistor détruit.
+
+            C'est pour ça qu'on met une **diode de roue libre** en parallèle sur les bobines de relais, d'électrovannes et de moteurs : elle offre un chemin au courant quand on coupe.
+          check:
+            q: On coupe brutalement le courant d'une bobine de relais pilotée par un transistor, sans diode. Que risque le transistor ?
+            choices:
+              - t: Une surtension qui le détruit
+                ok: true
+                why: La bobine génère une tension L·di/dt très élevée au moment de la coupure.
+              - t: Rien, le courant est coupé
+                why: C'est justement la coupure brutale qui crée la surtension.
+              - t: Une surintensité
+                why: Le courant ne dépasse pas celui qui circulait ; c'est la tension qui explose.
+        - level: 3
+          title: Les formules
+          body: |
+            **Condensateur** ($C$ en farads) chargé à travers $R$ sous une tension $E$ :
+            $$\tau = R\,C \qquad u(t) = E\,(1 - e^{-t/\tau}) \qquad W = \tfrac{1}{2}\,C\,U^2$$
+
+            ```svg caption="Charge d'un condensateur à travers une résistance : 63 % à τ = RC, environ 99 % à 5τ."
+            <svg viewBox="0 0 460 200" width="460" role="img" aria-label="Courbe de charge d'un condensateur">
+              <line class="s2" x1="50" y1="170" x2="440" y2="170"/>
+              <line class="s2" x1="50" y1="20" x2="50" y2="170"/>
+              <line class="grid dash" x1="50" y1="30" x2="430" y2="30"/>
+              <line class="ws dash" x1="50" y1="81.5" x2="126" y2="81.5"/>
+              <line class="ws dash" x1="126" y1="81.5" x2="126" y2="170"/>
+              <polyline class="as" points="50.0,170.0 55.0,161.1 60.0,152.7 65.0,144.9 70.0,137.6 75.0,130.8 80.0,124.3 85.0,118.3 90.0,112.7 95.0,107.4 100.0,102.5 105.0,97.9 110.0,93.6 115.0,89.5 120.0,85.7 125.0,82.2 130.0,78.9 135.0,75.8 140.0,72.8 145.0,70.1 150.0,67.6 155.0,65.2 160.0,62.9 165.0,60.8 170.0,58.9 175.0,57.0 180.0,55.3 185.0,53.7 190.0,52.2 195.0,50.8 200.0,49.5 205.0,48.2 210.0,47.1 215.0,46.0 220.0,45.0 225.0,44.0 230.0,43.1 235.0,42.3 240.0,41.5 245.0,40.8 250.0,40.1 255.0,39.4 260.0,38.8 265.0,38.3 270.0,37.7 275.0,37.3 280.0,36.8 285.0,36.4 290.0,36.0 295.0,35.6 300.0,35.2 305.0,34.9 310.0,34.6 315.0,34.3 320.0,34.0 325.0,33.8 330.0,33.5 335.0,33.3 340.0,33.1 345.0,32.9 350.0,32.7 355.0,32.5 360.0,32.4 365.0,32.2 370.0,32.1 375.0,31.9 380.0,31.8 385.0,31.7 390.0,31.6 395.0,31.5 400.0,31.4 405.0,31.3 410.0,31.2 415.0,31.1 420.0,31.1 425.0,31.0 430.0,30.9"/>
+              <text class="t" x="30" y="34">E</text>
+              <text class="tw" x="56" y="76">63 %</text>
+              <text class="tm" x="126" y="186" text-anchor="middle">τ</text>
+              <text class="tm" x="202" y="186" text-anchor="middle">2τ</text>
+              <text class="tm" x="278" y="186" text-anchor="middle">3τ</text>
+              <text class="tm" x="354" y="186" text-anchor="middle">4τ</text>
+              <text class="tm" x="430" y="186" text-anchor="middle">5τ</text>
+              <text class="ta" x="300" y="62">≈ 99 % à 5τ</text>
+            </svg>
+            ```
+
+            **Bobine** ($L$ en henrys) :
+            $$u = L\,\frac{di}{dt} \qquad \tau = \frac{L}{R} \qquad W = \tfrac{1}{2}\,L\,I^2$$
+
+            **Exemple** : une bobine de relais de 0,1 H parcourue par 0,5 A, dont le courant est coupé en 10 µs : $u = 0{,}1 \times 0{,}5 / 10^{-5} = 5000$ V.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Pourquoi une exponentielle ?** Le courant de charge est proportionnel à ce qui reste à charger ($E - u$) : plus le condensateur est plein, plus il se remplit lentement. Une évolution proportionnelle à l'écart restant donne toujours une exponentielle, comme le refroidissement d'une tasse de café.
+
+            Repères : 63 % à $\tau$, 86 % à $2\tau$, 95 % à $3\tau$, 99 % à $5\tau$. On considère qu'un circuit RC est « établi » après environ $5\tau$.
+
+            **Diode de roue libre** : quand le transistor coupe, le courant de la bobine continue à circuler dans la boucle bobine-diode et s'éteint en quelques $L/R$. Le relais retombe un peu plus lentement ; si la rapidité compte, on utilise une diode Zener ou un composant de protection (TVS) qui dissipe l'énergie plus vite.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Les **condensateurs électrolytiques** sont **polarisés** : montés à l'envers, ils chauffent et peuvent éclater. Choisis leur tension de service avec une marge.
+            - Un gros condensateur chargé reste dangereux après la coupure : 1000 µF sous 400 V stockent 80 J.
+            - Les sorties d'automates qui pilotent des bobines (relais, contacteurs, électrovannes) ont besoin de **modules d'antiparasitage** (diode, varistance, circuit RC) si la sortie ou la bobine n'en intègre pas.
+            - Les condensateurs de **découplage** (100 nF au plus près de chaque circuit intégré) servent de petite réserve d'énergie locale (voir l'électronique analogique).
+      recap:
+        - "τ = RC ; u(t) = E(1 − e^(−t/τ)) ; 63 % à τ, ≈ 99 % à 5τ."
+        - "Condensateur : la tension ne saute pas ; W = ½·C·U²."
+        - "Bobine : le courant ne s'arrête pas net ; u = L·di/dt ; τ = L/R ; W = ½·L·I²."
+        - "Diode de roue libre sur toute bobine commutée par un transistor."
+        - "Électrolytiques polarisés ; condensateurs chargés dangereux après coupure."
+      pieges: [ing-roue-libre, ing-condensateur-charge]
+    vocab:
+      - condensateur = capacitor
+      - bobine (inductance) = inductor (coil)
+      - constante de temps = time constant
+      - diode de roue libre = flyback (freewheeling) diode
+      - surtension = voltage spike (overvoltage)
+      - condensateur électrolytique = electrolytic capacitor
+      - condensateur de découplage = decoupling capacitor
+      - énergie stockée = stored energy
+    exercises:
+      - id: el-rc.1
+        type: numeric
+        level: 1
+        q: Constante de temps d'un circuit R = 10 kΩ, C = 100 µF ?
+        answer: 1
+        tol: 0.01
+        unit: s
+        calc: 10e3 * 100e-6
+        trap_values:
+          - v: 1000000
+            why: Tu as multiplié 10 000 par 100 sans convertir les microfarads. 100 µF = 100·10⁻⁶ F.
+        e: $\tau = RC = 10^4 \times 10^{-4} = 1$ s.
+      - id: el-rc.2
+        type: numeric
+        level: 2
+        q: Ce condensateur, initialement déchargé, est chargé sous 5 V à travers la résistance. Sa tension au bout de 2 s ?
+        answer: 4.323
+        tol: 0.01
+        unit: V
+        calc: 5 * (1 - exp(-2 / 1))
+        trap_values:
+          - v: 0.677
+            why: C'est la tension qu'il reste à gagner, E·e^(−t/τ). La tension du condensateur vaut E(1 − e^(−t/τ)).
+        e: $u = 5 (1 - e^{-2}) \approx 5 \times 0{,}865 \approx 4{,}32$ V (86 % à $2\tau$).
+      - id: el-rc.3
+        type: numeric
+        level: 2
+        q: Énergie stockée dans un condensateur de 1000 µF chargé à 400 V ?
+        answer: 80
+        tol: 0.01
+        unit: J
+        calc: 0.5 * 1000e-6 * 400**2
+        trap_values:
+          - v: 160
+            why: Tu as oublié le ½.
+          - v: 0.2
+            why: Tu as oublié d'élever la tension au carré.
+        piege: ing-condensateur-charge
+        e: $W = \tfrac{1}{2} \times 10^{-3} \times 160\,000 = 80$ J, de quoi provoquer une brûlure ou une électrisation grave.
+      - id: el-rc.4
+        type: numeric
+        level: 3
+        q: Une bobine de relais de 0,1 H est parcourue par 0,5 A. On coupe le courant en 10 µs. Tension produite par la bobine ?
+        answer: 5000
+        tol: 0.01
+        unit: V
+        calc: 0.1 * 0.5 / 10e-6
+        piege: ing-roue-libre
+        e: $u = L\,\Delta i/\Delta t = 0{,}1 \times 0{,}5 / 10^{-5} = 5000$ V. Aucun transistor de commande ne résiste ; la diode de roue libre limite cette surtension à environ 0,7 V au-dessus de l'alimentation.
+      - id: el-rc.5
+        type: numeric
+        level: 1
+        q: Constante de temps d'une bobine de relais de 0,1 H et 100 Ω, en ms ?
+        answer: 1
+        tol: 0.01
+        unit: ms
+        calc: 0.1 / 100 * 1000
+        e: $\tau = L/R = 0{,}1/100 = 1$ ms. Le courant s'établit en quelques millisecondes.
+      - id: el-rc.6
+        type: qcm
+        level: 1
+        q: Au bout de combien de constantes de temps considère-t-on qu'un condensateur est chargé (à environ 1 % près) ?
+        choices:
+          - t: Environ 5τ
+            ok: true
+          - t: 1τ
+            why: À τ, il n'est chargé qu'à 63 %.
+          - t: Jamais, il faut un temps infini
+            why: Mathématiquement oui, mais en pratique 5τ donne plus de 99 %.
+        e: Repères, 63 % (τ), 86 % (2τ), 95 % (3τ), 99 % (5τ).

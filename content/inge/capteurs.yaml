@@ -1,0 +1,936 @@
+id: capteurs
+title: Capteurs et mesure
+en: Sensors and measurement
+desc: Chaîne de mesure, qualités d'un capteur, température, position, force et détection tout-ou-rien.
+intro: |
+  On ne commande bien que ce qu'on mesure bien. Un capteur transforme une grandeur physique en signal électrique, et chaque maillon entre la grandeur et le nombre affiché ajoute ses erreurs.
+
+  Ces six notions couvrent les capteurs qu'on rencontre partout : température, position, force, présence, et la façon de juger une mesure.
+notions:
+  # ------------------------------------------------------------------ chaîne
+  - id: cap-chaine
+    title: La chaîne de mesure
+    en: The measurement chain
+    goal: Décrire une chaîne de mesure, mettre à l'échelle un signal 4-20 mA et étalonner un capteur en deux points.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Du phénomène au nombre
+          body: |
+            Un thermomètre de cuisine transforme la température en hauteur d'alcool dans un tube, qu'on lit sur une graduation. Un capteur électronique fait la même chose, mais produit une tension, un courant ou un nombre qu'une machine peut lire.
+        - level: 2
+          title: Les maillons
+          body: |
+            Une **chaîne de mesure** va de la grandeur physique (le **mesurande**) au nombre utilisé :
+            1. le **capteur** transforme la grandeur en signal électrique ;
+            2. le **conditionnement** l'alimente, l'amplifie, le filtre ;
+            3. la **conversion** le numérise ;
+            4. le **traitement** le met à l'échelle, le filtre, le corrige.
+
+            Chaque maillon ajoute ses erreurs : la mesure ne vaut que son maillon le plus faible.
+
+            Formes de sortie courantes : tension (0-10 V), courant (**4-20 mA**), numérique (I²C, SPI, IO-Link, Modbus), ou tout-ou-rien.
+          check:
+            q: Pourquoi la boucle de courant commence-t-elle à 4 mA et pas à 0 mA ?
+            choices:
+              - t: Pour distinguer un zéro de mesure (4 mA) d'un fil coupé (0 mA), et pouvoir alimenter le capteur par la boucle
+                ok: true
+              - t: Parce que les résistances ne supportent pas 0 mA
+                why: Rien à voir avec les résistances.
+              - t: Par convention historique sans raison technique
+                why: Le « zéro vivant » a deux raisons techniques bien précises.
+        - level: 3
+          title: Mise à l'échelle et étalonnage
+          body: |
+            **Sensibilité** : $S = \dfrac{\Delta\text{sortie}}{\Delta\text{entrée}}$ (par exemple en mV/°C).
+
+            **Mise à l'échelle 4-20 mA** d'un capteur d'étendue $[x_{min}, x_{max}]$ :
+            $$x = x_{min} + \frac{I - 4}{16}\,(x_{max} - x_{min})$$
+            Capteur 0-10 bar : 12 mA donnent 5 bar.
+
+            **Étalonnage en deux points** : on relève la sortie brute pour deux valeurs connues, et on en déduit une droite $y = a\,x + b$.
+          code: |
+            def etalonnage_2_points(brut1, vrai1, brut2, vrai2):
+                a = (vrai2 - vrai1) / (brut2 - brut1)
+                b = vrai1 - a * brut1
+                return a, b
+
+            # Capteur de pression lu par un CAN : 0 bar → code 205, 10 bar → code 1843
+            a, b = etalonnage_2_points(205, 0.0, 1843, 10.0)
+            for code in (205, 1024, 1843):
+                print(f"code {code:4d} → {a * code + b:5.2f} bar")
+          run: true
+          out: |
+            code  205 →  0.00 bar
+            code 1024 →  5.00 bar
+            code 1843 → 10.00 bar
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Capteurs actifs et passifs** : un thermocouple produit lui-même sa tension (actif) ; une sonde Pt100 ou une jauge de déformation doit être alimentée pour qu'on lise sa résistance (passif).
+
+            **L'effet de charge** : mesurer perturbe. Un thermocouple massif refroidit un petit échantillon, un voltmètre charge un circuit à haute impédance, un capteur de déplacement à contact pousse sur la pièce.
+
+            **Pourquoi le 4-20 mA est robuste** : dans une boucle, le courant est le **même partout**, quelle que soit la résistance des fils, tant que l'alimentation fournit assez de tension. Budget de la boucle : alimentation ≥ tension minimale du capteur + chute dans la résistance de mesure (250 Ω × 20 mA = 5 V) + chute dans les câbles.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Pour choisir un capteur : étendue de mesure, précision nécessaire, temps de réponse, environnement (vide, cryogénie, rayonnement, champ magnétique), type de sortie, encombrement.
+            - Étalonne contre une référence connue et **documente** l'étalonnage (date, référence, coefficients).
+            - Un signal analogique faible voyage mal : amplifie ou numérise près du capteur, ou passe en 4-20 mA.
+      recap:
+        - "Capteur → conditionnement → conversion → traitement ; chaque maillon ajoute ses erreurs."
+        - "4-20 mA : x = x_min + (I − 4)/16 × étendue ; 0 mA = fil coupé."
+        - "Étalonnage 2 points : y = a·x + b à partir de deux références."
+        - "Mesurer perturbe (effet de charge)."
+        - "Boucle 4-20 mA insensible à la résistance des fils, si la tension suffit."
+      pieges: [ing-4-20-zero]
+    vocab:
+      - chaîne de mesure = measurement chain
+      - mesurande = measurand
+      - capteur = sensor (transducer)
+      - conditionnement = signal conditioning
+      - sensibilité = sensitivity
+      - étendue de mesure = measuring range (span)
+      - étalonnage = calibration
+      - pleine échelle = full scale (FS)
+    exercises:
+      - id: cap-chaine.1
+        type: numeric
+        level: 1
+        q: Un capteur de pression 0-10 bar en 4-20 mA délivre 12 mA. Pression ?
+        answer: 5
+        tol: 0.01
+        unit: bar
+        calc: 0 + (12 - 4) / 16 * 10
+        trap_values:
+          - v: 6
+            why: Tu as fait 12/20 × 10. L'échelle commence à 4 mA, pas à 0.
+        piege: ing-4-20-zero
+        e: $(12 - 4)/16 \times 10 = 5$ bar, le milieu de l'échelle (4-20 mA a son milieu à 12 mA).
+      - id: cap-chaine.2
+        type: numeric
+        level: 1
+        q: Un transmetteur de température 0-100 °C en 4-20 mA délivre 8 mA. Température ?
+        answer: 25
+        tol: 0.01
+        unit: °C
+        calc: (8 - 4) / 16 * 100
+        trap_values:
+          - v: 40
+            why: L'échelle commence à 4 mA ; 8 mA correspond au quart de l'étendue.
+        piege: ing-4-20-zero
+        e: $(8 - 4)/16 \times 100 = 25$ °C.
+      - id: cap-chaine.3
+        type: numeric
+        level: 1
+        q: Un capteur sort 0,5 V à 0 °C et 3,0 V à 100 °C. Sensibilité, en mV/°C ?
+        answer: 25
+        tol: 0.01
+        unit: mV/°C
+        calc: (3.0 - 0.5) / 100 * 1000
+        trap_values:
+          - v: 30
+            why: Tu as oublié de retirer le décalage de 0,5 V à 0 °C.
+        e: $(3{,}0 - 0{,}5)/100 = 0{,}025$ V/°C = 25 mV/°C.
+      - id: cap-chaine.4
+        type: numeric
+        level: 3
+        q: "Boucle 4-20 mA alimentée en 24 V. Le capteur a besoin d'au moins 12 V, la résistance de mesure fait 250 Ω. Résistance maximale des câbles (aller + retour) à 20 mA ?"
+        answer: 350
+        tol: 0.01
+        unit: Ω
+        calc: (24 - 12 - 250 * 0.020) / 0.020
+        trap_values:
+          - v: 600
+            why: Tu as oublié la chute de tension dans la résistance de mesure (5 V à 20 mA).
+        e: Il reste $24 - 12 - 5 = 7$ V pour les câbles, soit $7/0{,}02 = 350$ Ω, c'est-à-dire des kilomètres de câble fin.
+      - id: cap-chaine.5
+        type: qcm
+        level: 2
+        q: Un thermocouple de 3 mm de diamètre mesure la température d'un échantillon de quelques milligrammes. Quel risque ?
+        choices:
+          - t: Le capteur, plus massif, perturbe la température qu'il mesure (effet de charge)
+            ok: true
+          - t: Aucun, un thermocouple ne consomme rien
+            why: Il ne consomme pas d'électricité, mais il échange de la chaleur avec l'échantillon.
+          - t: Le thermocouple va fondre
+            why: Ce n'est pas le problème ; c'est la mesure qui est faussée.
+        e: Capteur petit, bon contact thermique, et fils fins et thermalisés pour ne pas pomper la chaleur de l'échantillon.
+      - id: cap-chaine.6
+        type: flash
+        level: 1
+        q: Quels sont les maillons d'une chaîne de mesure ?
+        back: |
+          Mesurande → **capteur** (grandeur physique → signal électrique) → **conditionnement** (alimentation, amplification, filtrage) → **conversion** (numérisation) → **traitement** (mise à l'échelle, correction, filtrage) → affichage, enregistrement ou commande.
+        e: L'incertitude finale combine les erreurs de tous les maillons.
+  # ------------------------------------------------------------------ qualités
+  - id: cap-qualites
+    title: Justesse, fidélité, résolution
+    en: Accuracy, precision, resolution
+    goal: Distinguer les qualités d'un capteur, interpréter une précision en % de pleine échelle et savoir ce que la moyenne corrige.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: Le jeu de fléchettes
+          body: |
+            Trois joueurs lancent cinq fléchettes. Le premier les groupe serrées, mais toutes en haut à droite. Le deuxième les éparpille autour du centre. Le troisième les groupe serrées au centre.
+
+            Le premier est **fidèle** mais pas **juste** ; le deuxième est juste en moyenne mais pas fidèle ; le troisième est les deux. Un capteur, c'est pareil.
+
+            ```svg caption="Fidèle mais pas juste, juste en moyenne mais pas fidèle, juste et fidèle."
+            <svg viewBox="0 0 460 180" width="460" role="img" aria-label="Trois cibles illustrant justesse et fidélité">
+              <circle class="s2" cx="80" cy="75" r="55"/>
+              <circle class="grid" cx="80" cy="75" r="35"/>
+              <circle class="grid" cx="80" cy="75" r="15"/>
+              <circle class="s2" cx="230" cy="75" r="55"/>
+              <circle class="grid" cx="230" cy="75" r="35"/>
+              <circle class="grid" cx="230" cy="75" r="15"/>
+              <circle class="s2" cx="380" cy="75" r="55"/>
+              <circle class="grid" cx="380" cy="75" r="35"/>
+              <circle class="grid" cx="380" cy="75" r="15"/>
+              <circle class="a" cx="103" cy="47" r="4"/>
+              <circle class="a" cx="109" cy="51" r="4"/>
+              <circle class="a" cx="104" cy="55" r="4"/>
+              <circle class="a" cx="111" cy="45" r="4"/>
+              <circle class="a" cx="107" cy="42" r="4"/>
+              <circle class="a" cx="204" cy="62" r="4"/>
+              <circle class="a" cx="254" cy="90" r="4"/>
+              <circle class="a" cx="222" cy="104" r="4"/>
+              <circle class="a" cx="250" cy="55" r="4"/>
+              <circle class="a" cx="214" cy="86" r="4"/>
+              <circle class="a" cx="378" cy="73" r="4"/>
+              <circle class="a" cx="384" cy="77" r="4"/>
+              <circle class="a" cx="379" cy="80" r="4"/>
+              <circle class="a" cx="383" cy="71" r="4"/>
+              <circle class="a" cx="376" cy="77" r="4"/>
+              <text class="t" x="80" y="152" text-anchor="middle">fidèle,</text>
+              <text class="t" x="80" y="168" text-anchor="middle">pas juste</text>
+              <text class="t" x="230" y="152" text-anchor="middle">juste en moyenne,</text>
+              <text class="t" x="230" y="168" text-anchor="middle">pas fidèle</text>
+              <text class="ta" x="380" y="152" text-anchor="middle">juste</text>
+              <text class="ta" x="380" y="168" text-anchor="middle">et fidèle</text>
+            </svg>
+            ```
+        - level: 2
+          title: Les qualités d'un capteur
+          body: |
+            - **Justesse** : l'écart **systématique** entre la moyenne des mesures et la vraie valeur (le biais).
+            - **Fidélité** (répétabilité) : la **dispersion** des mesures répétées dans les mêmes conditions.
+            - **Résolution** : la plus petite variation que l'instrument peut détecter ou afficher.
+            - **Linéarité** : l'écart entre la courbe réelle et une droite.
+            - **Hystérésis** : une mesure différente selon qu'on arrive par le haut ou par le bas.
+            - **Dérive** : une évolution lente dans le temps ou avec la température.
+            - **Temps de réponse** : le temps pour suivre un changement.
+
+            **Précision** désigne l'ensemble : on l'exprime par une **incertitude**.
+          check:
+            q: Un capteur donne toujours 20,3 °C (à ±0,01 °C près) dans un bain étalon à 20,0 °C. Il est…
+            choices:
+              - t: fidèle mais pas juste
+                ok: true
+              - t: juste mais pas fidèle
+                why: Il est très répétable, mais décalé de 0,3 °C.
+              - t: ni juste ni fidèle
+                why: Une dispersion de ±0,01 °C, c'est très fidèle.
+        - level: 3
+          title: Les chiffres
+          body: |
+            **% de pleine échelle ou % de la lecture ?** Un capteur 0-10 bar « précis à ±0,5 % PE » (pleine échelle) a une erreur possible de ±0,05 bar **partout**. À 1 bar, c'est ±5 % de la valeur lue. Un capteur « ±0,5 % de la lecture » ferait ±0,005 bar à 1 bar. D'où la règle : choisis une étendue proche des valeurs que tu mesures.
+
+            **Moyenner** $n$ mesures divise l'erreur **aléatoire** par $\sqrt n$ : 16 mesures, erreur divisée par 4. Mais le **biais** reste entier.
+
+            **Temps de réponse** d'un capteur du premier ordre (constante de temps $\tau$) : 63 % du changement en $\tau$, 95 % en $3\tau$, 99 % en $5\tau$.
+        - level: 4
+          title: Sous le capot
+          body: |
+            On sépare deux familles d'erreurs :
+            - les erreurs **systématiques** (décalage, gain, non-linéarité, influence de la température) : reproductibles, donc **corrigeables** par étalonnage ;
+            - les erreurs **aléatoires** (bruit) : imprévisibles, qu'on caractérise par un écart-type $\sigma$ et qu'on réduit en moyennant.
+
+            L'**étalonnage** compare l'instrument à une référence plus précise, elle-même comparée à un étalon supérieur, jusqu'aux étalons nationaux : c'est la **traçabilité** (raccordement). Un certificat d'étalonnage donne les écarts constatés et leur incertitude.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Compare les capteurs sur la **même base** (% PE ou % lecture, conditions de température, répétabilité ou exactitude totale).
+            - Un affichage à 5 décimales ne dit rien de la justesse : demande l'incertitude.
+            - Vérifie la dérive : recalibrage périodique des capteurs critiques, et contrôle croisé avec un deuxième capteur quand c'est possible.
+            - Pour un phénomène rapide ou une boucle d'asservissement, le temps de réponse du capteur (gaine épaisse, filtrage) peut être le maillon limitant.
+      recap:
+        - "Justesse = biais ; fidélité = dispersion ; résolution = plus petit pas visible."
+        - "±x % PE = erreur constante en absolu : énorme en relatif en bas d'échelle."
+        - "Moyenner n mesures : erreur aléatoire ÷ √n, biais inchangé."
+        - "Systématique → étalonnage ; aléatoire → moyenne."
+        - "Premier ordre : 63 % à τ, 95 % à 3τ."
+      pieges: [ing-pleine-echelle, ing-moyenne-biais, ing-resolution-precision]
+    vocab:
+      - justesse = trueness (accuracy)
+      - fidélité, répétabilité = precision, repeatability
+      - résolution = resolution
+      - biais = bias (systematic error)
+      - dérive = drift
+      - hystérésis = hysteresis
+      - incertitude = uncertainty
+      - traçabilité = traceability
+    exercises:
+      - id: cap-qualites.1
+        type: numeric
+        level: 2
+        q: Capteur 0-10 bar précis à ±0,5 % de la pleine échelle. Tu mesures 1 bar. Erreur possible, en % de la valeur lue ?
+        answer: 5
+        tol: 0.01
+        unit: "%"
+        calc: 0.005 * 10 / 1 * 100
+        trap_values:
+          - v: 0.5
+            why: 0,5 % de la pleine échelle font 0,05 bar, soit 5 % d'une lecture de 1 bar.
+        piege: ing-pleine-echelle
+        e: ±0,05 bar sur 1 bar, soit ±5 %. Un capteur 0-2 bar serait bien plus adapté.
+      - id: cap-qualites.2
+        type: numeric
+        level: 2
+        q: Tu moyennes 16 mesures indépendantes. Par combien l'erreur aléatoire est-elle divisée ?
+        answer: 4
+        tol: 0.01
+        calc: sqrt(16)
+        trap_values:
+          - v: 16
+            why: L'erreur aléatoire diminue comme la racine carrée du nombre de mesures.
+        e: $\sqrt{16} = 4$. Pour diviser l'erreur par 10, il faut 100 mesures.
+      - id: cap-qualites.3
+        type: qcm
+        level: 2
+        q: Un capteur de température est décalé de +0,8 °C. Moyenner 1000 mesures…
+        piege: ing-moyenne-biais
+        choices:
+          - t: réduit le bruit mais laisse le décalage de 0,8 °C
+            ok: true
+          - t: supprime le décalage
+            piege: true
+            why: Le décalage est présent dans chaque mesure ; la moyenne le conserve.
+          - t: aggrave le décalage
+            why: La moyenne ne l'aggrave pas, elle le garde tel quel.
+        e: Un biais se corrige par étalonnage (comparaison à une référence), pas par moyenne.
+      - id: cap-qualites.4
+        type: numeric
+        level: 1
+        q: Un capteur de température a une constante de temps de 2 s. Combien de temps pour atteindre 95 % d'un changement brusque ?
+        answer: 6
+        tol: 0.01
+        unit: s
+        calc: 3 * 2
+        trap_values:
+          - v: 2
+            why: En τ, on n'atteint que 63 %. Il faut environ 3τ pour 95 %.
+        e: 95 % en $3\tau = 6$ s ; 99 % en $5\tau = 10$ s.
+      - id: cap-qualites.5
+        type: qcm
+        level: 1
+        q: Un capteur de position affiche des valeurs différentes selon que l'axe arrive par la gauche ou par la droite au même point. C'est…
+        choices:
+          - t: de l'hystérésis
+            ok: true
+          - t: de la dérive
+            why: La dérive est une évolution lente dans le temps.
+          - t: un défaut de résolution
+            why: La résolution est le plus petit pas mesurable ; ici l'écart dépend du sens d'arrivée.
+        e: Souvent d'origine mécanique (jeu, frottement), on l'évite en arrivant toujours dans le même sens.
+      - id: cap-qualites.6
+        type: flash
+        level: 1
+        q: Définis justesse, fidélité et résolution.
+        back: |
+          **Justesse** : proximité entre la moyenne des mesures et la vraie valeur (absence de biais).
+          **Fidélité** : proximité des mesures répétées entre elles (faible dispersion).
+          **Résolution** : plus petite variation de la grandeur que l'instrument peut détecter ou afficher.
+        e: Un instrument peut être très résolu et faux, ou peu résolu et juste.
+  # ------------------------------------------------------------------ température
+  - id: cap-temperature
+    title: Mesurer une température
+    en: Temperature sensors
+    goal: Choisir entre thermocouple, Pt100 et thermistance, et éviter les erreurs de soudure froide et de câblage.
+    minutes: 13
+    lesson:
+      steps:
+        - level: 1
+          title: Deux métaux et un fil de platine
+          body: |
+            Deux fils de métaux différents soudés à un bout produisent une toute petite tension quand leur soudure est chauffée : c'est un **thermocouple**. Un fil de platine voit sa résistance augmenter régulièrement avec la température : c'est une **sonde à résistance**, comme la Pt100.
+        - level: 2
+          title: Trois familles
+          body: |
+            - **Thermocouple** : une tension qui dépend de la **différence** de température entre la soudure chaude (le point de mesure) et la **soudure froide** (où les fils se branchent sur l'appareil). Robuste, rapide, bon marché, de −200 à plus de 1300 °C. Mais signal minuscule (quelques dizaines de µV par °C) et précision moyenne (±1 à 2 °C).
+            - **Sonde à résistance Pt100** : 100 Ω à 0 °C, environ +0,385 Ω par °C. Précise et stable (±0,1 à 0,3 °C), mais plage plus réduite, et il faut l'alimenter par un petit courant.
+            - **Thermistance (CTN)** : très sensible, peu coûteuse, mais non linéaire et limitée à une plage étroite.
+          check:
+            q: Pourquoi un appareil de mesure de thermocouple doit-il connaître la température de ses propres bornes ?
+            choices:
+              - t: Parce que le thermocouple mesure une différence de température entre la soudure chaude et ses bornes (soudure froide)
+                ok: true
+              - t: Pour se protéger de la surchauffe
+                why: Ce n'est pas une protection, c'est une nécessité de la mesure.
+              - t: Il n'en a pas besoin
+                why: Sans cette compensation, l'erreur vaut la température ambiante des bornes.
+        - level: 3
+          title: Les formules
+          body: |
+            **Pt100** (approximation linéaire, correcte entre 0 et 100 °C environ) :
+            $$R(T) \approx R_0\,(1 + \alpha\,T) \qquad R_0 = 100\ \Omega,\ \alpha = 0{,}00385\ /°\text{C}$$
+            110 Ω correspondent à $(110/100 - 1)/0{,}00385 \approx 26$ °C.
+
+            **Thermocouple type K** : environ 41 µV/°C autour de l'ambiante.
+            $$T_{mesure} \approx T_{soudure\ froide} + \frac{U}{S}$$
+            4,1 mV avec une soudure froide à 25 °C : $25 + 4100/41 = 125$ °C.
+
+            **Câblage d'une Pt100 en 2 fils** : la résistance des fils s'ajoute à la sonde. 0,5 Ω de câble au total fausse la mesure de $0{,}5/0{,}385 \approx 1{,}3$ °C. D'où les montages 3 fils (compensation) et **4 fils** (élimination).
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Effet Seebeck** : une différence de température le long d'un conducteur y crée une petite tension, qui dépend du métal. Avec deux métaux différents, les deux tensions ne se compensent pas : la tension nette ne dépend que des températures des deux jonctions, pas de ce qui se passe le long des fils (s'ils sont homogènes).
+
+            Conséquence : toute rallonge doit être en **câble de compensation du même type**. Des fils de cuivre ou un bornier ordinaire créent de nouvelles jonctions parasites.
+
+            **Mesure 4 fils** : deux fils amènent le courant, deux autres mesurent la tension directement aux bornes de la sonde. Aucun courant ne circule dans les fils de mesure, donc leur résistance ne compte plus.
+
+            **Types de thermocouples** : K (usage général, jusqu'à ~1200 °C), N (plus stable à haute température), T (basses températures), J, et S, R, B (platine-rhodium, jusqu'à 1600 °C et plus). En **cryogénie**, sous ~30 K, la Pt100 perd sa sensibilité : on passe aux diodes silicium, aux capteurs Cernox ou à oxyde de ruthénium.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Un capteur mesure **sa propre température**. Assure le contact thermique avec ce que tu veux mesurer, et thermalise les fils (surtout en cryogénie) pour qu'ils n'apportent pas de chaleur.
+            - Ne place pas le capteur sur le chauffage au lieu de l'échantillon : tu régulerais la mauvaise température.
+            - Les codes couleur des câbles de thermocouple **diffèrent selon les normes** (CEI, ANSI…) : vérifie la polarité avec une source de chaleur plutôt qu'à la couleur.
+            - Courant de mesure d'une Pt100 : 1 mA au plus, sinon la sonde s'échauffe elle-même.
+      recap:
+        - "Thermocouple : mesure une différence de températures ; compensation de soudure froide ; ≈ 41 µV/°C (type K)."
+        - "Rallonges de thermocouple : câble de compensation du même type."
+        - "Pt100 : 100 Ω à 0 °C, ≈ 0,385 Ω/°C ; montage 3 ou 4 fils."
+        - "Thermistance : sensible, non linéaire, plage étroite."
+        - "Un capteur mesure sa propre température : contact et thermalisation."
+      pieges: [ing-soudure-froide, ing-pt100-2fils, ing-contact-thermique]
+    vocab:
+      - thermocouple = thermocouple
+      - soudure froide = cold junction
+      - compensation de soudure froide = cold junction compensation (CJC)
+      - sonde à résistance de platine = platinum resistance thermometer (RTD, Pt100)
+      - thermistance = thermistor (NTC)
+      - câble de compensation = thermocouple extension (compensating) cable
+      - mesure 4 fils = four-wire (Kelvin) measurement
+      - auto-échauffement = self-heating
+    exercises:
+      - id: cap-temperature.1
+        type: numeric
+        level: 1
+        q: Une Pt100 mesure 110 Ω. Température (approximation linéaire, α = 0,00385 /°C) ?
+        answer: 25.97
+        tol: 0.01
+        unit: °C
+        calc: (110 / 100 - 1) / 0.00385
+        e: $(1{,}10 - 1)/0{,}00385 \approx 26$ °C.
+      - id: cap-temperature.2
+        type: numeric
+        level: 2
+        q: Une Pt100 est câblée en 2 fils avec 0,5 Ω de résistance de câble au total. Erreur de mesure, en °C ?
+        answer: 1.299
+        tol: 0.02
+        unit: °C
+        calc: 0.5 / 0.385
+        piege: ing-pt100-2fils
+        e: $0{,}5/0{,}385 \approx 1{,}3$ °C en trop. Avec un montage 4 fils, cette erreur disparaît.
+      - id: cap-temperature.3
+        type: numeric
+        level: 2
+        q: Un thermocouple K (41 µV/°C) donne 4,1 mV. Les bornes de l'appareil (soudure froide) sont à 25 °C. Température mesurée ?
+        answer: 125
+        tol: 0.01
+        unit: °C
+        calc: 25 + 4.1e-3 / 41e-6
+        trap_values:
+          - v: 100
+            why: Le thermocouple donne la différence avec la soudure froide ; il faut ajouter ses 25 °C.
+        piege: ing-soudure-froide
+        e: $25 + 4100/41 = 125$ °C (en pratique on utilise les tables normalisées, la relation n'est pas parfaitement linéaire).
+      - id: cap-temperature.4
+        type: qcm
+        level: 2
+        q: Pour rallonger un thermocouple K de 5 m jusqu'à l'appareil, que faut-il utiliser ?
+        piege: ing-soudure-froide
+        choices:
+          - t: Du câble de compensation de type K, en respectant la polarité
+            ok: true
+          - t: Du câble cuivre ordinaire, c'est moins cher
+            piege: true
+            why: Les jonctions thermocouple/cuivre créent de nouveaux thermocouples parasites, à la température du point de raccordement.
+          - t: N'importe quel câble blindé
+            why: Le blindage protège des parasites électriques, mais le métal doit être celui du thermocouple.
+        e: Le câble de compensation a le même comportement thermoélectrique que le thermocouple, ce qui reporte la soudure froide jusqu'à l'appareil.
+      - id: cap-temperature.5
+        type: qcm
+        level: 1
+        q: Quel capteur choisir pour mesurer environ 1000 °C dans un four ?
+        choices:
+          - t: Un thermocouple (type K, N ou S selon la précision et l'atmosphère)
+            ok: true
+          - t: Une Pt100 standard
+            why: Les Pt100 courantes sont limitées à quelques centaines de degrés.
+          - t: Une thermistance
+            why: Leur plage est étroite, bien en dessous de 1000 °C.
+        e: Au-delà de 1200 °C, les thermocouples platine-rhodium (S, R, B) prennent le relais.
+      - id: cap-temperature.6
+        type: qcm
+        level: 2
+        q: Pourquoi mesurer une Pt100 en 4 fils ?
+        choices:
+          - t: Pour que la résistance des câbles n'entre plus dans la mesure
+            ok: true
+          - t: Pour doubler la sensibilité
+            why: La sensibilité de la sonde ne change pas.
+          - t: Pour pouvoir brancher deux sondes
+            why: Les 4 fils servent une seule sonde : deux pour le courant, deux pour la tension.
+        e: Aucun courant ne circule dans les fils de mesure de tension, donc leur résistance ne provoque aucune chute.
+      - id: cap-temperature.7
+        type: flash
+        level: 1
+        q: Compare thermocouple et Pt100 (principe, plage, précision).
+        back: |
+          **Thermocouple** : tension due à l'effet Seebeck, proportionnelle à une différence de températures ; très large plage (−200 à 1300 °C et plus) ; robuste et rapide ; précision ±1 à 2 °C ; compensation de soudure froide nécessaire.
+          **Pt100** : résistance de platine (100 Ω à 0 °C, +0,385 Ω/°C) ; plage plus réduite (≈ −200 à 600 °C) ; précise et stable (±0,1 à 0,3 °C) ; à câbler en 3 ou 4 fils.
+        e: Thermocouple pour le chaud et le robuste, Pt100 pour le précis.
+  # ------------------------------------------------------------------ position
+  - id: cap-position
+    title: Codeurs et mesure de position
+    en: Encoders and position sensing
+    goal: Calculer la résolution d'un codeur en quadrature, sa fréquence de signal, et choisir entre incrémental et absolu.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Compter les crans
+          body: |
+            Imagine une roue percée de fentes régulières, avec une lampe d'un côté et une cellule de l'autre. À chaque fente qui passe, la cellule voit un éclair. En comptant les éclairs, tu sais de combien la roue a tourné. C'est le principe du **codeur incrémental**.
+        - level: 2
+          title: Deux voies décalées
+          body: |
+            Un codeur **incrémental** a un disque de $N$ traits par tour et deux voies, **A** et **B**, décalées d'un quart de période (**quadrature**). En regardant laquelle des deux change en premier, on connaît le **sens** de rotation. Une troisième voie, l'**index** (Z), donne une impulsion par tour.
+
+            Le compteur donne une position **relative** : à la mise sous tension, il faut une **prise d'origine**.
+
+            Un codeur **absolu** donne directement un code unique pour chaque position, même après une coupure (monotour ou multitour).
+
+            Autres capteurs de position : potentiomètre, LVDT (transformateur différentiel), règles optiques, capteurs capacitifs, interféromètres laser pour le nanomètre.
+
+            ```svg caption="Signaux en quadrature : A et B décalés d'un quart de période. Chaque période donne 4 fronts, d'où le comptage ×4."
+            <svg viewBox="0 0 460 160" width="460" role="img" aria-label="Signaux A et B d'un codeur en quadrature">
+              <defs><marker id="ar-cap1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="a"/></marker></defs>
+              <line class="grid dash" x1="40" y1="20" x2="40" y2="130"/>
+              <line class="grid dash" x1="70" y1="20" x2="70" y2="130"/>
+              <line class="grid dash" x1="100" y1="20" x2="100" y2="130"/>
+              <line class="grid dash" x1="130" y1="20" x2="130" y2="130"/>
+              <line class="grid dash" x1="160" y1="20" x2="160" y2="130"/>
+              <polyline class="as" points="20,60 40,60 40,30 100,30 100,60 160,60 160,30 220,30 220,60 280,60 280,30 340,30 340,60 400,60 400,30 440,30"/>
+              <polyline class="ws" points="20,120 70,120 70,90 130,90 130,120 190,120 190,90 250,90 250,120 310,120 310,90 370,90 370,120 430,120 430,90 440,90"/>
+              <text class="ta" x="4" y="49">A</text>
+              <text class="tw" x="4" y="109">B</text>
+              <line class="as" x1="40" y1="143" x2="160" y2="143" marker-start="url(#ar-cap1)" marker-end="url(#ar-cap1)"/>
+              <text class="t" x="170" y="147">1 période = 4 fronts</text>
+            </svg>
+            ```
+          check:
+            q: À quoi sert la deuxième voie (B) d'un codeur incrémental ?
+            choices:
+              - t: À déterminer le sens de rotation, et à multiplier la résolution par 4
+                ok: true
+              - t: À doubler le signal en cas de panne
+                why: Ce n'est pas une redondance.
+              - t: À donner le tour complet
+                why: C'est le rôle de l'index Z.
+        - level: 3
+          title: Les chiffres
+          body: |
+            - **Comptage ×4** : chaque période de A donne 4 fronts (montants et descendants de A et B). Un codeur de 1000 traits donne **4000 points par tour**, soit 0,09°.
+            - Sur une vis de pas 5 mm : $5/4000 = 1{,}25$ µm par point.
+            - **Fréquence des signaux** : $f = N \times \text{tours/s}$. À 3000 tr/min (50 tr/s) avec 1000 traits : 50 kHz par voie, 200 000 fronts par seconde. Trop pour une interruption par front : on utilise un **compteur matériel**.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Décodage** : les deux voies forment quatre états (00, 01, 11, 10) qui se suivent dans un ordre en sens positif et dans l'ordre inverse en sens négatif. Chaque transition vaut +1 ou −1. C'est un **code de Gray** : un seul bit change à la fois, ce qui évite de lire une valeur intermédiaire fausse.
+
+            **Codeurs sinus/cosinus** : au lieu de signaux carrés, des sinusoïdes, que l'électronique **interpole** pour obtenir des centaines ou milliers de points par période.
+
+            **Où placer le codeur ?** Sur le moteur, il mesure la rotation du moteur, pas la position de la charge : le jeu, l'élasticité et les défauts de la vis lui échappent. Sur la charge (règle linéaire), il mesure ce qui compte vraiment : c'est la **boucle fermée directe**.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Signaux : TTL 5 V, **différentiels RS-422** (A, /A, B, /B) pour les longs câbles et les environnements bruités, HTL 24 V en industrie. Codeurs absolus : interfaces série SSI, BiSS, EnDat.
+            - Vérifie la configuration du contrôleur : nombre de points par tour, sens de comptage, facteur de conversion en unités physiques.
+            - Sur les lignes de lumière, les contrôleurs de mouvement lisent des codeurs moteur et, sur les axes critiques, des codeurs directement sur la mécanique.
+      recap:
+        - "Incrémental : voies A et B en quadrature (sens), index Z ; position relative → prise d'origine."
+        - "Absolu : position connue dès la mise sous tension."
+        - "Comptage ×4 : N traits → 4N points par tour."
+        - "f = N × tours/s ; compteurs matériels pour les hautes fréquences."
+        - "Codeur sur la charge = mesure directe, sans jeu ni défauts de transmission."
+      pieges: [ing-mesure-moteur, ing-perte-pas]
+    vocab:
+      - codeur incrémental = incremental encoder
+      - codeur absolu = absolute encoder
+      - quadrature = quadrature
+      - top zéro, index = index pulse (Z)
+      - traits par tour = lines (pulses) per revolution
+      - règle optique = linear scale
+      - code de Gray = Gray code
+      - prise d'origine = homing (referencing)
+    exercises:
+      - id: cap-position.1
+        type: numeric
+        level: 1
+        q: Codeur incrémental de 1000 traits, décodé en ×4. Résolution angulaire, en degrés ?
+        answer: 0.09
+        tol: 0.01
+        unit: °
+        calc: 360 / (4 * 1000)
+        trap_values:
+          - v: 0.36
+            why: Tu as oublié le comptage ×4 (4 fronts par période).
+        e: 4000 points par tour, 360/4000 = 0,09°.
+      - id: cap-position.2
+        type: numeric
+        level: 2
+        q: Ce codeur (4000 points par tour) est sur une vis de pas 5 mm. Résolution linéaire, en µm ?
+        answer: 1.25
+        tol: 0.01
+        unit: µm
+        calc: 5 / 4000 * 1000
+        trap_values:
+          - v: 5
+            why: Sans le ×4, on aurait 5 mm / 1000 = 5 µm.
+        e: 5 mm / 4000 = 1,25 µm, en résolution. La précision de position dépend aussi de la vis.
+      - id: cap-position.3
+        type: numeric
+        level: 2
+        q: Un codeur de 1000 traits tourne à 3000 tr/min. Fréquence du signal sur la voie A, en Hz ?
+        answer: 50000
+        tol: 0.001
+        unit: Hz
+        calc: 3000 / 60 * 1000
+        trap_values:
+          - v: 3000000
+            why: Les tr/min doivent être convertis en tours par seconde.
+        piege: ing-tr-min-rad-s
+        e: 50 tours par seconde × 1000 traits = 50 kHz par voie, soit 200 000 fronts par seconde en ×4.
+      - id: cap-position.4
+        type: qcm
+        level: 2
+        q: Un axe à moteur pas à pas a un codeur sur le moteur. Peut-il détecter le jeu de la vis ou une courroie qui patine ?
+        piege: ing-mesure-moteur
+        choices:
+          - t: Non, il mesure la rotation du moteur, pas la position réelle de la charge
+            ok: true
+          - t: Oui, le codeur voit tout
+            piege: true
+            why: Tout ce qui se passe après le moteur (jeu, patinage, déformation) lui échappe.
+          - t: Oui, si le codeur est absolu
+            why: Absolu ou incrémental, il est toujours sur le moteur.
+        e: Pour mesurer la charge, il faut un capteur sur la charge (règle linéaire, codeur en sortie de réducteur).
+      - id: cap-position.5
+        type: qcm
+        level: 1
+        q: Après une coupure de courant, quel codeur donne immédiatement la bonne position ?
+        choices:
+          - t: Un codeur absolu
+            ok: true
+          - t: Un codeur incrémental
+            why: Il ne compte que des déplacements ; il faut refaire une prise d'origine.
+          - t: Aucun
+            why: C'est justement l'intérêt du codeur absolu (multitour pour plusieurs tours).
+        e: Les codeurs absolus évitent les prises d'origine, parfois impossibles ou dangereuses sur une installation.
+      - id: cap-position.6
+        type: flash
+        level: 2
+        q: Qu'est-ce qu'un code de Gray et pourquoi l'utilise-t-on dans les codeurs ?
+        back: |
+          Un codage binaire où **un seul bit change** entre deux valeurs voisines (00, 01, 11, 10…). Dans un codeur, si l'on lit la position pile au moment d'une transition, on obtient l'une ou l'autre des deux positions voisines, jamais une valeur aberrante (en binaire classique, passer de 0111 à 1000 fait changer 4 bits à la fois).
+        e: Les signaux A/B d'un codeur incrémental forment un code de Gray à 2 bits.
+  # ------------------------------------------------------------------ force
+  - id: cap-force
+    title: Jauges de déformation et pont de Wheatstone
+    en: Strain gauges and the Wheatstone bridge
+    goal: Relier contrainte, déformation et signal d'un pont de jauges, et lire une spécification en mV/V.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Le pèse-personne
+          body: |
+            Quand tu montes sur un pèse-personne, une pièce métallique se déforme d'une quantité minuscule, invisible à l'œil. Collée dessus, une **jauge de déformation** transforme cette déformation en variation de résistance électrique. C'est le cœur de presque tous les capteurs de force, de pression et de couple.
+        - level: 2
+          title: Une résistance qui s'étire
+          body: |
+            Une jauge est une fine piste métallique en zigzag, collée sur la pièce. Quand la pièce s'allonge, la piste s'allonge et s'amincit : sa résistance augmente. Mais très peu, de l'ordre de 0,1 %.
+
+            Mesurer directement une si petite variation de résistance est difficile. On utilise un **pont de Wheatstone** : quatre résistances formant deux diviseurs de tension. À l'équilibre, les deux milieux sont à la même tension : la sortie est **nulle**. Une jauge qui varie déséquilibre le pont, et la sortie devient proportionnelle à la déformation.
+          check:
+            q: Pourquoi mesurer une jauge dans un pont plutôt que sa résistance directement ?
+            choices:
+              - t: Le pont donne un signal nul au repos, qu'on peut amplifier fortement pour voir la minuscule variation
+                ok: true
+              - t: Parce qu'un ohmmètre ne sait pas mesurer 350 Ω
+                why: Il sait, mais une variation de 0,1 % se noie dans sa précision.
+              - t: Pour consommer moins
+                why: La consommation n'est pas l'enjeu.
+        - level: 3
+          title: Les formules
+          body: |
+            $$\frac{\Delta R}{R} = K\,\varepsilon \qquad \varepsilon = \frac{\sigma}{E}$$
+            $K \approx 2$ : **facteur de jauge**. $\varepsilon$ : déformation (sans unité, souvent en µm/m).
+
+            **Sortie du pont** alimenté sous $V_{ex}$ :
+            - **quart de pont** (une jauge active) : $V_s \approx V_{ex}\,\dfrac{K\,\varepsilon}{4}$ ;
+            - **pont complet** (quatre jauges actives, deux en traction, deux en compression) : $V_s = V_{ex}\,K\,\varepsilon$.
+
+            **Exemple** : acier à 100 MPa, $\varepsilon = 100/210\,000 \approx 476$ µm/m. En quart de pont sous 5 V : $5 \times 2 \times 476 \times 10^{-6}/4 \approx 1{,}2$ mV.
+
+            **Capteurs de force** : on donne leur sensibilité en **mV/V** à pleine charge. Un capteur de 50 kg à 2 mV/V, alimenté en 10 V, sort 20 mV à 50 kg, donc 4 mV à 10 kg.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Compensation** : la température fait varier la résistance des jauges autant que la charge. Dans un pont complet, les quatre jauges subissent la même dérive, qui s'annule dans la différence ; seules les déformations opposées (traction/compression) produisent un signal.
+
+            **Mode commun** : la sortie du pont est une petite différence (quelques mV) autour de $V_{ex}/2$. Il faut un **amplificateur d'instrumentation** qui amplifie la différence et rejette ce mode commun.
+
+            **Mesure ratiométrique** : si le convertisseur utilise la tension d'excitation comme référence, une variation de l'alimentation modifie autant le signal que la référence, et le résultat ne bouge pas. Les convertisseurs 24 bits dédiés au pesage fonctionnent ainsi.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Protège les capteurs de force contre les **surcharges** (butées mécaniques), les efforts hors axe et les chocs.
+            - Câblage 4 fils, ou 6 fils (avec deux fils de mesure de l'excitation au niveau du capteur), blindé.
+            - Étalonnage : **tare** (zéro) à vide, puis **gain** avec des masses connues.
+            - Avec 20 mV à pleine échelle, quelques microvolts de bruit comptent : câbles courts, amplification près du capteur, filtrage.
+      recap:
+        - "ΔR/R = K·ε, K ≈ 2 ; ε = σ/E (souvent quelques centaines de µm/m)."
+        - "Quart de pont : Vs ≈ Vex·K·ε/4 ; pont complet : Vs = Vex·K·ε."
+        - "Capteur de force : sensibilité en mV/V à pleine charge."
+        - "Pont complet : compensation en température ; amplificateur d'instrumentation."
+        - "Mesure ratiométrique : référence du CAN = excitation du pont."
+      pieges: [ing-vref-alim]
+    vocab:
+      - jauge de déformation = strain gauge
+      - déformation = strain
+      - facteur de jauge = gauge factor
+      - pont de Wheatstone = Wheatstone bridge
+      - quart de pont / pont complet = quarter bridge / full bridge
+      - capteur de force = load cell
+      - tension d'excitation = excitation voltage
+      - tare = tare (zero)
+    exercises:
+      - id: cap-force.1
+        type: numeric
+        level: 1
+        q: Déformation d'un acier (E = 210 000 MPa) sous une contrainte de 100 MPa, en µm/m ?
+        answer: 476.2
+        tol: 0.01
+        unit: µm/m
+        calc: 100 / 210000 * 1e6
+        trap_values:
+          - v: 0.000476
+            why: C'est la déformation sans unité. En µm/m, multiplie par 10⁶.
+        e: $\varepsilon = 100/210\,000 \approx 4{,}76 \times 10^{-4}$, soit 476 µm/m.
+      - id: cap-force.2
+        type: numeric
+        level: 2
+        q: Quart de pont alimenté en 5 V, facteur de jauge 2, déformation 476 µm/m. Tension de sortie, en mV ?
+        answer: 1.19
+        tol: 0.01
+        unit: mV
+        calc: 5 * 2 * 476e-6 / 4 * 1000
+        trap_values:
+          - v: 4.76
+            why: C'est la sortie d'un pont complet. En quart de pont, on divise par 4.
+        e: $5 \times 2 \times 476 \times 10^{-6}/4 \approx 1{,}19$ mV. D'où l'amplification indispensable.
+      - id: cap-force.3
+        type: numeric
+        level: 2
+        q: Capteur de force de 50 kg, sensibilité 2 mV/V, alimenté en 10 V, chargé à 10 kg. Tension de sortie, en mV ?
+        answer: 4
+        tol: 0.01
+        unit: mV
+        calc: 2 * 10 * 10 / 50
+        trap_values:
+          - v: 20
+            why: C'est la sortie à pleine charge (50 kg).
+          - v: 0.4
+            why: La sensibilité se multiplie par la tension d'excitation (10 V).
+        e: Pleine échelle, 2 mV/V × 10 V = 20 mV à 50 kg ; à 10 kg, 20 × 10/50 = 4 mV.
+      - id: cap-force.4
+        type: qcm
+        level: 2
+        q: Pourquoi préfère-t-on un pont complet à un quart de pont ?
+        choices:
+          - t: Signal 4 fois plus grand et compensation naturelle des effets de température
+            ok: true
+          - t: Parce qu'il n'a pas besoin d'alimentation
+            why: Tout pont doit être alimenté (excité).
+          - t: Parce qu'il est plus simple à câbler
+            why: Il demande quatre jauges bien placées ; c'est plus exigeant, mais bien meilleur.
+        e: Les capteurs de force et de pression industriels sont presque tous des ponts complets.
+      - id: cap-force.5
+        type: qcm
+        level: 3
+        q: Le CAN qui lit un pont de jauges utilise la tension d'excitation du pont comme référence. Quel est l'intérêt ?
+        choices:
+          - t: Les variations de l'alimentation s'annulent, car le signal et la référence varient ensemble
+            ok: true
+          - t: Aucun, c'est une mauvaise pratique
+            why: C'est au contraire la bonne pratique pour les capteurs ratiométriques.
+          - t: Cela augmente la résolution
+            why: La résolution ne change pas ; c'est la sensibilité aux variations d'alimentation qui disparaît.
+        e: La sortie d'un pont est proportionnelle à son excitation ; en mesurant le rapport, on supprime la dépendance.
+      - id: cap-force.6
+        type: flash
+        level: 1
+        q: Qu'est-ce que le facteur de jauge ?
+        back: |
+          Le rapport entre la variation relative de résistance et la déformation : K = (ΔR/R)/ε. Pour les jauges métalliques, K ≈ 2 : une déformation de 1000 µm/m (0,1 %) fait varier la résistance de 0,2 %.
+        e: Les jauges semi-conductrices ont des facteurs bien plus grands (≈ 100), mais sont plus sensibles à la température.
+  # ------------------------------------------------------------------ TOR
+  - id: cap-tor
+    title: Détecteurs tout-ou-rien
+    en: Discrete (on/off) sensors
+    goal: Choisir un détecteur (mécanique, inductif, capacitif, optique, magnétique) et le câbler correctement (PNP/NPN, NO/NF).
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: La lumière du frigo
+          body: |
+            L'interrupteur caché dans la porte du frigo ne mesure rien : il répond seulement « porte ouverte » ou « porte fermée ». Les capteurs **tout-ou-rien** (TOR) disent oui ou non : une pièce est là, un vérin est sorti, un axe est en butée.
+        - level: 2
+          title: Les familles
+          body: |
+            - **Interrupteur de position** (fin de course mécanique) : un contact actionné par la pièce. Simple, sûr, mais il s'use.
+            - **Détecteur inductif** : détecte les **métaux** sans contact, à quelques millimètres.
+            - **Détecteur capacitif** : détecte presque tout (plastique, bois, liquide), y compris à travers une paroi non métallique.
+            - **Détecteur photoélectrique** : un faisceau lumineux coupé ou renvoyé, de quelques centimètres à des dizaines de mètres.
+            - **Détecteur magnétique** : un aimant sur le piston d'un vérin actionne un capteur fixé sur le corps.
+
+            Sortie **PNP** : fournit le +24 V quand elle est active. Sortie **NPN** : relie au 0 V quand elle est active. Contact **NO** (normalement ouvert) ou **NF** (normalement fermé, *NC* en anglais).
+          check:
+            q: Un détecteur PNP à sortie NO est actif (il détecte). Que vaut sa sortie ?
+            choices:
+              - t: +24 V
+                ok: true
+              - t: 0 V
+                why: C'est le comportement d'une sortie NPN active.
+              - t: Elle est en l'air
+                why: C'est son état au repos (NO, non actif).
+        - level: 3
+          title: Câblage et chiffres
+          body: |
+            **Détecteur 3 fils** (code couleur usuel) : **marron** +24 V, **bleu** 0 V, **noir** sortie.
+
+            **Portée d'un inductif** : la portée nominale $S_n$ est donnée pour de l'acier doux. Elle diminue pour d'autres métaux (de l'ordre de 0,7 × $S_n$ pour l'inox, 0,3 à 0,5 × $S_n$ pour l'aluminium et le cuivre). On travaille en dessous de 80 % de la portée réelle pour garder une marge.
+
+            Un inductif de $S_n = 4$ mm détecte donc de l'aluminium à environ 1,6 mm seulement.
+
+            **Photoélectriques** : **barrière** (émetteur et récepteur face à face, le plus fiable), **reflex** (avec un réflecteur, filtre polarisant pour les objets brillants), **réflexion directe** (l'objet renvoie la lumière, sensible à sa couleur et à l'arrière-plan).
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Inductif** : un oscillateur alimente une bobine dont le champ sort par la face du détecteur. Une pièce métallique proche est le siège de **courants de Foucault** qui absorbent de l'énergie et amortissent l'oscillation : le détecteur bascule.
+
+            **Capacitif** : l'objet modifie la capacité entre deux électrodes de la face sensible ; un réglage de sensibilité permet d'ignorer une paroi et de voir le liquide derrière.
+
+            **Sécurité positive** : pour une détection critique, on préfère un contact **NF** (ou une sortie complémentaire) : un fil coupé ou un capteur débranché donne le même état qu'une détection de défaut, donc une mise en sécurité, au lieu de passer inaperçu.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - La **LED** du détecteur indique son état : premier réflexe de dépannage, avec une pièce de test.
+            - Respecte les distances entre détecteurs voisins (interférences) et le montage noyable ou non noyable prévu.
+            - Vérifie que l'entrée d'automate attend bien le type de sortie du capteur (PNP avec une entrée « logique positive », courante en Europe).
+            - Sur un axe motorisé, des **fins de course matériels** coupent le mouvement, en plus des limites logicielles. Sous vide ou sous rayonnement, on choisit des modèles compatibles.
+      recap:
+        - "Mécanique, inductif (métaux), capacitif (tout, à travers une paroi), photoélectrique, magnétique."
+        - "PNP : +24 V quand actif ; NPN : 0 V quand actif."
+        - "3 fils : marron +24 V, bleu 0 V, noir sortie."
+        - "Inductif : portée réduite sur alu/cuivre (0,3 à 0,5 Sn) ; marge de 80 %."
+        - "Détection critique : NF (sécurité positive)."
+      pieges: [ing-pnp-npn, ing-inductif-alu]
+    vocab:
+      - détecteur tout-ou-rien = discrete (on/off) sensor
+      - interrupteur de position, fin de course = limit switch
+      - détecteur inductif = inductive proximity sensor
+      - détecteur capacitif = capacitive sensor
+      - cellule photoélectrique = photoelectric sensor
+      - normalement ouvert / fermé = normally open / normally closed (NO / NC)
+      - portée nominale = rated sensing distance (Sn)
+      - sécurité positive = fail-safe design
+    exercises:
+      - id: cap-tor.1
+        type: qcm
+        level: 1
+        q: Un détecteur 3 fils a un fil marron, un bleu et un noir. Où brancher chacun ?
+        choices:
+          - t: Marron au +24 V, bleu au 0 V, noir sur l'entrée de l'automate
+            ok: true
+          - t: Marron au 0 V, bleu au +24 V, noir sur l'entrée
+            why: Inversé ; beaucoup de détecteurs sont protégés contre l'inversion, mais ne fonctionnent pas.
+          - t: Noir au +24 V
+            why: Le noir est la sortie de signal.
+        e: Code couleur usuel des détecteurs industriels (norme CEI 60947-5-2).
+      - id: cap-tor.2
+        type: numeric
+        level: 2
+        q: Un détecteur inductif a une portée nominale de 4 mm (acier). Facteur de correction pour l'aluminium 0,4. Portée sur l'aluminium, en mm ?
+        answer: 1.6
+        tol: 0.01
+        unit: mm
+        calc: 4 * 0.4
+        piege: ing-inductif-alu
+        e: 4 × 0,4 = 1,6 mm, et on garde une marge (environ 80 %, soit ~1,3 mm).
+      - id: cap-tor.3
+        type: qcm
+        level: 2
+        q: Un détecteur NPN est branché sur une entrée d'automate prévue pour des capteurs PNP. Que se passe-t-il ?
+        piege: ing-pnp-npn
+        choices:
+          - t: L'entrée ne voit jamais de +24 V et ne change pas d'état
+            ok: true
+          - t: Ça fonctionne, le signal est inversé
+            piege: true
+            why: Le NPN tire vers 0 V alors que l'entrée attend qu'on lui fournisse +24 V : aucun courant ne circule dans l'entrée.
+          - t: Le détecteur grille
+            why: En général rien ne casse, mais rien ne fonctionne.
+        e: Vérifie la compatibilité capteur/entrée avant le câblage (ou utilise des capteurs configurables, comme les modèles IO-Link).
+      - id: cap-tor.4
+        type: qcm
+        level: 2
+        q: Pour détecter qu'un carter de protection est bien fermé, vaut-il mieux un contact NO ou NF ?
+        choices:
+          - t: NF (sécurité positive) : un fil coupé est vu comme un carter ouvert
+            ok: true
+          - t: NO, c'est plus simple
+            why: Avec un NO, un fil coupé ressemblerait à un état normal et passerait inaperçu.
+          - t: Indifférent
+            why: Pour une fonction de sécurité, le comportement en cas de défaut est essentiel.
+        e: Les fonctions de sécurité utilisent en plus des composants certifiés et une redondance (voir les automatismes).
+      - id: cap-tor.5
+        type: qcm
+        level: 1
+        q: Quel détecteur peut voir le niveau d'un liquide à travers la paroi d'une cuve en plastique ?
+        choices:
+          - t: Un détecteur capacitif
+            ok: true
+          - t: Un détecteur inductif
+            why: Il ne détecte que les métaux.
+          - t: Un fin de course mécanique
+            why: Il faut un contact physique avec une pièce.
+        e: On règle sa sensibilité pour ignorer la paroi et réagir au liquide.
+      - id: cap-tor.6
+        type: flash
+        level: 1
+        q: Quelle différence entre une sortie PNP et une sortie NPN ?
+        back: |
+          **PNP** : quand elle est active, la sortie est reliée au **+24 V** (elle fournit le courant). Elle se branche sur une entrée qui ramène vers le 0 V.
+          **NPN** : quand elle est active, la sortie est reliée au **0 V** (elle absorbe le courant). Elle se branche sur une entrée reliée au +24 V.
+        e: En Europe, les capteurs PNP sont les plus courants ; en Asie, les NPN.

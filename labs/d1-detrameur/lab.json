@@ -1,0 +1,11 @@
+{
+  "id": "d1",
+  "ordre": 21,
+  "lang": "python",
+  "genre": "defi",
+  "niveau": "intermédiaire",
+  "minutes": 120,
+  "titre": "Dé-trameur série",
+  "modules": ["py03", "py07", "py10"],
+  "resume": "Transformer un flux d'octets coupé n'importe où en mesures validées par CRC, sans jamais planter."
+}

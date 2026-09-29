@@ -1,0 +1,327 @@
+id: cf01
+track: cpp
+title: Du code source au programme
+goal: Comprendre ce que fait le compilateur, écrire et compiler ton premier programme, et lire une erreur de compilation.
+level: fondations
+requires: []
+concepts: [compilation, main, cout, warnings]
+lesson:
+  minutes: 15
+  intro: |
+    Tu as déjà écrit du C++ sans forcément le savoir : un sketch Arduino (`.ino`) ou un projet PlatformIO pour ESP32, c'est du C++. La grande différence avec Python, et la clé de tout le reste, c'est la **compilation** : ton programme est entièrement traduit en langage machine avant de s'exécuter. Ce cours t'explique ce que ça change, et comment ne plus avoir peur des messages du compilateur.
+  steps:
+    - level: 1
+      title: Traduire le livre avant de le publier
+      body: |
+        Python, c'est un **interprète simultané** : il lit ton script et l'exécute au fur et à mesure.
+
+        C++, c'est un **traducteur de livre** : un programme appelé **compilateur** (`g++`, `clang++`) lit **tout** ton code source, vérifie qu'il est cohérent, et le traduit en **langage machine** — les instructions binaires que le processeur exécute directement. Le résultat est un **exécutable**, un fichier autonome que tu lances ensuite, sans le compilateur.
+
+        Conséquences :
+        - beaucoup d'erreurs sont détectées **avant** l'exécution (un type incompatible, une fonction inconnue) ;
+        - le programme est **très rapide** (souvent 10 à 100 fois plus que du Python pur) ;
+        - l'exécutable est propre à un **processeur** : celui compilé pour ton Mac M4 (ARM64) ne tourne pas sur un ESP32 (Xtensa ou RISC-V), il faut recompiler pour chaque cible.
+    - level: 2
+      title: Le squelette d'un programme
+      body: |
+        Tout programme C++ commence son exécution dans une fonction nommée **`main`**. Voici le plus petit programme utile :
+      code: |
+        #include <iostream>
+
+        int main() {
+            std::cout << "Bonjour Ada\n";
+            std::cout << "2 + 3 = " << 2 + 3 << '\n';
+            return 0;
+        }
+      out: |
+        Bonjour Ada
+        2 + 3 = 5
+      after: |
+        Ligne par ligne :
+        - `#include <iostream>` : importe la bibliothèque d'entrées/sorties (l'équivalent d'un `import`).
+        - `int main() { ... }` : la fonction de départ. Les **accolades** `{ }` délimitent le bloc — l'indentation, elle, est purement décorative en C++.
+        - `std::cout << ...` : envoie du texte vers la sortie (la console). Les `<<` s'enchaînent. `std::` indique que `cout` vient de la bibliothèque standard.
+        - `'\n'` : un retour à la ligne (Python l'ajoute tout seul à chaque `print`, C++ non).
+        - **Chaque instruction se termine par un point-virgule `;`.**
+        - `return 0;` : `main` renvoie 0 au système pour dire « tout s'est bien passé ».
+      check:
+        q: "Que se passe-t-il si tu oublies le `;` à la fin de la ligne `std::cout << \"Bonjour Ada\\n\"` ?"
+        choices:
+          - t: Le compilateur refuse de produire le programme et signale une erreur.
+            ok: true
+            why: "Typiquement `error: expected ';' before 'std'`, qui pointe souvent le début de la ligne **suivante**."
+          - t: Le programme s'exécute mais n'affiche rien.
+            why: Il n'y aura même pas d'exécutable à lancer.
+          - t: Le compilateur ajoute le point-virgule automatiquement.
+            why: C++ n'ajoute jamais de point-virgule à ta place (contrairement à JavaScript).
+    - level: 3
+      title: Compiler et lancer sur ton Mac
+      body: |
+        Dans le terminal, dans le dossier du fichier `main.cpp` :
+
+        ```shell
+        clang++ -std=c++20 -Wall -Wextra -g main.cpp -o main
+        ./main
+        ```
+
+        - `clang++` est le compilateur d'Apple (installé avec les *Command Line Tools* de Xcode). `g++` s'utilise exactement pareil.
+        - `-std=c++20` : la version du langage (C++20, moderne et bien supportée).
+        - `-Wall -Wextra` : active les **avertissements** (*warnings*). Ce sont tes meilleurs amis : ils signalent du code légal mais suspect.
+        - `-g` : ajoute les informations de débogage.
+        - `-o main` : le nom de l'exécutable produit.
+        - `./main` : lance le programme (le `./` signifie « dans le dossier courant »).
+
+        Dans les labs, `./praxis check cpp-01` fait tout cela pour toi, avec en plus les **sanitizers**, qui détectent les erreurs mémoire à l'exécution.
+      check:
+        q: Tu modifies `main.cpp`, puis tu relances `./main` sans recompiler. Que se passe-t-il ?
+        choices:
+          - t: C'est l'ancienne version qui s'exécute.
+            ok: true
+            why: "L'exécutable est une traduction figée. Chaque modification du source demande une nouvelle compilation."
+          - t: C'est la nouvelle version, comme en Python.
+            why: "En Python, l'interpréteur relit le fichier à chaque lancement. En C++, `./main` ne regarde jamais `main.cpp`."
+          - t: "Une erreur : le source a changé."
+            why: L'exécutable ne sait même pas qu'un fichier source existe.
+    - level: 4
+      title: "Sous le capot : trois étapes, trois familles d'erreurs"
+      body: |
+        « Compiler » recouvre en fait trois étapes :
+
+        1. **Le préprocesseur** traite les lignes qui commencent par `#`. `#include <iostream>` est littéralement un **copier-coller** du fichier `iostream` à cet endroit.
+        2. **La compilation** proprement dite traduit chaque fichier `.cpp` en code machine, dans un fichier objet `.o`. C'est ici que sont vérifiés la syntaxe et les types.
+        3. **L'édition de liens** (*link*) assemble les `.o` et les bibliothèques en un seul exécutable, en reliant chaque appel de fonction à son code.
+
+        D'où trois familles d'erreurs, qu'il faut savoir distinguer :
+
+        | Moment | Exemple de message | Cause typique |
+        | --- | --- | --- |
+        | compilation | `error: expected ';'`, `use of undeclared identifier 'x'` | faute de syntaxe, nom inconnu, types incompatibles |
+        | édition de liens | `undefined reference to 'lire_capteur()'` (ou `Undefined symbols` sur Mac) | une fonction déclarée mais dont le code n'a pas été compilé ou lié |
+        | exécution | `Segmentation fault`, résultat faux | accès mémoire interdit, logique fausse |
+
+        **La règle d'or pour lire les erreurs du compilateur : corrige d'abord la PREMIÈRE.** Une seule erreur (une accolade oubliée) peut en provoquer des dizaines d'autres en cascade, qui disparaîtront toutes avec elle.
+    - level: 5
+      title: Et ton Arduino dans tout ça ?
+      body: |
+        Un sketch `.ino` est du C++ auquel l'IDE ajoute discrètement `#include <Arduino.h>` et une fonction `main` cachée qui ressemble à ceci :
+
+        ```cpp
+        int main() {
+            init();          // configuration matérielle
+            setup();         // ta fonction, une fois
+            while (true) {
+                loop();      // ta fonction, en boucle infinie
+            }
+        }
+        ```
+
+        Avec PlatformIO, le fichier s'appelle `main.cpp`, et c'est un **compilateur croisé** (`xtensa-esp32-elf-g++` ou `riscv32-esp-elf-g++` selon la puce) qui produit le binaire pour l'ESP32 depuis ton Mac. Tout ce que tu apprends ici s'applique donc directement à tes projets embarqués.
+
+        Dernier réflexe de pro : **un avertissement du compilateur est un bug qui n'a pas encore frappé**. Dans les projets sérieux, on ajoute `-Werror` pour que tout warning bloque la compilation.
+  recap:
+    - "Le compilateur traduit **tout** le programme en langage machine avant l'exécution ; il faut recompiler après chaque modification."
+    - "Le programme démarre dans `int main() { ... }` ; les blocs sont délimités par des accolades."
+    - "Chaque instruction se termine par `;`. `std::cout << x << '\\n';` affiche."
+    - "`clang++ -std=c++20 -Wall -Wextra -g main.cpp -o main` puis `./main`."
+    - "Préprocesseur → compilation → édition de liens. Corrige toujours la **première** erreur d'abord."
+  pieges: [cpp-point-virgule, cpp-premiere-erreur]
+exercises:
+  - id: cf01.1
+    type: predict
+    level: 1
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+
+      int main() {
+          std::cout << "A";
+          std::cout << "B\n";
+          std::cout << 7 * 6 << '\n';
+          return 0;
+      }
+    answer: |
+      AB
+      42
+    trap_answers:
+      - |
+        A
+        B
+        42
+    e: "Contrairement à `print` en Python, `std::cout` n'ajoute **aucun** retour à la ligne : il faut un `\\n` explicite. `A` et `B` se retrouvent donc sur la même ligne."
+  - id: cf01.2
+    type: qcm
+    level: 1
+    q: "Où commence l'exécution d'un programme C++ ?"
+    choices:
+      - t: "Dans la fonction `main`."
+        ok: true
+      - t: "À la première ligne du fichier."
+        why: "C'est le cas en Python. En C++, la première ligne est souvent un `#include`, qui n'exécute rien."
+      - t: "Dans la fonction `setup`."
+        why: "`setup` est une convention Arduino, appelée par un `main` caché."
+    e: "Tout programme C++ a exactement une fonction `main`. Sur Arduino/ESP32, elle est fournie par le framework et appelle tes `setup()` et `loop()`."
+  - id: cf01.3
+    type: bug
+    level: 1
+    q: "Ce programme ne compile pas. Clique sur la ligne fautive."
+    code: |
+      #include <iostream>
+
+      int main() {
+          int n = 3
+          std::cout << n << '\n';
+          return 0;
+      }
+    bad: 4
+    fix: "    int n = 3;"
+    piege: cpp-point-virgule
+    e: "Le point-virgule manque ligne 4. Le compilateur s'en aperçoit en lisant la ligne **suivante** : le message cite souvent la ligne 5 (`expected ';' before 'std'`). Quand une erreur pointe une ligne correcte, regarde la fin de la ligne précédente."
+  - id: cf01.4
+    type: cloze
+    level: 1
+    q: Complète pour afficher `Tension : 3.3 V` suivi d'un retour à la ligne.
+    lang: cpp
+    tpl: |
+      #include <⟦0⟧>
+
+      int main() {
+          double u = 3.3;
+          std::⟦1⟧ << "Tension : " << u << " V" << '\n';
+          ⟦2⟧ 0;
+      }
+    blanks:
+      - [iostream]
+      - [cout]
+      - [return]
+    verify: compile
+    e: "`<iostream>` fournit `std::cout` ; `return 0;` signale au système que tout s'est bien passé."
+  - id: cf01.5
+    type: qcm
+    level: 2
+    q: "Le compilateur affiche 37 erreurs. Par où commencer ?"
+    piege: cpp-premiere-erreur
+    choices:
+      - t: "Par la première erreur de la liste."
+        ok: true
+      - t: "Par la dernière, c'est la plus récente."
+        piege: true
+        why: "Ce n'est pas un traceback Python. Les erreurs suivantes sont souvent des conséquences de la première."
+      - t: "Par celle qui a le numéro de ligne le plus petit."
+        why: "Souvent la même, mais pas toujours avec plusieurs fichiers. La première **affichée** est la bonne."
+    e: "Une accolade oubliée ou un `#include` manquant produit une avalanche d'erreurs en cascade. Corrige la première, recompile : la moitié des autres disparaissent souvent d'un coup."
+  - id: cf01.6
+    type: qcm
+    level: 2
+    q: "`undefined reference to 'moyenne(double, double)'` (Linux) ou `Undefined symbols for architecture arm64` (Mac) : à quelle étape a eu lieu l'erreur ?"
+    choices:
+      - t: "À l'édition de liens : la fonction est déclarée, mais son code n'a pas été fourni."
+        ok: true
+      - t: "À la compilation : il manque un point-virgule."
+        why: "Une faute de syntaxe produit une erreur de compilation, avec `error:` et un numéro de ligne."
+      - t: "À l'exécution : la fonction a planté."
+        why: "Aucun exécutable n'a été produit : on n'a jamais rien exécuté."
+    e: "Le compilateur a accepté l'appel car il connaissait la **déclaration** de `moyenne`. Mais au moment d'assembler l'exécutable, l'éditeur de liens n'a trouvé son **code** nulle part : un fichier `.cpp` oublié dans la commande, ou une fonction jamais écrite."
+  - id: cf01.7
+    type: predict
+    level: 2
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+
+      int main() {
+          std::cout << "x = " << 10 / 4 << '\n';
+          std::cout << "y = " << 10.0 / 4 << '\n';
+      }
+    answer: |
+      x = 2
+      y = 2.5
+    trap_answers:
+      - |
+        x = 2.5
+        y = 2.5
+    piege: cpp-division-entiere
+    e: |
+      En C++, `10 / 4` divise **deux entiers** : le résultat est un entier, la partie décimale est jetée. Avec `10.0` (un `double`), la division est réelle.
+
+      C'est la grande différence avec le `/` de Python 3. On y revient au cours sur les opérateurs, car ce piège est partout. (Et `main` sans `return` renvoie 0 automatiquement : c'est la seule fonction qui a ce privilège.)
+  - id: cf01.8
+    type: parsons
+    level: 1
+    q: "Remets dans l'ordre un programme complet qui affiche `Praxis`. Il y a un intrus."
+    lang: cpp
+    lines:
+      - "#include <iostream>"
+      - "int main() {"
+      - "    std::cout << \"Praxis\\n\";"
+      - "    return 0;"
+      - "}"
+    extra:
+      - "    print(\"Praxis\")"
+    verify: compile
+    e: "L'intrus est la syntaxe Python. En C++ : `#include` en tête, `main` avec ses accolades, une instruction par ligne terminée par `;`."
+  - id: cf01.9
+    type: flash
+    level: 1
+    q: "Que fait chaque option de `clang++ -std=c++20 -Wall -Wextra -g main.cpp -o main` ?"
+    back: |
+      - `-std=c++20` : version du langage
+      - `-Wall -Wextra` : active les avertissements
+      - `-g` : informations de débogage
+      - `main.cpp` : le fichier source
+      - `-o main` : nom de l'exécutable produit
+    e: "Ajoute `-fsanitize=address,undefined` pour détecter à l'exécution les accès mémoire invalides et les comportements indéfinis (c'est ce que font les labs)."
+  - id: cf01.10
+    type: qcm
+    level: 2
+    q: "Tu compiles ton programme sur ton Mac M4 et tu copies l'exécutable `main` sur ton ESP32. Que se passe-t-il ?"
+    choices:
+      - t: "Rien ne fonctionne : le code machine est propre au processeur (ARM64 ≠ Xtensa/RISC-V) et au système."
+        ok: true
+      - t: "Ça marche, le C++ est portable."
+        why: "Le **code source** C++ est portable. L'exécutable, lui, est du langage machine pour une cible précise."
+      - t: "Ça marche si on a compilé avec `-O2`."
+        why: "L'optimisation ne change pas la cible."
+    e: "Pour l'ESP32, on utilise un **compilateur croisé** (fourni par PlatformIO ou ESP-IDF) qui tourne sur ton Mac mais produit du code pour la puce de l'ESP32."
+  - id: cf01.11
+    type: predict
+    level: 2
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+
+      int main() {
+          // std::cout << "un\n";
+          std::cout << "deux\n";
+          /* std::cout << "trois\n";
+          std::cout << "quatre\n"; */
+          std::cout << "cinq\n";
+      }
+    answer: |
+      deux
+      cinq
+    e: "`//` commente jusqu'à la fin de la ligne ; `/* ... */` commente tout un bloc, sur plusieurs lignes."
+  - id: cf01.12
+    type: code
+    level: 1
+    lang: cpp
+    q: |
+      Écris une fonction `int age_en_2030(int age_2026)` qui renvoie l'âge en 2030 de quelqu'un dont on connaît l'âge en 2026.
+
+      (Les tests fournissent `main`. Sans exécution C++ dans le navigateur, compare ta version à la solution, puis reprends-la dans le lab `cpp-01` pour la compiler pour de vrai.)
+    start: |
+      int age_en_2030(int age_2026) {
+          return 0;  // à remplacer par ton calcul
+      }
+    sol: |
+      int age_en_2030(int age_2026) {
+          return age_2026 + 4;
+      }
+    tests: |
+      #include <cassert>
+      #include <iostream>
+      int main() {
+          assert(age_en_2030(25) == 29);
+          assert(age_en_2030(0) == 4);
+          std::cout << "OK\n";
+      }
+    e: "En C++, le type du paramètre (`int`) et le type de retour (`int`, avant le nom) sont déclarés. Oublier `return` dans une fonction qui n'est pas `void` compile (avec un avertissement), mais le résultat est **indéfini** : `-Wall` te le signale (`non-void function does not return a value`)."

@@ -1,0 +1,1098 @@
+id: rdm
+title: Résistance des matériaux
+en: Strength of materials
+desc: Pourquoi une poutre plie, casse ou flambe, et comment le calculer avant de fabriquer.
+intro: |
+  La RDM répond à deux questions : **est-ce que ça casse ?** (résistance) et **est-ce que ça bouge trop ?** (rigidité). En instrumentation, la seconde est souvent la plus sévère : un support de capteur qui fléchit d'un dixième de millimètre fausse la mesure bien avant de casser.
+
+  Le fil rouge : une pièce ne « ressent » pas une force, elle ressent une force **par unité de surface** (la contrainte), et sa géométrie compte autant que sa matière. C'est ce qui explique le fameux $bh^3/12$.
+notions:
+  # ------------------------------------------------------------------ traction
+  - id: rdm-traction
+    title: Contrainte, déformation et loi de Hooke
+    en: Stress, strain and Hooke's law
+    goal: Savoir ce que « ressent » une pièce tirée, calculer son allongement, et lire le module d'Young.
+    minutes: 12
+    lesson:
+      intro: |
+        Tout le reste de la RDM (flexion, torsion, flambement) est construit sur trois idées vues ici : la contrainte, la déformation, et le lien linéaire entre les deux.
+      steps:
+        - level: 1
+          title: Un fil qu'on tire
+          body: |
+            Accroche un poids à un fil d'acier fin : il s'allonge un tout petit peu. Retire le poids : il revient exactement à sa longueur. C'est le comportement **élastique**, comme un ressort très raide.
+
+            Accroche un poids beaucoup plus lourd : le fil s'allonge, et **reste** allongé quand tu retires le poids. Il a été déformé pour de bon : c'est le domaine **plastique**. Encore plus lourd : il casse.
+
+            Maintenant, prends un fil deux fois plus épais (section doublée). Avec le même poids, il s'allonge deux fois moins et casse deux fois plus tard. La matière ne « voit » donc pas la force seule : elle voit la force **partagée** sur sa section.
+        - level: 2
+          title: Contrainte et déformation
+          body: |
+            On donne un nom à ces deux idées :
+
+            - la **contrainte** $\sigma$ (sigma) : la force divisée par la section. C'est ce que « ressent » chaque petit morceau de matière. Unité : le pascal (Pa), en pratique le mégapascal (MPa).
+            - la **déformation** $\varepsilon$ (epsilon) : l'allongement divisé par la longueur de départ. Un allongement de 1 mm sur 1 m donne $\varepsilon = 0{,}001$. C'est un rapport de longueurs : **sans unité**.
+
+            Tant qu'on reste dans le domaine élastique, les deux sont **proportionnels** : c'est la loi de Hooke. Le coefficient de proportionnalité, le **module d'Young** $E$, mesure la raideur du matériau lui-même, indépendamment de la forme de la pièce.
+          check:
+            q: Une barre d'acier et une barre d'aluminium identiques subissent la même contrainte. Laquelle s'allonge le plus ?
+            choices:
+              - t: L'aluminium, environ 3 fois plus
+                ok: true
+                why: "E(acier) ≈ 210 GPa, E(alu) ≈ 70 GPa. À contrainte égale, ε = σ/E est trois fois plus grand pour l'alu."
+              - t: L'acier, parce qu'il est plus lourd
+                why: La masse volumique ne joue aucun rôle ici. Seul le module d'Young E compte.
+              - t: Les deux pareil, la contrainte est la même
+                why: Même contrainte, mais pas même raideur de matériau. C'est justement ce que mesure E.
+        - level: 3
+          title: Les trois formules
+          body: |
+            $$\sigma = \frac{F}{S} \qquad \varepsilon = \frac{\Delta L}{L_0} \qquad \sigma = E\,\varepsilon$$
+
+            En les combinant, on obtient l'allongement d'une barre :
+
+            $$\Delta L = \frac{F\,L_0}{E\,S}$$
+
+            **Le réflexe d'unités qui sauve** : $1\ \text{N/mm}^2 = 1\ \text{MPa}$ exactement. Si tu exprimes les forces en newtons et les sections en mm², tu lis directement des MPa. Et si tu prends aussi $E$ en MPa (210 000 MPa pour l'acier), les longueurs restent en mm.
+
+            **Exemple.** Tige d'acier Ø 10 mm, longueur 1 m, tirée par 10 kN.
+            - $S = \pi \times 10^2 / 4 \approx 78{,}5\ \text{mm}^2$
+            - $\sigma = 10\,000 / 78{,}5 \approx 127\ \text{MPa}$
+            - $\Delta L = \sigma L_0 / E = 127 \times 1000 / 210\,000 \approx 0{,}61\ \text{mm}$
+          check:
+            q: "Une section de 20 mm² porte 3 kN. La contrainte vaut :"
+            choices:
+              - t: 150 MPa
+                ok: true
+                why: "3000 N / 20 mm² = 150 N/mm² = 150 MPa."
+              - t: 150 Pa
+                why: "1 N/mm² vaut 10⁶ Pa, pas 1 Pa : il manque un facteur un million."
+              - t: 0,15 MPa
+                why: "Tu as sans doute gardé les kN : 3 kN = 3000 N."
+        - level: 4
+          title: Une barre est un ressort
+          body: |
+            Réécris $\Delta L = F L_0 / (E S)$ sous la forme $F = k\,\Delta L$ : la barre se comporte exactement comme un ressort de raideur
+
+            $$k = \frac{E\,S}{L_0}$$
+
+            Tout est dans cette formule : plus de section ou un matériau plus raide rendent la barre plus raide ; plus de longueur la rend plus souple. Deux barres bout à bout se comportent comme deux ressorts **en série** (les souplesses s'additionnent).
+
+            Quand la barre s'allonge, elle s'amincit aussi un peu : c'est l'**effet Poisson**. Le coefficient de Poisson $\nu$ (nu) vaut environ 0,3 pour les métaux : la déformation transversale vaut $-0{,}3$ fois la déformation longitudinale.
+
+            Les formules supposent : petites déformations, matériau homogène, contrainte répartie uniformément (loin des trous, des gorges et des points d'accroche), et surtout **domaine élastique** ($\sigma$ inférieure à la limite élastique $R_e$).
+        - level: 5
+          title: Sur le terrain
+          body: |
+            Ordres de grandeur de $E$ à connaître par cœur :
+
+            | Matériau | $E$ |
+            | --- | --- |
+            | acier (tous les aciers !) | 200 à 210 GPa |
+            | inox austénitique (304, 316L) | 193 à 200 GPa |
+            | titane | 110 GPa |
+            | cuivre | 120 GPa |
+            | aluminium | 69 à 72 GPa |
+            | PEEK | 3,6 GPa |
+            | PTFE (téflon) | 0,5 GPa |
+
+            Point capital : **tous les aciers ont presque le même $E$**. Un acier traité à 1000 MPa de résistance n'est pas plus raide qu'un S235 bas de gamme : il casse plus tard, mais il se déforme autant. Si ta pièce fléchit trop, changer de nuance d'acier ne sert à rien ; il faut changer la géométrie ou passer à un matériau plus raide.
+
+            Sur un banc de mesure, ces allongements sont minuscules (quelques dixièmes de mm) mais pas négligeables : un tirant de 1 m qui s'allonge de 0,6 mm peut suffire à désaligner un faisceau ou un capteur.
+      recap:
+        - "σ = F/S (en MPa si F en N et S en mm²) ; ε = ΔL/L₀ sans unité."
+        - "Loi de Hooke : σ = E·ε, valable dans le domaine élastique."
+        - "ΔL = F·L₀/(E·S) : une barre est un ressort de raideur k = E·S/L₀."
+        - "E(acier) ≈ 210 GPa, E(alu) ≈ 70 GPa, E(titane) ≈ 110 GPa."
+        - "Tous les aciers ont le même E : plus résistant ne veut pas dire plus rigide."
+      pieges: [ing-mm2-mpa, ing-E-vs-Re]
+    vocab:
+      - contrainte = stress
+      - déformation = strain
+      - module d'Young = Young's modulus
+      - limite élastique = yield strength
+      - allongement = elongation
+      - section = cross-section
+      - coefficient de Poisson = Poisson's ratio
+    exercises:
+      - id: rdm-traction.1
+        type: numeric
+        level: 1
+        q: Une tige d'acier de section 50 mm² est tirée par une force de 12 kN. Quelle est la contrainte ?
+        answer: 240
+        tol: 0.01
+        unit: MPa
+        calc: 12000 / 50
+        trap_values:
+          - v: 0.24
+            why: Tu as gardé les kN. 12 kN = 12 000 N, et 12 000 N / 50 mm² = 240 N/mm² = 240 MPa.
+          - v: 240000000
+            why: C'est la valeur en Pa. Pas faux, mais en mécanique on parle en MPa.
+        piege: ing-mm2-mpa
+        e: |
+          $\sigma = F/S = 12\,000\ \text{N} / 50\ \text{mm}^2 = 240\ \text{N/mm}^2 = 240\ \text{MPa}$.
+
+          Retiens l'équivalence $1\ \text{N/mm}^2 = 1\ \text{MPa}$ : elle évite toutes les puissances de 10.
+      - id: rdm-traction.2
+        type: numeric
+        level: 2
+        q: Un tirant en aluminium (E = 70 GPa) de 2 m de long et de section 100 mm² porte 7 kN. De combien s'allonge-t-il, en mm ?
+        answer: 2
+        tol: 0.02
+        unit: mm
+        calc: 7000 * 2000 / (70000 * 100)
+        trap_values:
+          - v: 0.667
+            why: C'est l'allongement d'un tirant en acier (E = 210 GPa). L'aluminium est trois fois plus souple.
+          - v: 0.002
+            why: Unités mélangées. Avec F en N, L en mm, E en MPa (70 000) et S en mm², ΔL sort directement en mm.
+        e: |
+          $\Delta L = \dfrac{F L_0}{E S} = \dfrac{7000 \times 2000}{70\,000 \times 100} = 2\ \text{mm}$
+
+          Tout en N, mm et MPa : le résultat sort en mm sans conversion.
+      - id: rdm-traction.3
+        type: qcm
+        level: 1
+        q: Quelle est l'unité de la déformation ε ?
+        choices:
+          - t: Aucune, c'est un rapport de deux longueurs
+            ok: true
+          - t: Le mètre
+            why: "ΔL est en mètres, mais ε = ΔL/L₀ divise une longueur par une longueur."
+          - t: Le pascal
+            why: C'est l'unité de la contrainte σ et du module E, pas de la déformation.
+          - t: Le newton par mètre
+            why: "C'est l'unité d'une raideur de ressort k."
+        e: |
+          $\varepsilon = \Delta L / L_0$ est sans dimension. On l'exprime parfois en % ou en µm/m (« microdéformations ») : 0,1 % = 1000 µm/m. Les jauges de contrainte mesurent justement des µm/m.
+      - id: rdm-traction.4
+        type: qcm
+        level: 2
+        q: Une pièce en acier S235 fléchit trop. Tu la refais à l'identique dans un acier haute résistance (Re = 900 MPa). Que devient la flèche ?
+        piege: ing-E-vs-Re
+        choices:
+          - t: Quasiment identique
+            ok: true
+            why: Le module d'Young ne dépend presque pas de la nuance d'acier. La rigidité ne change pas.
+          - t: Divisée par environ 4
+            piege: true
+            why: C'est la résistance (Re) qui est multipliée par 4, pas la rigidité (E). La pièce cassera plus tard, mais elle fléchira autant.
+          - t: Multipliée par 4
+            why: Aucune raison : E ne change pas, la flèche non plus.
+        e: |
+          **Résistance** (quand ça casse ou se déforme pour de bon) et **rigidité** (combien ça bouge) sont deux choses différentes. La résistance dépend de la nuance ($R_e$), la rigidité du module $E$, quasi identique pour tous les aciers (≈ 210 GPa).
+
+          Pour rigidifier : augmenter la section, surtout sa hauteur en flexion, ou raccourcir la portée.
+      - id: rdm-traction.5
+        type: flash
+        level: 2
+        q: Donne la raideur k d'une barre en traction, et dis ce qui arrive si on met deux barres identiques bout à bout.
+        back: |
+          $k = \dfrac{E\,S}{L}$ (en N/m, ou N/mm si E en MPa, S en mm² et L en mm).
+
+          Bout à bout, c'est un montage **en série** : la longueur double, donc la raideur est **divisée par 2**. En parallèle (côte à côte), la section double, donc la raideur **double**.
+        e: Toute pièce élastique se ramène à un ressort. C'est la clé pour comprendre la rigidité d'un assemblage ou d'une chaîne de pièces.
+  # ------------------------------------------------------------------ flexion
+  - id: rdm-flexion
+    title: "Flexion : pourquoi bh³/12 ?"
+    en: "Bending: second moment of area"
+    goal: Comprendre d'où vient le moment quadratique I = bh³/12, pourquoi la hauteur compte au cube, et ne plus le confondre avec le module de flexion W = bh²/6.
+    minutes: 16
+    lesson:
+      intro: |
+        C'est la formule la plus célèbre de la RDM, et celle qu'on applique le plus souvent sans la comprendre. Ici, on part d'une règle d'écolier et on arrive jusqu'aux profilés en I.
+      steps:
+        - level: 1
+          title: La règle d'écolier
+          body: |
+            Prends une règle plate de 30 cm et pose-la **à plat** entre deux livres. Appuie au milieu : elle plie facilement.
+
+            Tourne-la maintenant **sur la tranche** et appuie de nouveau : elle ne bouge presque pas.
+
+            C'est la même règle, la même matière, la même quantité de matière. La seule chose qui change, c'est **où** est placée la matière par rapport au sens où l'on plie. Toute la flexion est dans cette observation.
+
+            ```svg caption="La même section de 30 × 3 mm : à plat, puis sur la tranche. Sur la tranche, elle est 100 fois plus rigide."
+            <svg viewBox="0 0 460 200" width="460" role="img" aria-label="Section d'une règle à plat et sur la tranche">
+              <defs><marker id="ar-rdm-fl1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="a" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+              <line class="as" x1="120" y1="22" x2="120" y2="72" marker-end="url(#ar-rdm-fl1)"/>
+              <text class="ta" x="132" y="44">F</text>
+              <rect class="soft" x="45" y="85" width="150" height="15"/>
+              <line class="s2 dash" x1="30" y1="92.5" x2="210" y2="92.5"/>
+              <text class="t" x="120" y="138" text-anchor="middle">à plat</text>
+              <text class="tm" x="120" y="158" text-anchor="middle">b = 30, h = 3</text>
+              <text class="tm" x="120" y="176" text-anchor="middle">I = 67,5 mm⁴</text>
+              <line class="as" x1="340" y1="4" x2="340" y2="27" marker-end="url(#ar-rdm-fl1)"/>
+              <text class="ta" x="352" y="18">F</text>
+              <rect class="soft" x="332.5" y="30" width="15" height="150"/>
+              <line class="s2 dash" x1="310" y1="105" x2="370" y2="105"/>
+              <text class="t" x="410" y="100" text-anchor="middle">sur la</text>
+              <text class="t" x="410" y="116" text-anchor="middle">tranche</text>
+              <text class="tm" x="410" y="150" text-anchor="middle">b = 3, h = 30</text>
+              <text class="tm" x="410" y="168" text-anchor="middle">I = 6750 mm⁴</text>
+            </svg>
+            ```
+          check:
+            q: D'après cette expérience, qu'est-ce qui rend une poutre rigide en flexion ?
+            choices:
+              - t: La façon dont la matière est répartie par rapport au sens de la flexion
+                ok: true
+                why: Même matière, même quantité, rigidité très différente. C'est la répartition qui compte.
+              - t: La quantité de matière, c'est-à-dire l'aire de la section
+                why: L'aire est identique dans les deux positions, et pourtant la rigidité change énormément.
+              - t: Uniquement le matériau
+                why: Le matériau n'a pas changé entre les deux essais.
+        - level: 2
+          title: Ce qui se passe dans la poutre
+          body: |
+            Quand une poutre plie, elle devient légèrement courbe. Côté intérieur de la courbe, la matière est **raccourcie** (comprimée) ; côté extérieur, elle est **allongée** (tendue). Entre les deux, il existe une ligne qui ne change pas de longueur : la **fibre neutre**.
+
+            ```svg caption="Dans la hauteur de la poutre, la contrainte varie linéairement : nulle sur la fibre neutre, maximale sur les bords."
+            <svg viewBox="0 0 460 210" width="460" role="img" aria-label="Répartition linéaire des contraintes de flexion dans la hauteur">
+              <rect class="soft" x="30" y="45" width="170" height="120"/>
+              <line class="s2 dash" x1="18" y1="105" x2="212" y2="105"/>
+              <text class="tm" x="115" y="99" text-anchor="middle">fibre neutre</text>
+              <text class="t" x="115" y="35" text-anchor="middle">raccourcie (compression)</text>
+              <text class="t" x="115" y="186" text-anchor="middle">allongée (traction)</text>
+              <line class="s" x1="320" y1="45" x2="320" y2="165"/>
+              <polygon class="hl" points="320,45 255,45 320,105"/>
+              <polygon class="soft" points="320,105 385,165 320,165"/>
+              <line class="s2 dash" x1="240" y1="105" x2="400" y2="105"/>
+              <text class="tw" x="250" y="38" text-anchor="middle">−σmax</text>
+              <text class="ta" x="390" y="183" text-anchor="middle">+σmax</text>
+              <text class="tm" x="410" y="101">σ = 0</text>
+              <text class="tm" x="320" y="202" text-anchor="middle">contrainte σ selon la hauteur</text>
+            </svg>
+            ```
+
+            Une fibre située à une distance $y$ de la fibre neutre est allongée proportionnellement à $y$ : deux fois plus loin, deux fois plus allongée, donc deux fois plus de contrainte. Et cette force agit avec un **bras de levier** $y$ par rapport à la fibre neutre : deux fois plus loin, deux fois plus d'effet.
+
+            Les deux effets se multiplient : la contribution d'un petit bout de matière à la rigidité est proportionnelle à $y \times y = y^2$. La matière éloignée de la fibre neutre travaille énormément, la matière proche ne sert presque à rien.
+
+            En additionnant cette contribution sur toute la hauteur, on obtient un $h^3$ : un $h$ pour la quantité de matière, un $h^2$ pour le carré de la distance. La largeur, elle, n'ajoute que de la matière « au même endroit » : elle compte simplement proportionnellement.
+          check:
+            q: Où la matière d'une poutre en flexion est-elle la plus utile ?
+            choices:
+              - t: Le plus loin possible de la fibre neutre
+                ok: true
+                why: Sa contribution varie comme le carré de la distance à la fibre neutre.
+              - t: Sur la fibre neutre
+                why: Sur la fibre neutre, la matière n'est ni tendue ni comprimée : elle ne reprend presque rien.
+              - t: Partout pareil
+                why: C'est justement faux, et c'est tout l'intérêt des profilés en I.
+        - level: 3
+          title: La formule
+          body: |
+            La grandeur qui mesure « combien la matière est loin de la fibre neutre » s'appelle le **moment quadratique** $I$ (en anglais *second moment of area*). Pour un rectangle de largeur $b$ et de hauteur $h$ (la hauteur étant dans le sens de la flexion) :
+
+            $$I = \frac{b\,h^3}{12} \qquad \text{(unité : mm}^4\text{)}$$
+
+            La **rigidité en flexion** d'une poutre est le produit $E\,I$ : $E$ pour le matériau, $I$ pour la forme. Doubler $h$ multiplie $I$ par $2^3 = 8$ ; doubler $b$ multiplie $I$ par 2.
+
+            La contrainte maximale, sur la fibre la plus éloignée (à $v = h/2$ de la fibre neutre), vaut :
+
+            $$\sigma_{max} = \frac{M\,v}{I} = \frac{M}{W} \qquad \text{avec} \qquad W = \frac{I}{v} = \frac{b\,h^2}{6}$$
+
+            $M$ est le moment de flexion (en N·mm) et $W$ le **module de flexion** (en mm³), aussi appelé module de résistance.
+
+            **La règle, en chiffres.** $30 \times 3$ mm :
+            - à plat : $I = 30 \times 3^3 / 12 = 67{,}5\ \text{mm}^4$
+            - sur la tranche : $I = 3 \times 30^3 / 12 = 6750\ \text{mm}^4$
+
+            Rapport : 100. C'est exactement $(30/3)^2$.
+          check:
+            q: Tu doubles la hauteur h d'une poutre rectangulaire, largeur inchangée. La contrainte maximale, à moment égal, est…
+            choices:
+              - t: divisée par 4
+                ok: true
+                why: "σ = M/W et W = bh²/6 : W est multiplié par 4, donc σ est divisée par 4. (La rigidité, elle, est multipliée par 8.)"
+              - t: divisée par 8
+                why: C'est la rigidité (via I, en h³) qui est multipliée par 8. La contrainte passe par W, en h².
+              - t: divisée par 2
+                why: Ce serait le cas en doublant la largeur b.
+        - level: 4
+          title: Sous le capot
+          body: |
+            La définition exacte du moment quadratique est une somme, sur toute la section, de chaque petite surface $dA$ multipliée par le carré de sa distance $y$ à l'axe :
+
+            $$I = \int_S y^2\,dA$$
+
+            Pour un rectangle, on découpe la hauteur en fines bandes de largeur $b$ et d'épaisseur $dy$ :
+
+            $$I = \int_{-h/2}^{h/2} y^2\,b\,dy = b\left[\frac{y^3}{3}\right]_{-h/2}^{h/2} = \frac{b\,h^3}{12}$$
+
+            Le 12 vient simplement de $2 \times (1/2)^3 / 3 = 1/12$.
+
+            **Théorème de Huygens** (axes parallèles) : si une surface d'aire $A$ est à une distance $d$ de l'axe, elle ajoute $I_G + A\,d^2$. C'est tout le secret du **profilé en I** : on met presque toute la matière dans deux semelles très éloignées, chacune apporte $A\,d^2$, et on les relie par une âme mince. Même raisonnement pour les tubes, et pour la section circulaire : $I = \pi d^4/64$.
+
+            **Hypothèses** (celles de Navier-Bernoulli) : les sections planes restent planes, le matériau est élastique et homogène, les déformations sont petites, et la poutre est élancée (longueur au moins 10 fois la hauteur).
+        - level: 5
+          title: Sur le terrain
+          body: |
+            **Les trois « modules » qu'on confond.** En français, « module » désigne trois choses différentes en RDM (quatre avec les engrenages) :
+
+            | Nom | Symbole | Unité | Dépend de |
+            | --- | --- | --- | --- |
+            | module d'Young | $E$ | Pa (GPa) | la matière |
+            | moment quadratique | $I$ | mm⁴ | la forme → rigidité |
+            | module de flexion | $W = I/v$ | mm³ | la forme → contrainte |
+
+            L'unité te dit toujours de quoi on parle. Un résultat en mm⁴ n'est **jamais** un module de flexion.
+
+            **Oriente tes profilés.** Un tube rectangulaire 40 × 20 porte une charge verticale : monte-le avec le 40 à la verticale. Les catalogues de profilés (IPE, HEA, profilés alu rainurés type 40 × 40 utilisés sur les bancs) donnent $I_y$ et $I_z$ : vérifie toujours autour de quel axe ta pièce fléchit.
+
+            **Alu ou acier ?** L'aluminium a un $E$ trois fois plus faible : pour la même flèche, il faut un $I$ trois fois plus grand. Il reste intéressant car il est aussi trois fois plus léger.
+
+            Un petit calcul en Python pour comparer des sections :
+          code: |
+            def I_rect(b, h):
+                return b * h**3 / 12
+
+            def I_tube_rect(B, H, e):
+                # tube rectangulaire : extérieur B x H, épaisseur e
+                return (B * H**3 - (B - 2*e) * (H - 2*e)**3) / 12
+
+            print(f"règle à plat      : {I_rect(30, 3):8.1f} mm⁴")
+            print(f"règle sur tranche : {I_rect(3, 30):8.1f} mm⁴")
+            print(f"tube 40x20x2, 40 vertical : {I_tube_rect(20, 40, 2):8.0f} mm⁴")
+            print(f"tube 40x20x2, 20 vertical : {I_tube_rect(40, 20, 2):8.0f} mm⁴")
+          run: true
+          out: |
+            règle à plat      :     67.5 mm⁴
+            règle sur tranche :   6750.0 mm⁴
+            tube 40x20x2, 40 vertical :    44459 mm⁴
+            tube 40x20x2, 20 vertical :    14379 mm⁴
+      recap:
+        - "I = b·h³/12 pour un rectangle, h dans le sens de la flexion (mm⁴)."
+        - "Rigidité en flexion = E·I : E pour la matière, I pour la forme."
+        - "Doubler h : rigidité × 8, contrainte ÷ 4. Doubler b : rigidité × 2."
+        - "σmax = M·v/I = M/W, avec W = I/v = b·h²/6 (mm³)."
+        - "I = ∫ y² dA : la matière loin de la fibre neutre compte au carré de la distance (profilés en I, tubes)."
+      pieges: [ing-h-au-cube, ing-I-vs-W]
+    vocab:
+      - moment quadratique = second moment of area
+      - module de flexion = section modulus
+      - fibre neutre = neutral axis
+      - moment fléchissant = bending moment
+      - poutre = beam
+      - profilé en I = I-beam
+      - semelle = flange
+      - âme = web
+      - rigidité en flexion = flexural rigidity
+    exercises:
+      - id: rdm-flexion.1
+        type: qcm
+        level: 1
+        q: Tu doubles la hauteur h d'une poutre rectangulaire, sans changer sa largeur. Sa rigidité en flexion est multipliée par…
+        piege: ing-h-au-cube
+        choices:
+          - t: "8"
+            ok: true
+            why: "I = bh³/12 : (2h)³ = 8h³."
+          - t: "2"
+            piege: true
+            why: Ce serait vrai en doublant la largeur b. La hauteur compte au cube.
+          - t: "4"
+            why: "C'est l'effet sur le module de flexion W (en h²), donc sur la contrainte, pas sur la rigidité."
+          - t: "16"
+            why: "Puissance 4 : c'est le diamètre d'un arbre rond (I = πd⁴/64), pas la hauteur d'un rectangle."
+        e: |
+          La rigidité vient de $I = b h^3/12$. La hauteur y est au cube : un $h$ pour la quantité de matière, un $h^2$ parce que cette matière est plus loin de la fibre neutre.
+      - id: rdm-flexion.2
+        type: numeric
+        level: 2
+        q: Section rectangulaire pleine, largeur b = 40 mm, hauteur h = 60 mm (la charge est verticale, dans le sens de h). Calcule son moment quadratique I.
+        answer: 720000
+        tol: 0.01
+        unit: mm⁴
+        calc: 40 * 60**3 / 12
+        trap_values:
+          - v: 320000
+            why: "Tu as inversé b et h (60 × 40³/12). La hauteur au cube est celle qui est dans le sens de la flexion : ici 60 mm."
+          - v: 2880000
+            why: "bh³/3 est le moment quadratique par rapport à un bord de la section, pas par rapport à son centre."
+          - v: 24000
+            why: "C'est W = bh²/6, en mm³ : le module de flexion, pas le moment quadratique."
+        piege: ing-I-vs-W
+        e: |
+          $I = \dfrac{b h^3}{12} = \dfrac{40 \times 60^3}{12} = \dfrac{40 \times 216\,000}{12} = 720\,000\ \text{mm}^4$ (soit 72 cm⁴).
+      - id: rdm-flexion.3
+        type: numeric
+        level: 2
+        q: Cette même section 40 × 60 mm subit un moment fléchissant M = 1,2 kN·m. Quelle est la contrainte maximale ?
+        answer: 50
+        tol: 0.01
+        unit: MPa
+        calc: 1.2e6 / (40 * 60**2 / 6)
+        trap_values:
+          - v: 1.667
+            why: Tu as divisé M par I (720 000 mm⁴). Il faut M·v/I, ou M/W avec W = bh²/6.
+          - v: 0.05
+            why: Unités. 1,2 kN·m = 1 200 000 N·mm : avec des mm, M doit être en N·mm.
+        piege: ing-I-vs-W
+        e: |
+          $W = \dfrac{b h^2}{6} = \dfrac{40 \times 60^2}{6} = 24\,000\ \text{mm}^3$, et $M = 1{,}2\ \text{kN·m} = 1{,}2 \times 10^6\ \text{N·mm}$.
+
+          $\sigma_{max} = \dfrac{M}{W} = \dfrac{1{,}2 \times 10^6}{24\,000} = 50\ \text{MPa}$.
+
+          Même résultat avec $\sigma = M v / I = 1{,}2 \times 10^6 \times 30 / 720\,000$.
+      - id: rdm-flexion.4
+        type: qcm
+        level: 1
+        q: Le module de flexion W (ou module de résistance) d'une section rectangulaire vaut…
+        piege: ing-I-vs-W
+        choices:
+          - t: b·h²/6, en mm³
+            ok: true
+          - t: b·h³/12, en mm⁴
+            piege: true
+            why: C'est le moment quadratique I. W = I/v avec v = h/2, ce qui donne bh²/6.
+          - t: E, en GPa
+            why: C'est le module d'Young, une propriété du matériau, pas de la section.
+          - t: b·h/2, en mm²
+            why: Cette grandeur n'a pas de sens particulier en flexion.
+        e: |
+          $W = I/v$ où $v$ est la distance de la fibre neutre à la fibre la plus éloignée. Pour un rectangle : $W = \dfrac{bh^3/12}{h/2} = \dfrac{bh^2}{6}$. On l'utilise pour la **contrainte** ($\sigma = M/W$), alors que $I$ sert pour la **rigidité**.
+      - id: rdm-flexion.5
+        type: numeric
+        level: 2
+        q: Une étagère de 18 mm d'épaisseur fléchit trop. Tu la remplaces par une planche identique de 22 mm. Par combien sa rigidité est-elle multipliée ? (réponds par le rapport, par exemple 1,5)
+        answer: 1.826
+        tol: 0.01
+        calc: (22 / 18)**3
+        trap_values:
+          - v: 1.222
+            why: "Tu as appliqué un rapport linéaire. L'épaisseur, c'est la hauteur de la section : elle compte au cube."
+          - v: 1.494
+            why: "Au carré, c'est l'effet sur la contrainte (via W). La rigidité suit I, donc le cube."
+        piege: ing-h-au-cube
+        e: |
+          La planche fléchit dans le sens de son épaisseur : c'est son $h$. Rapport des rigidités : $(22/18)^3 \approx 1{,}83$, soit **+83 %** pour seulement 4 mm de plus.
+      - id: rdm-flexion.6
+        type: qcm
+        level: 2
+        q: Un tube rectangulaire 40 × 20 mm doit porter une charge verticale. Comment le monter ?
+        choices:
+          - t: Avec le côté de 40 mm à la verticale
+            ok: true
+            why: La grande dimension dans le sens de la charge donne le plus grand I, environ 3 fois plus que l'autre orientation.
+          - t: Avec le côté de 20 mm à la verticale, il est plus stable
+            why: La stabilité au sol n'est pas le sujet. En flexion verticale, c'est la hauteur qui compte.
+          - t: Indifférent, même tube, même matière
+            piege: true
+            why: C'est l'erreur de la règle à plat. Même aire, rigidité très différente.
+        piege: ing-h-au-cube
+        e: |
+          Pour un tube 40 × 20 × 2 : $I \approx 44\,460\ \text{mm}^4$ avec 40 à la verticale, contre $\approx 14\,380\ \text{mm}^4$ à plat. Environ 3 fois plus rigide, sans ajouter un gramme.
+      - id: rdm-flexion.7
+        type: flash
+        level: 3
+        q: D'où vient le 12 dans bh³/12 ?
+        back: |
+          De l'intégrale $I = \int y^2\,dA$ sur la hauteur, de $-h/2$ à $+h/2$ :
+
+          $I = b\left[\dfrac{y^3}{3}\right]_{-h/2}^{h/2} = \dfrac{b}{3}\left(\dfrac{h^3}{8} + \dfrac{h^3}{8}\right) = \dfrac{b h^3}{12}$
+        e: Par rapport à un bord au lieu du centre, on intègre de 0 à h et on obtient bh³/3 (théorème de Huygens) : c'est pourquoi l'axe de référence compte.
+  # ------------------------------------------------------------------ flèche
+  - id: rdm-fleche
+    title: Flèche et rigidité des poutres
+    en: Beam deflection
+    goal: Estimer de combien une poutre fléchit, et savoir quels leviers agissent le plus.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Ce qui fait fléchir
+          body: |
+            La **flèche**, c'est le déplacement maximal d'une poutre qui plie. Quatre choses la gouvernent : la **charge** (plus lourd, plus de flèche), la **longueur** (plus long, beaucoup plus de flèche), le **matériau** (via $E$) et la **section** (via $I$).
+
+            L'intuition trompe surtout sur la longueur : une étagère deux fois plus longue ne plie pas deux fois plus, elle plie **huit fois** plus.
+        - level: 2
+          title: Pourquoi la longueur compte autant
+          body: |
+            Allonger une poutre fait trois choses à la fois :
+            - le moment de flexion augmente (la force a un plus grand bras de levier) ;
+            - la poutre est courbée sur une plus grande longueur ;
+            - et chaque petite rotation, le long de cette longueur, se traduit par un déplacement plus grand en bout.
+
+            Résultat : pour une force ponctuelle, la flèche est proportionnelle à $L^3$. Pour une charge répartie (le poids propre, une rangée de classeurs), la charge totale augmente aussi avec $L$ : la flèche va comme $L^4$.
+          check:
+            q: Une console (poutre encastrée d'un côté) porte une charge au bout. On double sa longueur. La flèche est…
+            choices:
+              - t: multipliée par 8
+                ok: true
+                why: "f = F L³ / (3EI) : (2L)³ = 8 L³."
+              - t: multipliée par 2
+                why: La flèche n'est pas proportionnelle à la longueur mais à son cube.
+              - t: multipliée par 16
+                why: "C'est le cas d'une charge répartie (L⁴), pas d'une charge au bout."
+        - level: 3
+          title: Les formules de base
+          body: |
+            Les trois cas qui couvrent l'essentiel (F en N, q en N/mm, L en mm, E en MPa, I en mm⁴ : f sort en mm) :
+
+            | Cas | Flèche maximale |
+            | --- | --- |
+            | console, force F au bout | $f = \dfrac{F L^3}{3 E I}$ |
+            | deux appuis simples, force F au milieu | $f = \dfrac{F L^3}{48 E I}$ |
+            | deux appuis simples, charge répartie q | $f = \dfrac{5\,q L^4}{384 E I}$ |
+
+            **Exemple.** Console en acier, section 20 × 40 mm (40 vertical), longueur 800 mm, 500 N au bout.
+            - $I = 20 \times 40^3 / 12 \approx 106\,700\ \text{mm}^4$
+            - $f = \dfrac{500 \times 800^3}{3 \times 210\,000 \times 106\,700} \approx 3{,}8\ \text{mm}$
+
+            La même poutre posée sur deux appuis avec la charge au milieu : 16 fois moins, environ 0,24 mm.
+        - level: 4
+          title: D'où viennent ces formules
+          body: |
+            Elles découlent toutes d'une seule équation, celle de la **déformée** $y(x)$ d'une poutre :
+
+            $$E I \, y''(x) = M(x)$$
+
+            La courbure ($y''$) est proportionnelle au moment de flexion et inversement proportionnelle à la rigidité $EI$. On écrit $M(x)$ pour le cas étudié, on intègre deux fois, et les conditions aux appuis (déplacement nul, pente nulle à un encastrement) fixent les constantes.
+
+            Deux outils en découlent :
+            - le **principe de superposition** : tant qu'on reste élastique, les flèches de plusieurs charges s'additionnent ;
+            - les **formulaires** : tous les cas classiques (encastré-encastré, charges multiples…) sont tabulés dans les aide-mémoire de RDM.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            En conception de machines et d'instruments, c'est **la flèche qui dimensionne**, bien plus souvent que la casse. Une poutre peut travailler à 20 MPa (très loin de sa limite) et fléchir déjà trop pour un alignement optique ou une mesure.
+
+            Critères courants : de l'ordre de $L/300$ pour une structure de bâtiment, $L/1000$ et bien moins pour un bâti de machine, quelques micromètres pour un support de capteur ou de détecteur.
+
+            Les leviers, du plus puissant au plus faible :
+            1. **raccourcir la portée** ($L^3$ ou $L^4$) : ajouter un appui intermédiaire change tout ;
+            2. **augmenter la hauteur** de la section ($h^3$) ;
+            3. **changer de matériau** ($E$) : l'acier est 3 fois plus rigide que l'alu ;
+            4. élargir la section (effet seulement linéaire).
+
+            Une poutre plus rigide a aussi une **fréquence propre** plus élevée : elle vibre moins facilement sous l'effet des machines voisines.
+      recap:
+        - "Console, force au bout : f = F·L³/(3EI)."
+        - "Appuis simples, force au milieu : f = F·L³/(48EI) ; charge répartie : f = 5qL⁴/(384EI)."
+        - "Flèche ∝ L³ (force ponctuelle) ou L⁴ (charge répartie) : la portée est le premier levier."
+        - "Tout vient de EI·y'' = M(x), et les flèches s'additionnent (superposition)."
+      pieges: [ing-L-cube-fleche]
+    vocab:
+      - flèche = deflection
+      - portée = span
+      - console (poutre encastrée-libre) = cantilever
+      - appui simple = simple support
+      - encastrement = fixed support
+      - charge répartie = distributed load
+      - déformée = deflected shape
+    exercises:
+      - id: rdm-fleche.1
+        type: numeric
+        level: 2
+        q: "Console en acier (E = 210 GPa), section 20 × 40 mm avec 40 mm à la verticale, longueur L = 800 mm, force F = 500 N au bout. Flèche en bout, en mm ?"
+        answer: 3.81
+        tol: 0.02
+        unit: mm
+        calc: 500 * 800**3 / (3 * 210000 * (20 * 40**3 / 12))
+        trap_values:
+          - v: 15.24
+            why: "Tu as pris la section à plat (40 × 20³/12) : I est 4 fois plus petit, la flèche 4 fois plus grande."
+          - v: 0.238
+            why: "C'est la formule des deux appuis simples avec force au milieu (/48). Ici c'est une console : /3."
+        e: |
+          $I = \dfrac{20 \times 40^3}{12} \approx 106\,667\ \text{mm}^4$
+
+          $f = \dfrac{F L^3}{3 E I} = \dfrac{500 \times 800^3}{3 \times 210\,000 \times 106\,667} \approx 3{,}81\ \text{mm}$
+      - id: rdm-fleche.2
+        type: qcm
+        level: 1
+        q: Tu remplaces une poutre en acier par la même poutre en aluminium (mêmes dimensions). La flèche est…
+        choices:
+          - t: environ 3 fois plus grande
+            ok: true
+            why: "E(alu) ≈ 70 GPa, E(acier) ≈ 210 GPa : la flèche est inversement proportionnelle à E."
+          - t: identique, la géométrie n'a pas changé
+            why: La géométrie donne I, mais la rigidité est E·I.
+          - t: 3 fois plus petite, l'alu est plus léger
+            why: Le poids propre baisse, c'est vrai, mais la rigidité baisse encore plus.
+        e: La rigidité en flexion est $E \cdot I$. À géométrie égale, tout se joue sur $E$.
+      - id: rdm-fleche.3
+        type: numeric
+        level: 2
+        q: "Poutre sur deux appuis simples, portée L = 1 m, charge répartie q = 2 N/mm, acier E = 210 GPa, I = 106 667 mm⁴. Flèche au milieu, en mm ?"
+        answer: 1.163
+        tol: 0.02
+        unit: mm
+        calc: 5 * 2 * 1000**4 / (384 * 210000 * 106667)
+        trap_values:
+          - v: 0.001163
+            why: "C'est le bon résultat… en mètres. La question demande des millimètres : 1,16 mm."
+        e: |
+          $f = \dfrac{5 q L^4}{384 E I} = \dfrac{5 \times 2 \times 1000^4}{384 \times 210\,000 \times 106\,667} \approx 1{,}16\ \text{mm}$
+
+          Garde toujours le même système d'unités : N, mm, MPa (N/mm²), mm⁴.
+      - id: rdm-fleche.4
+        type: qcm
+        level: 2
+        q: Une étagère de 1,2 m fléchit trop sous des livres (charge répartie). Quelle modification est la plus efficace ?
+        piege: ing-L-cube-fleche
+        choices:
+          - t: Ajouter un support au milieu
+            ok: true
+            why: Deux portées de 0,6 m au lieu d'une de 1,2 m. Avec L⁴, chaque portée fléchit au moins 16 fois moins, et encore moins si la planche est continue sur l'appui.
+          - t: Prendre une planche 20 % plus épaisse
+            why: "Efficace (1,2³ ≈ 1,73), mais bien moins que diviser la portée par deux."
+          - t: Prendre une planche 20 % plus large
+            piege: true
+            why: La largeur n'agit que linéairement sur I (gain de 20 %). C'est le levier le plus faible.
+        e: |
+          Classement des leviers : portée ($L^4$ en charge répartie) > hauteur de section ($h^3$) > matériau ($E$) > largeur ($b$).
+      - id: rdm-fleche.5
+        type: flash
+        level: 2
+        q: Donne les trois formules de flèche à connaître par cœur.
+        back: |
+          - Console, force au bout : $f = \dfrac{F L^3}{3 E I}$
+          - Deux appuis, force au milieu : $f = \dfrac{F L^3}{48 E I}$
+          - Deux appuis, charge répartie : $f = \dfrac{5 q L^4}{384 E I}$
+        e: Les coefficients 3, 48 et 5/384 viennent de l'intégration de EI·y'' = M(x) avec les conditions aux appuis.
+  # ------------------------------------------------------------------ torsion
+  - id: rdm-torsion
+    title: Torsion des arbres
+    en: Torsion of shafts
+    goal: Dimensionner un arbre qui transmet un couple et comprendre pourquoi les arbres creux sont si efficaces.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: Tordre une barre
+          body: |
+            Un arbre de moteur, une clé Allen, un tournevis : tous transmettent un **couple**, c'est-à-dire un effort qui fait tourner. Sous ce couple, la barre se tord légèrement, comme une serviette qu'on essore (en beaucoup moins).
+
+            Observation surprenante : un **tube** creux résiste presque aussi bien qu'une barre pleine du même diamètre, pour beaucoup moins de matière. C'est pour ça que les cadres de vélo, les arbres de transmission de voiture et les axes de robots sont creux.
+        - level: 2
+          title: Le cisaillement
+          body: |
+            En torsion, les tranches successives de la barre tournent les unes par rapport aux autres : la matière est **cisaillée** (elle glisse sur elle-même), un peu comme les pages d'un livre qu'on fait glisser.
+
+            Ce cisaillement est **nul au centre** et **maximal à la surface**, et il augmente linéairement avec la distance au centre. Même logique qu'en flexion : la matière loin du centre travaille beaucoup et avec un grand bras de levier, la matière au centre ne sert presque à rien. D'où l'efficacité des tubes.
+        - level: 3
+          title: Les formules
+          body: |
+            Pour un arbre plein de diamètre $d$ soumis à un couple $T$ :
+
+            $$\tau_{max} = \frac{T\,r}{J} = \frac{16\,T}{\pi d^3} \qquad \text{avec} \qquad J = \frac{\pi d^4}{32}$$
+
+            $J$ est le **moment quadratique polaire** (mm⁴), $r = d/2$ le rayon extérieur. L'angle de torsion sur une longueur $L$ vaut :
+
+            $$\theta = \frac{T\,L}{G\,J} \quad (\text{en radians})$$
+
+            $G$ est le module de cisaillement : $G \approx 81$ GPa pour l'acier, 26 GPa pour l'alu.
+
+            **Exemple.** Arbre plein Ø 20 mm, couple 50 N·m = 50 000 N·mm : $\tau_{max} = 16 \times 50\,000 / (\pi \times 20^3) \approx 31{,}8$ MPa. Sur 500 mm de long : $\theta \approx 0{,}020$ rad, soit environ 1,1°.
+          check:
+            q: À couple égal, tu doubles le diamètre d'un arbre plein. La rigidité en torsion (couple par degré) est multipliée par…
+            choices:
+              - t: "16"
+                ok: true
+                why: "J = πd⁴/32 : (2d)⁴ = 16 d⁴."
+              - t: "8"
+                why: "C'est l'effet sur la contrainte (τ ∝ 1/d³), divisée par 8."
+              - t: "4"
+                why: C'est l'effet sur l'aire de la section, pas sur J.
+        - level: 4
+          title: Sous le capot
+          body: |
+            Même raisonnement qu'en flexion, mais avec la distance $r$ au centre : $J = \int r^2\,dA$. Pour un disque plein, $J = \pi d^4/32$, soit le double du moment quadratique de flexion $\pi d^4/64$ (logique : $r^2 = y^2 + z^2$).
+
+            Pour un tube de diamètres extérieur $D$ et intérieur $d$ :
+
+            $$J = \frac{\pi\,(D^4 - d^4)}{32}$$
+
+            Comme les diamètres sont à la puissance 4, retirer le cœur enlève très peu de $J$. Un tube dont le diamètre intérieur vaut la moitié de l'extérieur perd 25 % de matière mais seulement 6 % de rigidité en torsion.
+
+            Et $G$ est lié à $E$ par $G = E / (2(1 + \nu))$ : pour l'acier, $210 / 2{,}6 \approx 81$ GPa.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            Le couple vient souvent d'un moteur : $T = P / \omega$ (P en W, ω en rad/s). Un moteur de 750 W à 1500 tr/min (157 rad/s) donne environ 4,8 N·m ; après un réducteur de rapport 10, l'arbre de sortie voit environ 48 N·m (moins les pertes).
+
+            Les **concentrations de contraintes** dominent la vraie vie : rainure de clavette, épaulement, trou de goupille multiplient localement la contrainte par 1,5 à 3. C'est là que les arbres cassent, presque jamais au milieu d'une partie lisse.
+
+            Pour un axe de précision (codeur, platine de rotation), c'est souvent l'**angle de torsion** qui dimensionne, pas la contrainte : 0,1° de torsion entre le moteur et la charge, c'est déjà une erreur de positionnement.
+      recap:
+        - "τmax = T·r/J = 16T/(πd³) pour un arbre plein ; J = πd⁴/32."
+        - "Angle de torsion θ = T·L/(G·J), en radians ; G(acier) ≈ 81 GPa."
+        - "Doubler le diamètre : contrainte ÷ 8, rigidité × 16."
+        - "Tube : J = π(D⁴ − d⁴)/32. Le cœur d'un arbre ne travaille presque pas."
+        - "Les ruptures partent des clavettes, gorges et épaulements (concentrations de contraintes)."
+      pieges: [ing-diametre-rayon]
+    vocab:
+      - couple = torque
+      - arbre = shaft
+      - torsion = torsion
+      - cisaillement = shear
+      - moment quadratique polaire = polar moment of inertia
+      - module de cisaillement = shear modulus
+      - clavette = key
+      - rainure de clavette = keyway
+    exercises:
+      - id: rdm-torsion.1
+        type: numeric
+        level: 2
+        q: Un arbre plein de diamètre 20 mm transmet un couple de 50 N·m. Contrainte de cisaillement maximale ?
+        answer: 31.83
+        tol: 0.01
+        unit: MPa
+        calc: 16 * 50e3 / (pi * 20**3)
+        trap_values:
+          - v: 63.66
+            why: "Tu as pris r = d = 20 mm dans τ = T·r/J. Le rayon vaut 10 mm."
+          - v: 254.6
+            why: "Tu as mis le rayon (10 mm) dans 16T/(πd³), qui attend le diamètre. Avec le rayon, la formule s'écrit 2T/(πr³)."
+          - v: 0.0318
+            why: "Unités : 50 N·m = 50 000 N·mm."
+        piege: ing-diametre-rayon
+        e: |
+          $\tau_{max} = \dfrac{16\,T}{\pi d^3} = \dfrac{16 \times 50\,000}{\pi \times 20^3} \approx 31{,}8\ \text{MPa}$
+      - id: rdm-torsion.2
+        type: numeric
+        level: 2
+        q: Moment quadratique polaire J d'un arbre plein de 20 mm de diamètre ?
+        answer: 15708
+        tol: 0.01
+        unit: mm⁴
+        calc: pi * 20**4 / 32
+        trap_values:
+          - v: 7854
+            why: "C'est πd⁴/64, le moment quadratique de flexion. En torsion, le polaire est le double : πd⁴/32."
+          - v: 981.7
+            why: "Tu as mis le rayon (10 mm) dans πd⁴/32, qui attend le diamètre. Avec le rayon, c'est πr⁴/2."
+        e: $J = \dfrac{\pi d^4}{32} = \dfrac{\pi \times 160\,000}{32} \approx 15\,708\ \text{mm}^4$
+      - id: rdm-torsion.3
+        type: qcm
+        level: 2
+        q: À masse égale et même matériau, pourquoi un arbre creux résiste-t-il mieux en torsion qu'un arbre plein ?
+        choices:
+          - t: Sa matière est placée loin du centre, là où le cisaillement et le bras de levier sont grands
+            ok: true
+          - t: Le vide intérieur ajoute de la rigidité
+            why: Le vide n'apporte rien par lui-même. C'est la position de la matière restante qui compte.
+          - t: Il est plus léger, donc il tourne plus vite
+            why: La question porte sur la résistance à masse égale, pas sur la vitesse.
+        e: |
+          À masse égale, l'arbre creux a un diamètre extérieur plus grand. Sa matière est loin de l'axe, où elle travaille le plus ($J = \int r^2 dA$). Même principe que le profilé en I en flexion.
+      - id: rdm-torsion.4
+        type: numeric
+        level: 3
+        q: "Arbre plein en acier (G = 81 GPa), Ø 20 mm, longueur 500 mm, couple 50 N·m. Angle de torsion, en degrés ?"
+        answer: 1.126
+        tol: 0.02
+        unit: °
+        calc: degrees(50e3 * 500 / (81000 * pi * 20**4 / 32))
+        trap_values:
+          - v: 0.0196
+            why: C'est la valeur en radians. Multiplie par 180/π pour avoir des degrés.
+        e: |
+          $\theta = \dfrac{T L}{G J} = \dfrac{50\,000 \times 500}{81\,000 \times 15\,708} \approx 0{,}0196\ \text{rad} \approx 1{,}13°$
+
+          Pour un axe de positionnement, c'est énorme : d'où des arbres plus gros, ou plus courts.
+      - id: rdm-torsion.5
+        type: flash
+        level: 2
+        q: Comment passer de la puissance d'un moteur au couple sur son arbre ?
+        back: |
+          $T = \dfrac{P}{\omega}$ avec $P$ en watts et $\omega$ en rad/s ($\omega = N \times 2\pi/60$ si $N$ est en tr/min).
+
+          Exemple : 750 W à 1500 tr/min → ω ≈ 157 rad/s → T ≈ 4,8 N·m.
+        e: Oublier la conversion tr/min → rad/s donne un couple faux d'un facteur 9,5 environ (60/2π).
+  # ------------------------------------------------------------------ flambement
+  - id: rdm-flambement
+    title: Flambement
+    en: Buckling
+    goal: Reconnaître une pièce qui risque de flamber, calculer sa charge critique d'Euler, et choisir le bon axe.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: La règle qui se dérobe
+          body: |
+            Pose une règle plate verticalement sur la table et appuie sur le bout du dessus. Au début rien ne se passe, puis d'un coup la règle **se courbe sur le côté** et s'échappe.
+
+            La matière n'a pas été écrasée : la règle a simplement trouvé plus « facile » de se dérober latéralement. C'est une **instabilité**, et elle arrive bien avant que la matière ne cède. Toute pièce longue et fine en compression (tige de vérin, pied de table, colonne, vis de poussée) est concernée.
+        - level: 2
+          title: Ce qui compte
+          body: |
+            La charge à laquelle la pièce se dérobe s'appelle la **charge critique**. Elle augmente avec la rigidité en flexion $E I$ (c'est bien de la flexion qui apparaît) et elle chute avec le **carré de la longueur**.
+
+            Deux détails décisifs :
+            - la pièce flambe toujours du côté où elle est **la plus souple** : c'est le plus petit $I$ qu'il faut prendre (la règle flambe à plat, jamais sur la tranche) ;
+            - la façon dont les extrémités sont tenues (libres de tourner, encastrées, libres de bouger) change la **longueur de flambement** effective.
+          check:
+            q: Une colonne rectangulaire 10 × 40 mm est comprimée. Autour de quel axe va-t-elle flamber ?
+            choices:
+              - t: Celui qui donne le plus petit I, dans le sens de l'épaisseur de 10 mm
+                ok: true
+                why: Elle se dérobe du côté le plus souple, comme la règle qui flambe à plat.
+              - t: Celui qui donne le plus grand I
+                why: C'est l'inverse. La pièce choisit le chemin le plus facile.
+              - t: Les deux, en même temps
+                why: Une seule direction de flambement se produit : la plus souple.
+        - level: 3
+          title: La formule d'Euler
+          body: |
+            $$F_{cr} = \frac{\pi^2\,E\,I_{min}}{L_f^2} \qquad L_f = K \cdot L$$
+
+            | Conditions aux extrémités | $K$ |
+            | --- | --- |
+            | articulé – articulé | 1 |
+            | encastré – libre (mât, console) | 2 |
+            | encastré – articulé | 0,7 |
+            | encastré – encastré | 0,5 |
+
+            **Exemple.** Tige d'acier Ø 12 mm, 600 mm, articulée aux deux bouts.
+            - $I = \pi \times 12^4 / 64 \approx 1018\ \text{mm}^4$
+            - $F_{cr} = \pi^2 \times 210\,000 \times 1018 / 600^2 \approx 5860$ N, soit 5,9 kN.
+
+            La même tige encastrée en bas et libre en haut ($K = 2$) : quatre fois moins, environ 1,5 kN.
+        - level: 4
+          title: D'où vient Euler
+          body: |
+            Quand la pièce commence à se courber d'une flèche $y$, la force de compression $F$ crée un moment $F \cdot y$ qui accentue la courbure. La rigidité, elle, s'y oppose : $E I\, y'' = -F\, y$.
+
+            Cette équation a une solution non nulle (une demi-sinusoïde) seulement pour certaines valeurs de $F$. La plus petite est $\pi^2 E I / L^2$ : en dessous, la pièce revient droite si on la pousse ; au-dessus, la moindre imperfection grandit.
+
+            **Limite de validité.** Euler suppose que la pièce reste élastique. On mesure l'élancement $\lambda = L_f / i$ avec $i = \sqrt{I/S}$ (rayon de giration). Pour un acier courant, Euler n'est valable que pour $\lambda$ supérieur à environ 100 ; pour des pièces plus trapues, c'est l'écrasement ou une formule empirique (Johnson, règles de l'Eurocode 3) qui décide.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            Les pièces à surveiller : **tiges de vérin** sorties (encastrées d'un côté, souvent libres de l'autre, $K = 2$), vis de poussée et vis à billes longues, pieds et entretoises fines, colonnes de levage.
+
+            Le flambement est **brutal et sans prévenir** : aucune déformation visible avant la charge critique. D'où des coefficients de sécurité élevés (3 à 5 sur la charge d'Euler), car la moindre excentricité ou un défaut de rectitude abaisse fortement la charge réelle.
+
+            Leviers : raccourcir ou ajouter un maintien latéral au milieu (la longueur compte au carré), changer les liaisons d'extrémité, et prendre des sections qui ont le même $I$ dans toutes les directions (tube rond ou carré) plutôt qu'un plat.
+      recap:
+        - "Fcr = π²·E·Imin / Lf², avec Lf = K·L (K = 1, 2, 0,7 ou 0,5 selon les liaisons)."
+        - "Toujours le plus petit I : la pièce flambe du côté le plus souple."
+        - "Longueur au carré : doubler L divise la charge critique par 4."
+        - "Euler n'est valable que pour des pièces élancées (λ grand) ; sinon, écrasement."
+        - "Rupture brutale et sans signe avant-coureur : coefficient de sécurité 3 à 5."
+      pieges: [ing-flambement-axe-faible]
+    vocab:
+      - flambement = buckling
+      - charge critique = critical load
+      - élancement = slenderness ratio
+      - longueur de flambement = effective length
+      - rayon de giration = radius of gyration
+      - tige de vérin = cylinder rod
+      - colonne = column
+    exercises:
+      - id: rdm-flambement.1
+        type: numeric
+        level: 2
+        q: "Tige d'acier pleine (E = 210 GPa) Ø 12 mm, longueur 600 mm, articulée aux deux extrémités. Charge critique d'Euler, en N ?"
+        answer: 5860
+        tol: 0.02
+        unit: N
+        calc: pi**2 * 210000 * (pi * 12**4 / 64) / 600**2
+        trap_values:
+          - v: 11720
+            why: "Tu as pris le moment quadratique polaire (πd⁴/32). En flambement, c'est de la flexion : πd⁴/64."
+          - v: 1465
+            why: "C'est le cas encastré-libre (K = 2). Ici, articulé-articulé : K = 1."
+        e: |
+          $I = \dfrac{\pi \times 12^4}{64} \approx 1018\ \text{mm}^4$, puis $F_{cr} = \dfrac{\pi^2 \times 210\,000 \times 1018}{600^2} \approx 5860\ \text{N}$.
+      - id: rdm-flambement.2
+        type: qcm
+        level: 2
+        q: Une colonne articulée aux deux bouts est remplacée par la même colonne encastrée en bas et libre en haut. Sa charge critique est…
+        choices:
+          - t: divisée par 4
+            ok: true
+            why: "Encastré-libre : K = 2, donc Lf = 2L et Fcr ∝ 1/Lf² est divisée par 4."
+          - t: multipliée par 2, l'encastrement la renforce
+            why: L'encastrement aide, mais le haut libre de bouger la pénalise beaucoup plus.
+          - t: inchangée
+            why: Les conditions aux extrémités changent la longueur de flambement.
+        e: Un mât ou une tige de vérin sortie (encastré-libre) est le cas le plus défavorable, avec $L_f = 2L$.
+      - id: rdm-flambement.3
+        type: qcm
+        level: 2
+        q: "Plat d'acier 10 × 40 mm en compression. Quel moment quadratique mettre dans la formule d'Euler ?"
+        piege: ing-flambement-axe-faible
+        choices:
+          - t: "I = 40 × 10³ / 12 ≈ 3333 mm⁴"
+            ok: true
+            why: C'est le plus petit I, autour de l'axe « faible ». La pièce flambe dans ce sens.
+          - t: "I = 10 × 40³ / 12 ≈ 53 333 mm⁴"
+            piege: true
+            why: C'est le plus grand I. L'utiliser surestime la charge critique d'un facteur 16.
+          - t: La moyenne des deux
+            why: Il n'y a pas de moyenne : la pièce choisit le chemin le plus facile.
+        e: $I_{min}$ toujours. Si les deux I sont très différents, la section est mal choisie pour de la compression : un tube carré ou rond fait mieux avec la même matière.
+      - id: rdm-flambement.4
+        type: flash
+        level: 2
+        q: Donne les coefficients K de longueur de flambement pour les quatre cas classiques.
+        back: |
+          - articulé – articulé : $K = 1$
+          - encastré – libre : $K = 2$
+          - encastré – articulé : $K = 0{,}7$
+          - encastré – encastré : $K = 0{,}5$
+
+          $L_f = K \cdot L$, et $F_{cr} = \pi^2 E I_{min} / L_f^2$.
+        e: En pratique, un encastrement parfait n'existe pas ; les normes proposent des valeurs de K un peu plus prudentes.
+  # ------------------------------------------------------------------ critères
+  - id: rdm-criteres
+    title: Critères de résistance et coefficient de sécurité
+    en: Failure criteria and safety factor
+    goal: Décider si une pièce tient, combiner flexion et torsion, et savoir pourquoi les pièces cassent près des trous.
+    minutes: 13
+    lesson:
+      steps:
+        - level: 1
+          title: Tenir, avec une marge
+          body: |
+            Une pièce « tient » si la contrainte la plus forte qu'elle subit reste en dessous de ce que le matériau supporte, **avec une marge**. Cette marge s'appelle le **coefficient de sécurité**.
+
+            La marge couvre tout ce qu'on ne connaît pas bien : charges mal estimées, chocs, défauts de fabrication, matériau un peu moins bon que prévu, calcul simplifié.
+        - level: 2
+          title: Limite élastique et contrainte équivalente
+          body: |
+            Deux caractéristiques du matériau servent de référence :
+            - $R_e$, la **limite élastique** : au-delà, la pièce garde une déformation permanente. En mécanique, on dimensionne presque toujours par rapport à elle ;
+            - $R_m$, la **résistance à la rupture** : au-delà, elle casse.
+
+            Le coefficient de sécurité vaut $s = R_e / \sigma_{max}$.
+
+            Difficulté : une pièce subit souvent plusieurs contraintes à la fois (un arbre est fléchi **et** tordu). On ne peut pas les additionner simplement : on calcule une **contrainte équivalente**, qu'on compare à $R_e$ comme si c'était de la traction pure.
+        - level: 3
+          title: Von Mises et Tresca
+          body: |
+            Pour une contrainte normale $\sigma$ (flexion, traction) combinée à un cisaillement $\tau$ (torsion) :
+
+            $$\sigma_{VM} = \sqrt{\sigma^2 + 3\,\tau^2} \qquad \sigma_{Tresca} = \sqrt{\sigma^2 + 4\,\tau^2}$$
+
+            Condition : $\sigma_{eq} \leq R_e / s$. Tresca donne une valeur un peu plus forte : il est plus **prudent**. Von Mises colle mieux aux essais sur les métaux ductiles.
+
+            **Exemple.** Arbre plein Ø 30 mm, flexion $M = 150$ N·m et torsion $T = 200$ N·m, acier S355.
+            - $\sigma = 32 M / (\pi d^3) \approx 56{,}6$ MPa
+            - $\tau = 16 T / (\pi d^3) \approx 37{,}7$ MPa
+            - $\sigma_{VM} = \sqrt{56{,}6^2 + 3 \times 37{,}7^2} \approx 86$ MPa
+            - $s = 355 / 86 \approx 4{,}1$ : confortable.
+          check:
+            q: En cisaillement pur (τ seul), quelle contrainte équivalente de Von Mises obtient-on ?
+            choices:
+              - t: √3 × τ ≈ 1,73 τ
+                ok: true
+                why: "σ = 0, donc σVM = √(3τ²) = √3·τ. On en déduit qu'un métal cède en cisaillement vers τ ≈ Re/√3 ≈ 0,58 Re."
+              - t: τ
+                why: Les deux états de contrainte ne sont pas équivalents ; le cisaillement « compte plus ».
+              - t: 2 τ
+                why: C'est le résultat de Tresca, plus prudent que Von Mises.
+        - level: 4
+          title: Sous le capot, là où ça casse
+          body: |
+            **Concentrations de contraintes.** Un trou, une gorge, un épaulement à angle vif ou une rainure de clavette perturbent l'écoulement des efforts : la contrainte locale est multipliée par un coefficient $K_t$. Au bord d'un petit trou dans une plaque tendue, $K_t \approx 3$. Un simple congé de raccordement (arrondi) au lieu d'un angle vif fait chuter ce coefficient.
+
+            **Fatigue.** Une pièce soumise à des charges qui varient (rotation, vibrations, cycles) peut casser **bien en dessous de $R_e$**, après des millions de cycles. Une fissure microscopique s'amorce au point le plus sollicité (souvent une concentration de contraintes ou un défaut de surface) puis progresse à chaque cycle. La courbe de Wöhler (contrainte en fonction du nombre de cycles) décrit ce comportement ; pour les aciers, une **limite d'endurance** existe, de l'ordre de 0,4 à 0,5 $R_m$ sur éprouvette polie.
+
+            C'est la cause de la majorité des ruptures de pièces mécaniques en service.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            Coefficients de sécurité usuels (sur $R_e$), à ajuster selon ton domaine et les normes applicables :
+
+            | Situation | $s$ |
+            | --- | --- |
+            | charges bien connues, matériau certifié, calcul soigné | 1,5 à 2 |
+            | construction mécanique courante | 2 à 3 |
+            | chocs, charges mal connues | 3 à 5 |
+            | flambement (sur la charge d'Euler) | 3 à 5 |
+
+            Pour le **levage** et les **équipements sous pression** (enceintes à vide incluses), ce ne sont pas des choix personnels : les coefficients sont imposés par la réglementation et les normes.
+
+            Deux réflexes : vérifier aussi la **flèche** (souvent plus sévère que la résistance), et regarder les **détails** (trous, gorges, soudures), parce que la rupture part presque toujours de là.
+      recap:
+        - "Coefficient de sécurité s = Re/σmax (ou Re/σéquivalente)."
+        - "Von Mises : σVM = √(σ² + 3τ²) ; Tresca : √(σ² + 4τ²), plus prudent."
+        - "Kt ≈ 3 au bord d'un trou : les ruptures partent des concentrations de contraintes."
+        - "Fatigue : une pièce peut casser sous Re si la charge varie. Limite d'endurance ≈ 0,4–0,5 Rm (acier)."
+        - "Vérifier aussi la flèche, et respecter les normes (levage, pression)."
+      pieges: [ing-kt, ing-fatigue]
+    vocab:
+      - coefficient de sécurité = safety factor
+      - résistance à la rupture = ultimate tensile strength
+      - contrainte équivalente = equivalent stress
+      - concentration de contraintes = stress concentration
+      - fatigue = fatigue
+      - limite d'endurance = endurance limit
+      - congé = fillet
+      - amorce de fissure = crack initiation
+    exercises:
+      - id: rdm-criteres.1
+        type: numeric
+        level: 2
+        q: "Arbre plein Ø 30 mm : flexion M = 150 N·m et torsion T = 200 N·m. Contrainte équivalente de Von Mises ?"
+        answer: 86.4
+        tol: 0.02
+        unit: MPa
+        calc: sqrt((32 * 150e3 / (pi * 30**3))**2 + 3 * (16 * 200e3 / (pi * 30**3))**2)
+        trap_values:
+          - v: 94.3
+            why: C'est le critère de Tresca (√(σ² + 4τ²)). Von Mises utilise le coefficient 3.
+          - v: 68.0
+            why: "Tu as calculé √(σ² + τ²). Von Mises met un coefficient 3 devant τ² : le cisaillement « compte plus »."
+        e: |
+          $\sigma = \dfrac{32 M}{\pi d^3} \approx 56{,}6$ MPa, $\tau = \dfrac{16 T}{\pi d^3} \approx 37{,}7$ MPa.
+
+          $\sigma_{VM} = \sqrt{56{,}6^2 + 3 \times 37{,}7^2} \approx 86{,}4$ MPa.
+      - id: rdm-criteres.2
+        type: qcm
+        level: 1
+        q: Une pièce en acier S355 (Re = 355 MPa) travaille à 120 MPa au point le plus sollicité. Son coefficient de sécurité vaut environ…
+        choices:
+          - t: "3"
+            ok: true
+            why: "s = Re/σ = 355/120 ≈ 2,96."
+          - t: "0,34"
+            why: "C'est l'inverse (σ/Re), le taux d'utilisation."
+          - t: "235"
+            why: C'est la marge en MPa, pas un coefficient.
+        e: $s = R_e / \sigma_{max} = 355 / 120 \approx 3$. On parle aussi de **taux de travail** $\sigma / R_e \approx 34\,\%$.
+      - id: rdm-criteres.3
+        type: qcm
+        level: 2
+        q: Une plaque tendue à 60 MPa est percée d'un petit trou rond. Quelle contrainte au bord du trou ?
+        piege: ing-kt
+        choices:
+          - t: Environ 180 MPa
+            ok: true
+            why: "Kt ≈ 3 au bord d'un petit trou dans une plaque large : 3 × 60 = 180 MPa."
+          - t: 60 MPa, le trou ne change rien
+            piege: true
+            why: Le trou perturbe le cheminement des efforts : la contrainte se concentre sur ses bords.
+          - t: Un peu plus de 60 MPa, à cause de la matière retirée
+            why: La perte de section est souvent faible ; c'est l'effet de concentration qui domine.
+        e: C'est pourquoi les fissures de fatigue partent des trous, des gorges et des angles vifs. Un congé de raccordement ou un trou de décharge réduit fortement $K_t$.
+      - id: rdm-criteres.4
+        type: qcm
+        level: 2
+        q: Un arbre tourne à 3000 tr/min et subit une flexion. La contrainte calculée vaut 40 % de Re. Peut-il casser ?
+        piege: ing-fatigue
+        choices:
+          - t: Oui, par fatigue, si la contrainte alternée dépasse la limite d'endurance (surtout avec une concentration de contraintes)
+            ok: true
+          - t: Non, on est largement sous Re
+            piege: true
+            why: Sous charge variable, le critère n'est plus Re mais la tenue en fatigue. Chaque tour inverse la contrainte.
+          - t: Seulement s'il est en aluminium
+            why: Tous les matériaux sont concernés. L'aluminium n'a même pas de vraie limite d'endurance.
+        e: |
+          Dans un arbre en rotation soumis à de la flexion, chaque fibre passe de la traction à la compression à chaque tour : 3000 cycles par minute, plus de 4 millions par jour. Le dimensionnement se fait en fatigue, avec la limite d'endurance corrigée par l'état de surface, la taille et les concentrations de contraintes.
+      - id: rdm-criteres.5
+        type: flash
+        level: 2
+        q: Re et Rm, quelle différence, et laquelle sert à dimensionner ?
+        back: |
+          - $R_e$ (limite élastique) : au-delà, déformation permanente.
+          - $R_m$ (résistance maximale) : au-delà, rupture.
+
+          En mécanique, on dimensionne sur $R_e$ : une pièce déformée de façon permanente est déjà hors service, même si elle n'a pas cassé.
+        e: "Exemple S235 : Re ≈ 235 MPa, Rm ≈ 360 à 510 MPa. Le chiffre dans le nom d'un acier de construction (S235, S355) est justement son Re."

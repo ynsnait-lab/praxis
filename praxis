@@ -1,0 +1,517 @@
+#!/usr/bin/env python3
+"""praxis : l'outil des labs Praxis (aucune dépendance, Python 3.9+).
+
+  ./praxis doctor            vérifie les outils (Python, pytest, compilateur C++, CMake…)
+  ./praxis setup             crée l'environnement Python du projet (.venv) et installe les outils
+  ./praxis list              liste les labs et ton avancement
+  ./praxis next              propose le prochain lab
+  ./praxis check py-01       lance les tests d'un lab (plusieurs ids possibles, ou --all)
+  ./praxis hint py-01        affiche l'indice suivant (puis le suivant, etc.)
+  ./praxis solution py-01    compare ta version à la solution (après au moins un essai)
+  ./praxis reset py-01       remet le code de départ du lab (via git)
+  ./praxis app               construit l'app et l'ouvre en local (demande Node.js)
+
+Options de check : --solution (vérifie la solution de référence), --verbose.
+"""
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import difflib
+import json
+import os
+import platform
+import re
+import shutil
+import signal
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+RACINE = Path(__file__).resolve().parent
+LABS = RACINE / "labs"
+SOLUTIONS = RACINE / "solutions"
+ETAT = RACINE / ".praxis" / "progression.json"
+VENV = RACINE / ".venv"
+
+COULEUR = sys.stdout.isatty() and os.environ.get("NO_COLOR") is None
+
+
+def c(txt: str, code: str) -> str:
+    return f"\033[{code}m{txt}\033[0m" if COULEUR else txt
+
+
+def ok(txt: str) -> str:
+    return c("✓ " + txt, "32")
+
+
+def ko(txt: str) -> str:
+    return c("✗ " + txt, "31")
+
+
+def avert(txt: str) -> str:
+    return c("! " + txt, "33")
+
+
+def gris(txt: str) -> str:
+    return c(txt, "2")
+
+
+# ------------------------------------------------------------------ état
+
+def lire_etat() -> dict:
+    try:
+        return json.loads(ETAT.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {"labs": {}}
+
+
+def ecrire_etat(etat: dict) -> None:
+    ETAT.parent.mkdir(exist_ok=True)
+    ETAT.write_text(json.dumps(etat, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def fiche(etat: dict, lab_id: str) -> dict:
+    return etat.setdefault("labs", {}).setdefault(lab_id, {"essais": 0, "indices": 0, "fini": None})
+
+
+# ------------------------------------------------------------------ labs
+
+class Lab:
+    def __init__(self, dossier: Path):
+        self.dossier = dossier
+        self.meta = json.loads((dossier / "lab.json").read_text(encoding="utf-8"))
+        self.id = self.meta["id"]
+        self.lang = self.meta["lang"]
+        self.titre = self.meta["titre"]
+
+    @property
+    def solution(self) -> Path:
+        return SOLUTIONS / self.dossier.name
+
+
+def tous_les_labs() -> list[Lab]:
+    labs = [Lab(d) for d in sorted(LABS.iterdir()) if (d / "lab.json").is_file()]
+    return sorted(labs, key=lambda l: l.meta.get("ordre", 999))
+
+
+def dossier_de(chemin: str) -> str:
+    """« labs/py-01-aliasing/mesures.py » ou un chemin absolu → « py-01-aliasing »."""
+    parts = Path(chemin).parts
+    for base in ("labs", "solutions"):
+        if base in parts:
+            i = len(parts) - 1 - parts[::-1].index(base)
+            if i + 1 < len(parts):
+                return parts[i + 1]
+    return Path(chemin).name
+
+
+def lab_du_dossier_courant() -> Lab | None:
+    try:
+        rel = Path.cwd().resolve().relative_to(LABS)
+    except ValueError:
+        return None
+    if not rel.parts or not (LABS / rel.parts[0] / "lab.json").is_file():
+        return None
+    return Lab(LABS / rel.parts[0])
+
+
+def trouver(ident: str) -> Lab:
+    labs = tous_les_labs()
+    if "/" in ident or "\\" in ident:
+        ident = dossier_de(ident)
+    for lab in labs:
+        if lab.id == ident or lab.dossier.name == ident:
+            return lab
+    candidats = [l for l in labs if l.dossier.name.startswith(ident)]
+    if len(candidats) == 1:
+        return candidats[0]
+    ids = ", ".join(l.id for l in labs)
+    sys.exit(ko(f"lab inconnu : {ident}. Labs disponibles : {ids}"))
+
+
+def python_du_projet() -> str:
+    for p in (VENV / "bin" / "python", VENV / "Scripts" / "python.exe"):
+        if p.exists():
+            return str(p)
+    return sys.executable
+
+
+def lancer(cmd: list[str], cwd: Path, verbeux: bool, env: dict | None = None) -> tuple[int, str]:
+    if verbeux:
+        print(gris("$ " + " ".join(cmd)))
+    try:
+        p = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, env=env, timeout=300)
+    except FileNotFoundError:
+        return 127, f"commande introuvable : {cmd[0]} (lance ./praxis doctor)"
+    except subprocess.TimeoutExpired:
+        return 124, "délai dépassé (5 min) : boucle infinie ?"
+    return p.returncode, (p.stdout + p.stderr)
+
+
+def verifier_python(lab: Lab, dossier: Path, verbeux: bool) -> tuple[bool, str]:
+    py = python_du_projet()
+    sortie = []
+    code, out = lancer([py, "-m", "pytest", "-q", "--tb=short", "--no-header", "-p", "no:cacheprovider", "."], dossier, verbeux)
+    sortie.append(out)
+    if code == 1 and "No module named pytest" in out:
+        return False, "pytest n'est pas installé : lance ./praxis setup"
+    reussi = code == 0
+    for outil in lab.meta.get("outils", []):
+        fichiers = lab.meta.get("fichiers", [])
+        if outil == "ruff":
+            config = ["--config", str(RACINE / "ruff.toml")] if (RACINE / "ruff.toml").exists() else []
+            cmd = [py, "-m", "ruff", "check", *config, *fichiers]
+        elif outil == "mypy":
+            cmd = [py, "-m", "mypy", "--strict", "--no-error-summary", *fichiers]
+        else:
+            continue
+        code, out = lancer(cmd, dossier, verbeux)
+        if code == 127 or "No module named" in out:
+            sortie.append(avert(f"{outil} n'est pas installé : lance ./praxis setup"))
+            reussi = False
+        elif code != 0:
+            sortie.append(f"--- {outil} ---\n{out}")
+            reussi = False
+        else:
+            sortie.append(ok(f"{outil} : rien à signaler"))
+    return reussi, "\n".join(s for s in sortie if s.strip())
+
+
+def verifier_cpp(lab: Lab, dossier: Path, verbeux: bool) -> tuple[bool, str]:
+    build = dossier / "build"
+    gen = ["-G", "Ninja"] if shutil.which("ninja") else []
+    etapes = [
+        ["cmake", "-S", ".", "-B", "build", *gen, "-DCMAKE_BUILD_TYPE=Debug", "-DPRAXIS_SANITIZE=ON"],
+        # --clean-first : tout recompiler, sinon un fichier inchangé ne redonne pas ses avertissements
+        ["cmake", "--build", "build", "--clean-first"],
+        ["ctest", "--test-dir", "build", "--output-on-failure"],
+    ]
+    sortie: list[str] = []
+    avertissements = False
+    for i, cmd in enumerate(etapes):
+        if i == 0 and (build / "CMakeCache.txt").exists():
+            continue                      # déjà configuré
+        code, out = lancer(cmd, dossier, verbeux)
+        if code == 127:
+            return False, out
+        if code != 0:
+            titre = ["configuration CMake", "compilation", "tests"][i]
+            return False, f"--- échec : {titre} ---\n{nettoyer_cpp(out)}"
+        if i == 2:
+            sortie.append(nettoyer_cpp(out))
+        elif i == 1:
+            # seuls les avertissements du compilateur sur les sources comptent (pas ceux de l'éditeur de liens)
+            lignes = [l for l in out.splitlines() if re.search(r":\d+(:\d+)?: (warning|note):", l)]
+            if any(": warning:" in l for l in lignes):
+                avertissements = True
+                sortie.append("--- avertissements du compilateur ---\n" + "\n".join(lignes))
+    if avertissements and lab.meta.get("zero_avertissement", True):
+        return False, "\n".join(sortie) + "\n" + avert("Les tests passent, mais il reste des avertissements du compilateur : corrige-les.")
+    return True, "\n".join(sortie)
+
+
+def nettoyer_cpp(out: str) -> str:
+    lignes = [l for l in out.splitlines() if not l.startswith(("-- ", "Internal ctest", "Test project"))]
+    return "\n".join(lignes).strip()
+
+
+def motifs_interdits(lab: Lab, dossier: Path) -> list[str]:
+    """Règles de style propres au lab (ex. « aucune boucle écrite à la main »), déclarées dans lab.json."""
+    messages = []
+    for regle in lab.meta.get("interdits", []):
+        fichier = dossier / regle["fichier"]
+        if not fichier.exists():
+            continue
+        for n, ligne in enumerate(fichier.read_text(encoding="utf-8").splitlines(), start=1):
+            code = ligne.split("#")[0] if lab.lang == "python" else ligne.split("//")[0]
+            if re.search(regle["motif"], code):
+                messages.append(ko(f"{regle['fichier']}:{n} : {regle['message']}") + gris(f"   {ligne.strip()}"))
+    for regle in lab.meta.get("requis", []):
+        fichier = dossier / regle["fichier"]
+        texte = fichier.read_text(encoding="utf-8") if fichier.exists() else ""
+        if not re.search(regle["motif"], texte):
+            messages.append(ko(f"{regle['fichier']} : {regle['message']}"))
+    return messages
+
+
+def copie_de_travail(lab: Lab, avec_solution: bool) -> Path:
+    tmp = Path(tempfile.mkdtemp(prefix=f"praxis-{lab.id}-"))
+    dest = tmp / lab.dossier.name
+    shutil.copytree(lab.dossier, dest, ignore=shutil.ignore_patterns("build", "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache"))
+    commun = LABS / "_commun"
+    if commun.exists():
+        shutil.copytree(commun, tmp / "_commun")
+    if avec_solution:
+        if not lab.solution.exists():
+            sys.exit(ko(f"pas de solution de référence pour {lab.id}"))
+        for f in lab.solution.rglob("*"):
+            if f.is_file():
+                cible = dest / f.relative_to(lab.solution)
+                cible.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(f, cible)
+    return dest
+
+
+def cmd_check(args: argparse.Namespace) -> int:
+    labs = tous_les_labs() if args.all else [trouver(i) for i in args.ids]
+    if not labs:
+        courant = lab_du_dossier_courant()
+        if courant is None:
+            print(avert("indique un lab : ./praxis check py-01 (ou --all)"))
+            return 2
+        labs = [courant]
+    etat = lire_etat()
+    echecs = 0
+    for lab in labs:
+        print(c(f"\n▶ {lab.id} · {lab.titre}", "1") + (gris("  (solution de référence)") if args.solution else ""))
+        dossier = copie_de_travail(lab, True) if args.solution else lab.dossier
+        try:
+            verifier = verifier_python if lab.lang == "python" else verifier_cpp
+            interdits = motifs_interdits(lab, dossier)
+            reussi, sortie = verifier(lab, dossier, args.verbose)
+            if interdits:
+                reussi = False
+                sortie = (sortie + "\n" if sortie else "") + "\n".join(interdits)
+        finally:
+            if args.solution:
+                shutil.rmtree(dossier.parent, ignore_errors=True)
+        if sortie:
+            print(sortie)
+        if args.solution:
+            print(ok("solution de référence validée") if reussi else ko("la solution de référence échoue"))
+        else:
+            f = fiche(etat, lab.id)
+            f["essais"] += 1
+            if reussi:
+                premier = not f["fini"]
+                f["fini"] = f["fini"] or dt.datetime.now().isoformat(timespec="minutes")
+                print(ok("lab réussi" + (" : bravo !" if premier else "")))
+            else:
+                print(ko("pas encore") + gris(f"  (essai n°{f['essais']} ; ./praxis hint {lab.id} pour un indice)"))
+        echecs += not reussi
+    if not args.solution:
+        ecrire_etat(etat)
+    return 1 if echecs else 0
+
+
+def cmd_list(args: argparse.Namespace) -> int:
+    etat = lire_etat()
+    labs = tous_les_labs()
+    n_fini = 0
+    print(c(f"{'lab':8} {'langage':8} {'niveau':13} {'durée':>6}  titre", "1"))
+    for lab in labs:
+        f = etat.get("labs", {}).get(lab.id, {})
+        fini = bool(f.get("fini"))
+        n_fini += fini
+        marque = c("✓", "32") if fini else (c("…", "33") if f.get("essais") else " ")
+        genre = "défi" if lab.meta.get("genre") == "defi" else ""
+        print(f"{marque} {lab.id:6} {lab.lang:8} {lab.meta.get('niveau', ''):13} {str(lab.meta.get('minutes', '')) + ' min':>6}  {lab.titre}" + (gris(f"  [{genre}]") if genre else ""))
+    print(gris(f"\n{n_fini}/{len(labs)} labs réussis. Détail d'un lab : labs/<dossier>/README.md"))
+    return 0
+
+
+def cmd_next(args: argparse.Namespace) -> int:
+    etat = lire_etat()
+    for lab in tous_les_labs():
+        if not etat.get("labs", {}).get(lab.id, {}).get("fini"):
+            print(f"Prochain lab : {c(lab.id, '1')} · {lab.titre}")
+            print(f"  Énoncé : {lab.dossier.relative_to(RACINE)}/README.md")
+            print(f"  Vérifier : ./praxis check {lab.id}")
+            return 0
+    print(ok("Tous les labs sont réussis. Il reste les défis bonus des README."))
+    return 0
+
+
+def cmd_hint(args: argparse.Namespace) -> int:
+    lab = trouver(args.id)
+    fichier = lab.dossier / "INDICES.md"
+    if not fichier.exists():
+        print(avert("pas d'indice pour ce lab"))
+        return 0
+    blocs = [b.strip() for b in fichier.read_text(encoding="utf-8").split("\n## ")[1:]]
+    etat = lire_etat()
+    f = fiche(etat, lab.id)
+    n = min(f["indices"] + 1, len(blocs))
+    f["indices"] = n
+    ecrire_etat(etat)
+    titre, _, corps = blocs[n - 1].partition("\n")
+    print(c(f"Indice {n}/{len(blocs)} · {titre}", "1"))
+    print(corps.strip())
+    if n == len(blocs):
+        print(gris("\nC'était le dernier indice. Après un essai : ./praxis solution " + lab.id))
+    return 0
+
+
+def cmd_solution(args: argparse.Namespace) -> int:
+    lab = trouver(args.id)
+    etat = lire_etat()
+    f = fiche(etat, lab.id)
+    if not f["essais"] and not args.force:
+        print(avert("Lance d'abord ./praxis check " + lab.id + " au moins une fois : on apprend plus en essayant avant de lire la solution."))
+        print(gris("(ou ./praxis solution " + lab.id + " --force)"))
+        return 1
+    if not lab.solution.exists():
+        print(avert("pas de solution de référence pour ce lab"))
+        return 1
+    for sol in sorted(lab.solution.rglob("*")):
+        if not sol.is_file():
+            continue
+        rel = sol.relative_to(lab.solution)
+        mien = lab.dossier / rel
+        a = mien.read_text(encoding="utf-8").splitlines() if mien.exists() else []
+        b = sol.read_text(encoding="utf-8").splitlines()
+        print(c(f"\n=== {rel} : ta version (−) / solution (+) ===", "1"))
+        diff = list(difflib.unified_diff(a, b, "ta version", "solution", lineterm="", n=2))
+        print("\n".join(diff[2:]) if diff else gris("identique à la solution"))
+    return 0
+
+
+def cmd_reset(args: argparse.Namespace) -> int:
+    lab = trouver(args.id)
+    if not shutil.which("git"):
+        print(ko("git est nécessaire pour remettre le code de départ"))
+        return 1
+    code, out = lancer(["git", "checkout", "--", str(lab.dossier.relative_to(RACINE))], RACINE, args.verbose)
+    shutil.rmtree(lab.dossier / "build", ignore_errors=True)
+    print(ok("code de départ restauré") if code == 0 else ko(out))
+    return code
+
+
+def version(cmd: list[str]) -> str | None:
+    try:
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+    txt = (p.stdout or p.stderr).strip().splitlines()
+    return txt[0] if p.returncode == 0 and txt else None
+
+
+def cmd_doctor(args: argparse.Namespace) -> int:
+    mac = platform.system() == "Darwin"
+    manque = 0
+    print(c("Python", "1"))
+    v = sys.version_info
+    print(ok(f"Python {v.major}.{v.minor}.{v.micro} ({sys.executable})") if v >= (3, 9) else ko("Python 3.9 ou plus est nécessaire"))
+    if (3, 9) <= v < (3, 11):
+        print(avert("ça fonctionne, mais une version récente est conseillée" + (" : brew install python, puis supprime .venv et relance ./praxis setup" if mac else "")))
+    py = python_du_projet()
+    print(ok(f"environnement du projet : {VENV.name}") if VENV.exists() else avert("pas encore d'environnement .venv : lance ./praxis setup"))
+    for mod, requis in (("pytest", True), ("ruff", False), ("mypy", False), ("numpy", False)):
+        r = version([py, "-m", mod, "--version"]) if mod != "numpy" else version([py, "-c", "import numpy; print('numpy', numpy.__version__)"])
+        if r:
+            print(ok(r))
+        else:
+            manque += requis
+            print((ko if requis else avert)(f"{mod} absent (./praxis setup)"))
+    print(c("\nC++", "1"))
+    cxx = os.environ.get("CXX") or ("clang++" if mac else "g++")
+    r = version([cxx, "--version"]) or version(["c++", "--version"])
+    if r:
+        print(ok(r))
+    else:
+        manque += 1
+        print(ko("aucun compilateur C++" + (" : xcode-select --install" if mac else " : installe g++ (build-essential)")))
+    for outil, requis, conseil in (("cmake", True, "brew install cmake" if mac else "apt install cmake"), ("ninja", False, "brew install ninja" if mac else "apt install ninja-build")):
+        r = version([outil, "--version"])
+        if r:
+            print(ok(r if outil in r.lower() else f"{outil} {r}"))
+        else:
+            manque += requis
+            print((ko if requis else avert)(f"{outil} absent : {conseil}"))
+    print(c("\nAutres", "1"))
+    for outil, conseil in (("git", "xcode-select --install" if mac else "apt install git"), ("node", "brew install node (seulement pour construire l'app)"), ("code", "VS Code : Cmd+Maj+P → « Shell Command: Install 'code' command in PATH »")):
+        r = version([outil, "--version"])
+        print(ok(f"{outil} {r}") if r else avert(f"{outil} absent : {conseil}"))
+    print()
+    print(ok("tout est prêt") if not manque else ko(f"{manque} élément(s) indispensable(s) manquant(s)"))
+    return 1 if manque else 0
+
+
+def cmd_setup(args: argparse.Namespace) -> int:
+    if not VENV.exists():
+        print("Création de l'environnement .venv…")
+        code, out = lancer([sys.executable, "-m", "venv", str(VENV)], RACINE, args.verbose)
+        if code != 0:
+            print(ko(out))
+            return 1
+    py = python_du_projet()
+    print("Installation des outils (pytest, ruff, mypy, numpy)…")
+    code, out = lancer([py, "-m", "pip", "install", "--upgrade", "pip"], RACINE, args.verbose)
+    code, out = lancer([py, "-m", "pip", "install", "-r", str(RACINE / "requirements-dev.txt")], RACINE, args.verbose)
+    if code != 0:
+        print(ko("échec de l'installation"))
+        print(out[-2000:])
+        return 1
+    print(ok("environnement prêt"))
+    print(gris("Dans VS Code : Cmd+Maj+P → « Python: Select Interpreter » → .venv"))
+    return cmd_doctor(args)
+
+
+def cmd_app(args: argparse.Namespace) -> int:
+    if not shutil.which("node"):
+        print(avert("Node.js est nécessaire pour construire l'app en local (brew install node)."))
+        print("En attendant, la version en ligne : https://ynsnait-lab.github.io/praxis/")
+        return 1
+    if not (RACINE / "node_modules").exists():
+        code, out = lancer(["npm", "ci"], RACINE, args.verbose)
+        if code != 0:
+            print(ko(out[-1500:]))
+            return 1
+    py = python_du_projet()
+    code, _ = lancer([py, "-c", "import yaml"], RACINE, False)
+    if code != 0:
+        print(ko("PyYAML manque pour assembler le contenu : lance ./praxis setup"))
+        return 1
+    code, out = lancer(["node", "tools/build.mjs"], RACINE, args.verbose, env={**os.environ, "PYTHON": py})
+    print(out.strip())
+    if code != 0:
+        return 1
+    port = args.port
+    print(ok(f"app servie sur http://localhost:{port}/  (Ctrl+C pour arrêter)"))
+    if platform.system() == "Darwin":
+        subprocess.Popen(["open", f"http://localhost:{port}/"])
+    try:
+        subprocess.run([sys.executable, "-m", "http.server", str(port), "--bind", "127.0.0.1"], cwd=RACINE / "dist")
+    except KeyboardInterrupt:
+        pass
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    p = argparse.ArgumentParser(prog="praxis", description="Les labs Praxis, sur ta machine.")
+    p.add_argument("-v", "--verbose", action="store_true", help="afficher les commandes lancées")
+    sub = p.add_subparsers(dest="cmd")
+    sub.add_parser("doctor", help="vérifier les outils")
+    sub.add_parser("setup", help="créer .venv et installer pytest, ruff, mypy, numpy")
+    sub.add_parser("list", help="lister les labs")
+    sub.add_parser("next", help="prochain lab conseillé")
+    pc = sub.add_parser("check", help="vérifier un ou plusieurs labs")
+    pc.add_argument("ids", nargs="*")
+    pc.add_argument("--all", action="store_true", help="tous les labs")
+    pc.add_argument("--solution", action="store_true", help="vérifier la solution de référence")
+    ph = sub.add_parser("hint", help="indice suivant")
+    ph.add_argument("id")
+    ps = sub.add_parser("solution", help="comparer avec la solution")
+    ps.add_argument("id")
+    ps.add_argument("--force", action="store_true")
+    pr = sub.add_parser("reset", help="restaurer le code de départ")
+    pr.add_argument("id")
+    pa = sub.add_parser("app", help="construire et ouvrir l'app en local")
+    pa.add_argument("--port", type=int, default=8000)
+    args = p.parse_args(argv)
+    if not args.cmd:
+        p.print_help()
+        return 0
+    return {"doctor": cmd_doctor, "setup": cmd_setup, "list": cmd_list, "next": cmd_next, "check": cmd_check,
+            "hint": cmd_hint, "solution": cmd_solution, "reset": cmd_reset, "app": cmd_app}[args.cmd](args)
+
+
+if __name__ == "__main__":
+    if hasattr(signal, "SIGPIPE"):
+        signal.signal(signal.SIGPIPE, signal.SIG_DFL)      # ./praxis list | head : sortie silencieuse
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        sys.exit(130)

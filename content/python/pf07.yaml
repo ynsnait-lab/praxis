@@ -1,0 +1,292 @@
+id: pf07
+track: python
+title: Texte et chaînes
+goal: Découper, nettoyer et analyser du texte — en particulier des trames et des lignes de fichiers de mesures.
+level: fondations
+requires: [pf06]
+concepts: [str, split, strip, format]
+lesson:
+  minutes: 15
+  intro: |
+    Tout ce qui arrive de l'extérieur arrive d'abord sous forme de texte : une ligne de fichier CSV, une trame reçue d'un ESP32 sur la liaison série, une réponse d'instrument (`*IDN?`), un nom de fichier. Savoir transformer ce texte en données propres est une compétence quotidienne d'ingénieur.
+  steps:
+    - level: 1
+      title: Une suite de caractères
+      body: |
+        Une chaîne (`str`) est une **suite de caractères**, et elle se manipule presque comme une liste : `len`, index, tranches, `in`, boucle `for`.
+
+        ```python
+        trame = "T=23.5"
+        trame[0]      # 'T'
+        trame[2:]     # '23.5'
+        len(trame)    # 6
+        "=" in trame  # True
+        ```
+
+        Une différence essentielle avec une liste : une chaîne est **non modifiable** (*immutable*). `trame[0] = "P"` lève une `TypeError`. Toutes les opérations sur du texte **fabriquent un nouveau texte**.
+    - level: 2
+      title: Les méthodes indispensables
+      body: |
+        | Méthode | Effet | Exemple |
+        | --- | --- | --- |
+        | `strip()` | retire espaces et retours à la ligne aux deux bouts | `" 21.5\n".strip()` → `"21.5"` |
+        | `split(sep)` | découpe en liste | `"a;b;c".split(";")` → `["a", "b", "c"]` |
+        | `sep.join(liste)` | recolle une liste de textes | `";".join(["a", "b"])` → `"a;b"` |
+        | `replace(a, b)` | remplace | `"21,5".replace(",", ".")` → `"21.5"` |
+        | `lower()`, `upper()` | casse | `"OK".lower()` → `"ok"` |
+        | `startswith`, `endswith` | test de début ou de fin | `nom.endswith(".csv")` |
+        | `find(x)` | position de x, ou −1 | `"T=23".find("=")` → `1` |
+        | `isdigit()` | que des chiffres ? | `"42".isdigit()` → `True` |
+      code: |
+        ligne = "  2026-09-28;PT100-A;21,54;OK\n"
+        champs = ligne.strip().split(";")
+        print(champs)
+        date, capteur, valeur, etat = champs
+        valeur = float(valeur.replace(",", "."))
+        print(capteur.lower(), valeur + 1)
+        print(" | ".join(champs))
+      run: true
+      out: |
+        ['2026-09-28', 'PT100-A', '21,54', 'OK']
+        pt100-a 22.54
+        2026-09-28 | PT100-A | 21,54 | OK
+      after: |
+        La ligne `date, capteur, valeur, etat = champs` **déballe** une liste de 4 éléments dans 4 variables. S'il n'y a pas exactement 4 éléments, c'est une `ValueError` : pratique pour détecter une ligne mal formée.
+    - level: 3
+      title: Décoder une trame de capteur
+      body: |
+        Cas réel : un ESP32 envoie sur la liaison série des lignes du type `T=23.51;H=45.2;P=1013.2`. On veut en tirer des nombres.
+      code: |
+        def decoder(trame):
+            resultat = {}
+            for morceau in trame.strip().split(";"):
+                if "=" not in morceau:
+                    continue                      # morceau illisible : on l'ignore
+                cle, valeur = morceau.split("=", 1)
+                resultat[cle.strip()] = float(valeur)
+            return resultat
+
+        print(decoder("T=23.51;H=45.2;P=1013.2\r\n"))
+        print(decoder("T=19.8;;H=50"))
+      run: true
+      out: |
+        {'T': 23.51, 'H': 45.2, 'P': 1013.2}
+        {'T': 19.8, 'H': 50.0}
+      after: |
+        Le résultat est un **dictionnaire** (clé → valeur), qu'on détaille au cours 9. Retiens surtout la séquence `strip` → `split` → conversion, qui revient dans 90 % des analyses de texte. Le `split("=", 1)` ne coupe qu'au **premier** `=`, par sécurité.
+    - level: 4
+      title: Immuabilité et comparaisons de textes
+      body: |
+        Comme une chaîne ne se modifie pas, `s.upper()` **renvoie** une nouvelle chaîne et laisse `s` intacte. Écrire `s.upper()` seul sur une ligne ne sert à rien : il faut `s = s.upper()`.
+
+        Les comparaisons `<`, `>` entre textes se font **caractère par caractère**, dans l'ordre des codes (ordre « alphabétique » pour des lettres de même casse). Donc `"10" < "9"` est **vrai** : on compare `"1"` et `"9"`, et `"1"` vient avant. Trier des nombres restés sous forme de texte donne un ordre faux : `["10", "9", "100"]` trié donne `["10", "100", "9"]`.
+
+        Enfin, `split()` **sans argument** coupe sur n'importe quelle suite d'espaces et ignore les espaces en début et en fin, alors que `split(" ")` coupe sur **chaque** espace et produit des chaînes vides.
+      code: |
+        s = "alarme"
+        s.upper()
+        print(s)
+        print(sorted(["10", "9", "100"]), sorted([10, 9, 100]))
+        print("  12   7 ".split())
+        print("  12   7 ".split(" "))
+      run: true
+      out: |
+        alarme
+        ['10', '100', '9'] [9, 10, 100]
+        ['12', '7']
+        ['', '', '12', '', '', '7', '']
+    - level: 5
+      title: Texte, octets et encodage
+      body: |
+        Un fichier ou une liaison série transporte des **octets** (`bytes`), pas des caractères. La conversion entre les deux s'appelle **encodage** : aujourd'hui presque toujours **UTF-8**, où les lettres accentuées prennent 2 octets.
+
+        ```python
+        brut = b"T=23.5\r\n"            # des octets (préfixe b)
+        texte = brut.decode("utf-8")    # -> "T=23.5\r\n"
+        texte.encode("utf-8")           # -> b"T=23.5\r\n"
+        ```
+
+        Avec pyserial, `port.readline()` renvoie des `bytes` : il faut `decode()` avant de faire `split`. Et les appareils Windows terminent souvent leurs lignes par `\r\n` : un `strip()` règle le problème.
+
+        > [!astuce] Formatage de colonnes
+        > Pour un rapport lisible dans le terminal : `f"{nom:<12}{valeur:>8.2f}"` aligne le nom à gauche sur 12 caractères et la valeur à droite sur 8, avec 2 décimales.
+  recap:
+    - "Une chaîne se lit comme une liste (index, tranches, `len`, `in`) mais ne se modifie pas."
+    - "Pipeline classique : `ligne.strip().split(\";\")`, puis conversion de chaque champ."
+    - "`s.upper()` renvoie un nouveau texte : `s = s.upper()`."
+    - "`\"10\" < \"9\"` est vrai : convertis en nombres avant de comparer ou de trier."
+    - "`split()` sans argument coupe sur les suites d'espaces ; `bytes.decode(\"utf-8\")` pour les données série."
+  pieges: [py-str-immuable, py-comparer-chaines-nombres]
+exercises:
+  - id: pf07.1
+    type: predict
+    level: 1
+    q: Qu'affiche ce script ?
+    code: |
+      s = "PT100-B"
+      print(s[0], s[-1], len(s))
+      print(s[:5])
+    answer: |
+      P B 7
+      PT100
+    e: "Index 0 = premier caractère, −1 = dernier. La tranche `[:5]` prend les caractères d'index 0 à 4."
+  - id: pf07.2
+    type: predict
+    level: 1
+    q: Qu'affiche ce script ?
+    code: |
+      etat = "ok"
+      etat.upper()
+      print(etat)
+    answer: ok
+    trap_answers: ["OK"]
+    piege: py-str-immuable
+    e: "`upper()` fabrique un **nouveau** texte, qui est ici jeté. `etat` n'a pas changé. Il fallait `etat = etat.upper()`."
+  - id: pf07.3
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      print("10" < "9")
+      print(max(["8", "12", "100"]))
+    answer: |
+      True
+      8
+    trap_answers:
+      - |
+        False
+        100
+    piege: py-comparer-chaines-nombres
+    e: |
+      Les textes se comparent caractère par caractère : `"1"` < `"9"`, donc `"10" < "9"`. Pour `max`, `"8"` bat `"1…"` sur le premier caractère.
+
+      Si tes valeurs viennent d'un fichier, convertis-les (`int`, `float`) **avant** de comparer, trier ou chercher un max.
+  - id: pf07.4
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      ligne = "12.5;13.0;;14.2"
+      morceaux = ligne.split(";")
+      print(len(morceaux), morceaux[2] == "")
+    answer: 4 True
+    e: "Deux séparateurs consécutifs produisent une chaîne **vide** entre eux. Une ligne CSV avec un champ manquant donnera donc `\"\"`, et `float(\"\")` lèvera une `ValueError` : à filtrer."
+  - id: pf07.5
+    type: cloze
+    level: 1
+    q: Complète pour transformer `" 21,5 \n"` en nombre `21.5`.
+    tpl: |
+      brut = " 21,5 \n"
+      valeur = float(brut.⟦0⟧().⟦1⟧(",", "."))
+      print(valeur)
+    blanks:
+      - [strip]
+      - [replace]
+    run: true
+    out: "21.5"
+    e: "`strip()` retire l'espace et le retour à la ligne, `replace` passe la virgule décimale française au point. `float(\" 21.5 \")` tolérerait les espaces, mais jamais la virgule."
+  - id: pf07.6
+    type: code
+    level: 1
+    q: |
+      Écris `champs(ligne)` qui découpe une ligne CSV séparée par des `;`, retire les espaces autour de chaque champ, et renvoie la liste. Exemple : `" a ; b;c \n"` → `["a", "b", "c"]`.
+    start: |
+      def champs(ligne):
+          ...
+    sol: |
+      def champs(ligne):
+          return [c.strip() for c in ligne.strip().split(";")]
+    tests: |
+      assert champs(" a ; b;c \n") == ["a", "b", "c"]
+      assert champs("x") == ["x"]
+      assert champs("1;;2") == ["1", "", "2"], "un champ vide reste un champ"
+      print("OK")
+    e: "`split` d'abord, puis `strip` sur chaque morceau (avec une compréhension de liste). Le `strip` sur la ligne entière retire le `\\n` final."
+  - id: pf07.7
+    type: code
+    level: 2
+    q: |
+      Un instrument répond à la commande `*IDN?` par une ligne `"FABRICANT,MODELE,NUMSERIE,VERSION"`. Écris `identifier(reponse)` qui renvoie un tuple `(fabricant, modele)` en majuscules et sans espaces autour. Si la réponse n'a pas exactement 4 champs, lève une `ValueError`.
+    start: |
+      def identifier(reponse):
+          ...
+    sol: |
+      def identifier(reponse):
+          morceaux = [m.strip() for m in reponse.strip().split(",")]
+          if len(morceaux) != 4:
+              raise ValueError(f"réponse *IDN? inattendue : {reponse!r}")
+          return morceaux[0].upper(), morceaux[1].upper()
+    tests: |
+      assert identifier("Keysight Technologies,34465A,MY1234,A.03\n") == ("KEYSIGHT TECHNOLOGIES", "34465A")
+      assert identifier(" rigol , ds1054z ,x,1 ") == ("RIGOL", "DS1054Z")
+      try:
+          identifier("n'importe quoi")
+      except ValueError:
+          pass
+      else:
+          raise AssertionError("une réponse mal formée doit lever ValueError")
+      print("OK")
+    hint: "`raise ValueError(\"message\")` lève l'erreur. Vérifie `len(morceaux)` avant d'y accéder."
+    e: "Valider le format **avant** d'utiliser les champs évite qu'une réponse corrompue se propage silencieusement dans tes données. Le `{reponse!r}` affiche la valeur avec ses guillemets et ses caractères invisibles (`\\r`, `\\n`), idéal pour déboguer."
+  - id: pf07.8
+    type: qcm
+    level: 2
+    q: "Que renvoie `\"a  b\".split(\" \")` (deux espaces entre a et b) ?"
+    choices:
+      - t: "`['a', '', 'b']`"
+        ok: true
+        why: "Chaque espace est un séparateur : entre les deux espaces, il y a une chaîne vide."
+      - t: "`['a', 'b']`"
+        why: "Ce serait `\"a  b\".split()` sans argument, qui traite une suite d'espaces comme un seul séparateur."
+      - t: "`['a  b']`"
+        why: "Le séparateur est bien présent, donc il y a découpage."
+    e: "Pour du texte dont l'espacement varie (alignement en colonnes), utilise `split()` sans argument."
+  - id: pf07.9
+    type: bug
+    level: 2
+    q: "Ce code doit trier des numéros de lots lus dans un fichier (`\"9\"`, `\"10\"`, `\"2\"`) dans l'ordre numérique. Le résultat est `['10', '2', '9']`. Quelle ligne corriger ?"
+    code: |
+      lots = ["9", "10", "2"]
+      tries = sorted(lots)
+      print(tries)
+    bad: 2
+    fix: |
+      tries = sorted(lots, key=int)
+    piege: py-comparer-chaines-nombres
+    e: "`key=int` demande à `sorted` de comparer `int(x)` au lieu du texte. Les valeurs renvoyées restent des textes, dans l'ordre numérique : `['2', '9', '10']`."
+  - id: pf07.10
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      nom = "capteur"
+      print(f"[{nom:>10}]")
+      print(f"[{nom:<10}]")
+      print(f"[{3.14159:08.3f}]")
+    answer: |
+      [   capteur]
+      [capteur   ]
+      [0003.142]
+    e: "`>10` aligne à droite sur 10 caractères, `<10` à gauche. `08.3f` : 3 décimales, largeur totale 8, complétée par des zéros."
+  - id: pf07.11
+    type: flash
+    level: 2
+    q: "Tu lis `b'T=21.5\\r\\n'` sur un port série. Quelles sont les deux opérations avant de pouvoir faire `split(\"=\")` ?"
+    back: "`decode(\"utf-8\")` pour passer des octets au texte, puis `strip()` pour retirer le `\\r\\n` final. En une ligne : `ligne = brut.decode(\"utf-8\").strip()`."
+    e: "Oublier `decode` donne `TypeError: a bytes-like object is required, not 'str'` au moment du `split`."
+  - id: pf07.12
+    type: parsons
+    level: 2
+    q: "Reconstruis une fonction qui compte les lignes contenant le mot `ERREUR` (quelle que soit la casse) dans une liste de lignes de journal."
+    lang: python
+    lines:
+      - "def compter_erreurs(lignes):"
+      - "    n = 0"
+      - "    for ligne in lignes:"
+      - "        if \"erreur\" in ligne.lower():"
+      - "            n += 1"
+      - "    return n"
+    extra:
+      - "        if ligne == \"ERREUR\":"
+      - "        ligne.lower()"
+    e: "`ligne.lower()` renvoie une version en minuscules qu'on teste immédiatement : pas besoin de la ranger. L'intrus `ligne == \"ERREUR\"` ne trouverait que les lignes contenant exactement ce mot, rien d'autre."

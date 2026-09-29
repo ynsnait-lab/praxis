@@ -1,0 +1,354 @@
+id: pf08
+track: python
+title: Fonctions
+goal: Découper un programme en fonctions claires qui prennent des entrées, renvoient un résultat, et ne surprennent personne.
+level: fondations
+requires: [pf07]
+concepts: [def, return, parametres, portee]
+lesson:
+  minutes: 17
+  intro: |
+    Une fonction, c'est un morceau de programme auquel on donne un nom pour le réutiliser. C'est l'outil qui fait passer d'un script de 300 lignes impossible à relire à un programme fait de briques testables. Tu en as déjà utilisé beaucoup (`print`, `len`, `max`) ; ici tu apprends à écrire les tiennes, et à éviter les trois pièges qui piègent tout le monde.
+  steps:
+    - level: 1
+      title: Une machine avec des entrées et une sortie
+      body: |
+        Une fonction est une **machine** : on lui donne des **entrées** (les *paramètres*), elle fait son travail, et elle rend une **sortie** (la *valeur de retour*).
+
+        ```python
+        def puissance_electrique(u, i):
+            p = u * i
+            return p
+        ```
+
+        - `def` annonce la définition, suivi du nom et des paramètres entre parenthèses, puis `:`.
+        - Le bloc décalé est le **corps** : il ne s'exécute **pas** à la définition, seulement quand on **appelle** la fonction.
+        - `return` renvoie le résultat et **termine** la fonction.
+
+        Appeler : `p = puissance_electrique(12, 0.5)` → `p` vaut 6.0. Les valeurs 12 et 0.5 sont les *arguments* ; elles sont rangées dans `u` et `i` le temps de l'appel.
+    - level: 2
+      title: return n'est pas print
+      body: |
+        `print` **affiche** une valeur pour l'humain qui regarde l'écran. `return` **renvoie** une valeur au code qui a appelé la fonction, pour qu'il puisse s'en servir.
+
+        Une fonction qui fait `print` au lieu de `return` a l'air de marcher quand on la teste à la main… mais le code appelant reçoit `None`, la valeur spéciale « rien ». Toute fonction sans `return` (ou qui atteint la fin sans en croiser un) renvoie `None`.
+      code: |
+        def moyenne_affichee(v):
+            print(sum(v) / len(v))
+
+        def moyenne(v):
+            return sum(v) / len(v)
+
+        a = moyenne_affichee([2, 4])   # affiche 3.0, mais…
+        b = moyenne([2, 4])
+        print(a, b)
+        print(b * 2)
+      run: true
+      out: |
+        3.0
+        None 3.0
+        6.0
+      check:
+        q: "Une fonction se termine sans avoir rencontré de `return`. Qu'obtient le code qui l'a appelée ?"
+        choices:
+          - t: "`None`"
+            ok: true
+            why: "C'est la valeur de retour par défaut de toute fonction Python."
+          - t: "La dernière valeur calculée dans la fonction."
+            why: "Ce n'est pas le cas en Python (ça l'est dans d'autres langages, comme Ruby ou Rust sous certaines formes)."
+          - t: "Une erreur."
+            why: "C'est parfaitement légal. Le problème n'apparaît que quand on essaie d'utiliser ce `None`."
+    - level: 3
+      title: Paramètres par défaut et par nom
+      body: |
+        Un paramètre peut avoir une **valeur par défaut** ; on peut alors l'omettre à l'appel. Et à l'appel, on peut nommer les arguments, ce qui rend le code bien plus lisible quand il y en a plusieurs.
+
+        Une fonction peut aussi renvoyer **plusieurs valeurs** : elle renvoie en réalité un tuple (voir cours suivant), qu'on déballe.
+      code: |
+        def convertir_temperature(valeur, depuis="C", vers="K"):
+            """Convertit une température entre °C et K."""
+            if depuis == vers:
+                return valeur
+            if depuis == "C" and vers == "K":
+                return valeur + 273.15
+            if depuis == "K" and vers == "C":
+                return valeur - 273.15
+            raise ValueError(f"conversion {depuis} -> {vers} inconnue")
+
+        print(convertir_temperature(20))
+        print(convertir_temperature(300, depuis="K", vers="C"))
+
+        def statistiques(v):
+            return min(v), max(v), sum(v) / len(v)
+
+        mini, maxi, moy = statistiques([4, 9, 5])
+        print(mini, maxi, round(moy, 2))
+      run: true
+      out: |
+        293.15
+        26.850000000000023
+        4 9 6.0
+      after: |
+        Le texte entre triples guillemets juste sous `def` est une **docstring** : la documentation de la fonction, affichée par `help(convertir_temperature)` et par VS Code au survol. Remarque aussi le `26.850000000000023` : l'imprécision des `float` n'a pas disparu, on formatera à l'affichage.
+    - level: 4
+      title: "Portée : ce qui se passe dans la fonction reste dans la fonction"
+      body: |
+        Les variables créées dans une fonction (y compris ses paramètres) sont **locales** : elles naissent à l'appel et disparaissent au retour. Elles n'écrasent pas une variable du même nom à l'extérieur.
+
+        Piège n°1 : dès qu'une fonction **affecte** un nom (`compteur = ...`), ce nom est local **dans toute la fonction**. Lire la variable globale du même nom avant l'affectation lève `UnboundLocalError`.
+
+        Piège n°2, le plus célèbre de Python : la **valeur par défaut mutable**. La valeur par défaut est créée **une seule fois**, quand Python lit le `def`, puis partagée par tous les appels.
+      code: |
+        def ajouter(mesure, historique=[]):      # piège !
+            historique.append(mesure)
+            return historique
+
+        print(ajouter(1))
+        print(ajouter(2))                         # la liste se souvient de l'appel précédent
+
+        def ajouter_ok(mesure, historique=None):
+            if historique is None:
+                historique = []                    # nouvelle liste à chaque appel
+            historique.append(mesure)
+            return historique
+
+        print(ajouter_ok(1))
+        print(ajouter_ok(2))
+      run: true
+      out: |
+        [1]
+        [1, 2]
+        [1]
+        [2]
+    - level: 5
+      title: Écrire de bonnes fonctions
+      body: |
+        - **Une fonction = une tâche**, avec un nom en verbe : `lire_fichier`, `calculer_moyenne`, `convertir_bar_en_pa`.
+        - **Des entrées, une sortie, pas d'effet caché** : évite de modifier des variables globales ou les listes reçues. Une telle fonction (dite *pure*) se teste en une ligne.
+        - **Vérifie les entrées au début** et sors tôt (`raise` ou `return`) : le cas normal reste lisible, sans pyramide de `if`.
+        - **Teste avec `assert`** : `assert convertir_temperature(0) == 273.15`. Si l'assertion est fausse, le programme s'arrête avec `AssertionError`. C'est exactement ce que font les tests des exercices de code, et ce que fera `pytest` dans les labs.
+        - Au-delà de ~30 lignes, une fonction mérite souvent d'être découpée.
+  recap:
+    - "`def nom(params):` définit ; le corps ne s'exécute qu'à l'appel ; `return` renvoie et termine."
+    - "`print` affiche pour l'humain, `return` renvoie au code. Sans `return`, la fonction renvoie `None`."
+    - "Paramètres par défaut, arguments nommés (`f(x, vers=\"K\")`), plusieurs retours = un tuple."
+    - "Variables locales à la fonction ; affecter un nom le rend local partout dans la fonction."
+    - "Jamais de valeur par défaut mutable (`[]`, `{}`) : `None` puis création dans le corps."
+  pieges: [py-print-return, py-arg-defaut-mutable, py-portee-locale]
+exercises:
+  - id: pf08.1
+    type: predict
+    level: 1
+    q: Qu'affiche ce script ?
+    code: |
+      def double(x):
+          return 2 * x
+
+      print(double(3) + double(4))
+    answer: "14"
+    e: "Chaque appel renvoie une valeur (6 et 8), que l'expression additionne. C'est tout l'intérêt de `return`."
+  - id: pf08.2
+    type: predict
+    level: 1
+    q: Qu'affiche ce script ?
+    code: |
+      def carre(x):
+          print(x * x)
+
+      r = carre(3)
+      print(r)
+    answer: |
+      9
+      None
+    trap_answers:
+      - |
+        9
+        9
+    piege: py-print-return
+    e: "`carre` **affiche** 9 mais ne **renvoie** rien : `r` reçoit `None`. Avec `return x * x`, on pourrait réutiliser le résultat."
+  - id: pf08.3
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      def empiler(x, pile=[]):
+          pile.append(x)
+          return len(pile)
+
+      print(empiler("a"))
+      print(empiler("b"))
+      print(empiler("c", []))
+    answer: |
+      1
+      2
+      1
+    trap_answers:
+      - |
+        1
+        1
+        1
+    piege: py-arg-defaut-mutable
+    e: |
+      La liste par défaut est créée **une fois**, à la lecture du `def`, puis réutilisée à chaque appel qui ne fournit pas `pile`. Le deuxième appel la trouve déjà remplie.
+
+      Le troisième appel fournit sa propre liste neuve : 1.
+
+      Correction : `def empiler(x, pile=None):` puis `if pile is None: pile = []`.
+  - id: pf08.4
+    type: bug
+    level: 2
+    q: "Ce code lève `UnboundLocalError: cannot access local variable 'total'`. Quelle ligne est la cause ?"
+    code: |
+      total = 0
+
+      def ajouter(v):
+          total = total + v
+          return total
+
+      print(ajouter(5))
+    bad: 4
+    fix: "    return total + v   # mieux : ne pas dépendre d'une variable globale"
+    piege: py-portee-locale
+    e: |
+      Parce que `total` est **affecté** dans la fonction, Python le considère comme local dans **toute** la fonction. À droite du `=`, on lit donc un `total` local… qui n'existe pas encore.
+
+      La vraie correction n'est pas `global total` (qui marche mais rend le code difficile à tester) : c'est de passer l'état en paramètre et de renvoyer le résultat.
+  - id: pf08.5
+    type: code
+    level: 1
+    q: |
+      Écris `pression_hydrostatique(h, rho=1000, g=9.81)` qui renvoie la pression (en Pa) au fond d'une colonne de liquide de hauteur `h` (en m) : $p = \rho \, g \, h$.
+    start: |
+      def pression_hydrostatique(h, rho=1000, g=9.81):
+          ...
+    sol: |
+      def pression_hydrostatique(h, rho=1000, g=9.81):
+          return rho * g * h
+    tests: |
+      import math
+      assert math.isclose(pression_hydrostatique(10), 98100), "10 m d'eau ≈ 1 bar"
+      assert math.isclose(pression_hydrostatique(1, rho=13600), 133416), "1 m de mercure"
+      assert pression_hydrostatique(0) == 0
+      print("OK")
+    e: "10 m d'eau font ~0,98 bar : c'est pourquoi on dit qu'un plongeur gagne « 1 bar tous les 10 m ». Les valeurs par défaut rendent l'appel simple dans le cas courant (l'eau), et restent modifiables."
+  - id: pf08.6
+    type: code
+    level: 2
+    q: |
+      Écris `borner(x, mini, maxi)` qui renvoie `x` ramené dans l'intervalle `[mini, maxi]` (saturation, comme la sortie d'un régulateur). Si `mini > maxi`, lève une `ValueError`.
+    start: |
+      def borner(x, mini, maxi):
+          ...
+    sol: |
+      def borner(x, mini, maxi):
+          if mini > maxi:
+              raise ValueError("mini doit être <= maxi")
+          if x < mini:
+              return mini
+          if x > maxi:
+              return maxi
+          return x
+    tests: |
+      assert borner(5, 0, 10) == 5
+      assert borner(-3, 0, 10) == 0
+      assert borner(42, 0, 10) == 10
+      assert borner(0, 0, 0) == 0
+      try:
+          borner(1, 5, 2)
+      except ValueError:
+          pass
+      else:
+          raise AssertionError("mini > maxi doit lever ValueError")
+      print("OK")
+    e: "Vérification des entrées d'abord, puis des `return` précoces : pas de `else` imbriqué. Version compacte : `return max(mini, min(x, maxi))`."
+  - id: pf08.7
+    type: qcm
+    level: 2
+    q: "Que vaut `f(2)` avec `def f(x): if x > 5: return \"grand\"` ?"
+    choices:
+      - t: "`None`"
+        ok: true
+        why: "Pour x = 2, la condition est fausse, on atteint la fin de la fonction sans `return`."
+      - t: "`\"petit\"`"
+        why: "Rien dans le code ne renvoie `\"petit\"`."
+      - t: "Une erreur"
+        why: "C'est légal, la fonction renvoie simplement `None`."
+    piege: py-print-return
+    e: "Une fonction qui ne renvoie une valeur que dans certains cas est une source de bugs : le `None` des autres cas surgit plus loin, loin de sa cause. Assure-toi que **tous** les chemins se terminent par un `return` explicite."
+  - id: pf08.8
+    type: cloze
+    level: 1
+    q: Complète pour que la fonction renvoie à la fois la moyenne et le nombre de valeurs, et que l'appel les récupère.
+    tpl: |
+      def resume(v):
+          ⟦0⟧ sum(v) / len(v), len(v)
+
+      moy, n = resume([3, 5, 10])
+      print(moy, n)
+    blanks:
+      - [return]
+    run: true
+    out: 6.0 3
+    e: "`return a, b` renvoie le tuple `(a, b)`, que `moy, n = ...` déballe."
+  - id: pf08.9
+    type: predict
+    level: 2
+    q: Qu'affiche ce script ?
+    code: |
+      x = 10
+
+      def f(x):
+          x = x + 1
+          return x
+
+      print(f(x), x)
+    answer: 11 10
+    trap_answers: ["11 11"]
+    e: "Le paramètre `x` est une variable **locale** à `f`, distincte du `x` global. L'affectation à l'intérieur ne touche pas le `x` extérieur."
+  - id: pf08.10
+    type: predict
+    level: 3
+    q: Qu'affiche ce script ?
+    code: |
+      def ajouter_zero(v):
+          v.append(0)
+
+      def remplacer(v):
+          v = [9, 9]
+
+      a = [1]
+      ajouter_zero(a)
+      remplacer(a)
+      print(a)
+    answer: "[1, 0]"
+    trap_answers: ["[9, 9]", "[1]"]
+    piege: py-aliasing-liste
+    e: |
+      La fonction reçoit **la même liste** que l'appelant (pas une copie) : `v.append(0)` la modifie, et l'appelant le voit.
+
+      En revanche, `v = [9, 9]` recolle seulement l'étiquette **locale** `v` sur une nouvelle liste : `a` n'est pas concerné.
+
+      Modifier un objet reçu ≠ réaffecter le paramètre. C'est la clé pour comprendre le passage d'arguments en Python.
+  - id: pf08.11
+    type: flash
+    level: 2
+    q: Pourquoi `def f(x, cache={})` est-il un piège, et comment l'écrire correctement ?
+    back: |
+      La valeur par défaut `{}` est créée **une seule fois** (à la lecture du `def`) et partagée par tous les appels : elle garde ses modifications d'un appel à l'autre.
+
+      Correction : `def f(x, cache=None):` puis `if cache is None: cache = {}`.
+    e: "Les valeurs par défaut immuables (`0`, `\"\"`, `None`, un tuple) ne posent aucun problème."
+  - id: pf08.12
+    type: parsons
+    level: 2
+    q: "Reconstruis une fonction qui convertit une pression en bar vers le pascal, en refusant les pressions négatives (1 bar = 100 000 Pa)."
+    lang: python
+    lines:
+      - "def bar_vers_pa(p_bar):"
+      - "    if p_bar < 0:"
+      - "        raise ValueError(\"pression absolue négative\")"
+      - "    return p_bar * 100_000"
+    extra:
+      - "    print(p_bar * 100_000)"
+      - "    return p_bar * 1000"
+    e: "Garde d'abord, calcul ensuite. Les intrus : un `print` à la place du `return` (l'appelant recevrait `None`), et un facteur faux (1 bar = 10⁵ Pa, pas 10³). Le `_` dans `100_000` est un séparateur de milliers, ignoré par Python."

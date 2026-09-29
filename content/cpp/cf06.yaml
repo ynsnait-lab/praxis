@@ -1,0 +1,308 @@
+id: cf06
+track: cpp
+title: Références et const
+goal: Utiliser les références pour modifier une variable de l'appelant ou éviter une copie, et marquer avec const tout ce qui ne doit pas changer.
+level: fondations
+requires: [cf05]
+concepts: [references, const, passage-reference]
+lesson:
+  minutes: 15
+  intro: |
+    Au cours précédent, les arguments étaient copiés. Souvent c'est parfait ; parfois on veut que la fonction **agisse sur la variable d'origine**, ou on veut **éviter de copier** un gros objet. La réponse du C++ moderne est la **référence**, et son indispensable compagnon, `const`. Maîtriser le trio « valeur / référence / référence constante » est l'un des gestes qui distinguent le code C++ de débutant du code professionnel.
+  steps:
+    - level: 1
+      title: Un surnom pour la même variable
+      body: |
+        Une **référence** est un **deuxième nom** pour une variable qui existe déjà. Pas une copie : la même boîte, avec deux étiquettes.
+
+        ```cpp
+        int temperature = 20;
+        int& t = temperature;    // t est un autre nom pour temperature
+        t = 25;                  // modifie temperature
+        ```
+
+        Le `&` après le type signifie « référence vers ». C'est exactement le comportement des noms Python sur une liste… mais ici, tu le choisis explicitement.
+    - level: 2
+      title: Modifier une variable de l'appelant
+      body: |
+        Avec un paramètre référence, la fonction agit sur la variable passée, pas sur une copie :
+      code: |
+        #include <iostream>
+
+        void echanger(double& a, double& b) {
+            double tmp = a;
+            a = b;
+            b = tmp;
+        }
+
+        void incrementer(int& compteur) {
+            ++compteur;
+        }
+
+        int main() {
+            double x = 1.5, y = 9.0;
+            echanger(x, y);
+            int n = 0;
+            incrementer(n);
+            incrementer(n);
+            std::cout << x << " " << y << " " << n << '\n';
+        }
+      out: |
+        9 1.5 2
+    - level: 3
+      title: Éviter les copies avec const&
+      body: |
+        Passer un `std::string` ou un `std::vector` **par valeur** copie tout son contenu à chaque appel. Par référence, aucune copie… mais la fonction pourrait alors modifier l'original par erreur. La solution : une **référence constante** `const T&` : pas de copie, et **interdiction de modifier** (vérifiée par le compilateur).
+
+        La règle de choix, à connaître par cœur :
+
+        | Situation | Paramètre |
+        | --- | --- |
+        | petit type (`int`, `double`, `bool`, `char`), lecture seule | par valeur : `double x` |
+        | gros objet (`std::string`, `std::vector`, `struct` volumineuse), lecture seule | `const std::vector<double>& v` |
+        | la fonction doit modifier l'argument | `std::vector<double>& v` |
+      code: |
+        #include <iostream>
+        #include <string>
+        #include <vector>
+
+        double moyenne(const std::vector<double>& v) {   // aucune copie, lecture seule
+            double s = 0.0;
+            for (double x : v) s += x;
+            return v.empty() ? 0.0 : s / v.size();
+        }
+
+        void normaliser(std::vector<double>& v, double facteur) {   // modifie l'original
+            for (double& x : v) x /= facteur;
+        }
+
+        int main() {
+            std::vector<double> mesures{2.0, 4.0, 6.0};
+            std::cout << moyenne(mesures) << '\n';
+            normaliser(mesures, 2.0);
+            std::cout << mesures[0] << " " << mesures[2] << '\n';
+        }
+      out: |
+        4
+        1 3
+      after: |
+        Dans `normaliser`, la boucle utilise `double& x` : sans le `&`, chaque `x` serait une copie et le vecteur ne changerait pas.
+    - level: 4
+      title: La référence qui pointe dans le vide
+      body: |
+        Une référence est un surnom pour une variable **qui doit exister**. Si la variable disparaît, la référence **pendouille** (*dangling reference*) : l'utiliser est un comportement indéfini.
+
+        Le cas classique : **renvoyer une référence vers une variable locale**. La variable locale est détruite à la sortie de la fonction ; l'appelant récupère un surnom pour… rien.
+
+        ```cpp
+        const std::string& nom_capteur() {
+            std::string nom = "PT100-A";
+            return nom;               // la variable meurt ici : référence pendouillante
+        }
+        ```
+
+        Le compilateur avertit (`returning reference to local temporary object`), et le sanitizer d'adresses le détecte à l'exécution. La correction est simple : **renvoie par valeur** (`std::string nom_capteur()`). Le C++ moderne ne copie pas vraiment dans ce cas (optimisation garantie du retour).
+
+        Deux autres règles : une référence doit être **initialisée** à sa déclaration (`int& r;` ne compile pas), et elle ne peut **jamais être redirigée** vers une autre variable (`r = autre;` copie la valeur de `autre` dans la variable d'origine).
+    - level: 5
+      title: const partout où c'est possible
+      body: |
+        `const` est une promesse vérifiée par le compilateur. Les pros en mettent **partout où une valeur ne doit pas changer** :
+
+        - variables locales calculées une fois : `const double omega = n * 2 * PI / 60;`
+        - paramètres lus : `const std::vector<double>& v`
+        - méthodes qui ne modifient pas l'objet (cours sur les classes) : `double valeur() const;`
+
+        Bénéfices : un bug de modification accidentelle devient une erreur de compilation, le lecteur sait immédiatement ce qui peut changer, et le compilateur optimise mieux.
+
+        Lire une déclaration de droite à gauche aide : `const std::string& s` se lit « `s` est une référence vers une string constante ».
+  recap:
+    - "`T& r = x;` : `r` est un autre nom pour `x` (même variable, pas de copie)."
+    - "Paramètre `T&` : la fonction modifie l'argument de l'appelant."
+    - "Paramètre `const T&` : pas de copie, lecture seule. Pour les `string`, `vector` et gros objets."
+    - "Petits types (`int`, `double`) : par valeur. Jamais de référence vers une variable locale renvoyée."
+    - "`const` partout où rien ne doit changer ; `for (double& x : v)` pour modifier les éléments."
+  pieges: [cpp-reference-pendouillante, cpp-copie-boucle]
+exercises:
+  - id: cf06.1
+    type: predict
+    level: 1
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+
+      int main() {
+          int a = 10;
+          int& r = a;
+          r += 5;
+          int b = a;
+          b += 100;
+          std::cout << a << " " << r << " " << b << '\n';
+      }
+    answer: 15 15 115
+    trap_answers: ["10 15 110"]
+    e: "`r` est un surnom de `a` : `r += 5` modifie `a`. `b` est une **copie** (pas de `&`) : la modifier ne touche pas `a`."
+  - id: cf06.2
+    type: predict
+    level: 2
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+      #include <vector>
+
+      int main() {
+          std::vector<int> v{1, 2, 3};
+          for (int x : v) {
+              x *= 10;
+          }
+          for (int& x : v) {
+              x += 1;
+          }
+          std::cout << v[0] << " " << v[1] << " " << v[2] << '\n';
+      }
+    answer: 2 3 4
+    trap_answers: ["11 21 31"]
+    piege: cpp-copie-boucle
+    e: "Dans la première boucle, `x` est une **copie** de chaque élément : la multiplication est perdue. Dans la seconde, `x` est une référence : l'ajout modifie le vecteur."
+  - id: cf06.3
+    type: qcm
+    level: 2
+    q: "Quelle signature choisir pour une fonction qui calcule l'écart-type d'un `std::vector<double>` de 100 000 mesures, sans le modifier ?"
+    choices:
+      - t: "`double ecart_type(const std::vector<double>& v)`"
+        ok: true
+        why: "Pas de copie, et le compilateur garantit que la fonction ne modifie pas les mesures."
+      - t: "`double ecart_type(std::vector<double> v)`"
+        why: "Correct mais copie les 100 000 valeurs (800 ko) à chaque appel."
+      - t: "`double ecart_type(std::vector<double>& v)`"
+        why: "Pas de copie, mais rien n'empêche la fonction de modifier les mesures par erreur. Et on ne pourrait pas l'appeler sur un vecteur `const`."
+    e: "Gros objet en lecture seule → `const T&`. C'est de loin le cas le plus fréquent."
+  - id: cf06.4
+    type: bug
+    level: 3
+    q: "Ce code compile (avec un avertissement) mais affiche des déchets, ou plante sous sanitizer. Quelle ligne est la cause ?"
+    code: |
+      #include <iostream>
+      #include <string>
+
+      const std::string& unite() {
+          std::string u = "mbar";
+          return u;
+      }
+
+      int main() {
+          std::cout << unite() << '\n';
+      }
+    bad: 4
+    fix: "std::string unite() {"
+    piege: cpp-reference-pendouillante
+    e: "La fonction renvoie une référence vers `u`, une variable locale détruite dès la sortie de `unite()`. L'appelant utilise une référence vers une mémoire libérée. Renvoyer **par valeur** règle tout, sans coût en C++ moderne."
+  - id: cf06.5
+    type: code
+    level: 1
+    lang: cpp
+    q: |
+      Écris `void mettre_a_jour_min_max(double mesure, double& mini, double& maxi)` qui met à jour `mini` et `maxi` si la mesure est plus petite ou plus grande.
+    start: |
+      void mettre_a_jour_min_max(double mesure, double& mini, double& maxi) {
+          // à compléter
+      }
+    sol: |
+      void mettre_a_jour_min_max(double mesure, double& mini, double& maxi) {
+          if (mesure < mini) {
+              mini = mesure;
+          }
+          if (mesure > maxi) {
+              maxi = mesure;
+          }
+      }
+    tests: |
+      #include <cassert>
+      #include <iostream>
+      int main() {
+          double mn = 20.0, mx = 20.0;
+          mettre_a_jour_min_max(18.5, mn, mx);
+          mettre_a_jour_min_max(23.0, mn, mx);
+          mettre_a_jour_min_max(21.0, mn, mx);
+          assert(mn == 18.5 && mx == 23.0);
+          std::cout << "OK\n";
+      }
+    e: "Les paramètres `double&` permettent à la fonction de modifier les variables de l'appelant. (Une alternative moderne : renvoyer une `struct {double mini, maxi;}` ou un `std::pair`.)"
+  - id: cf06.6
+    type: qcm
+    level: 2
+    q: "`int a = 1, b = 2; int& r = a; r = b; b = 50;` Que valent `a` et `r` ?"
+    choices:
+      - t: "`a` = 2 et `r` = 2"
+        ok: true
+        why: "`r = b` ne redirige pas `r` : ça **copie la valeur** de `b` dans `a`. Ensuite, modifier `b` ne change plus rien."
+      - t: "`a` = 1 et `r` = 50"
+        why: "Une référence ne peut jamais être redirigée vers une autre variable."
+      - t: "`a` = 50 et `r` = 50"
+        why: "`r` reste lié à `a` ; seule la valeur 2 a été copiée."
+    e: "Une référence est liée une fois pour toutes à sa déclaration. Toute affectation ultérieure agit sur la variable d'origine."
+  - id: cf06.7
+    type: cloze
+    level: 1
+    q: "Complète les signatures : `longueur` lit un texte sans le copier ; `majuscule` le modifie sur place."
+    lang: cpp
+    tpl: |
+      #include <cctype>
+      #include <string>
+
+      std::size_t longueur(⟦0⟧ std::string⟦1⟧ s) {
+          return s.size();
+      }
+
+      void majuscule(std::string⟦2⟧ s) {
+          for (char& c : s) c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+      }
+    blanks:
+      - [const]
+      - ["&"]
+      - ["&"]
+    verify: compile
+    e: "`const std::string&` pour lire sans copier, `std::string&` pour modifier. (Le double `static_cast` autour de `toupper` évite un comportement indéfini avec les caractères accentués : détail d'expert.)"
+  - id: cf06.8
+    type: flash
+    level: 1
+    q: "Donne la règle de choix du type de paramètre : valeur, `T&` ou `const T&` ?"
+    back: |
+      - Petit type en lecture (`int`, `double`, `bool`) → **par valeur**
+      - Gros objet en lecture (`string`, `vector`, `struct`) → **`const T&`**
+      - La fonction doit modifier l'argument → **`T&`**
+    e: "Et pour un résultat, préfère renvoyer une valeur plutôt que de passer un `T&` à remplir."
+  - id: cf06.9
+    type: predict
+    level: 2
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+
+      void f(int a, int& b) {
+          a = a * 2;
+          b = b * 2;
+      }
+
+      int main() {
+          int x = 3, y = 3;
+          f(x, y);
+          std::cout << x << " " << y << '\n';
+      }
+    answer: 3 6
+    trap_answers: ["6 6", "3 3"]
+    flags: [-Wno-unused-but-set-parameter]
+    e: "`a` reçoit une copie de `x` ; `b` est un surnom de `y`. Seul `y` est modifié."
+  - id: cf06.10
+    type: qcm
+    level: 3
+    q: "Pourquoi `void afficher(std::string& s)` ne peut-il pas être appelé comme `afficher(\"bonjour\")` alors que `void afficher(const std::string& s)` le peut ?"
+    choices:
+      - t: "Le texte littéral crée un objet temporaire, qu'on ne peut lier qu'à une référence constante."
+        ok: true
+        why: "C++ interdit de lier un temporaire à une référence modifiable : les modifications seraient perdues aussitôt. Une `const&` prolonge la vie du temporaire le temps de l'appel."
+      - t: "`\"bonjour\"` est trop long."
+        why: "La longueur n'a rien à voir."
+      - t: "Les deux fonctionnent."
+        why: "Seule la version `const&` compile : `candidate function not viable: expects an lvalue`."
+    e: "Encore une raison de mettre `const` sur les références en lecture seule : la fonction accepte alors aussi bien des variables que des valeurs temporaires."

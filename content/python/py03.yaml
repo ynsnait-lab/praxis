@@ -1,0 +1,543 @@
+id: py03
+track: python
+title: Séquences, slicing, unpacking
+goal: Manipuler listes/tuples/str/bytes avec des slices propres, sans boucle inutile.
+level: avance
+requires:
+- py01
+concepts:
+- sequences
+- slicing
+- unpacking
+- str-bytes
+lesson:
+  minutes: 16
+  intro: |
+    Listes, tuples, textes et octets sont tous des **séquences** : des éléments rangés dans un ordre, accessibles par leur position. Bien maîtrisées, les tranches (*slices*) et le déballage (*unpacking*) remplacent la plupart des boucles d'indices, et rendent le décodage d'une trame capteur lisible en deux lignes. Ce module finit sur la frontière qui piège tout le monde en instrumentation : **texte** (`str`) contre **octets** (`bytes`).
+  steps:
+    - level: 1
+      title: Des casiers numérotés
+      body: |
+        Une séquence, c'est une rangée de casiers numérotés **à partir de 0**. On peut aussi compter depuis la fin avec des numéros négatifs : `-1` est le dernier casier, `-2` l'avant-dernier.
+
+        Pour les tranches, le bon réflexe est de numéroter **les cloisons entre les casiers**, pas les casiers eux-mêmes : `v[1:4]` prend tout ce qui se trouve entre la cloison 1 et la cloison 4, donc 3 éléments.
+
+        ```svg caption="Les index d'une tranche désignent les cloisons entre les cases. v[1:4] prend les cases entre les cloisons 1 et 4 ; v[-2:] part de l'avant-dernière cloison jusqu'à la fin."
+        <svg viewBox="0 0 420 156" width="420" role="img" aria-label="Index positifs et négatifs d'une liste de six valeurs et deux tranches">
+          <path class="ws" d="M110,34 V26 H260 V34"/>
+          <text class="tw" x="185" y="18" text-anchor="middle">v[1:4] → [20, 30, 40]</text>
+          <text class="tm" x="60" y="48" text-anchor="middle">0</text>
+          <text class="tm" x="110" y="48" text-anchor="middle">1</text>
+          <text class="tm" x="160" y="48" text-anchor="middle">2</text>
+          <text class="tm" x="210" y="48" text-anchor="middle">3</text>
+          <text class="tm" x="260" y="48" text-anchor="middle">4</text>
+          <text class="tm" x="310" y="48" text-anchor="middle">5</text>
+          <text class="tm" x="360" y="48" text-anchor="middle">6</text>
+          <rect class="s" x="60" y="56" width="50" height="40"/>
+          <rect class="hl" x="110" y="56" width="50" height="40"/>
+          <rect class="hl" x="160" y="56" width="50" height="40"/>
+          <rect class="hl" x="210" y="56" width="50" height="40"/>
+          <rect class="soft" x="260" y="56" width="50" height="40"/>
+          <rect class="soft" x="310" y="56" width="50" height="40"/>
+          <text class="tb" x="85" y="81" text-anchor="middle">10</text>
+          <text class="tb" x="135" y="81" text-anchor="middle">20</text>
+          <text class="tb" x="185" y="81" text-anchor="middle">30</text>
+          <text class="tb" x="235" y="81" text-anchor="middle">40</text>
+          <text class="tb" x="285" y="81" text-anchor="middle">50</text>
+          <text class="tb" x="335" y="81" text-anchor="middle">60</text>
+          <text class="tm" x="60" y="112" text-anchor="middle">-6</text>
+          <text class="tm" x="110" y="112" text-anchor="middle">-5</text>
+          <text class="tm" x="160" y="112" text-anchor="middle">-4</text>
+          <text class="tm" x="210" y="112" text-anchor="middle">-3</text>
+          <text class="tm" x="260" y="112" text-anchor="middle">-2</text>
+          <text class="tm" x="310" y="112" text-anchor="middle">-1</text>
+          <path class="as" d="M260,118 V126 H360 V118"/>
+          <text class="ta" x="310" y="146" text-anchor="middle">v[-2:] → [50, 60]</text>
+        </svg>
+        ```
+    - level: 2
+      title: Index, tranches, déballage, octets
+      body: |
+        **Index** : `v[i]` renvoie un élément ; hors limites, c'est `IndexError`.
+
+        **Tranche** : `v[debut:fin:pas]` renvoie une **nouvelle** séquence du même type. Chaque borne est facultative (`v[:3]`, `v[2:]`, `v[::2]`), la fin est exclue, et une tranche ne lève jamais d'erreur : elle s'arrête simplement au bord. `v[::-1]` renvoie la séquence à l'envers.
+
+        **Déballage** (*unpacking*) : on répartit une séquence dans plusieurs noms d'un coup. `a, b = b, a` échange deux valeurs ; `entete, *donnees, crc = trame` met le premier élément dans `entete`, le dernier dans `crc` et **tout le reste** dans la liste `donnees`. Le même mécanisme sert dans les boucles : `for i, v in enumerate(mesures)` et `for t, v in zip(temps, valeurs)`.
+
+        **Texte ou octets** : un `str` contient des caractères (Unicode), un `bytes` contient des octets bruts de 0 à 255. Un port série, un socket ou un fichier ouvert en `"rb"` te donnent des `bytes`. On passe de l'un à l'autre en choisissant un **encodage** : `texte.encode("utf-8")`, `octets.decode("utf-8")`. Et `octets[0]` est un **entier**, pas un caractère.
+      check:
+        q: "Avec `v = [10, 20, 30]`, que font `v[5]` et `v[1:5]` ?"
+        choices:
+          - t: "`v[5]` lève IndexError, `v[1:5]` vaut `[20, 30]`"
+            ok: true
+            why: Un index hors limites est une erreur ; une tranche s'arrête au bord sans rien dire.
+          - t: Les deux lèvent IndexError
+            why: Les tranches ne lèvent jamais d'erreur de bornes.
+          - t: "`v[5]` vaut `None`, `v[1:5]` vaut `[20, 30]`"
+            why: Python ne renvoie jamais `None` pour un index absent d'une liste : c'est une erreur.
+    - level: 3
+      title: Décoder une trame
+      body: |
+        Un capteur envoie des trames de 5 octets : un entête `0xAA`, le numéro de canal, une valeur sur 2 octets (poids faible en premier, *little-endian*) et une somme de contrôle (somme des octets précédents, modulo 256).
+      code: |
+        v = [10, 20, 30, 40, 50, 60]
+        print(v[1:4], v[-2:], v[::2], v[::-1], v[4:100])
+
+        trame = bytes([0xAA, 0x01, 0x10, 0x27, 0xE2])
+        entete, canal, *donnees, crc = trame
+        print(hex(entete), canal, donnees, crc)
+        valeur = int.from_bytes(trame[2:4], "little")
+        print("valeur :", valeur)
+        print("trame valide :", sum(trame[:-1]) % 256 == crc)
+        print(trame[0], trame[:1], trame.hex(" "))
+
+        texte = "23.5 °C"
+        brut = texte.encode("utf-8")
+        print(len(texte), len(brut), brut)
+        print(brut.decode("utf-8") == texte, brut == texte)
+      run: true
+      out: |
+        [20, 30, 40] [50, 60] [10, 30, 50] [60, 50, 40, 30, 20, 10] [50, 60]
+        0xaa 1 [16, 39] 226
+        valeur : 10000
+        trame valide : True
+        170 b'\xaa' aa 01 10 27 e2
+        7 8 b'23.5 \xc2\xb0C'
+        True False
+      after: |
+        Remarque `trame[0]` (l'entier 170) contre `trame[:1]` (un `bytes` d'un seul octet). Et `"°"` prend **2 octets** en UTF-8 : un texte de 7 caractères fait 8 octets. Enfin `brut == texte` est `False` sans aucune erreur : c'est ce qui rend le mélange `str`/`bytes` si traître.
+    - level: 4
+      title: struct, l'outil des trames binaires
+      body: |
+        Pour une trame qui mélange plusieurs champs, le module standard `struct` décrit la disposition en une chaîne de format, comme une `struct` en C : `<` pour *little-endian*, `B` pour un octet non signé, `h` pour un entier signé de 2 octets, `H` non signé, `f` pour un `float` de 4 octets.
+
+        Deux détails de fond :
+        - **sans préfixe** (`"BhB"`), `struct` applique l'alignement mémoire du C de ta machine et insère des octets de bourrage ; avec `<` ou `>` il n'y en a pas. Pour un protocole, mets **toujours** le préfixe ;
+        - les tranches de `list`, `str` et `bytes` **copient** les données. Pour découper un très gros tampon sans copie, il existe `memoryview` (et les vues NumPy).
+      code: |
+        import struct
+
+        trame = bytes([0xAA, 0x01, 0x18, 0xFC, 0xBF])
+        entete, canal, valeur, crc = struct.unpack("<BBhB", trame)
+        print(entete, canal, valeur, crc)
+        print(struct.calcsize("BhB"), struct.calcsize("<BhB"))
+        print(struct.pack("<hf", -1000, 1.5).hex(" "))
+      run: true
+      out: |
+        170 1 -1000 191
+        5 4
+        18 fc 00 00 c0 3f
+      after: |
+        `0x18, 0xFC` lus en *little-endian* donnent `0xFC18`, soit −1000 en entier signé 16 bits (complément à deux). Et `"BhB"` fait 5 octets au lieu de 4 : un octet de bourrage aligne le `h` sur une adresse paire.
+    - level: 5
+      title: Sur le terrain
+      body: |
+        - **Décode à l'entrée, encode à la sortie** : dans ton programme, manipule soit du texte (`str`), soit une trame binaire (`bytes`), jamais un mélange. Les instruments SCPI répondent en ASCII : `float(ser.readline().decode("ascii").strip())`.
+        - Donne un nom aux champs d'une trame avec des objets `slice` : `VALEUR = slice(2, 4)` puis `trame[VALEUR]`. Le code se lit comme la documentation du protocole.
+        - `enumerate(v)` plutôt que `range(len(v))`, et `zip(a, b, strict=True)` (Python 3.10+) pour être prévenu si deux listes n'ont pas la même longueur.
+        - Pour assembler beaucoup de texte : `"".join(morceaux)`, jamais `s += morceau` dans une boucle (chaque `+=` recopie toute la chaîne).
+        - Pour retirer des éléments au début d'une file, `collections.deque` (`popleft` est immédiat) plutôt que `liste.pop(0)` qui décale tout.
+  recap:
+    - "Index depuis 0, négatifs depuis la fin ; index hors limites = IndexError."
+    - "`v[a:b:pas]` : fin exclue, nouvelle séquence, jamais d'erreur de bornes ; `v[::-1]` inverse."
+    - "`entete, *donnees, crc = trame` : le déballage étoilé ramasse le milieu."
+    - "`str` = texte, `bytes` = octets ; conversion par `encode`/`decode` avec un encodage."
+    - "Trames binaires : `int.from_bytes` ou `struct.unpack` avec préfixe `<` ou `>`."
+  pieges: [py-str-bytes, py-range-exclu, py-str-immuable, py-tuple-virgule]
+exercises:
+- id: py03.1
+  type: predict
+  level: 1
+  concepts:
+  - slicing
+  q: Sortie ?
+  code: |-
+    v = [10, 20, 30, 40, 50]
+    print(v[1:4], v[:2], v[-2:], v[::2], v[::-1])
+  answer: '[20, 30, 40] [10, 20] [40, 50] [10, 30, 50] [50, 40, 30, 20, 10]'
+  e: |-
+    `v[debut:fin:pas]` — `debut` inclus, `fin` **exclue**.
+
+    Cette convention rend `len(v[a:b]) == b - a` et `v[:k] + v[k:] == v` toujours vrais. C'est pour ça qu'elle est choisie.
+
+    `v[::-1]` inverse ; `v[::2]` prend un point sur deux (sous-échantillonnage).
+- id: py03.2
+  type: predict
+  level: 2
+  concepts:
+  - slicing
+  q: Sortie ?
+  code: |-
+    v = [1, 2, 3, 4, 5]
+    print(v[10:20])
+    print(v[3:1])
+    try:
+        print(v[10])
+    except IndexError as exc:
+        print("IndexError")
+  answer: |-
+    []
+    []
+    IndexError
+  e: |-
+    Un **slice** hors bornes est silencieusement rogné → liste vide. Un **index** hors bornes lève `IndexError`.
+
+    C'est une source de bugs discrets : `trame[2:6]` sur une trame tronquée te rend un morceau court sans rien dire. Vérifie `len()` avant de découper une trame binaire.
+- id: py03.3
+  type: predict
+  level: 3
+  concepts:
+  - slicing
+  - mutabilite
+  q: Sortie ?
+  code: |-
+    v = [0, 1, 2, 3, 4, 5]
+    v[1:4] = ["a"]
+    print(v)
+    v[::2] = [9, 9]
+    print(v)
+  answer: |-
+    [0, 'a', 4, 5]
+    [9, 'a', 9, 5]
+  e: |-
+    Une affectation de slice **remplace** la tranche : la longueur peut changer (`[1:4]` → 3 éléments remplacés par 1).
+
+    Pour un slice **étendu** (avec pas), la longueur doit correspondre **exactement** : après la première ligne `v` n'a plus que 4 éléments, donc `v[::2]` en vise 2. Écrire `v[::2] = [9, 9, 9]` lève `ValueError: attempt to assign sequence of size 3 to extended slice of size 2`.
+
+    Astuce utile : `v[:] = autre` remplace le contenu **en place** — tous les alias voient le changement, contrairement à `v = autre`.
+- id: py03.4
+  type: cloze
+  level: 2
+  concepts:
+  - unpacking
+  q: Décompose une trame `[entete, d0, d1, ..., checksum]` en une ligne.
+  tpl: |-
+    trame = [0xAA, 12, 34, 56, 0x7F]
+    entete, ⟦0⟧donnees, checksum = trame
+    print(entete, donnees, checksum)   # 170 [12, 34, 56] 127
+  blanks:
+  - - '*'
+  e: |-
+    `a, *milieu, z = seq` : l'étoile absorbe **tout le reste**, toujours sous forme de `list`.
+
+    Une seule étoile autorisée. Marche aussi dans les appels (`f(*args)`), les boucles (`for a, *r in lignes:`) et les littéraux (`[*a, *b]`).
+- id: py03.5
+  type: qcm
+  level: 2
+  concepts:
+  - str-bytes
+  q: 'Tu lis une trame sur un port série avec `pyserial`. `ser.read(4)` renvoie :'
+  choices:
+  - t: un objet `bytes` — une séquence d’entiers 0–255
+    ok: true
+    why: Exact. `trame[0]` donne un `int`, pas un caractère.
+  - t: une `str` décodée en UTF-8
+    ok: false
+    why: 'Non : une liaison série transporte des octets, pas du texte. Le décodage est ton choix.'
+  - t: une `list[int]`
+    ok: false
+    why: Non, mais l’itération sur `bytes` donne bien des `int`.
+  - t: un `bytearray` modifiable
+    ok: false
+    why: '`read()` renvoie `bytes` (immuable). `bytearray(données)` si tu veux modifier.'
+  e: |-
+    Point capital :
+    - `b"AB"[0]` → `65` (un **int**)
+    - `b"AB"[0:1]` → `b"A"` (des **bytes**)
+    - `"AB"[0]` → `"A"` (une **str** de longueur 1)
+
+    Pour du texte : `data.decode("ascii", errors="replace")`. Pour des nombres binaires : `struct.unpack("<HH", data)`.
+- id: py03.6
+  type: qcm
+  level: 2
+  concepts:
+  - sequences
+  q: Quelle opération est en **O(n)** sur une `list` Python ?
+  choices:
+  - t: '`v.insert(0, x)` — insertion en tête'
+    ok: true
+    why: Tout décaler d’une case. Utilise `collections.deque` pour du FIFO.
+  - t: '`v.append(x)`'
+    ok: false
+    why: O(1) amorti.
+  - t: '`v[i]`'
+    ok: false
+    why: 'O(1) : c’est un tableau de pointeurs contigu.'
+  - t: '`len(v)`'
+    ok: false
+    why: 'O(1) : la taille est stockée.'
+  e: |-
+    Une `list` CPython est un **tableau dynamique de pointeurs**, pas une liste chaînée.
+
+    | Opération | Coût |
+    | --- | --- |
+    | `v[i]`, `len(v)`, `append`, `pop()` | O(1) |
+    | `insert(0,x)`, `pop(0)`, `del v[0]`, `x in v` | O(n) |
+    | `sort()` | O(n log n) |
+
+    Pour une file : `deque` (O(1) aux deux bouts). Pour un test d’appartenance répété : `set`.
+- id: py03.7
+  type: parsons
+  level: 3
+  concepts:
+  - sequences
+  q: Reconstitue une fonction qui découpe un flux d’octets en trames délimitées par `0x7E`, en ignorant les trames vides.
+  lang: python
+  lines:
+  - 'def decouper(flux: bytes, delim: int = 0x7E) -> list[bytes]:'
+  - '    trames = []'
+  - '    courante = bytearray()'
+  - '    for octet in flux:'
+  - '        if octet == delim:'
+  - '            if courante:'
+  - '                trames.append(bytes(courante))'
+  - '            courante.clear()'
+  - '        else:'
+  - '            courante.append(octet)'
+  - '    return trames'
+  extra:
+  - '        courante = bytes()'
+  - '    return bytes(trames)'
+  e: |-
+    Points clés :
+    - `bytearray` est le buffer **mutable** ; on le fige avec `bytes(courante)` avant de le stocker (sinon toutes les trames pointeraient sur le même buffer).
+    - `courante.clear()` réutilise l’objet : pas d’allocation par trame.
+    - `if courante:` élimine les délimiteurs consécutifs.
+
+    C'est le squelette d'un dé-trameur série (framing) : à garder sous le coude.
+- id: py03.8
+  type: predict
+  level: 2
+  concepts:
+  - str-bytes
+  q: Sortie ?
+  code: |-
+    s = "  12.5 C  "
+    print(repr(s.strip()))
+    print(repr(s.strip().rstrip("C").strip()))
+    print("a,b,,c".split(","))
+    print("a,b,,c".split(",", 1))
+  answer: |-
+    '12.5 C'
+    '12.5'
+    ['a', 'b', '', 'c']
+    ['a', 'b,,c']
+  e: |-
+    - `strip(chars)` retire **n’importe quel caractère** de l’ensemble, pas un suffixe. `"CCC".strip("C")` → `""`. Depuis 3.9, préfère `removesuffix("C")` pour un vrai suffixe.
+    - `split(sep)` conserve les champs vides — important pour un CSV.
+    - Le 2ᵉ argument limite le nombre de coupes : pratique pour `"cle=valeur=avec=egal".split("=", 1)`.
+- id: py03.9
+  type: predict
+  level: 2
+  concepts:
+  - slicing
+  - sequences
+  q: Sortie ?
+  code: |-
+    v = list(range(10))
+    print(v[-3:])
+    print(v[:-3])
+    print(v[-1:-4:-1])
+    print(v[3:3])
+  answer: |-
+    [7, 8, 9]
+    [0, 1, 2, 3, 4, 5, 6]
+    [9, 8, 7]
+    []
+  e: |-
+    Les indices négatifs comptent depuis la fin : `-1` est le dernier.
+
+    `v[-1:-4:-1]` : de l'index −1 vers l'index −4 exclu, par pas de −1 → les trois derniers, à l'envers.
+
+    `v[3:3]` est vide : début = fin. C'est utile comme point d'insertion : `v[3:3] = [99]` **insère** sans rien écraser.
+
+    Astuce à retenir : les `n` derniers éléments = `v[-n:]`, **jamais** `v[len(v)-n:]` (qui casse si `n > len(v)`... en fait non, mais qui est illisible).
+- id: py03.10
+  type: cloze
+  level: 3
+  concepts:
+  - str-bytes
+  q: Convertis dans les deux sens entre octets bruts et représentation hexadécimale lisible.
+  tpl: |-
+    trame = bytes([0xAA, 0x01, 0xFF])
+
+    texte = trame.⟦0⟧()              # 'aa01ff'
+    retour = bytes.⟦1⟧("aa01ff")     # b'\xaa\x01\xff'
+    lisible = trame.⟦0⟧(" ")          # 'aa 01 ff'  (Python 3.8+)
+    print(texte, retour == trame, lisible)
+  blanks:
+  - - hex
+  - - fromhex
+  e: |-
+    `bytes.hex()` et `bytes.fromhex()` sont la paire à connaître pour logger et rejouer des trames.
+
+    Depuis 3.8, `hex(sep)` accepte un séparateur : `trame.hex(" ")` → `"aa 01 ff"`, bien plus lisible dans un log. Et `trame.hex(" ", -2)` groupe par 2 octets.
+
+    À ne pas confondre avec `str(trame)` qui donne `"b'\\xaa\\x01\\xff'"` — une représentation Python, pas une donnée.
+
+    Pour une seule valeur : `f"{octet:02X}"` → `"AA"`.
+- id: py03.11
+  type: qcm
+  level: 2
+  concepts:
+  - sequences
+  q: Tu veux concaténer 10 000 fragments de chaîne. Quelle méthode ?
+  choices:
+  - t: '`"".join(fragments)`'
+    ok: true
+    why: Une seule allocation, taille calculée d’avance. O(n).
+  - t: '`s += f` dans une boucle'
+    ok: false
+    why: Chaque `+=` sur une `str` crée une nouvelle chaîne → O(n²). CPython optimise parfois ce cas précis, mais ne compte jamais dessus.
+  - t: '`functools.reduce(operator.add, fragments)`'
+    ok: false
+    why: Même complexité quadratique, en plus obscur.
+  - t: '`sum(fragments, "")`'
+    ok: false
+    why: 'Interdit : `sum` refuse explicitement les chaînes, précisément à cause de ce piège.'
+  e: |-
+    Les chaînes sont **immuables** : `s += f` alloue une nouvelle chaîne de taille `len(s)+len(f)` et recopie tout. Sur 10 000 fragments de 10 caractères, ça fait ~500 Mo de copies.
+
+    `"".join(it)` parcourt une fois pour calculer la taille, alloue une fois, remplit. `join` accepte n'importe quel itérable, y compris un générateur.
+
+    Pour des **octets**, le pendant est `bytearray` : `buf = bytearray(); buf += morceau` est en O(1) amorti, contrairement à `bytes`.
+- id: py03.12
+  type: predict
+  level: 2
+  concepts:
+  - unpacking
+  q: Sortie ?
+  code: |-
+    ligne = "T1;20.5;C"
+    capteur, *reste = ligne.split(";")
+    print(capteur, reste)
+
+    (a, b), c = (1, 2), 3
+    print(a, b, c)
+
+    for i, (x, y) in enumerate([(10, 20), (30, 40)]):
+        print(i, x + y)
+  answer: |-
+    T1 ['20.5', 'C']
+    1 2 3
+    0 30
+    1 70
+  e: |-
+    Le décompactage est **structurel** : il suit la forme du littéral à gauche.
+
+    - `a, *reste = seq` — l'étoile absorbe le reste, toujours en `list`.
+    - `(a, b), c = ...` — décompactage imbriqué, très pratique sur des paires de paires.
+    - `for i, (x, y) in enumerate(paires)` — combine index et décompactage.
+
+    Erreur fréquente : oublier que `*reste` donne une **liste** même si la source est un tuple. `a, *r = (1, 2, 3)` → `r == [2, 3]`, pas `(2, 3)`.
+- id: py03.13
+  type: bug
+  level: 3
+  concepts:
+  - str-bytes
+  q: Ce décodeur de trame plante une fois sur cent. Clique sur la ligne fautive.
+  code: |-
+    def decoder(trame: bytes) -> str:
+        if trame[0] != 0xAA:
+            raise ValueError("entête invalide")
+        corps = trame[1:-1]
+        return corps.decode("utf-8")
+  bad: 2
+  fix: '    if not trame or trame[0] != 0xAA:'
+  e: |-
+    Sur une trame vide (`b""`), `trame[0]` lève `IndexError` — pas le `ValueError` documenté. L'appelant qui attrape `ValueError` laisse passer l'`IndexError` et le programme meurt.
+
+    Une trame vide arrive tout le temps : timeout de lecture, port fermé, câble débranché.
+
+    Deux autres défauts dans ce code, à corriger tant que tu y es :
+    - `decode("utf-8")` sans `errors=` lève `UnicodeDecodeError` sur un octet parasite. En instrumentation : `decode("ascii", errors="replace")`.
+    - `trame[1:-1]` sur une trame d'un octet donne `b""` sans prévenir. Vérifie `len(trame) >= 3`.
+
+    **Valide la longueur avant d'indexer.** Toujours.
+- id: py03.14
+  type: code
+  level: 3
+  concepts:
+  - sequences
+  q: Écris `decouper(v, n)` qui découpe une liste en blocs consécutifs de `n` éléments. Le dernier bloc peut être plus court. `n <= 0` → `[]`.
+  lang: python
+  start: |-
+    def decouper(v, n):
+        ...
+  sol: |-
+    def decouper(v, n):
+        if n <= 0:
+            return []
+        return [v[i:i + n] for i in range(0, len(v), n)]
+  tests: |-
+    assert decouper([1,2,3,4,5], 2) == [[1,2],[3,4],[5]]
+    assert decouper([1,2,3,4], 2) == [[1,2],[3,4]]
+    assert decouper([], 3) == []
+    assert decouper([1,2], 0) == []
+    assert decouper([1,2], -1) == []
+    assert decouper([1,2,3], 10) == [[1,2,3]]
+    src = [1,2,3]
+    decouper(src, 2)
+    assert src == [1,2,3], "ne pas modifier l'entree"
+    print("OK")
+  e: |-
+    `range(0, len(v), n)` donne les indices de début : 0, n, 2n… Le slicing se charge du dernier bloc court, sans cas particulier — c'est tout l'intérêt du rognage silencieux des slices.
+
+    Le garde `n <= 0` est indispensable : `range(0, 5, 0)` lève `ValueError: range() arg 3 must not be zero`.
+
+    En Python 3.12+ : `list(itertools.batched(v, n))` fait exactement ça, en renvoyant des tuples et sans matérialiser la liste source.
+
+    Cas d'usage direct : découper un buffer d'acquisition en fenêtres de FFT.
+- id: py03.15
+  type: predict
+  level: 2
+  concepts:
+  - str-bytes
+  - sequences
+  q: Sortie ?
+  code: |-
+    s = "capteur_T1_canal_03.csv"
+    print(s.removeprefix("capteur_").removesuffix(".csv"))
+    print(s.rsplit("_", 1))
+    print(s.partition("_"))
+    print("_".join(s.split("_")[1:3]))
+  answer: |-
+    T1_canal_03
+    ['capteur_T1_canal', '03.csv']
+    ('capteur', '_', 'T1_canal_03.csv')
+    T1_canal
+  e: |-
+    Quatre outils complémentaires pour découper un nom de fichier :
+
+    | besoin | méthode |
+    | --- | --- |
+    | retirer un préfixe/suffixe exact | `removeprefix` / `removesuffix` (3.9+) |
+    | couper à partir de la fin | `rsplit(sep, n)` |
+    | couper en 3 : avant, séparateur, après | `partition` / `rpartition` |
+    | tout découper | `split` |
+
+    `partition` ne lève jamais : si le séparateur est absent, tu obtiens `(s, "", "")`. C'est plus sûr que `split(sep)[1]`.
+
+    Pour un vrai chemin, `pathlib` fait mieux : `Path(s).stem` → `"capteur_T1_canal_03"`.
+- id: py03.16
+  type: flash
+  level: 3
+  concepts:
+  - slicing
+  q: Comment inverser une liste, et quelle est la différence entre les trois façons ?
+  back: |-
+    ```python
+    v[::-1]           # nouvelle liste inversée   — O(n) mémoire
+    v.reverse()       # en place, renvoie None    — O(1) mémoire
+    reversed(v)       # itérateur paresseux       — O(1) mémoire, non réutilisable
+    ```
+
+    - `v[::-1]` quand tu veux garder l'original.
+    - `v.reverse()` quand la liste t'appartient et que la mémoire compte.
+    - `reversed(v)` dans un `for`, ou pour chaîner : `"".join(reversed(mots))`.
+
+    `reversed` exige une séquence de longueur connue — il ne marche pas sur un générateur.
+  e: |-
+    Même trio pour le tri : `sorted(v)` renvoie une nouvelle liste, `v.sort()` trie en place et renvoie `None`.
+
+    Le piège : `v = v.sort()` met `None` dans `v`. C'est une convention Python — **les méthodes qui mutent renvoient `None`**, justement pour t'empêcher de les chaîner par erreur.

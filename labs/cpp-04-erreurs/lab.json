@@ -1,0 +1,11 @@
+{
+  "id": "cpp-04",
+  "ordre": 14,
+  "lang": "cpp",
+  "genre": "lab",
+  "niveau": "avancé",
+  "minutes": 45,
+  "titre": "Signaler les erreurs sans les perdre",
+  "modules": ["cpp09", "cpp10"],
+  "resume": "optional pour une absence normale, code d'erreur typé pour une trame invalide, exception pour une configuration fausse : chaque outil à sa place."
+}

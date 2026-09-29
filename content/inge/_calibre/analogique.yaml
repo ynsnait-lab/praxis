@@ -1,0 +1,287 @@
+domain: analogique
+exercises:
+- id: ig.ana01
+  type: qcm
+  level: 1
+  q: 'Une résistance de 100 Ω traversée par 0,2 A dissipe :'
+  choices:
+  - t: 2 W
+    ok: false
+  - t: 4 W
+    ok: true
+  - t: 0,4 W
+    ok: false
+  - t: 20 W
+    ok: false
+  e: 'P = R·I² = 100 × 0,04 = 4 W. Le carré du courant est essentiel : doubler le courant quadruple l''échauffement. Une résistance 1/4 W serait détruite ici — il faudrait un modèle 5 W bobiné ou un dissipateur.'
+  src: calibre
+- id: ig.ana02
+  type: qcm
+  level: 1
+  q: 'Deux résistances de 100 Ω en parallèle donnent :'
+  choices:
+  - t: 50 Ω
+    ok: true
+  - t: 10 kΩ
+    ok: false
+  - t: 100 Ω
+    ok: false
+  - t: 200 Ω
+    ok: false
+  e: 'En parallèle, les conductances s''ajoutent : R_eq = R/n pour n résistances identiques, donc 50 Ω. En série, ce serait 200 Ω. C''est exactement l''inverse du comportement des ressorts mécaniques — vérifie toujours plutôt que de te fier à l''intuition.'
+  src: calibre
+- id: ig.ana03
+  type: qcm
+  level: 2
+  q: 'Pont diviseur : 12 V alimentent deux résistances en série de 1 kΩ et 2 kΩ. Tension aux bornes de la résistance de 2 kΩ :'
+  choices:
+  - t: 4 V
+    ok: false
+  - t: 8 V
+    ok: true
+  - t: 6 V
+    ok: false
+  - t: 12 V
+    ok: false
+  e: 'U = 12 × 2/(1+2) = 8 V. La tension se répartit proportionnellement aux résistances. Attention : ce résultat suppose qu''aucun courant significatif n''est prélevé au point milieu — brancher une charge de faible impédance fait s''effondrer la tension, piège classique d''un diviseur mal dimensionné.'
+  src: calibre
+- id: ig.ana04
+  type: qcm
+  level: 2
+  q: 'Un circuit RC se charge sous tension constante. Après une constante de temps τ = RC, la tension aux bornes du condensateur atteint :'
+  choices:
+  - t: ≈ 50 %
+    ok: false
+  - t: 100 %
+    ok: false
+  - t: ≈ 37 % de la valeur finale
+    ok: false
+  - t: ≈ 63 %
+    ok: true
+  e: 63 % après 1τ (37 % est ce qui RESTE à parcourir), 86 % après 2τ, 95 % après 3τ, 99 % après 5τ. La règle des « 5τ » est le réflexe pratique pour estimer un temps d'établissement, aussi bien en électronique qu'en thermique.
+  src: calibre
+- id: ig.ana05
+  type: qcm
+  level: 2
+  q: 'Filtre passe-bas RC avec R = 10 kΩ et C = 1 µF. Fréquence de coupure :'
+  choices:
+  - t: ≈ 1,6 Hz
+    ok: false
+  - t: ≈ 16 Hz
+    ok: true
+  - t: ≈ 1,6 kHz
+    ok: false
+  - t: ≈ 160 Hz
+    ok: false
+  e: 'fc = 1/(2πRC) = 1/(2π × 10⁴ × 10⁻⁶) ≈ 15,9 Hz. Réflexe de calcul : RC = 10 ms, donc fc = 1/(2π × 0,01) ≈ 16 Hz. Cette formule est probablement la plus utile de toute l''électronique analogique — elle sert pour les filtres, les anti-repliement, les découplages et les temporisations.'
+  src: calibre
+- id: ig.ana06
+  type: qcm
+  level: 2
+  q: 'Pente asymptotique d''un filtre passe-bas du premier ordre au-delà de sa fréquence de coupure :'
+  choices:
+  - t: −20 dB/décade
+    ok: true
+  - t: −40 dB/décade
+    ok: false
+  - t: −6 dB/décade
+    ok: false
+  - t: −3 dB/octave
+    ok: false
+  e: '−20 dB/décade, soit −6 dB/octave : ce sont deux expressions de la même pente, à ne pas mélanger. Chaque ordre supplémentaire ajoute −20 dB/décade, d''où −40 pour un 2ᵉ ordre. Et à la fréquence de coupure exactement, l''atténuation vaut −3 dB.'
+  src: calibre
+- id: ig.ana07
+  type: qcm
+  level: 2
+  q: À quoi sert un montage suiveur à amplificateur opérationnel (gain unitaire) ?
+  choices:
+  - t: 'À adapter les impédances : entrée très élevée, sortie très faible'
+    ok: true
+  - t: À inverser le signal
+    ok: false
+  - t: À amplifier un signal faible
+    ok: false
+  - t: À filtrer le bruit
+    ok: false
+  e: 'Il ne change pas la tension mais isole la source de la charge : la source ne débite presque rien, la charge voit une source quasi idéale. C''est LA solution quand un capteur à forte impédance de sortie (piézo, pont de jauges, photodiode) s''écroule dès qu''on y branche quelque chose.'
+  src: calibre
+- id: ig.ana08
+  type: qcm
+  level: 2
+  q: 'Montage inverseur à AOP avec R_entrée = 1 kΩ et R_contre-réaction = 47 kΩ. Gain :'
+  choices:
+  - t: −47
+    ok: true
+  - t: −0,021
+    ok: false
+  - t: '+47'
+    ok: false
+  - t: '+48'
+    ok: false
+  e: G = −R2/R1 = −47. Le signe moins traduit l'inversion de phase (180°). À comparer au montage non inverseur, dont le gain vaut 1 + R2/R1, donc +48 avec les mêmes résistances — et qui ne peut jamais descendre sous 1.
+  src: calibre
+- id: ig.ana09
+  type: qcm
+  level: 2
+  q: 'Dans un montage à AOP, l''égalité V+ = V− est valable :'
+  choices:
+  - t: Uniquement en saturation
+    ok: false
+  - t: Toujours, quelle que soit la configuration
+    ok: false
+  - t: Uniquement en régime continu
+    ok: false
+  - t: Uniquement en régime linéaire, avec une contre-réaction négative fonctionnelle
+    ok: true
+  e: 'C''est une CONSÉQUENCE de la contre-réaction, pas une propriété intrinsèque de l''AOP : le gain énorme en boucle ouverte force la sortie à ramener l''écart d''entrée à presque zéro. Dès que l''AOP sature, ou dans un comparateur sans contre-réaction, l''hypothèse tombe et V+ ≠ V−.'
+  src: calibre
+- id: ig.ana10
+  type: qcm
+  level: 3
+  q: 'Le slew rate d''un amplificateur opérationnel caractérise :'
+  choices:
+  - t: La vitesse maximale de variation de sa tension de sortie, en V/µs
+    ok: true
+  - t: Son gain maximal
+    ok: false
+  - t: Son bruit en entrée
+    ok: false
+  - t: Son courant de polarisation
+    ok: false
+  e: 'Exprimé en V/µs, il limite les GRANDS signaux rapides, indépendamment de la bande passante petits signaux. Un 741 à 0,5 V/µs ne peut pas produire un signal de 10 V crête au-delà de quelques kHz, même si son produit gain-bande semble le permettre. Symptôme caractéristique : un sinus qui se transforme en triangle.'
+  src: calibre
+- id: ig.ana11
+  type: qcm
+  level: 2
+  q: 'Un AOP a un produit gain-bande de 1 MHz. Configuré avec un gain de 100, sa bande passante est d''environ :'
+  choices:
+  - t: 100 Hz
+    ok: false
+  - t: 1 MHz
+    ok: false
+  - t: 10 kHz
+    ok: true
+  - t: 100 kHz
+    ok: false
+  e: 'GBW = gain × bande, donc 1 MHz/100 = 10 kHz. C''est un arbitrage incontournable : plus on amplifie, moins on est rapide. Pour amplifier fort ET vite, on met deux étages de gain 10 en cascade — ce qui donne 100 kHz de bande au lieu de 10 kHz.'
+  src: calibre
+- id: ig.ana12
+  type: qcm
+  level: 2
+  q: 'Chute de tension directe typique d''une diode au silicium, comparée à une diode Schottky :'
+  choices:
+  - t: 2 V contre 0,7 V
+    ok: false
+  - t: 0,3 V contre 0,7 V
+    ok: false
+  - t: 0,7 V contre 0,3 V
+    ok: true
+  - t: 0,7 V dans les deux cas
+    ok: false
+  e: Silicium ≈ 0,6-0,7 V, Schottky ≈ 0,3-0,4 V. La Schottky dissipe donc moitié moins et commute beaucoup plus vite (pas de charge stockée), ce qui la rend incontournable en redressement de découpage — au prix d'un courant de fuite inverse plus élevé et d'une tenue en tension inverse moindre.
+  src: calibre
+- id: ig.ana13
+  type: qcm
+  level: 2
+  q: 'Un transistor bipolaire NPN utilisé en commutation, saturé, présente une tension Vce d''environ :'
+  choices:
+  - t: La tension d'alimentation
+    ok: false
+  - t: 0,7 V
+    ok: false
+  - t: 0,2 V
+    ok: true
+  - t: 0 V exactement
+    ok: false
+  e: 'Vce(sat) ≈ 0,1-0,3 V, à ne pas confondre avec Vbe ≈ 0,7 V. Cette tension résiduelle dissipe P = Vce·Ic : à 2 A, cela fait 0,4 W de perte. Un MOSFET avec Rds(on) = 10 mΩ ne dissiperait que 40 mW, d''où sa domination en commutation de puissance.'
+  src: calibre
+- id: ig.ana14
+  type: qcm
+  level: 2
+  q: 'Différence fondamentale entre un MOSFET et un transistor bipolaire :'
+  choices:
+  - t: Le MOSFET est commandé en tension (grille), le bipolaire en courant (base)
+    ok: true
+  - t: Le MOSFET ne fonctionne qu'en alternatif
+    ok: false
+  - t: Le MOSFET est commandé en courant
+    ok: false
+  - t: Le bipolaire ne peut pas commuter
+    ok: false
+  e: 'La grille d''un MOSFET est capacitive : à l''état stable elle ne consomme rien, mais il faut fournir un pic de courant pour la charger à chaque commutation. Un bipolaire, lui, réclame un courant de base permanent Ic/β. Conséquence en commande : ce qui compte pour un MOSFET est la charge de grille Qg, pas un gain.'
+  src: calibre
+- id: ig.ana15
+  type: qcm
+  level: 3
+  q: 'Un gain en tension de 20 dB correspond à un facteur :'
+  choices:
+  - t: '20'
+    ok: false
+  - t: '10'
+    ok: true
+  - t: '100'
+    ok: false
+  - t: '2'
+    ok: false
+  e: 'En TENSION, G(dB) = 20·log(Vs/Ve), donc 20 dB = ×10 et 40 dB = ×100. En PUISSANCE, le coefficient est 10 au lieu de 20, donc 20 dB = ×100. C''est la source d''erreur numéro un sur les décibels. Repères utiles : ×2 ≈ +6 dB en tension, et −3 dB correspond à la moitié de la puissance.'
+  src: calibre
+- id: ig.ana16
+  type: qcm
+  level: 2
+  q: Pourquoi place-t-on un condensateur de 100 nF au plus près des broches d'alimentation d'un circuit intégré ?
+  choices:
+  - t: Pour filtrer le secteur
+    ok: false
+  - t: Pour fournir localement les appels de courant rapides et limiter les perturbations sur l'alimentation
+    ok: true
+  - t: Pour protéger contre les surtensions
+    ok: false
+  - t: Pour régler la fréquence d'horloge
+    ok: false
+  e: 'À chaque commutation interne, le circuit réclame un courant bref que l''inductance des pistes empêche de venir du régulateur : le condensateur de découplage sert de réservoir local. D''où l''obligation de le placer à quelques millimètres du boîtier — placé à 5 cm, l''inductance de la piste annule son effet. Les gros électrolytiques traitent les variations lentes, pas celles-là.'
+  src: calibre
+- id: ig.ana17
+  type: qcm
+  level: 3
+  q: Pourquoi place-t-on une diode de roue libre en parallèle sur la bobine d'un relais commandé par transistor ?
+  choices:
+  - t: Pour réduire la consommation
+    ok: false
+  - t: Pour augmenter le courant de la bobine
+    ok: false
+  - t: Pour écouler le courant inductif à la coupure et éviter une surtension destructrice
+    ok: true
+  - t: Pour accélérer l'enclenchement
+    ok: false
+  e: 'Une inductance impose la continuité de son courant : à l''ouverture, e = −L·di/dt engendre des centaines de volts qui claquent le transistor. La diode, montée en inverse aux bornes de la bobine, offre un chemin de recirculation. Oubli extrêmement fréquent — et la panne ne se manifeste souvent qu''après plusieurs cycles.'
+  src: calibre
+- id: ig.ana18
+  type: qcm
+  level: 2
+  q: 'Tu mesures un pont diviseur de très forte impédance (deux résistances de 10 MΩ) avec un multimètre dont l''impédance d''entrée est de 10 MΩ. La mesure :'
+  choices:
+  - t: Est correcte à condition de mesurer en alternatif
+    ok: false
+  - t: Dépend de la fréquence uniquement
+    ok: false
+  - t: Est faussée, l'appareil charge le circuit
+    ok: true
+  - t: Est correcte
+    ok: false
+  e: 'Le voltmètre se met en parallèle sur la résistance basse et divise son impédance par 2 : la tension lue s''effondre. Règle d''usage : l''impédance de l''instrument doit dépasser d''au moins 100 fois celle du circuit. Sur des impédances élevées, il faut un suiveur à AOP ou un électromètre.'
+  src: calibre
+- id: ig.ana19
+  type: qcm
+  level: 3
+  q: 'Une boucle de masse dans une chaîne de mesure provoque :'
+  choices:
+  - t: Une augmentation de la bande passante
+    ok: false
+  - t: Une baisse de la consommation
+    ok: false
+  - t: Une amélioration du rapport signal/bruit
+    ok: false
+  - t: L'injection de tensions parasites, souvent à 50 Hz, dans le signal utile
+    ok: true
+  e: 'Deux points de masse à des potentiels légèrement différents font circuler un courant dans le blindage, qui se superpose au signal. Remèdes : masse en étoile depuis un point unique, liaison différentielle, ou isolation galvanique (optocoupleur, transformateur). C''est la cause première du 50 Hz parasite sur une mesure de capteur en milieu industriel.'
+  src: calibre

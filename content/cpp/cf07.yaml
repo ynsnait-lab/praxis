@@ -1,0 +1,364 @@
+id: cf07
+track: cpp
+title: std::vector et std::array
+goal: Stocker des séries de valeurs dans les conteneurs standard, les parcourir sans sortir des bornes, et éviter les pièges des tailles non signées.
+level: fondations
+requires: [cf06]
+concepts: [vector, array, size_t, at, invalidation]
+lesson:
+  minutes: 17
+  intro: |
+    `std::vector` est la liste de Python version C++ : une suite de valeurs **du même type**, qui peut grandir. `std::array`, sa cousine de taille fixe, est la reine de l'embarqué. Ce sont les deux conteneurs que tu utiliseras 90 % du temps. La différence majeure avec Python : **C++ ne vérifie pas les index** par défaut. Un index faux ne lève pas d'`IndexError` : il lit ou écrit n'importe où en mémoire.
+  steps:
+    - level: 1
+      title: Une rangée de casiers… sans gardien
+      body: |
+        Même image qu'en Python : des casiers numérotés à partir de 0.
+
+        ```cpp
+        #include <vector>
+        std::vector<double> mesures{21.5, 22.0, 21.8};
+        mesures[0];          // 21.5
+        mesures.size();      // 3
+        ```
+
+        Le type entre chevrons `<double>` dit ce que contiennent **tous** les casiers : on ne peut pas mélanger nombres et textes.
+
+        La grande différence : en Python, `liste[10]` sur une liste de 3 éléments est **arrêté** par un gardien (`IndexError`). En C++, `mesures[10]` **n'est pas vérifié** : le programme lit la mémoire qui se trouve plus loin, qui appartient à autre chose. C'est un comportement indéfini : au mieux un plantage, au pire une valeur fausse silencieuse, ou la corruption d'une autre variable.
+    - level: 2
+      title: Les opérations de base
+      code: |
+        #include <iostream>
+        #include <vector>
+
+        int main() {
+            std::vector<double> m;                // vide
+            m.push_back(21.5);                    // ajoute à la fin (append)
+            m.push_back(22.0);
+            m.push_back(21.8);
+            std::cout << m.size() << " " << m.front() << " " << m.back() << '\n';
+            m[1] = 22.4;                          // accès sans vérification
+            m.at(2) = 21.9;                       // accès vérifié
+            m.pop_back();                         // retire le dernier
+            for (double x : m) std::cout << x << " ";
+            std::cout << '\n' << std::boolalpha << m.empty() << '\n';
+            std::vector<int> zeros(5, 0);         // 5 éléments valant 0
+            std::cout << zeros.size() << '\n';
+        }
+      out: |
+        3 21.5 21.8
+        21.5 22.4
+        false
+        5
+      body: |
+        | Python | C++ |
+        | --- | --- |
+        | `liste.append(x)` | `v.push_back(x)` |
+        | `len(liste)` | `v.size()` |
+        | `liste[i]` | `v[i]` (sans vérification) ou `v.at(i)` (vérifié, lève une exception) |
+        | `liste[0]`, `liste[-1]` | `v.front()`, `v.back()` |
+        | `liste.pop()` | `v.pop_back()` (ne renvoie rien !) |
+        | `if not liste:` | `if (v.empty())` |
+        | `[0] * 5` | `std::vector<int>(5, 0)` |
+
+        Attention à la différence entre `std::vector<int> v(5, 0);` (parenthèses : **5 éléments** valant 0) et `std::vector<int> v{5, 0};` (accolades : **2 éléments**, 5 et 0).
+    - level: 3
+      title: Statistiques et algorithmes standard
+      body: |
+        La bibliothèque `<algorithm>` et `<numeric>` fournit les opérations courantes, qui travaillent sur un **intervalle** donné par deux itérateurs : `v.begin()` (le début) et `v.end()` (juste **après** la fin, comme la borne exclue de `range`).
+      code: |
+        #include <algorithm>
+        #include <iostream>
+        #include <numeric>
+        #include <vector>
+
+        int main() {
+            std::vector<double> m{23.1, 21.5, 22.0, 24.4, 21.8};
+            double somme = std::accumulate(m.begin(), m.end(), 0.0);
+            auto [pmin, pmax] = std::minmax_element(m.begin(), m.end());
+            std::cout << somme / m.size() << " " << *pmin << " " << *pmax << '\n';
+            std::sort(m.begin(), m.end());
+            for (double x : m) std::cout << x << " ";
+            std::cout << '\n';
+            auto n_hautes = std::count_if(m.begin(), m.end(), [](double x) { return x > 22.5; });
+            std::cout << n_hautes << '\n';
+        }
+      out: |
+        22.56 21.5 24.4
+        21.5 21.8 22 23.1 24.4
+        2
+      after: |
+        Deux détails : `accumulate` doit partir de `0.0` (un `double`) et non de `0`, sinon toute la somme est faite en entiers. Et `[](double x) { return x > 22.5; }` est une **lambda** : une petite fonction anonyme, écrite sur place (le `lambda` de Python). On les étudie dans le module avancé.
+    - level: 4
+      title: size_t, le type qui ne descend pas sous zéro
+      body: |
+        `v.size()` renvoie un `std::size_t` : un entier **non signé**. Deux pièges en découlent.
+
+        **1. Comparer avec un `int`.** `for (int i = 0; i < v.size(); ++i)` compare un signé et un non signé : ça marche en général, mais `-Wall` avertit, et c'est fragile.
+
+        **2. Soustraire.** Si `v` est vide, `v.size() - 1` ne vaut pas −1 : il vaut **18 446 744 073 709 551 615** (le plus grand `size_t`). Une boucle `for (std::size_t i = 0; i < v.size() - 1; ++i)` sur un vecteur vide part donc pour des milliards de tours en lisant hors du tableau.
+
+        Et un troisième piège, plus subtil : **`push_back` peut déplacer tout le contenu** en mémoire (quand la capacité est dépassée, le vecteur alloue une zone plus grande et y recopie tout). Toute référence, pointeur ou itérateur vers un élément devient alors **invalide**.
+      code: |
+        #include <iostream>
+        #include <vector>
+
+        int main() {
+            std::vector<int> v;
+            std::cout << v.size() - 1 << '\n';            // pas -1 !
+            // parcours sûr de paires consécutives :
+            std::vector<int> w{3, 5, 9};
+            for (std::size_t i = 1; i < w.size(); ++i) {  // i - 1 ne descend jamais sous 0
+                std::cout << w[i] - w[i - 1] << " ";
+            }
+            std::cout << '\n';
+            try {
+                std::cout << w.at(3) << '\n';
+            } catch (const std::out_of_range& e) {
+                std::cout << "hors limites\n";
+            }
+        }
+      out: |
+        18446744073709551615
+        2 4
+        hors limites
+      after: |
+        La boucle sûre part de `i = 1` et compare `i < w.size()` : aucune soustraction sur une taille. Et `at()` transforme l'erreur silencieuse en exception attrapable. Pendant le développement, compile aussi avec `-D_GLIBCXX_ASSERTIONS` (GCC) ou `-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST` (clang/Mac) : même `[]` est alors vérifié.
+    - level: 5
+      title: std::array pour l'embarqué
+      body: |
+        `std::vector` alloue sa mémoire sur le **tas** (dynamiquement). Sur un microcontrôleur, on évite les allocations dynamiques après le démarrage (fragmentation, temps non déterministe). On préfère **`std::array<T, N>`** : taille fixée à la compilation, mémoire réservée d'avance, aucune allocation, et la même interface (`size()`, `[]`, `at()`, boucle `for`, algorithmes).
+
+        ```cpp
+        #include <array>
+        std::array<uint16_t, 8> canaux_adc{};     // 8 valeurs à zéro
+        canaux_adc[3] = 2048;
+        ```
+
+        Et les tableaux « à la C » (`int t[8];`) ? Tu en verras beaucoup dans du code Arduino. Ils fonctionnent, mais ne connaissent pas leur taille une fois passés à une fonction (on le verra avec les pointeurs) : préfère `std::array` dans ton code.
+  recap:
+    - "`std::vector<T>` : liste qui grandit (`push_back`, `size`, `empty`, `front`, `back`)."
+    - "`v[i]` n'est **pas** vérifié (comportement indéfini hors bornes) ; `v.at(i)` lève `std::out_of_range`."
+    - "`size()` est un `size_t` non signé : `v.size() - 1` sur un vecteur vide est énorme."
+    - "`push_back` peut invalider les références et pointeurs vers les éléments."
+    - "`std::array<T, N>` : taille fixe, pas d'allocation, idéal en embarqué. `<algorithm>` : `sort`, `count_if`, `minmax_element`…"
+  pieges: [cpp-tableau-hors-limites, cpp-size-moins-un, cpp-vector-invalidation, cpp-signe-non-signe]
+exercises:
+  - id: cf07.1
+    type: predict
+    level: 1
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+      #include <vector>
+
+      int main() {
+          std::vector<int> v{4, 8, 15};
+          v.push_back(16);
+          std::cout << v.size() << " " << v[1] << " " << v.back() << '\n';
+      }
+    answer: 4 8 16
+    e: "`push_back` ajoute 16 à la fin : 4 éléments. `v[1]` est le deuxième (index 0 = premier)."
+  - id: cf07.2
+    type: qcm
+    level: 1
+    q: "`std::vector<int> v{1, 2, 3};` Que fait `v[3] = 7;` ?"
+    piege: cpp-tableau-hors-limites
+    choices:
+      - t: "Comportement indéfini : écrit en dehors du vecteur, sans aucun contrôle."
+        ok: true
+      - t: "Lève une exception `std::out_of_range`."
+        piege: true
+        why: "C'est ce que ferait `v.at(3) = 7;`. L'opérateur `[]` ne vérifie rien."
+      - t: "Ajoute 7 à la fin, comme `push_back`."
+        why: "`[]` ne fait jamais grandir un vecteur."
+      - t: "Erreur de compilation."
+        why: "Le compilateur ne connaît pas la taille du vecteur à l'exécution."
+    e: "Les indices ne sont pas vérifiés par `[]`, pour la performance. Utilise `at()` quand l'index vient de l'extérieur (une trame, un fichier), et les sanitizers pendant le développement."
+  - id: cf07.3
+    type: predict
+    level: 2
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+      #include <vector>
+
+      int main() {
+          std::vector<int> a(3, 7);
+          std::vector<int> b{3, 7};
+          std::cout << a.size() << " " << b.size() << " " << a[2] << " " << b[1] << '\n';
+      }
+    answer: 3 2 7 7
+    trap_answers: ["2 2 7 7", "3 3 7 7"]
+    e: "Parenthèses `(3, 7)` : **3 éléments** valant 7. Accolades `{3, 7}` : **les deux éléments** 3 et 7. Piège classique de l'initialisation des vecteurs."
+  - id: cf07.4
+    type: predict
+    level: 2
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+      #include <vector>
+
+      int main() {
+          std::vector<double> v;
+          if (v.size() - 1 > 1000) {
+              std::cout << "énorme\n";
+          } else {
+              std::cout << "petit\n";
+          }
+      }
+    answer: énorme
+    trap_answers: ["petit"]
+    piege: cpp-size-moins-un
+    e: "`v.size()` vaut 0, de type non signé. `0 - 1` en non signé fait le tour du compteur : 18 446 744 073 709 551 615. Ne soustrais jamais sur une taille sans vérifier `empty()` avant, ou réorganise le calcul (`i + 1 < v.size()` plutôt que `i < v.size() - 1`)."
+  - id: cf07.5
+    type: bug
+    level: 2
+    q: "Cette fonction calcule les écarts entre valeurs consécutives. Elle plante sur un vecteur vide. Quelle ligne corriger ?"
+    code: |
+      #include <vector>
+
+      std::vector<double> ecarts(const std::vector<double>& v) {
+          std::vector<double> res;
+          for (std::size_t i = 0; i < v.size() - 1; ++i) {
+              res.push_back(v[i + 1] - v[i]);
+          }
+          return res;
+      }
+    bad: 5
+    fix: "    for (std::size_t i = 1; i < v.size(); ++i) {   // et v[i] - v[i - 1]"
+    piege: cpp-size-moins-un
+    e: "Sur un vecteur vide, `v.size() - 1` est gigantesque : la boucle lit bien au-delà du tableau. En partant de `i = 1` avec `i < v.size()`, aucune soustraction sur la taille, et le corps devient `v[i] - v[i - 1]`."
+  - id: cf07.6
+    type: predict
+    level: 3
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+      #include <numeric>
+      #include <vector>
+
+      int main() {
+          std::vector<double> v{0.5, 0.5, 0.5};
+          std::cout << std::accumulate(v.begin(), v.end(), 0) << " "
+                    << std::accumulate(v.begin(), v.end(), 0.0) << '\n';
+      }
+    answer: 0 1.5
+    trap_answers: ["1.5 1.5"]
+    flags: [-Wno-float-conversion]
+    e: "`accumulate` utilise le **type de la valeur initiale** pour toute la somme. Avec `0` (un `int`), chaque `0.5` est ajouté puis tronqué : 0 + 0.5 → 0, trois fois. Avec `0.0`, on obtient 1.5."
+  - id: cf07.7
+    type: cloze
+    level: 1
+    q: "Complète pour remplir un vecteur avec les carrés de 1 à 5, puis afficher sa taille."
+    lang: cpp
+    tpl: |
+      #include <iostream>
+      #include <vector>
+
+      int main() {
+          std::vector<int> carres;
+          for (int i = 1; i <= 5; ++i) {
+              carres.⟦0⟧(i * i);
+          }
+          std::cout << carres.⟦1⟧() << '\n';
+      }
+    blanks:
+      - [push_back, emplace_back]
+      - [size]
+    verify: compile
+    e: "`push_back` ajoute à la fin, `size()` donne le nombre d'éléments."
+  - id: cf07.8
+    type: code
+    level: 2
+    lang: cpp
+    q: |
+      Écris `double moyenne(const std::vector<double>& v)` qui renvoie la moyenne, ou `0.0` pour un vecteur vide (sans jamais diviser par zéro).
+    start: |
+      #include <vector>
+
+      double moyenne(const std::vector<double>& v) {
+          return 0.0;  // à compléter
+      }
+    sol: |
+      #include <vector>
+
+      double moyenne(const std::vector<double>& v) {
+          if (v.empty()) {
+              return 0.0;
+          }
+          double somme = 0.0;
+          for (double x : v) {
+              somme += x;
+          }
+          return somme / static_cast<double>(v.size());
+      }
+    tests: |
+      #include <cassert>
+      #include <cmath>
+      #include <iostream>
+      int main() {
+          assert(std::fabs(moyenne({1.0, 2.0, 3.0, 6.0}) - 3.0) < 1e-12);
+          assert(moyenne({}) == 0.0);
+          assert(std::fabs(moyenne({-2.5}) + 2.5) < 1e-12);
+          std::cout << "OK\n";
+      }
+    e: "Le `static_cast<double>(v.size())` rend la conversion explicite (sans lui, `somme / v.size()` marche aussi, car `somme` est un `double`, mais `-Wconversion` le signalerait)."
+  - id: cf07.9
+    type: qcm
+    level: 3
+    q: "Tu gardes une référence `double& premier = v[0];`, puis tu fais plusieurs `v.push_back(...)`. Que vaut ensuite l'utilisation de `premier` ?"
+    piege: cpp-vector-invalidation
+    choices:
+      - t: "Potentiellement un comportement indéfini : si le vecteur a dû s'agrandir, ses éléments ont été déplacés."
+        ok: true
+      - t: "Toujours correct : une référence suit l'élément."
+        piege: true
+        why: "Une référence désigne une adresse mémoire. Quand le vecteur réalloue, l'ancienne zone est libérée."
+      - t: "Erreur de compilation."
+        why: "Le compilateur ne peut pas le détecter."
+    e: "Quand la capacité est dépassée, `push_back` alloue une zone plus grande, y déplace les éléments et libère l'ancienne. Toute référence, pointeur ou itérateur vers l'ancienne zone pendouille. Réserve la capacité à l'avance (`v.reserve(n)`) ou reprends l'élément par son index."
+  - id: cf07.10
+    type: flash
+    level: 2
+    q: "Pourquoi préférer `std::array<T, N>` à `std::vector<T>` sur un microcontrôleur ?"
+    back: "`std::array` a une taille fixe connue à la compilation : aucune allocation dynamique (pas de fragmentation du tas, pas de temps d'allocation imprévisible), et une empreinte mémoire connue d'avance. Il garde l'interface pratique (`size()`, `at()`, boucle `for`, algorithmes)."
+    e: "Règle courante en embarqué : allocations dynamiques autorisées à l'initialisation seulement, jamais dans la boucle de contrôle."
+  - id: cf07.11
+    type: predict
+    level: 2
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <algorithm>
+      #include <iostream>
+      #include <vector>
+
+      int main() {
+          std::vector<int> v{5, 3, 9, 1};
+          std::sort(v.begin(), v.end());
+          std::cout << v.front() << v.back() << " ";
+          std::sort(v.begin(), v.end(), [](int a, int b) { return a > b; });
+          std::cout << v.front() << v.back() << '\n';
+      }
+    answer: 19 91
+    e: "`std::sort` trie par ordre croissant par défaut. Avec une fonction de comparaison `a > b`, l'ordre devient décroissant. Comme `sorted(..., key=...)` en Python, mais avec une comparaison entre deux éléments."
+  - id: cf07.12
+    type: parsons
+    level: 2
+    q: "Reconstruis une fonction qui renvoie un nouveau vecteur ne contenant que les mesures positives."
+    lang: cpp
+    lines:
+      - "std::vector<double> positives(const std::vector<double>& v) {"
+      - "    std::vector<double> res;"
+      - "    for (double x : v) {"
+      - "        if (x > 0.0) {"
+      - "            res.push_back(x);"
+      - "        }"
+      - "    }"
+      - "    return res;"
+      - "}"
+    extra:
+      - "            v.push_back(x);"
+      - "    res.reserve(-1);"
+    verify: compile
+    e: "`v` est `const` : `v.push_back(x)` ne compilerait pas (et ce serait l'erreur « modifier en parcourant »). `reserve(-1)` demanderait une capacité gigantesque (−1 converti en `size_t`)."

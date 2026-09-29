@@ -1,0 +1,297 @@
+id: cf11
+track: cpp
+title: Pointeurs
+goal: Comprendre ce qu'est une adresse, lire et écrire à travers un pointeur, et reconnaître les pointeurs nuls et pendouillants.
+level: fondations
+requires: [cf10]
+concepts: [pointeurs, adresse, nullptr, tableaux-c]
+lesson:
+  minutes: 17
+  intro: |
+    Les pointeurs ont mauvaise réputation, et le C++ moderne permet de les éviter dans la plupart du code (références, conteneurs, pointeurs intelligents). Mais tu les croiseras partout où C++ touche le matériel et le C : les API Arduino et ESP-IDF, les registres de périphériques, les chaînes `char*`, les callbacks. Et comprendre les pointeurs, c'est comprendre ce qu'est la mémoire. Ce cours démystifie l'idée, puis montre les trois façons de se brûler.
+  steps:
+    - level: 1
+      title: Une adresse écrite sur un papier
+      body: |
+        La mémoire est une immense rue de maisons numérotées (les **adresses**), chacune contenant un octet. Une variable occupe une ou plusieurs maisons.
+
+        Un **pointeur** est un **papier sur lequel on a écrit une adresse**. Ce n'est pas la maison : c'est le moyen de la retrouver. Avec ce papier, on peut aller dans la maison et regarder ou modifier ce qu'elle contient.
+
+        - `&x` : « l'adresse de `x` » (écrire l'adresse sur le papier) ;
+        - `int* p` : `p` est un papier pouvant contenir l'adresse d'un `int` ;
+        - `*p` : « aller à l'adresse écrite dans `p` » (et lire ou écrire ce qui s'y trouve).
+    - level: 2
+      title: Lire et écrire à travers un pointeur
+      code: |
+        #include <iostream>
+
+        int main() {
+            int temperature = 20;
+            int* p = &temperature;       // p contient l'adresse de temperature
+            *p = 25;                     // on écrit à cette adresse
+            std::cout << temperature << " " << *p << '\n';
+
+            int autre = 99;
+            p = &autre;                  // un pointeur peut changer de cible
+            *p += 1;
+            std::cout << temperature << " " << autre << '\n';
+
+            int* rien = nullptr;         // un pointeur qui ne pointe sur rien
+            if (rien == nullptr) {
+                std::cout << "pointeur nul : on ne le suit pas\n";
+            }
+        }
+      out: |
+        25 25
+        25 100
+        pointeur nul : on ne le suit pas
+      body: |
+        Deux différences avec une référence : un pointeur **peut changer de cible**, et il **peut ne pointer sur rien** (`nullptr`). C'est pour cela qu'on préfère une référence quand ni l'un ni l'autre n'est nécessaire.
+    - level: 3
+      title: Tableaux C, pointeurs et fonctions
+      body: |
+        Dans du code C ou Arduino, tu verras des tableaux « à la C » et des fonctions qui reçoivent un pointeur et une taille :
+      code: |
+        #include <cstddef>
+        #include <iostream>
+
+        double moyenne(const double* valeurs, std::size_t n) {
+            double s = 0.0;
+            for (std::size_t i = 0; i < n; ++i) {
+                s += valeurs[i];         // p[i] équivaut à *(p + i)
+            }
+            return n ? s / n : 0.0;
+        }
+
+        void echanger(int* a, int* b) {  // version C de l'échange
+            int tmp = *a;
+            *a = *b;
+            *b = tmp;
+        }
+
+        int main() {
+            double mesures[4] = {21.5, 22.0, 21.8, 22.1};
+            std::cout << moyenne(mesures, 4) << '\n';
+            int x = 1, y = 2;
+            echanger(&x, &y);
+            std::cout << x << y << '\n';
+        }
+      out: |
+        21.85
+        21
+      after: |
+        Passé à une fonction, un tableau C se transforme (on dit qu'il *se dégrade*) en **pointeur vers son premier élément** : la fonction ne connaît plus la taille, d'où le paramètre `n`. C'est exactement le genre d'erreur que `std::array`, `std::vector` ou `std::span` (C++20) évitent en transportant la taille avec les données.
+    - level: 4
+      title: Trois façons de se brûler
+      body: |
+        **1. Le pointeur nul.** Suivre (`*p`) un pointeur qui vaut `nullptr` est un comportement indéfini ; sur un PC, c'est presque toujours un plantage immédiat (`Segmentation fault`). Sur un microcontrôleur sans protection mémoire, ça peut écrire n'importe où. Toujours vérifier un pointeur qui **peut** être nul (retour d'une recherche, d'une allocation, d'une API C).
+
+        **2. Le pointeur non initialisé.** `int* p;` contient une adresse au hasard. L'utiliser, c'est écrire dans la maison de quelqu'un d'autre. Initialise toujours : `int* p = nullptr;`.
+
+        **3. Le pointeur pendouillant.** Un pointeur vers une variable qui n'existe plus (variable locale d'une fonction terminée, élément d'un vecteur réalloué, mémoire libérée). L'adresse est toujours écrite sur le papier, mais la maison a été démolie et reconstruite pour quelqu'un d'autre.
+
+        ```cpp
+        int* mauvais() {
+            int local = 42;
+            return &local;     // local est détruite à la sortie : pointeur pendouillant
+        }
+        ```
+
+        Le sanitizer d'adresses (`-fsanitize=address`, activé dans les labs) détecte ces erreurs au moment où elles se produisent, avec la ligne fautive : c'est l'outil qui rend les pointeurs vivables.
+    - level: 5
+      title: Où tu croiseras des pointeurs
+      body: |
+        - **Chaînes C** : `const char*`, comme `Serial.print("texte")` ou `strcmp`. (Et `std::string::c_str()` pour en obtenir un depuis une `std::string`.)
+        - **API C et Arduino/ESP-IDF** : des fonctions comme `void lire(uint8_t* buffer, size_t taille)`, qui remplissent un tampon que tu leur fournis.
+        - **Registres matériels** : un registre est une adresse fixe ; on y accède par un pointeur `volatile` :
+          ```cpp
+          volatile uint32_t* const GPIO_OUT = reinterpret_cast<volatile uint32_t*>(0x3FF44004);
+          *GPIO_OUT |= (1u << 2);     // met la broche 2 à 1
+          ```
+          (`volatile` interdit au compilateur de supprimer ou regrouper ces accès, car la valeur peut changer « toute seule ».)
+        - **Callbacks** : un pointeur de fonction passé à `attachInterrupt(broche, ma_fonction, RISING)`.
+
+        Dans **ton** code C++, la règle moderne : références pour « un autre nom », conteneurs pour les tableaux, `std::unique_ptr` pour la propriété d'un objet (cours suivant). Un pointeur « brut » sert à **observer** quelque chose qu'on ne possède pas, et peut être nul.
+  recap:
+    - "`&x` : adresse de `x`. `T* p = &x;` : pointeur vers `x`. `*p` : la valeur pointée."
+    - "`nullptr` : pointe sur rien ; ne jamais le suivre. Toujours initialiser un pointeur."
+    - "Un tableau C passé à une fonction devient un pointeur : il perd sa taille (passer `n`, ou mieux `std::span`/`std::array`)."
+    - "Pointeur pendouillant : vers une variable détruite (locale renvoyée, vecteur réalloué, mémoire libérée)."
+    - "En C++ moderne : références et conteneurs d'abord ; les pointeurs pour le matériel, le C et l'observation."
+  pieges: [cpp-pointeur-nul, cpp-pointeur-pendouillant, cpp-tableau-decay]
+exercises:
+  - id: cf11.1
+    type: predict
+    level: 1
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+
+      int main() {
+          int a = 5;
+          int b = 8;
+          int* p = &a;
+          *p = *p + 10;
+          p = &b;
+          *p = *p * 2;
+          std::cout << a << " " << b << '\n';
+      }
+    answer: 15 16
+    e: "`p` pointe d'abord sur `a` : `*p = *p + 10` fait passer `a` à 15. Puis `p` change de cible pour `b`, qui est doublé."
+  - id: cf11.2
+    type: qcm
+    level: 1
+    q: "Dans `int* p = &x;`, que valent `p` et `*p` ?"
+    choices:
+      - t: "`p` est l'adresse de `x` ; `*p` est la valeur de `x`."
+        ok: true
+      - t: "`p` est la valeur de `x` ; `*p` est son adresse."
+        why: "C'est l'inverse. `*` « suit » le pointeur jusqu'à la valeur."
+      - t: "`p` et `*p` sont tous deux la valeur de `x`."
+        why: "`p` contient une adresse, pas la valeur."
+    e: "Le même symbole `*` sert à deux choses : dans une **déclaration** (`int* p`), il dit « p est un pointeur » ; dans une **expression** (`*p`), il dit « va voir à l'adresse »."
+  - id: cf11.3
+    type: bug
+    level: 2
+    q: "Ce programme plante (`Segmentation fault`). Quelle ligne est la cause ?"
+    code: |
+      #include <iostream>
+
+      int* trouver(int* debut, int n, int cible) {
+          for (int i = 0; i < n; ++i) {
+              if (debut[i] == cible) return &debut[i];
+          }
+          return nullptr;
+      }
+
+      int main() {
+          int codes[3] = {10, 20, 30};
+          int* p = trouver(codes, 3, 99);
+          std::cout << *p << '\n';
+      }
+    bad: 13
+    fix: '    if (p != nullptr) std::cout << *p << ''\n''; else std::cout << "absent\n";'
+    piege: cpp-pointeur-nul
+    e: "`trouver` renvoie `nullptr` quand la cible est absente (99 n'est pas dans le tableau). Suivre un pointeur nul fait planter. Tout pointeur qui **peut** être nul doit être vérifié avant d'être suivi."
+  - id: cf11.4
+    type: qcm
+    level: 2
+    q: "Pourquoi `int* mauvais() { int x = 1; return &x; }` est-il une erreur ?"
+    piege: cpp-pointeur-pendouillant
+    choices:
+      - t: "`x` est détruite à la sortie de la fonction : l'appelant reçoit l'adresse d'une variable qui n'existe plus."
+        ok: true
+      - t: "On ne peut pas renvoyer un pointeur."
+        why: "On peut renvoyer un pointeur, tant qu'il pointe vers quelque chose qui survit à la fonction."
+      - t: "Il faudrait écrire `return *x;`."
+        why: "`x` n'est pas un pointeur, `*x` ne compile pas."
+    e: "Le compilateur avertit (`address of stack memory associated with local variable 'x' returned`). Renvoie la **valeur** (`int bon() { return 1; }`), ou fais vivre l'objet ailleurs."
+  - id: cf11.5
+    type: predict
+    level: 3
+    q: Qu'affiche ce programme sur un PC 64 bits ?
+    code: |
+      #include <iostream>
+
+      void taille(double t[]) {
+          std::cout << sizeof(t) << " ";
+      }
+
+      int main() {
+          double mesures[8] = {};
+          std::cout << sizeof(mesures) << " ";
+          taille(mesures);
+          std::cout << '\n';
+      }
+    answer: 64 8
+    trap_answers: ["64 64"]
+    flags: [-Wno-sizeof-array-argument]
+    piege: cpp-tableau-decay
+    e: "Dans `main`, `mesures` est un vrai tableau de 8 `double` : 64 octets. Passé à la fonction, il se **dégrade** en pointeur (`double t[]` est en fait `double* t`) : `sizeof` donne la taille du pointeur, 8 octets. La fonction a perdu la taille du tableau."
+  - id: cf11.6
+    type: cloze
+    level: 1
+    q: "Complète pour que `p` pointe vers `niveau`, puis pour mettre 100 dans `niveau` à travers `p`."
+    lang: cpp
+    tpl: |
+      int main() {
+          int niveau = 0;
+          int* p = ⟦0⟧niveau;
+          ⟦1⟧p = 100;
+          return niveau == 100 ? 0 : 1;
+      }
+    blanks:
+      - ["&"]
+      - ["*"]
+    verify: compile
+    e: "`&niveau` prend l'adresse, `*p` accède à ce qui s'y trouve."
+  - id: cf11.7
+    type: code
+    level: 2
+    lang: cpp
+    q: |
+      Écris `void mettre_a_zero(double* buffer, std::size_t n)` qui met à 0.0 les `n` valeurs du tampon. Si `buffer` est nul, ne fais rien.
+    start: |
+      #include <cstddef>
+
+      void mettre_a_zero(double* buffer, std::size_t n) {
+          // à compléter
+      }
+    sol: |
+      #include <cstddef>
+
+      void mettre_a_zero(double* buffer, std::size_t n) {
+          if (buffer == nullptr) {
+              return;
+          }
+          for (std::size_t i = 0; i < n; ++i) {
+              buffer[i] = 0.0;
+          }
+      }
+    tests: |
+      #include <cassert>
+      #include <iostream>
+      int main() {
+          double t[4] = {1, 2, 3, 4};
+          mettre_a_zero(t, 3);
+          assert(t[0] == 0.0 && t[2] == 0.0 && t[3] == 4.0);
+          mettre_a_zero(nullptr, 10);
+          std::cout << "OK\n";
+      }
+    e: "C'est la forme des fonctions d'API C (`memset(buffer, 0, n * sizeof(double))` ferait la même chose). Le test de `nullptr` en entrée est une défense bon marché."
+  - id: cf11.8
+    type: flash
+    level: 2
+    q: "Référence ou pointeur : quand choisir l'un ou l'autre en C++ moderne ?"
+    back: |
+      - **Référence** : un autre nom pour un objet qui existe forcément, sans changement de cible (paramètres, alias).
+      - **Pointeur brut** : quand l'objet peut être **absent** (`nullptr`), quand la cible **change**, ou pour parler au C et au matériel.
+      - **`std::unique_ptr`** : quand on **possède** un objet alloué dynamiquement.
+    e: "Un pointeur brut ne devrait presque jamais « posséder » de la mémoire en C++ moderne : c'est le rôle des pointeurs intelligents."
+  - id: cf11.9
+    type: predict
+    level: 2
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+
+      int main() {
+          int t[5] = {10, 20, 30, 40, 50};
+          int* p = t;          // t se dégrade en pointeur vers t[0]
+          p = p + 2;
+          std::cout << *p << " " << p[1] << " " << *(t + 4) << '\n';
+      }
+    answer: 30 40 50
+    e: "L'arithmétique de pointeur avance d'**éléments**, pas d'octets : `p + 2` pointe sur `t[2]`. `p[1]` équivaut à `*(p + 1)`, soit `t[3]`. Et `*(t + 4)` est `t[4]`."
+  - id: cf11.10
+    type: qcm
+    level: 3
+    q: "Pourquoi l'accès à un registre matériel se fait-il par un pointeur `volatile` ?"
+    choices:
+      - t: "Pour que le compilateur n'optimise pas les lectures et écritures : la valeur peut changer indépendamment du programme."
+        ok: true
+      - t: "Pour que le registre soit plus rapide."
+        why: "`volatile` rend souvent le code un peu plus lent, car il interdit certaines optimisations."
+      - t: "Pour que la valeur soit sauvegardée en cas de coupure."
+        why: "`volatile` n'a rien à voir avec la persistance."
+    e: "Sans `volatile`, le compilateur pourrait lire une seule fois un registre d'état dans une boucle d'attente (« il ne change pas, puisque le programme ne l'écrit pas ») et boucler à l'infini. Même raison pour une variable partagée avec une interruption."

@@ -1,0 +1,11 @@
+{
+  "id": "py-07",
+  "ordre": 7,
+  "lang": "python",
+  "genre": "lab",
+  "niveau": "avancé",
+  "minutes": 50,
+  "titre": "Vectoriser avec NumPy",
+  "modules": ["py12"],
+  "resume": "Six traitements de signal écrits avec des boucles Python. Réécris-les sans aucune boucle, et déjoue au passage un débordement de uint8."
+}

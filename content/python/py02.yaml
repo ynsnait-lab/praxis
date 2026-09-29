@@ -1,0 +1,597 @@
+id: py02
+track: python
+title: Mutabilité & aliasing
+goal: Ne plus jamais te faire avoir par une liste partagée ou un argument par défaut mutable.
+level: avance
+requires:
+- py01
+concepts:
+- mutabilite
+- copie
+- args-defaut
+lesson:
+  minutes: 15
+  intro: |
+    Le module précédent a posé l'idée : un nom est une étiquette sur un objet. Il reste une question qui cause une grande partie des bugs Python « impossibles » : **cet objet peut-il changer ?** Si oui, et s'il porte plusieurs étiquettes, une modification faite d'un côté apparaît de l'autre. Ce module t'apprend à voir ces partages et à les contrôler.
+  steps:
+    - level: 1
+      title: Tableau blanc ou page imprimée
+      body: |
+        Deux familles d'objets :
+        - les **modifiables** (*mutable*), comme un tableau blanc : on peut effacer et réécrire dessus. Ce sont `list`, `dict`, `set`, `bytearray` et les objets de tes propres classes ;
+        - les **immuables** (*immutable*), comme une page imprimée : pour « changer » le texte, il faut imprimer une nouvelle page. Ce sont `int`, `float`, `bool`, `str`, `tuple`, `frozenset`, `bytes`, `None`.
+
+        Si deux collègues regardent **le même** tableau blanc et que l'un écrit dessus, l'autre voit la modification. Avec une page imprimée, personne ne peut modifier la page de l'autre : au pire, quelqu'un en imprime une nouvelle et recolle son étiquette dessus.
+    - level: 2
+      title: Modifier l'objet ou recoller l'étiquette
+      body: |
+        Deux gestes qui se ressemblent mais n'ont rien à voir :
+        - **muter** l'objet : `v.append(x)`, `v[0] = x`, `v.sort()`, `d["k"] = x`, `s.add(x)`. L'objet change, **toutes** ses étiquettes le voient ;
+        - **réaffecter** le nom : `v = v + [x]`, `v = sorted(v)`, `v = []`. Un nouvel objet est créé et seule **cette** étiquette est recollée dessus.
+
+        Quand tu appelles une fonction, le paramètre est **une étiquette de plus** sur l'objet que tu passes. Si la fonction mute l'objet, l'appelant le voit ; si elle réaffecte son paramètre, l'appelant ne voit rien.
+
+        Dernier point : la valeur par défaut d'un paramètre (`def f(x, cible=[])`) est créée **une seule fois**, quand Python lit le `def`. Si c'est une liste, tous les appels partagent la même.
+      check:
+        q: Laquelle de ces fonctions modifie la liste de l'appelant ?
+        choices:
+          - t: "`def f(v): v += [1]`"
+            ok: true
+            why: Sur une liste, `+=` appelle `extend` : c'est une mutation de l'objet partagé.
+          - t: "`def f(v): v = v + [1]`"
+            why: "`v + [1]` fabrique une nouvelle liste ; seule l'étiquette locale `v` est recollée dessus."
+          - t: "`def f(v): v = sorted(v)`"
+            why: "`sorted` renvoie une nouvelle liste ; l'originale n'est pas touchée."
+    - level: 3
+      title: Les trois pièges en action
+      body: |
+        Mutation dans une fonction, argument par défaut partagé, liste de listes multipliée : prédis chaque ligne avant de lancer.
+      code: |
+        def ajoute_mesure(v):
+            v.append(99)            # mutation : l'appelant la voit
+
+        def remplace(v):
+            v = [0, 0]              # réaffectation : étiquette locale seulement
+
+        m = [1, 2]
+        ajoute_mesure(m)
+        remplace(m)
+        print(m)
+
+        def ajouter(x, cible=[]):   # piège : [] créée une seule fois
+            cible.append(x)
+            return cible
+
+        print(ajouter(1), ajouter(2))
+        print(ajouter.__defaults__)
+
+        def ajouter_ok(x, cible=None):
+            if cible is None:
+                cible = []          # une liste neuve à chaque appel
+            cible.append(x)
+            return cible
+
+        print(ajouter_ok(1), ajouter_ok(2))
+
+        grille = [[0] * 3] * 3      # trois fois LA MÊME ligne
+        grille[0][0] = 1
+        print(grille)
+        grille = [[0] * 3 for _ in range(3)]
+        grille[0][0] = 1
+        print(grille)
+      run: true
+      out: |
+        [1, 2, 99]
+        [1, 2] [1, 2]
+        ([1, 2],)
+        [1] [2]
+        [[1, 0, 0], [1, 0, 0], [1, 0, 0]]
+        [[1, 0, 0], [0, 0, 0], [0, 0, 0]]
+      after: |
+        `print(ajouter(1), ajouter(2))` affiche deux fois `[1, 2]` : les deux appels renvoient **la même** liste, qui contient déjà 1 et 2 au moment de l'affichage. La liste partagée est visible dans `ajouter.__defaults__`.
+    - level: 4
+      title: Copie superficielle, copie profonde
+      body: |
+        « Copier » a deux sens :
+        - la copie **superficielle** (`v.copy()`, `list(v)`, `v[:]`, `dict(d)`, `copy.copy(x)`) crée un **nouveau conteneur** dont les cases désignent **les mêmes objets** que l'original ;
+        - la copie **profonde** (`copy.deepcopy(x)`) copie aussi, récursivement, tout ce qui est à l'intérieur.
+
+        Pour une liste de nombres, la copie superficielle suffit (les nombres sont immuables). Pour une configuration imbriquée, non.
+
+        Et un tuple immuable peut contenir un objet modifiable : le tuple désigne toujours la même liste, mais la liste, elle, peut changer. C'est pour ça qu'un tel tuple ne peut pas servir de clé de dictionnaire.
+      code: |
+        import copy
+
+        config = {"nom": "cryostat", "seuils": [4.2, 300.0]}
+        superf = config.copy()          # nouveau dict, mêmes objets dedans
+        profonde = copy.deepcopy(config)
+
+        config["seuils"].append(350.0)  # on modifie la liste intérieure
+        config["nom"] = "four"          # on remplace une valeur du dict
+
+        print(superf)
+        print(profonde)
+        print(superf["seuils"] is config["seuils"], profonde["seuils"] is config["seuils"])
+
+        t = ([1, 2], "a")
+        t[0].append(3)                  # le tuple ne change pas, la liste dedans si
+        print(t)
+        try:
+            hash(t)
+        except TypeError as e:
+            print("TypeError:", e)
+      run: true
+      out: |
+        {'nom': 'cryostat', 'seuils': [4.2, 300.0, 350.0]}
+        {'nom': 'cryostat', 'seuils': [4.2, 300.0]}
+        True False
+        ([1, 2, 3], 'a')
+        TypeError: unhashable type: 'list'
+    - level: 5
+      title: Sur le terrain
+      body: |
+        - **Un contrat clair par fonction** : soit elle modifie sur place et renvoie `None` (comme `list.sort`), soit elle renvoie un nouvel objet sans toucher l'entrée (comme `sorted`). Le mélange des deux est une source de bugs garantie.
+        - Données qui ne doivent jamais bouger (coefficients d'étalonnage, table de conversion) : `tuple`, `frozenset`, `@dataclass(frozen=True)` (module Classes), ou `types.MappingProxyType(d)` pour une vue en lecture seule d'un dict.
+        - Pour enquêter sur un partage suspect : `a is b` (ou `id(a) == id(b)`) dit si deux noms désignent le même objet.
+        - `copy.deepcopy` coûte cher sur de grosses structures : ne copie pas « au cas où », copie quand tu veux vraiment un objet indépendant.
+        - Les tableaux NumPy ont leur propre version du piège : une tranche est une **vue** sur les mêmes données (module NumPy).
+  recap:
+    - "Modifiables : list, dict, set, objets. Immuables : nombres, str, tuple, bytes, None."
+    - "Muter (`append`, `v[i] =`, `+=` sur liste) se voit partout ; réaffecter (`v = …`) ne change qu'une étiquette."
+    - "Un paramètre est une étiquette de plus sur l'objet passé."
+    - "Valeur par défaut modifiable = partagée entre les appels : utilise `None` puis crée l'objet."
+    - "`.copy()` copie un niveau ; `copy.deepcopy` copie tout. `[[0] * 3] * 3` répète la même ligne."
+  pieges: [py-aliasing-liste, py-arg-defaut-mutable, py-copie-superficielle, py-liste-imbriquee-multipliee]
+exercises:
+- id: py02.1
+  type: predict
+  level: 2
+  concepts:
+  - args-defaut
+  q: Sortie ? (le grand classique des entretiens)
+  code: |-
+    def ajouter(x, cible=[]):
+        cible.append(x)
+        return cible
+
+    print(ajouter(1))
+    print(ajouter(2))
+  answer: |-
+    [1]
+    [1, 2]
+  e: |-
+    La valeur par défaut est évaluée **une seule fois**, à la définition de la fonction. Toutes les invocations partagent donc la même liste.
+
+    Le remède idiomatique :
+
+    ```python
+    def ajouter(x, cible=None):
+        if cible is None:
+            cible = []
+        cible.append(x)
+        return cible
+    ```
+
+    Règle : **jamais de valeur par défaut mutable** (`[]`, `{}`, `set()`, une instance). Les immuables (`0`, `None`, `""`, un tuple) sont sûrs.
+- id: py02.2
+  type: predict
+  level: 2
+  concepts:
+  - copie
+  - mutabilite
+  q: Sortie ?
+  code: |-
+    import copy
+    grille = [[0, 0], [0, 0]]
+    plate = grille.copy()
+    deep = copy.deepcopy(grille)
+    plate[0][0] = 9
+    print(grille[0][0], deep[0][0])
+  answer: 9 0
+  e: |-
+    `list.copy()` est une copie **superficielle** : la nouvelle liste contient les mêmes objets internes. Modifier `plate[0][0]` modifie la sous-liste partagée.
+
+    `copy.deepcopy` recopie récursivement.
+
+    Piège fréquent : `grille = [[0] * 3] * 3` crée **trois références vers la même ligne**. Écris `[[0] * 3 for _ in range(3)]`.
+- id: py02.3
+  type: qcm
+  level: 1
+  concepts:
+  - mutabilite
+  q: 'Coche les types **immuables** :'
+  multi: true
+  choices:
+  - t: '`tuple`'
+    ok: true
+    why: Immuable — mais peut contenir des objets mutables.
+  - t: '`str`'
+    ok: true
+    why: Toute « modification » crée une nouvelle chaîne.
+  - t: '`frozenset`'
+    ok: true
+    why: Version immuable de set, donc hashable.
+  - t: '`bytearray`'
+    ok: false
+    why: Mutable. C'est le pendant modifiable de `bytes`.
+  - t: '`bytes`'
+    ok: true
+    why: Immuable.
+  - t: '`dict`'
+    ok: false
+    why: Mutable.
+  e: |-
+    L'immuabilité gouverne trois choses : ce qui peut servir de **clé de dict**, ce qui est sûr en **valeur par défaut**, et ce qui peut être partagé entre threads sans verrou.
+
+    Attention : `(1, [2])` est un tuple immuable qui contient une liste mutable → **non hashable**.
+- id: py02.4
+  type: predict
+  level: 2
+  concepts:
+  - mutabilite
+  q: Sortie ?
+  code: |-
+    a = [1, 2]
+    b = a
+    a = a + [3]      # ligne A
+    print(b)
+    c = [1, 2]
+    d = c
+    c += [3]         # ligne B
+    print(d)
+  answer: |-
+    [1, 2]
+    [1, 2, 3]
+  e: |-
+    Différence essentielle :
+    - `a = a + [3]` construit une **nouvelle** liste et réaffecte le nom `a`. `b` pointe toujours sur l'ancienne.
+    - `c += [3]` appelle `list.__iadd__` qui **modifie en place** (équivalent à `extend`). `d` voit le changement.
+
+    Pour les immuables (`int`, `str`, `tuple`), `+=` ne peut que rebinder : pas de piège.
+- id: py02.5
+  type: bug
+  level: 3
+  concepts:
+  - mutabilite
+  - copie
+  q: Cette classe accumule des mesures. Clique sur la ligne qui fait que **toutes les instances partagent le même historique**.
+  code: |-
+    class Capteur:
+        historique = []
+
+        def __init__(self, nom):
+            self.nom = nom
+
+        def lire(self, v):
+            self.historique.append(v)
+            return v
+  bad: 2
+  fix: |2-
+        def __init__(self, nom):
+            self.nom = nom
+            self.historique = []
+  e: |-
+    Ligne 2 : `historique` est un attribut **de classe**, créé une fois et partagé.
+
+    `self.historique.append(v)` ne réaffecte rien : il mute l'objet de classe. Deux capteurs → un seul historique.
+
+    Attribut d'instance = à créer dans `__init__`. Avec une `dataclass`, l'équivalent est `field(default_factory=list)` :
+
+    ```python
+    @dataclass
+    class Capteur:
+        nom: str
+        historique: list[float] = field(default_factory=list)
+    ```
+- id: py02.6
+  type: qcm
+  level: 2
+  concepts:
+  - mutabilite
+  q: Tu veux passer une liste de calibration à une fonction **sans qu’elle puisse la modifier**. La solution la plus robuste ?
+  choices:
+  - t: 'Passer un `tuple` : `f(tuple(cal))`'
+    ok: true
+    why: 'L''immuabilité est garantie par le type. Coût : une copie superficielle.'
+  - t: Documenter « ne pas modifier »
+    ok: false
+    why: Un commentaire n'a jamais arrêté un bug.
+  - t: 'Annoter `cal: Sequence[float]`'
+    ok: false
+    why: Aide mypy, mais aucune protection à l'exécution.
+  - t: Passer `cal[:]`
+    ok: false
+    why: Protège la liste d'origine, mais la fonction peut toujours muter sa copie — souvent suffisant, mais moins explicite.
+  e: |-
+    Ordre de préférence en pratique :
+    1. **`tuple`** quand la donnée est petite et figée (coefficients, seuils).
+    2. **`cal[:]`** (copie défensive) quand la donnée est grosse et que tu maîtrises l'appelant.
+    3. **`Sequence[float]`** en annotation, pour que mypy refuse `.append` au moins statiquement.
+
+    `types.MappingProxyType` fait l'équivalent lecture seule pour les dicts.
+- id: py02.7
+  type: cloze
+  level: 2
+  concepts:
+  - copie
+  q: Complète cette fonction qui renvoie une copie **indépendante** d’une config imbriquée.
+  tpl: |-
+    import copy
+
+    def cloner(config: dict) -> dict:
+        return copy.⟦0⟧(config)
+
+    # Version « à plat » suffisante si les valeurs sont immuables :
+    def cloner_plat(config: dict) -> dict:
+        return ⟦1⟧(config)
+  blanks:
+  - - deepcopy
+  - - dict
+    - config.copy()
+    - '{**config}'
+  e: |-
+    `copy.deepcopy` suit les références récursivement (et gère les cycles).
+
+    `dict(config)`, `config.copy()` et `{**config}` sont équivalents et superficiels — parfaits si toutes les valeurs sont des nombres/chaînes.
+
+    `deepcopy` est lent : ne l'utilise pas dans une boucle d'acquisition.
+- id: py02.8
+  type: code
+  level: 3
+  concepts:
+  - mutabilite
+  - args-defaut
+  q: Écris `fenetre_glissante(valeurs, n)` qui renvoie la liste des moyennes glissantes sur `n` échantillons. Renvoie `[]` si `n > len(valeurs)` ou `n <= 0`. Aucune modification de `valeurs`.
+  lang: python
+  start: |-
+    def fenetre_glissante(valeurs, n):
+        ...
+  sol: |-
+    def fenetre_glissante(valeurs, n):
+        if n <= 0 or n > len(valeurs):
+            return []
+        total = sum(valeurs[:n])
+        out = [total / n]
+        for i in range(n, len(valeurs)):
+            total += valeurs[i] - valeurs[i - n]
+            out.append(total / n)
+        return out
+  tests: |-
+    import math
+    assert fenetre_glissante([1,2,3,4], 2) == [1.5, 2.5, 3.5]
+    assert fenetre_glissante([5], 1) == [5.0]
+    assert fenetre_glissante([1,2], 5) == []
+    assert fenetre_glissante([1,2], 0) == []
+    src = [1.0, 2.0, 3.0]
+    fenetre_glissante(src, 2)
+    assert src == [1.0, 2.0, 3.0], "la fonction ne doit pas modifier l'entrée"
+    r = fenetre_glissante([2,4,6,8,10], 3)
+    assert all(math.isclose(a,b) for a,b in zip(r, [4.0,6.0,8.0])), r
+    print("OK")
+  e: |-
+    Deux qualités attendues :
+    1. **Pas d'effet de bord** — on ne touche pas à `valeurs`.
+    2. **Somme glissante** en O(n) plutôt que `sum()` dans la boucle en O(n·k). Sur un flux capteur à 10 kHz, la différence est réelle.
+
+    Variante standard : `collections.deque(maxlen=n)` pour un buffer circulaire côté temps réel.
+- id: py02.9
+  type: predict
+  level: 2
+  concepts:
+  - mutabilite
+  q: Sortie ?
+  code: |-
+    t = (1, [2, 3])
+    try:
+        t[1] += [4]
+    except TypeError:
+        print("TypeError")
+    print(t)
+  answer: |-
+    TypeError
+    (1, [2, 3, 4])
+  e: |-
+    Le grand classique. `t[1] += [4]` se décompose en :
+    1. `t[1].__iadd__([4])` → la liste est **modifiée en place** ✔
+    2. `t[1] = resultat` → le tuple refuse l'affectation → `TypeError` ✘
+
+    Donc l'exception est levée **après** que la mutation a eu lieu. Tu obtiens l'erreur *et* la modification.
+
+    Leçon : un tuple est immuable, mais il ne rend pas immuables les objets qu'il contient. Pour une vraie constante : `(1, (2, 3))`.
+- id: py02.10
+  type: qcm
+  level: 2
+  concepts:
+  - copie
+  q: '`b = a[:]` sur une liste de `dict`. Que se passe-t-il si tu fais `b[0]["gain"] = 2` ?'
+  choices:
+  - t: '`a[0]["gain"]` vaut 2 aussi : la copie est superficielle'
+    ok: true
+    why: Les dicts internes sont partagés, seule la liste extérieure est nouvelle.
+  - t: '`a` est inchangée'
+    ok: false
+    why: Ce serait le cas avec `copy.deepcopy`.
+  - t: '`TypeError`'
+    ok: false
+    why: 'Aucune erreur : c’est le problème, c’est silencieux.'
+  - t: '`b` devient une liste de copies indépendantes'
+    ok: false
+    why: '`[:]` copie la liste, pas son contenu.'
+  e: |-
+    Toutes ces écritures sont **équivalentes et superficielles** : `a[:]`, `list(a)`, `a.copy()`, `copy.copy(a)`, `[*a]`.
+
+    Règle de décision :
+    - contenu **immuable** (nombres, chaînes, tuples) → copie superficielle suffit
+    - contenu **mutable** (listes, dicts, objets) → `copy.deepcopy`, ou reconstruis explicitement :
+
+    ```python
+    b = [dict(d) for d in a]      # un niveau de plus, sans deepcopy
+    ```
+
+    `deepcopy` est correct mais lent et surprenant sur des objets qui tiennent une ressource (fichier, socket).
+- id: py02.11
+  type: code
+  level: 3
+  concepts:
+  - args-defaut
+  q: 'Écris `accumuler(valeur, journal=None)` : ajoute `valeur` à `journal` et le renvoie. Deux appels sans `journal` doivent renvoyer des listes **indépendantes**.'
+  lang: python
+  start: |-
+    def accumuler(valeur, journal=None):
+        ...
+  sol: |-
+    def accumuler(valeur, journal=None):
+        if journal is None:
+            journal = []
+        journal.append(valeur)
+        return journal
+  tests: |-
+    a = accumuler(1)
+    b = accumuler(2)
+    assert a == [1], a
+    assert b == [2], b
+    assert a is not b, "chaque appel doit creer une nouvelle liste"
+    mien = []
+    r = accumuler(3, mien)
+    assert r is mien and mien == [3], "la liste fournie doit etre utilisee et renvoyee"
+    accumuler(4, mien)
+    assert mien == [3, 4]
+    assert accumuler(5) == [5], "toujours une liste neuve"
+    print("OK")
+  e: |-
+    Le test `a is not b` est exactement celui qui échoue avec `def accumuler(valeur, journal=[])`.
+
+    `None` comme sentinelle est **l'idiome standard** en Python. Il fonctionne parce que `None` est un singleton immuable : la valeur par défaut, évaluée une seule fois, ne peut pas être polluée.
+
+    Note la double exigence du test : créer une liste neuve quand rien n'est fourni, **et** utiliser (sans copier) celle qu'on te donne. Copier défensivement ici casserait `mien == [3, 4]`.
+- id: py02.12
+  type: bug
+  level: 2
+  concepts:
+  - mutabilite
+  q: Ce code doit doubler chaque mesure. Clique sur la ligne qui ne fait rien.
+  code: |-
+    mesures = [1.0, 2.0, 3.0]
+
+    for m in mesures:
+        m = m * 2
+
+    print(mesures)   # [1.0, 2.0, 3.0] — raté
+  bad: 4
+  fix: |-
+    for i, m in enumerate(mesures):
+        mesures[i] = m * 2
+    # ou : mesures = [m * 2 for m in mesures]
+  e: |-
+    `m` est un **nom local** réaffecté à chaque tour. Le rebinder n'a aucun effet sur la liste : Python n'a pas de « référence à un emplacement » comme le `for (auto& x : v)` du C++.
+
+    Trois corrections, par ordre de préférence :
+    1. `mesures = [m * 2 for m in mesures]` — le plus lisible.
+    2. `mesures[:] = [m * 2 for m in mesures]` — si d'autres noms pointent sur la même liste et doivent voir le changement.
+    3. `for i, m in enumerate(mesures): mesures[i] = m * 2` — si tu as besoin de l'index.
+
+    Ça ne marche « par accident » que si les éléments sont mutables et que tu les mutes : `for d in dicts: d["x"] = 1` fonctionne, lui.
+  fixed: |
+    mesures = [1.0, 2.0, 3.0]
+
+    for i, m in enumerate(mesures):
+        mesures[i] = m * 2
+
+    print(mesures)
+- id: py02.13
+  type: predict
+  level: 3
+  concepts:
+  - mutabilite
+  - copie
+  q: Sortie ?
+  code: |-
+    import copy
+    a = [1, 2]
+    b = [a, a]
+    c = copy.deepcopy(b)
+    c[0].append(3)
+    print(b, c, c[0] is c[1])
+  answer: '[[1, 2], [1, 2]] [[1, 2, 3], [1, 2, 3]] True'
+  e: |-
+    `deepcopy` **préserve la structure de partage** : `b[0]` et `b[1]` étaient le même objet, leurs copies le sont aussi. D'où `c[0] is c[1]` → `True` et la modification visible dans les deux.
+
+    C'est voulu, et c'est ce qui permet à `deepcopy` de gérer les graphes cycliques sans boucler à l'infini (il maintient un dictionnaire mémo des objets déjà copiés).
+
+    Si tu voulais deux listes vraiment indépendantes : `c = [list(x) for x in b]`.
+- id: py02.14
+  type: flash
+  level: 2
+  concepts:
+  - mutabilite
+  q: Cite les quatre façons de « vider » une liste `v` et dis laquelle est visible par les autres noms qui pointent dessus.
+  back: |-
+    ```python
+    v.clear()      # en place  → visible par tous les alias
+    del v[:]       # en place  → visible
+    v[:] = []      # en place  → visible
+    v = []         # rebinding → INVISIBLE pour les autres noms
+    ```
+
+    Les trois premières mutent l'objet ; la quatrième crée une nouvelle liste et n'affecte que le nom local.
+  e: |-
+    Le même raisonnement s'applique à `dict.clear()` vs `d = {}`, et à `set.clear()`.
+
+    Règle générale : **mutation** (`.append`, `.clear`, `[i] =`, `[:] =`) = visible partout ; **affectation d'un nom** (`v = ...`) = locale.
+- id: py02.15
+  type: qcm
+  level: 3
+  concepts:
+  - args-defaut
+  - mutabilite
+  q: Quelle valeur par défaut est **sûre** dans une signature de fonction ?
+  choices:
+  - t: '`def f(x, seuils=(1.0, 2.0))`'
+    ok: true
+    why: 'Un tuple d’immuables : partagé, mais impossible à modifier. Idéal.'
+  - t: '`def f(x, cache={})`'
+    ok: false
+    why: Dict mutable partagé entre tous les appels — le bug classique.
+  - t: '`def f(x, t=datetime.now())`'
+    ok: false
+    why: 'Évalué **une fois** à la définition : `t` sera toujours l’heure de démarrage du programme.'
+  - t: '`def f(x, buf=bytearray(64))`'
+    ok: false
+    why: 'Mutable et partagé : deux appels concurrents écrivent dans le même buffer.'
+  e: |-
+    Le critère est simple : **la valeur par défaut est évaluée une seule fois, à la définition.**
+
+    Sûr : `None`, nombres, chaînes, `bytes`, tuples d'immuables, `frozenset`, enums.
+    Dangereux : `[]`, `{}`, `set()`, `bytearray()`, toute instance, tout appel de fonction.
+
+    Le cas `datetime.now()` est le plus vicieux parce qu'il ne provoque aucune erreur — juste des horodatages tous identiques. Écris `t=None` puis `t = t or datetime.now()`.
+- id: py02.16
+  type: parsons
+  level: 3
+  concepts:
+  - copie
+  - mutabilite
+  q: Reconstitue une fonction qui fusionne une config par défaut et une config utilisateur, **récursivement**, sans modifier ni l’une ni l’autre.
+  lang: python
+  lines:
+  - 'def fusionner(defauts: dict, patch: dict) -> dict:'
+  - '    out = dict(defauts)'
+  - '    for cle, val in patch.items():'
+  - '        ancien = out.get(cle)'
+  - '        if isinstance(ancien, dict) and isinstance(val, dict):'
+  - '            out[cle] = fusionner(ancien, val)'
+  - '        else:'
+  - '            out[cle] = val'
+  - '    return out'
+  extra:
+  - '        out.update(patch)'
+  - '    defauts.update(patch)'
+  e: |-
+    Trois propriétés que les intrus cassent :
+    - `dict(defauts)` **copie** avant d'écrire : `defauts` n'est jamais touchée. `defauts.update(patch)` la détruirait.
+    - La récursion ne se déclenche que si **les deux** côtés sont des dicts. Sinon le patch écrase — c'est ce qu'on veut pour une liste ou un scalaire.
+    - `out.update(patch)` remplacerait les sous-dictionnaires en bloc au lieu de les fusionner.
+
+    Attention : la copie reste superficielle sur les **listes**. Si ta config contient des listes que tu modifies ensuite, ajoute une copie explicite.
+
+    C'est le motif exact d'un `config = DEFAUTS | fichier | cli` en version profonde.

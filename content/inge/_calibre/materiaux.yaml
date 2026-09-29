@@ -1,0 +1,287 @@
+domain: materiaux
+exercises:
+- id: ig.mat01
+  type: qcm
+  level: 1
+  q: 'Rapport approximatif entre le module d''Young de l''acier et celui de l''aluminium :'
+  choices:
+  - t: '1'
+    ok: false
+  - t: '30'
+    ok: false
+  - t: '10'
+    ok: false
+  - t: '3'
+    ok: true
+  e: 210 GPa contre 70 GPa, soit un facteur 3. À géométrie identique, une pièce en alu fléchit donc 3 fois plus. C'est un des chiffres les plus utiles à avoir en tête en conception mécanique.
+  src: calibre
+- id: ig.mat02
+  type: qcm
+  level: 1
+  q: 'Masse volumique approximative de l''acier :'
+  choices:
+  - t: 4500 kg/m³
+    ok: false
+  - t: 7850 kg/m³
+    ok: true
+  - t: 2700 kg/m³
+    ok: false
+  - t: 11 300 kg/m³
+    ok: false
+  e: 7850 kg/m³ pour l'acier, 2700 pour l'aluminium, 4500 pour le titane, 8900 pour le cuivre, 11 300 pour le plomb. Ces cinq valeurs permettent d'estimer la masse d'une pièce de tête, ce qu'on attend d'un ingénieur en réunion.
+  src: calibre
+- id: ig.mat03
+  type: qcm
+  level: 2
+  q: 'La trempe d''un acier a pour effet principal :'
+  choices:
+  - t: De modifier la masse volumique
+    ok: false
+  - t: D'augmenter simultanément dureté et ductilité
+    ok: false
+  - t: De réduire la dureté pour faciliter l'usinage
+    ok: false
+  - t: D'augmenter la dureté et la limite élastique, au détriment de la ductilité
+    ok: true
+  e: 'La trempe transforme l''austénite en martensite, très dure mais fragile et sous contrainte. On la fait presque toujours suivre d''un revenu, qui récupère de la ténacité en cédant un peu de dureté. Le recuit, lui, fait l''inverse de la trempe : il adoucit pour usiner.'
+  src: calibre
+- id: ig.mat04
+  type: qcm
+  level: 2
+  q: À quoi sert le revenu pratiqué après une trempe ?
+  choices:
+  - t: À durcir encore davantage la pièce
+    ok: false
+  - t: À nettoyer la surface
+    ok: false
+  - t: À enrichir la surface en carbone
+    ok: false
+  - t: À restaurer de la ténacité et relaxer les contraintes, en cédant un peu de dureté
+    ok: true
+  e: 'La martensite brute de trempe est fragile et pleine de contraintes résiduelles : elle casse net. Le revenu (chauffe modérée) échange un peu de dureté contre beaucoup de ténacité. L''enrichissement en carbone de surface, c''est la cémentation, pas le revenu.'
+  src: calibre
+- id: ig.mat05
+  type: qcm
+  level: 2
+  q: À partir de quelle teneur en carbone un alliage fer-carbone n'est-il plus un acier mais une fonte ?
+  choices:
+  - t: 6,7 %
+    ok: false
+  - t: 0,2 %
+    ok: false
+  - t: 2,1 %
+    ok: true
+  - t: 0,8 %
+    ok: false
+  e: La frontière conventionnelle est à 2,1 % de carbone. En dessous, c'est un acier (forgeable, soudable) ; au-dessus, une fonte (coulée, fragile, mais excellente en amortissement de vibrations et en usinabilité). 0,8 % correspond à la composition eutectoïde (perlite).
+  src: calibre
+- id: ig.mat06
+  type: qcm
+  level: 2
+  q: 'Différence majeure entre acier et aluminium en fatigue :'
+  choices:
+  - t: Les deux se comportent identiquement
+    ok: false
+  - t: L'aluminium a une limite d'endurance plus élevée
+    ok: false
+  - t: L'acier présente une limite d'endurance, l'aluminium n'en a pratiquement pas
+    ok: true
+  - t: L'aluminium ne se fatigue pas
+    ok: false
+  e: 'Un acier présente un palier : sous sa limite d''endurance, il tient un nombre illimité de cycles. L''aluminium n''a pas de vrai palier — sa courbe de Wöhler continue de descendre, donc toute pièce en alu cyclée a une durée de vie FINIE. On la dimensionne en nombre de cycles, jamais en « tient pour toujours ».'
+  src: calibre
+- id: ig.mat07
+  type: qcm
+  level: 2
+  q: 'Un inox austénitique type 316L :'
+  choices:
+  - t: Est magnétique et peut être trempé
+    ok: false
+  - t: Est le plus dur des inox
+    ok: false
+  - t: Ne résiste pas à la corrosion
+    ok: false
+  - t: N'est pratiquement pas magnétique et ne durcit pas par trempe
+    ok: true
+  e: 'Structure austénitique : quasi amagnétique, non trempante (elle ne durcit que par écrouissage), très bonne tenue à la corrosion, notamment en milieu chloruré grâce au molybdène du 316. Les inox martensitiques (type 420) sont eux magnétiques et trempables, mais moins résistants à la corrosion.'
+  src: calibre
+- id: ig.mat08
+  type: qcm
+  level: 3
+  q: Pourquoi choisir un inox austénitique plutôt qu'un acier ferritique pour une application cryogénique ?
+  choices:
+  - t: Il est plus dur
+    ok: false
+  - t: Il se dilate moins
+    ok: false
+  - t: Il ne subit pas de transition ductile-fragile aux basses températures
+    ok: true
+  - t: Il est moins cher
+    ok: false
+  e: 'Les aciers ferritiques (structure cubique centrée) présentent une transition ductile-fragile : en dessous d''une température critique ils cassent net, sans déformation. La structure cubique à faces centrées des austénitiques reste ductile jusqu''aux températures de l''azote ou de l''hélium liquides — raison pour laquelle les cryostats sont en 316L.'
+  src: calibre
+- id: ig.mat09
+  type: qcm
+  level: 2
+  q: 'Le fluage est :'
+  choices:
+  - t: Un durcissement par déformation à froid
+    ok: false
+  - t: Une déformation lente et progressive sous charge constante, surtout à température élevée
+    ok: true
+  - t: Une rupture brutale sous choc
+    ok: false
+  - t: Une fissuration due à la corrosion
+    ok: false
+  e: Le fluage est une déformation qui s'accumule dans le temps sous charge constante, activée thermiquement (typiquement au-delà de 0,3-0,4·Tfusion). Il dimensionne les aubes de turbine et les canalisations vapeur. Le durcissement par déformation à froid, c'est l'écrouissage.
+  src: calibre
+- id: ig.mat10
+  type: qcm
+  level: 1
+  q: Quelle grandeur distingue le mieux un matériau ductile d'un matériau fragile ?
+  choices:
+  - t: Son allongement à rupture
+    ok: true
+  - t: Sa masse volumique
+    ok: false
+  - t: Sa conductivité thermique
+    ok: false
+  - t: Son module d'Young
+    ok: false
+  e: 'L''allongement à rupture A% : un acier doux dépasse 20 %, une fonte grise plafonne à 1 %, un verre est à 0. La ductilité, c''est la capacité à prévenir avant de rompre — un matériau ductile se déforme visiblement, un fragile casse sans signe avant-coureur.'
+  src: calibre
+- id: ig.mat11
+  type: qcm
+  level: 2
+  q: 'Un composite carbone/époxy unidirectionnel est :'
+  choices:
+  - t: Fortement anisotrope, très rigide dans le sens des fibres
+    ok: true
+  - t: Isotrope
+    ok: false
+  - t: Aussi ductile qu'un acier
+    ok: false
+  - t: Plus rigide transversalement que longitudinalement
+    ok: false
+  e: 'Toute la rigidité vient des fibres : longitudinalement on dépasse l''acier à masse trois fois moindre, transversalement on ne trouve que la résine, dix fois plus souple. D''où les empilements croisés (0/45/90) pour obtenir un comportement quasi isotrope, et la règle d''or : concevoir en suivant le trajet des efforts.'
+  src: calibre
+- id: ig.mat12
+  type: qcm
+  level: 3
+  q: Une pièce en aluminium fixée par des vis en acier inoxydable, en ambiance humide. Que se passe-t-il ?
+  choices:
+  - t: L'inox se corrode
+    ok: false
+  - t: Rien de particulier
+    ok: false
+  - t: Les deux se protègent mutuellement
+    ok: false
+  - t: L'aluminium se corrode, car il est moins noble que l'inox
+    ok: true
+  e: 'Couple galvanique : le métal le moins noble devient l''anode et se sacrifie. L''alu étant bien plus bas que l''inox dans la série galvanique, il se dissout — d''autant plus vite que la surface d''inox est grande devant celle d''alu. Remèdes : rondelle isolante, revêtement, ou choix d''une visserie plus proche électrochimiquement.'
+  src: calibre
+- id: ig.mat13
+  type: qcm
+  level: 2
+  q: 'L''anodisation d''une pièce en aluminium produit :'
+  choices:
+  - t: Une couche d'oxyde d'aluminium dure et électriquement isolante
+    ok: true
+  - t: Un dépôt de zinc protecteur
+    ok: false
+  - t: Un revêtement de peinture
+    ok: false
+  - t: Une couche de chrome dur
+    ok: false
+  e: 'L''anodisation fait croître l''oxyde natif par voie électrochimique : dureté nettement accrue, bonne tenue à la corrosion, et surtout isolation électrique — un piège classique quand on comptait sur la pièce pour assurer une masse ou un contact de mise à la terre.'
+  src: calibre
+- id: ig.mat14
+  type: qcm
+  level: 3
+  q: 'À masse égale, une barre en traction en aluminium comparée à une barre en acier est :'
+  choices:
+  - t: Nettement plus rigide
+    ok: false
+  - t: Pratiquement aussi rigide
+    ok: true
+  - t: Nettement moins rigide
+    ok: false
+  - t: Trois fois moins rigide
+    ok: false
+  e: 'La rigidité spécifique E/ρ vaut ≈ 27 MN·m/kg pour l''acier et ≈ 26 pour l''alu : quasiment identique. En TRACTION, changer pour l''alu ne gagne rien en rigidité à masse égale. En FLEXION, c''est différent : on peut épaissir la section, et l''indice pertinent devient √E/ρ, où l''alu gagne — ce qui explique le succès de l''alu dans les structures fléchies.'
+  src: calibre
+- id: ig.mat15
+  type: qcm
+  level: 2
+  q: 'La température de transition vitreuse Tg d''un polymère est celle à laquelle :'
+  choices:
+  - t: Il fond
+    ok: false
+  - t: Il cristallise entièrement
+    ok: false
+  - t: Il passe d'un état rigide à un état caoutchouteux
+    ok: true
+  - t: Il se dégrade chimiquement
+    ok: false
+  e: 'À Tg, les chaînes gagnent en mobilité : le module d''Young chute brutalement, souvent d''un facteur 100 ou plus. Pour un thermoplastique semi-cristallin, Tg et Tf sont deux températures distinctes. C''est Tg qui fixe la température d''usage maximale en charge, pas Tf.'
+  src: calibre
+- id: ig.mat16
+  type: qcm
+  level: 2
+  q: En impression 3D FDM, quelle est la principale limite du PLA face au PETG ou à l'ABS ?
+  choices:
+  - t: Il ne colle pas au plateau
+    ok: false
+  - t: Il est trop souple
+    ok: false
+  - t: Il est plus cher
+    ok: false
+  - t: Sa tenue en température est faible, avec un ramollissement dès 55-60 °C
+    ok: true
+  e: Le PLA est rigide et facile à imprimer, mais son Tg autour de 55-60 °C le condamne pour toute pièce exposée au soleil, proche d'un moteur ou dans une voiture. Il est aussi assez fragile. PETG monte vers 80 °C, ABS/ASA vers 100 °C, et les polycarbonates au-delà.
+  src: calibre
+- id: ig.mat17
+  type: qcm
+  level: 3
+  q: 'La cémentation d''une pièce en acier doux consiste à :'
+  choices:
+  - t: Tremper toute la masse uniformément
+    ok: false
+  - t: Enrichir la surface en carbone avant trempe, pour obtenir une peau dure et un cœur tenace
+    ok: true
+  - t: Recuire la pièce pour l'adoucir entièrement
+    ok: false
+  - t: Déposer du ciment réfractaire
+    ok: false
+  e: 'On diffuse du carbone sur quelques dixièmes de millimètre, puis on trempe : seule la couche enrichie durcit. On obtient une peau résistante à l''usure sur un cœur qui reste ductile et absorbe les chocs — le compromis idéal pour un pignon ou un arbre cannelé. La nitruration donne un résultat voisin, à plus basse température et avec moins de déformation.'
+  src: calibre
+- id: ig.mat18
+  type: qcm
+  level: 2
+  q: 'L''écrouissage (déformation plastique à froid) d''un métal :'
+  choices:
+  - t: Augmente la limite élastique et diminue l'allongement restant
+    ok: true
+  - t: Diminue la limite élastique
+    ok: false
+  - t: Augmente la ductilité
+    ok: false
+  - t: Est sans effet sur les propriétés mécaniques
+    ok: false
+  e: 'La multiplication des dislocations gêne leur propre mouvement : le métal devient plus résistant mais consomme sa réserve de déformation. C''est ainsi qu''on durcit les inox austénitiques, non trempables. Le recuit de recristallisation remet le compteur à zéro.'
+  src: calibre
+- id: ig.mat19
+  type: qcm
+  level: 2
+  q: Que caractérise la résilience mesurée par un essai Charpy ?
+  choices:
+  - t: La résistance à la corrosion
+    ok: false
+  - t: La limite élastique
+    ok: false
+  - t: L'énergie absorbée lors d'une rupture par choc
+    ok: true
+  - t: La dureté superficielle
+    ok: false
+  e: 'L''essai Charpy mesure l''énergie (en joules) absorbée pour rompre une éprouvette entaillée sous choc : c''est un indicateur de ténacité, pas de résistance statique. Un acier peut afficher un Rm élevé et une résilience misérable — exactement la combinaison qui produit des ruptures fragiles inattendues.'
+  src: calibre

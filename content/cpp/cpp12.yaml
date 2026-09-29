@@ -1,0 +1,713 @@
+id: cpp12
+track: cpp
+title: Bits & arithmétique fixe
+goal: Masquer, décaler, faire du virgule fixe sans overflow silencieux.
+level: avance
+requires:
+- cpp01
+concepts:
+- masques
+- shifts
+- fixed-point
+- saturation
+lesson:
+  minutes: 18
+  intro: |
+    Un registre de configuration, un mot d'état d'automate, une trame de capteur : en embarqué, l'information est rangée **bit par bit**. Et sur un microcontrôleur sans unité de calcul flottant, les températures et les gains se calculent en **virgule fixe**, avec des entiers. Ce module te donne les gestes exacts pour lire, écrire et assembler des bits sans effet de bord, et pour calculer en virgule fixe sans débordement silencieux.
+  steps:
+    - level: 1
+      title: Une rangée d'interrupteurs et une règle graduée
+      body: |
+        Un octet, c'est une rangée de 8 petits interrupteurs, numérotés de 0 (à droite, poids faible) à 7 (à gauche, poids fort). Un **masque** est un pochoir posé sur la rangée : il ne laisse voir ou toucher que certains interrupteurs. Le ET (`&`) regarde ou éteint à travers le pochoir, le OU (`|`) allume, le OU exclusif (`^`) bascule, et les décalages (`<<`, `>>`) font glisser le pochoir.
+
+        La **virgule fixe**, c'est mesurer en millimètres avec une règle graduée en entiers plutôt qu'en mètres avec des décimales : tu ranges 1234 au lieu de 1,234, la virgule est **implicite**, à une place convenue une fois pour toutes. Le processeur ne fait que des calculs entiers, rapides et exacts.
+    - level: 2
+      title: Opérateurs, masques et formats Q
+      body: |
+        **Gestes de base** sur un non signé `x` (bit numéro `n`) :
+
+        | Geste | Écriture |
+        |---|---|
+        | mettre à 1 | `x \|= (1u << n)` |
+        | mettre à 0 | `x &= ~(1u << n)` |
+        | inverser | `x ^= (1u << n)` |
+        | tester | `(x >> n) & 1u` |
+        | extraire un champ (position `p`, largeur `w`) | `(x >> p) & ((1u << w) - 1u)` |
+
+        - **Promotion** : tout calcul sur un `uint8_t` ou un `uint16_t` se fait en `int`. `~x` sur un `uint8_t` valant 0xFF donne donc −256 (un `int`), pas 0 : reconvertis avec `static_cast<std::uint8_t>`.
+        - **Décalages** : le nombre de bits doit être **strictement inférieur** à la largeur du type (sinon comportement indéfini). Décale des non signés (`1u`, `std::uint64_t{1}`).
+        - `<bit>` (C++20) : `std::popcount` (nombre de 1), `std::countr_zero` (position du premier 1), `std::bit_width`, `std::has_single_bit`, `std::rotl`, et `std::endian` pour connaître l'ordre des octets.
+        - **Format Qm.n** : m bits entiers, n bits fractionnaires ; valeur réelle = brut / 2ⁿ. En Q12.4 sur `int16_t`, la résolution est 1/16 = 0,0625 et la plage ±2048. Additionner : directement (même format). Multiplier : le produit brut est en Q(2m).(2n), il faut **deux fois plus de bits**, puis décaler de n pour revenir au format.
+      check:
+        q: Comment mettre à 0 le bit 3 de `x` (un `std::uint8_t`) sans toucher aux autres ?
+        choices:
+          - t: "`x &= ~(1u << 3);`"
+            ok: true
+            why: Le masque `~(1u << 3)` a des 1 partout sauf au bit 3 ; le ET conserve tout le reste.
+          - t: "`x |= ~(1u << 3);`"
+            why: Le OU avec un masque plein de 1 met tous les autres bits à 1.
+          - t: "`x ^= (1u << 3);`"
+            why: Le OU exclusif **inverse** le bit 3 : s'il valait 0, il passe à 1.
+    - level: 3
+      title: Manipuler des bits
+      code: |
+        #include <bit>
+        #include <bitset>
+        #include <cstdint>
+        #include <cstdio>
+        #include <iostream>
+
+        int main() {
+            std::uint8_t x = 0b1011'0100;
+            std::cout << std::bitset<8>(x) << '\n';
+            x |= (1u << 0);                                  // mettre à 1 le bit 0
+            x &= static_cast<std::uint8_t>(~(1u << 2));      // mettre à 0 le bit 2
+            x ^= (1u << 7);                                  // inverser le bit 7
+            std::cout << std::bitset<8>(x) << "  bit 4 = " << ((x >> 4) & 1u) << '\n';
+
+            std::uint8_t y = 0xFF;
+            auto z = ~y;                                     // promotion en int : pas 0x00 !
+            std::printf("~0xFF = %d (int), en uint8_t : %u\n", z,
+                        static_cast<unsigned>(static_cast<std::uint8_t>(z)));
+
+            std::uint16_t statut = 0b0000'0100'1001'0000;
+            std::cout << std::popcount(statut) << " bits à 1, le premier en position "
+                      << std::countr_zero(statut) << ", largeur utile " << std::bit_width(statut) << '\n';
+
+            std::uint32_t mot = 0x12345678;
+            std::uint32_t inverse = ((mot & 0xFF) << 24) | ((mot & 0xFF00) << 8)
+                                  | ((mot >> 8) & 0xFF00) | (mot >> 24);
+            std::printf("0x%08X → 0x%08X (machine %s-endian)\n", mot, inverse,
+                        std::endian::native == std::endian::little ? "little" : "big");
+        }
+      out: |
+        10110100
+        00110001  bit 4 = 1
+        ~0xFF = -256 (int), en uint8_t : 0
+        3 bits à 1, le premier en position 4, largeur utile 11
+        0x12345678 → 0x78563412 (machine little-endian)
+      after: |
+        `std::bitset<8>` est l'outil de débogage idéal pour **voir** des bits. Et l'inversion d'ordre des octets (*byte swap*) sert dès qu'un protocole (Modbus, réseau) envoie ses mots poids fort en premier alors que ta machine range poids faible en premier. C++23 fournit `std::byteswap`.
+    - level: 4
+      title: Virgule fixe sans débordement
+      body: |
+        Multiplier deux Q8.8 : le produit brut est un Q16.16 qui demande 32 bits. On l'élargit **avant** de multiplier, on ajoute la moitié d'une unité (1 << 7) pour arrondir au plus proche, on décale de 8 pour revenir en Q8.8, et on **sature** au lieu de laisser reboucler.
+
+        Conversion d'une lecture capteur en Q12.4 (1/16 °C par unité) vers des millidegrés, sans aucun flottant : multiplier d'abord (sur 32 bits), diviser ensuite, pour ne pas perdre la partie fractionnaire.
+      code: |
+        #include <cstdint>
+        #include <cstdio>
+        #include <limits>
+
+        using q8_8 = std::int16_t;                           // 8 bits entiers, 8 fractionnaires
+
+        constexpr q8_8 vers_q8_8(double v) { return static_cast<q8_8>(v * 256.0 + (v >= 0 ? 0.5 : -0.5)); }
+        constexpr double depuis_q8_8(q8_8 q) { return q / 256.0; }
+
+        constexpr q8_8 saturer16(std::int32_t v) {
+            if (v > std::numeric_limits<std::int16_t>::max()) return std::numeric_limits<std::int16_t>::max();
+            if (v < std::numeric_limits<std::int16_t>::min()) return std::numeric_limits<std::int16_t>::min();
+            return static_cast<q8_8>(v);
+        }
+
+        constexpr q8_8 mul_q8_8(q8_8 a, q8_8 b) {
+            std::int32_t p = static_cast<std::int32_t>(a) * b;   // Q16.16 sur 32 bits
+            return saturer16((p + (1 << 7)) >> 8);                // arrondi, Q8.8, saturation
+        }
+
+        constexpr std::int32_t q12_4_vers_milli(std::int16_t brut) {    // capteur au 1/16 °C
+            return (static_cast<std::int32_t>(brut) * 1000) / 16;
+        }
+
+        int main() {
+            q8_8 gain = vers_q8_8(1.5), mesure = vers_q8_8(20.25);
+            q8_8 r = mul_q8_8(gain, mesure);
+            std::printf("1.5 × 20.25 = %.4f (brut %d)\n", depuis_q8_8(r), r);
+            std::printf("100 × 2 = %.4f (saturé au maximum)\n",
+                        depuis_q8_8(mul_q8_8(vers_q8_8(100.0), vers_q8_8(2.0))));
+            std::printf("%d millidegrés\n", q12_4_vers_milli(0x0191));
+            std::printf("-5.5 °C en Q12.4 : %d\n", static_cast<int>(-5.5 * 16));
+        }
+      out: |
+        1.5 × 20.25 = 30.3750 (brut 7776)
+        100 × 2 = 127.9961 (saturé au maximum)
+        25062 millidegrés
+        -5.5 °C en Q12.4 : -88
+      after: |
+        Le maximum représentable en Q8.8 est 32767 / 256 ≈ 127,996 : 100 × 2 ne rentre pas, et la saturation donne une valeur fausse mais **bornée**, au lieu d'un nombre négatif absurde. 0x0191 = 401 seizièmes, soit 25,0625 °C.
+    - level: 5
+      title: Sur le terrain
+      body: |
+        - Bits : toujours sur des **non signés** à largeur fixe, avec des masques nommés (`constexpr std::uint32_t UART_CR1_TE = 1u << 3;`), jamais des nombres magiques.
+        - Pas de champs de bits (`unsigned a : 3;`) pour décrire un registre matériel : leur disposition dépend du compilateur. Masques et décalages explicites.
+        - Virgule fixe : choisis le format d'après la **plage** et la **résolution** nécessaires, calcule les produits en largeur double, arrondis, sature. Documente le format dans le nom (`temp_q12_4`).
+        - Sur ESP32 et Cortex-M4F, le `float` est calculé par le matériel, mais le `double` est émulé en logiciel, donc lent : écris `1.5f`, pas `1.5`. Sur un Cortex-M0 ou un ESP32-C3 (sans FPU), la virgule fixe reste la règle.
+        - Protocoles : n'envoie jamais une `struct` telle quelle (remplissage, ordre des octets) ; sérialise champ par champ avec des décalages.
+  recap:
+    - "Mettre à 1 : `|= (1u << n)` ; à 0 : `&= ~(1u << n)` ; inverser : `^=` ; tester : `(x >> n) & 1u`."
+    - "Les petits types sont promus en `int` : `~` et `<<` sur un `uint8_t` donnent un `int`."
+    - "Décalage strictement inférieur à la largeur ; décaler des non signés."
+    - "`<bit>` : `popcount`, `countr_zero`, `bit_width`, `endian`."
+    - "Qm.n : valeur = brut / 2ⁿ ; produit en largeur double, arrondi, saturation."
+  pieges: [cpp-decalage-ub, cpp-virgule-fixe-debordement, cpp-chapeau-xor, cpp-uint8-cout]
+exercises:
+- id: cpp12.1
+  type: predict
+  level: 2
+  concepts:
+  - masques
+  q: Sortie ? (`x` est un `uint8_t` valant `0b10110100`)
+  lang: cpp
+  code: |-
+    #include <cstdio>
+    #include <cstdint>
+    int main() {
+        uint8_t x = 0b10110100;
+        printf("%u %u %u %u\n",
+               x & 0x0F,          // bits de poids faible
+               (x >> 4) & 0x0F,   // bits de poids fort
+               x | 0x01,          // forcer le bit 0 à 1
+               x & ~0x04);        // forcer le bit 2 à 0
+    }
+  answer: 4 11 181 176
+  e: |-
+    Les quatre opérations de base sur les bits, à avoir dans les doigts :
+
+    | Intention | Écriture |
+    | --- | --- |
+    | tester le bit n | `(x >> n) & 1` ou `x & (1u << n)` |
+    | mettre à 1 | `x |= (1u << n)` |
+    | mettre à 0 | `x &= ~(1u << n)` |
+    | inverser | `x ^= (1u << n)` |
+    | extraire un champ | `(x >> pos) & masque` |
+
+    Vérification : 0b10110100 = 180. Bits faibles → 0100 = 4. Bits forts → 1011 = 11. `| 0x01` → 181. `& ~0x04` efface le bit 2 (valeur 4) → 176.
+- id: cpp12.2
+  type: qcm
+  level: 3
+  concepts:
+  - shifts
+  - overflow
+  q: '`uint8_t x = 0xFF; uint8_t y = x << 1;` — que vaut `y`, et quel piège se cache ici ?'
+  choices:
+  - t: '`y == 0xFE` : `x` est promu en `int`, le décalage se fait sur 32 bits, puis tronqué'
+    ok: true
+    why: Le résultat est correct, mais le calcul intermédiaire est un `int` — ce qui compte pour `<< 24` et plus.
+  - t: '`y == 0x1FE`'
+    ok: false
+    why: 'Impossible : `uint8_t` ne stocke que 8 bits.'
+  - t: '`y == 0xFF`'
+    ok: false
+    why: 'Non : le décalage a bien eu lieu, le bit de poids faible passe à 0.'
+  - t: Comportement indéfini
+    ok: false
+    why: Pas ici — mais `1 << 31` sur un `int` signé, oui.
+  e: |-
+    **Promotion entière** : tout type plus petit qu’`int` est promu en `int` avant toute opération arithmétique. `x << 1` calcule `0x1FE` en `int`, puis l’affectation tronque à `0xFE`.
+
+    Deux conséquences réelles :
+    1. `uint8_t a = 200, b = 100; if (a + b > 255)` → **vrai**, car la somme est calculée en `int` (300). Souvent une bonne surprise.
+    2. `uint32_t masque = 1 << 31;` → `1` est un `int` **signé** → UB. Écris `1u << 31` ou `UINT32_C(1) << 31`.
+
+    Compile avec `-Wconversion` : il signale toutes les troncatures implicites.
+- id: cpp12.3
+  type: qcm
+  level: 3
+  concepts:
+  - fixed-point
+  q: Sur un MCU sans FPU, tu veux représenter des températures au 1/16 °C. Format Q12.4 sur `int16_t`. Comment convertir une lecture brute `b` en °C ?
+  choices:
+  - t: '`double c = b / 16.0;` seulement pour l’affichage — tous les calculs restent en entiers'
+    ok: true
+    why: On ne repasse en flottant qu’au dernier moment, pour l’humain.
+  - t: '`double c = b / 16;`'
+    ok: false
+    why: 'Division entière : tu perds la partie fractionnaire avant la conversion.'
+  - t: '`float c = b >> 4;`'
+    ok: false
+    why: Même problème, et un décalage à droite sur un négatif est défini mais tronque vers −∞.
+  - t: '`double c = b * 16.0;`'
+    ok: false
+    why: Inversé.
+  e: |-
+    Virgule fixe Qm.n : on stocke `valeur × 2ⁿ` dans un entier. Ici n = 4 → résolution 1/16 = 0,0625 °C, plage ±2048 °C sur `int16_t`.
+
+    Règles de calcul :
+    - **Addition/soustraction** : directe, si les deux opérandes ont le même Q.
+    - **Multiplication** : `(int32_t)a * b >> n` — passe par un type **plus large**, sinon débordement garanti.
+    - **Division** : `((int32_t)a << n) / b`.
+
+    C’est exactement ce que font les capteurs I²C usuels : le TMP1xx renvoie du Q(12.4), le BME280 du Q(24.8). Lire la datasheet et rester en entier évite d’embarquer une libm flottante de 20 ko.
+- id: cpp12.4
+  type: code
+  level: 3
+  concepts:
+  - saturation
+  - masques
+  q: 'Écris `uint8_t saturer(int32_t v)` : ramène `v` dans [0, 255] sans débordement (< 0 → 0, > 255 → 255).'
+  lang: cpp
+  start: |-
+    #include <cstdint>
+
+    uint8_t saturer(int32_t v) {
+        // ton code
+    }
+  sol: |-
+    #include <cstdint>
+
+    uint8_t saturer(int32_t v) {
+        if (v < 0) return 0;
+        if (v > 255) return 255;
+        return static_cast<uint8_t>(v);
+    }
+  tests: |-
+    #include <cassert>
+    #include <iostream>
+    #include <climits>
+    int main() {
+        assert(saturer(0) == 0);
+        assert(saturer(255) == 255);
+        assert(saturer(128) == 128);
+        assert(saturer(-1) == 0);
+        assert(saturer(-100000) == 0);
+        assert(saturer(256) == 255);
+        assert(saturer(INT32_MAX) == 255);
+        assert(saturer(INT32_MIN) == 0);
+        std::cout << "OK\n";
+    }
+  e: |-
+    La saturation (« clamping ») est ce qu’il faut faire sur toute sortie physique : PWM, DAC, consigne de courant. Un débordement silencieux fait passer une commande de +110 % à −46 % — et ça, sur un moteur, ça casse quelque chose.
+
+    `std::clamp(v, 0, 255)` (C++17) fait la même chose, mais **attention** : il renvoie une **référence const** sur son argument. `auto x = std::clamp(f(), 0, 255);` avec un temporaire est pendouillant. Ici, le cast explicite est plus sûr et plus clair.
+
+    Le `static_cast<uint8_t>` final documente la troncature voulue — sans lui, `-Wconversion` t’avertit à juste titre.
+- id: cpp12.5
+  type: cloze
+  level: 2
+  concepts:
+  - masques
+  q: Écris deux helpers `constexpr` pour manipuler un champ dans un registre.
+  lang: cpp
+  tpl: |-
+    #include <cstdint>
+
+    constexpr uint32_t champ(uint32_t reg, uint32_t pos, uint32_t largeur) {
+        return (reg ⟦0⟧ pos) & ((1u ⟦1⟧ largeur) - 1u);
+    }
+
+    constexpr uint32_t poser(uint32_t reg, uint32_t pos, uint32_t largeur, uint32_t v) {
+        const uint32_t m = ((1u << largeur) - 1u) << pos;
+        return (reg & ⟦2⟧m) | ((v << pos) & m);
+    }
+  blanks:
+  - - '>>'
+  - - '<<'
+  - - '~'
+  e: |-
+    `(1u << largeur) - 1u` produit un masque de `largeur` bits à 1 : `(1<<3)-1 == 0b111`.
+
+    `poser` fait un **read-modify-write** correct : on efface d’abord le champ (`reg & ~m`), puis on insère la nouvelle valeur masquée (`(v << pos) & m`) pour qu’un `v` trop grand ne déborde pas sur les bits voisins.
+
+    `constexpr` : sur des constantes, tout est calculé à la compilation → zéro instruction générée.
+
+    ⚠️ `largeur == 32` casse (`1u << 32` est un UB). Ajoute un `static_assert` ou traite le cas.
+- id: cpp12.6
+  type: predict
+  level: 2
+  concepts:
+  - masques
+  - shifts
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <cstdio>
+    #include <cstdint>
+    int main() {
+        uint32_t r = 0;
+        r |= (1u << 5);            // poser le bit 5
+        r |= (0b111u << 8);        // poser le champ 8..10
+        printf("%08X ", r);
+        r &= ~(1u << 5);           // effacer le bit 5
+        printf("%08X ", r);
+        r ^= (1u << 9);            // basculer le bit 9
+        printf("%08X\n", r);
+    }
+  answer: 00000720 00000700 00000500
+  e: |-
+    Vérifions : bit 5 = 0x20, champ 8..10 (trois bits) = 0x700. Somme = 0x720.
+
+    Après effacement du bit 5 → 0x700. Après bascule du bit 9 (0x200) → 0x500.
+
+    Les quatre opérations à avoir dans les doigts :
+
+    | Intention | Écriture |
+    | --- | --- |
+    | poser le bit n | `r \|= (1u << n)` |
+    | effacer le bit n | `r &= ~(1u << n)` |
+    | basculer le bit n | `r ^= (1u << n)` |
+    | tester le bit n | `(r >> n) & 1u` ou `r & (1u << n)` |
+
+    Le suffixe `u` n'est pas décoratif : `1 << 31` sur un `int` signé est un **UB**. `1u << 31` est correct.
+
+    Astuce d'affichage : `%08X` aligne sur 8 chiffres hexadécimaux, ce qui rend deux registres immédiatement comparables à l'œil.
+- id: cpp12.7
+  type: qcm
+  level: 3
+  concepts:
+  - shifts
+  - entiers
+  q: '`int x = -8; x >> 1;` — que vaut le résultat, et est-ce garanti ?'
+  choices:
+  - t: −4, et c’est garanti depuis C++20 (décalage arithmétique, complément à deux)
+    ok: true
+    why: Avant C++20, c’était défini par l’implémentation ; en pratique tous les compilateurs faisaient déjà un décalage arithmétique.
+  - t: −4, mais ce n’est jamais garanti
+    ok: false
+    why: C++20 l’a normalisé (P0907).
+  - t: '4'
+    ok: false
+    why: Le signe est conservé.
+  - t: UB
+    ok: false
+    why: Le décalage à **droite** d’un négatif n’est pas un UB ; c’est le décalage à **gauche** qui l’était.
+  e: |-
+    `-8 >> 1` = `-4` : le bit de signe est propagé (décalage **arithmétique**).
+
+    Attention à l'arrondi : le décalage à droite arrondit **vers −∞**, la division arrondit **vers zéro**.
+    ```cpp
+    -7 / 2   ==  -3      // troncature
+    -7 >> 1  ==  -4      // vers le bas
+    ```
+    Remplacer une division par un décalage sur un signé change donc le résultat pour les valeurs négatives. C'est un bug classique en traitement du signal, où les échantillons sont signés.
+
+    Ce qui reste un **UB** :
+    - décaler de plus que la largeur du type (`x << 32` sur un 32 bits) ;
+    - décaler à gauche un négatif (jusqu'à C++20).
+
+    Règle pratique : **fais tes manipulations de bits sur des types non signés**, et ne convertis en signé qu'au moment d'interpréter la valeur.
+- id: cpp12.8
+  type: code
+  level: 3
+  concepts:
+  - fixed-point
+  q: 'Format Q8.8 sur `int16_t` (8 bits entiers, 8 bits fractionnaires). Écris `mul_q8_8(a, b)` : le produit de deux Q8.8, en Q8.8, sans débordement.'
+  lang: cpp
+  start: |-
+    #include <cstdint>
+
+    int16_t mul_q8_8(int16_t a, int16_t b) {
+        // ton code
+    }
+  sol: |-
+    #include <cstdint>
+
+    int16_t mul_q8_8(int16_t a, int16_t b) {
+        const int32_t produit = static_cast<int32_t>(a) * static_cast<int32_t>(b);
+        return static_cast<int16_t>(produit >> 8);
+    }
+  tests: |-
+    #include <cassert>
+    #include <iostream>
+    int main() {
+        const int16_t un = 256;          // 1.0 en Q8.8
+        const int16_t demi = 128;        // 0.5
+        assert(mul_q8_8(un, un) == un);
+        assert(mul_q8_8(un, demi) == demi);
+        assert(mul_q8_8(demi, demi) == 64);        // 0.25
+        assert(mul_q8_8(0, un) == 0);
+        const int16_t deux = 512;
+        assert(mul_q8_8(deux, demi) == un);
+        assert(mul_q8_8(static_cast<int16_t>(-256), demi) == -128);
+        std::cout << "OK\n";
+    }
+  e: |-
+    La règle de la multiplication en virgule fixe Qm.n : **le produit de deux Qm.n est un Q2m.2n**, il faut donc redécaler de `n` pour revenir au format.
+
+    Et surtout : **passer par un type deux fois plus large**. `a * b` sur deux `int16_t` est calculé en `int` par promotion — ici ça sauve la mise, mais sur deux `int32_t` le produit déborderait silencieusement. Écris toujours le cast explicite : il documente l'intention et reste correct si tu changes de largeur.
+
+    Le décalage `>> 8` arrondit **vers le bas**. Pour un arrondi au plus proche : `(produit + 128) >> 8`.
+
+    C'est exactement ce que fait un PID entier sur MCU sans FPU : gains en Q8.8, erreur en Q12.4, produits en int32, sortie saturée.
+
+    Vérification mentale : 0,5 × 0,5 = 0,25 → 128 × 128 = 16384, `>> 8` = 64 = 0,25 en Q8.8. ✔
+- id: cpp12.9
+  type: cloze
+  level: 2
+  concepts:
+  - masques
+  q: Compte les bits à 1 et trouve le bit de poids faible (C++20).
+  lang: cpp
+  tpl: |-
+    #include <bit>
+    #include <cstdint>
+
+    int n     = std::⟦0⟧(0b1011u);       // 3 bits à 1
+    int zeros = std::⟦1⟧(0b1000u);       // 3 zéros de poids faible
+    bool p2   = std::⟦2⟧(16u);            // 16 est-il une puissance de 2 ?
+  blanks:
+  - - popcount
+  - - countr_zero
+  - - has_single_bit
+  e: |-
+    L'en-tête `<bit>` (C++20) standardise ce qui se faisait à coups d'intrinsèques :
+
+    | Fonction | Rôle |
+    | --- | --- |
+    | `std::popcount(x)` | nombre de bits à 1 |
+    | `std::countr_zero(x)` | zéros à droite = index du premier bit à 1 |
+    | `std::countl_zero(x)` | zéros à gauche |
+    | `std::bit_width(x)` | nombre de bits nécessaires |
+    | `std::has_single_bit(x)` | puissance de 2 ? |
+    | `std::rotl` / `rotr` | rotations |
+    | `std::bit_cast<T>(x)` | réinterprétation **sûre** des octets |
+
+    Toutes se compilent en **une instruction** sur les processeurs modernes (POPCNT, CTZ, CLZ).
+
+    Cas d'usage : `countr_zero` sur un registre d'interruptions te donne directement l'index de la source active — bien plus rapide qu'une boucle de test bit à bit.
+
+    Avant C++20 : `__builtin_popcount` (GCC/Clang), `_mm_popcnt_u32` (Intel).
+- id: cpp12.10
+  type: bug
+  level: 3
+  concepts:
+  - saturation
+  - overflow
+  q: Ce code de saturation ne marche pas pour les grandes valeurs. Clique sur la ligne fautive.
+  lang: cpp
+  code: |-
+    #include <cstdint>
+    int16_t saturer_16(int32_t v) {
+        int16_t r = static_cast<int16_t>(v);
+        if (r > 32767)  r = 32767;
+        if (r < -32768) r = -32768;
+        return r;
+    }
+  bad: 3
+  fix: |2-
+        if (v > 32767)  return 32767;
+        if (v < -32768) return -32768;
+        return static_cast<int16_t>(v);
+  e: |-
+    La troncature a lieu **avant** le test : `v = 40000` devient `-25536` après le cast, et les tests suivants ne détectent rien. Pire, la première comparaison (`r > 32767` sur un `int16_t`) est **toujours fausse** — GCC l'avertit avec `-Wtype-limits`.
+
+    **Teste toujours dans le type large, convertis ensuite.** C'est l'erreur symétrique de celle de la multiplication : là on convertissait trop tard, ici trop tôt.
+
+    La saturation est obligatoire sur toute sortie physique : PWM, DAC, consigne de courant. Un débordement silencieux transforme +110 % en −46 % — sur un moteur, ça casse quelque chose.
+
+    `std::clamp(v, -32768, 32767)` fait le travail, mais attention : il renvoie une **référence const** sur son argument. `auto x = std::clamp(f(), lo, hi);` avec un temporaire est pendouillant.
+
+    C++26 apportera `std::add_sat` / `std::mul_sat` : arithmétique saturante native.
+- id: cpp12.11
+  type: qcm
+  level: 3
+  concepts:
+  - fixed-point
+  q: Pourquoi préférer la virgule fixe au `float` sur un Cortex-M0 ?
+  choices:
+  - t: 'Pas de FPU : chaque opération flottante est émulée en logiciel, 20 à 100× plus lente, et la libm pèse plusieurs ko'
+    ok: true
+    why: La virgule fixe utilise l’ALU entière, avec un temps d’exécution déterministe.
+  - t: La virgule fixe est plus précise
+    ok: false
+    why: 'Pas en général : `float` a une plage dynamique bien supérieure.'
+  - t: '`float` n’existe pas sur ces cibles'
+    ok: false
+    why: Il existe, il est simplement émulé.
+  - t: C’est une question de style
+    ok: false
+    why: C’est une contrainte mesurable de temps et de taille.
+  e: |-
+    | Cible | Flottant |
+    | --- | --- |
+    | Cortex-M0/M0+/M3 | **aucune FPU** — émulation logicielle |
+    | Cortex-M4F/M7 | FPU **simple précision** — `float` rapide, `double` émulé |
+    | Cortex-M7 (option) | double précision matérielle |
+
+    Sur M4F, écrire `0.1` au lieu de `0.1f` force le calcul en `double` → émulation → 10 à 50× plus lent. Même piège avec `sin()` au lieu de `sinf()`. **C'est l'optimisation la plus rentable et la plus souvent oubliée du code embarqué.**
+
+    Avantages de la virgule fixe :
+    - temps d'exécution **déterministe** (crucial en régulation) ;
+    - pas de libm à embarquer ;
+    - précision **uniforme** sur toute la plage, contrairement au flottant.
+
+    Inconvénients : plage limitée, débordements à gérer à la main, code moins lisible.
+
+    En pratique : virgule fixe dans la boucle de régulation, flottant pour l'affichage et la configuration.
+- id: cpp12.12
+  type: predict
+  level: 3
+  concepts:
+  - masques
+  - entiers
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <cstdio>
+    #include <cstdint>
+    int main() {
+        uint16_t mot = 0xABCD;
+        uint16_t inverse = static_cast<uint16_t>((mot >> 8) | (mot << 8));
+        printf("%04X %04X\n", mot, inverse);
+        printf("%u %u\n", mot & 0xFFu, (mot >> 8) & 0xFFu);
+    }
+  answer: |-
+    ABCD CDAB
+    205 171
+  e: |-
+    L'échange d'octets (byte swap) : `(x >> 8) | (x << 8)` inverse les deux octets d'un mot 16 bits — c'est la conversion entre little-endian et big-endian.
+
+    Le `static_cast<uint16_t>` est **nécessaire** : `mot << 8` est promu en `int`, donc `0xABCD00`, et sans le cast final on garderait des bits parasites au-delà de 16.
+
+    Vérification : 0xCD = 205, 0xAB = 171. ✔
+
+    Pour du 32 bits, écris `std::byteswap(x)` (C++23) ou `__builtin_bswap32(x)` — une seule instruction processeur.
+
+    En pratique : les protocoles réseau et beaucoup de capteurs sont **big-endian** (ordre réseau), les processeurs x86 et ARM sont **little-endian**. Les fonctions `htons`/`ntohs` font exactement ça.
+
+    Depuis C++20, `std::endian::native` te dit dans quel monde tu es, à la compilation.
+- id: cpp12.13
+  type: parsons
+  level: 3
+  concepts:
+  - fixed-point
+  - saturation
+  q: Reconstitue un PID entier avec anti-emballement, en virgule fixe.
+  lang: cpp
+  lines:
+  - struct Pid {
+  - '    int32_t kp, ki, kd;          // gains en Q8.8'
+  - '    int32_t integrale = 0;'
+  - '    int32_t erreur_prec = 0;'
+  - ''
+  - '    int32_t calculer(int32_t consigne, int32_t mesure, int32_t lo, int32_t hi) {'
+  - '        const int32_t e = consigne - mesure;'
+  - '        const int64_t p = static_cast<int64_t>(kp) * e;'
+  - '        const int64_t d = static_cast<int64_t>(kd) * (e - erreur_prec);'
+  - '        integrale += e;'
+  - '        const int64_t i = static_cast<int64_t>(ki) * integrale;'
+  - '        int32_t sortie = static_cast<int32_t>((p + i + d) >> 8);'
+  - '        if (sortie > hi) { sortie = hi; integrale -= e; }   // anti-emballement'
+  - '        if (sortie < lo) { sortie = lo; integrale -= e; }'
+  - '        erreur_prec = e;'
+  - '        return sortie;'
+  - '    }'
+  - '};'
+  extra:
+  - '        const int32_t p = kp * e;'
+  - '        integrale += e * dt;'
+  e: |-
+    Quatre points critiques :
+    1. **Produits en `int64_t`** : `kp * e` sur deux `int32_t` déborde dès que les valeurs sont grandes. Le premier intrus fait exactement cette erreur, et le débordement signé est un **UB** — le compilateur peut supprimer tes tests de saturation.
+    2. **Décalage `>> 8`** pour revenir du Q8.8 après multiplication.
+    3. **Anti-emballement (anti-windup)** : quand la sortie sature, on **annule** l'accumulation de cette itération (`integrale -= e`). Sans ça, l'intégrale gonfle pendant la saturation et le système met un temps fou à repartir en sens inverse — le symptôme classique d'un chauffage qui dépasse largement sa consigne.
+    4. Saturation **avant** de renvoyer, jamais après.
+
+    Le second intrus (`e * dt`) n'est pas faux en soi, mais suppose un pas de temps variable ; en pratique on appelle le PID à période **fixe** et on absorbe `dt` dans les gains — c'est plus simple et plus déterministe.
+- id: cpp12.14
+  type: flash
+  level: 2
+  concepts:
+  - masques
+  q: Les idiomes bit à bit à connaître par cœur.
+  back: |-
+    ```cpp
+    x |=  (1u << n);          // poser
+    x &= ~(1u << n);          // effacer
+    x ^=  (1u << n);          // basculer
+    (x >> n) & 1u             // tester
+    (x >> pos) & ((1u<<w)-1)  // extraire un champ de w bits
+
+    x & (x - 1)               // efface le bit le plus bas
+    x & -x                    // isole le bit le plus bas
+    (x & (x - 1)) == 0        // puissance de 2 (si x != 0)
+    (x + a - 1) & ~(a - 1)    // arrondi supérieur à un multiple de a (a = 2^k)
+    ```
+
+    Et depuis C++20, `<bit>` fait tout ça avec des noms lisibles.
+  e: |-
+    `x & (x - 1)` mérite d'être compris : soustraire 1 transforme le bit le plus bas à 1 en 0 et met tous les bits en dessous à 1. Le ET efface donc ce bit.
+
+    D'où l'algorithme de Kernighan pour compter les bits à 1 : boucler `x &= x - 1` jusqu'à zéro, en O(nombre de bits à 1) au lieu de O(largeur).
+
+    L'arrondi supérieur `(x + a - 1) & ~(a - 1)` sert à aligner une adresse ou une taille de tampon sur une frontière de cache ou de page.
+
+    En 2026, écris `std::popcount` et `std::has_single_bit` : c'est plus lisible et le compilateur génère la même instruction. Mais sache reconnaître ces motifs — tu les croiseras dans tout code embarqué existant.
+- id: cpp12.15
+  type: code
+  level: 3
+  concepts:
+  - fixed-point
+  - entiers
+  q: Un capteur renvoie une température en Q12.4 (`int16_t`, 1/16 °C). Écris `int32_t vers_millidegres(int16_t brut)` qui convertit en millidegrés, sans flottant.
+  lang: cpp
+  start: |-
+    #include <cstdint>
+
+    int32_t vers_millidegres(int16_t brut) {
+        // ton code
+    }
+  sol: |-
+    #include <cstdint>
+
+    int32_t vers_millidegres(int16_t brut) {
+        // brut / 16 degrés → × 1000 millidegrés = × 1000 / 16 = × 125 / 2
+        return (static_cast<int32_t>(brut) * 125) / 2;
+    }
+  tests: |-
+    #include <cassert>
+    #include <iostream>
+    int main() {
+        assert(vers_millidegres(16) == 1000);        // 1.0 degre
+        assert(vers_millidegres(0) == 0);
+        assert(vers_millidegres(-16) == -1000);
+        assert(vers_millidegres(1) == 62);           // 1/16 = 0.0625 -> 62 (tronque)
+        assert(vers_millidegres(328) == 20500);      // 20.5 degres
+        assert(vers_millidegres(32767) == 2047937);
+        assert(vers_millidegres(-32768) == -2048000);
+        std::cout << "OK\n";
+    }
+  e: |-
+    Le raisonnement : `brut/16` degrés, donc `brut × 1000 / 16` millidegrés. On **simplifie la fraction avant de coder** : 1000/16 = 125/2. Multiplier par 125 plutôt que par 1000 divise par 8 le risque de débordement.
+
+    `static_cast<int32_t>` **avant** la multiplication : `32767 * 125` en `int16_t` déborderait. C'est la règle universelle de l'arithmétique entière — élargis d'abord, calcule ensuite.
+
+    Ordre des opérations : multiplier **puis** diviser. `(brut / 2) * 125` perdrait la précision sur les valeurs impaires.
+
+    Le test à 1 (0,0625 °C → 62 mdeg, tronqué) documente la perte de précision. Pour un arrondi au plus proche : `(brut * 125 + 1) / 2`.
+
+    C'est exactement la conversion d'un TMP1xx ou d'un thermocouple lu en Q(12.4) — et rester en entier évite d'embarquer la libm.
+- id: cpp12.16
+  type: qcm
+  level: 3
+  concepts:
+  - entiers
+  - overflow
+  q: Comment comparer proprement `int i` et `std::size_t n` sans avertissement ni bug ?
+  choices:
+  - t: '`std::cmp_less(i, n)` (C++20)'
+    ok: true
+    why: Compare correctement des types signés et non signés, quelles que soient leurs valeurs.
+  - t: '`(std::size_t)i < n`'
+    ok: false
+    why: 'Un `i` négatif devient énorme : le bug qu’on voulait éviter.'
+  - t: '`i < (int)n`'
+    ok: false
+    why: Un `n` supérieur à INT_MAX devient négatif.
+  - t: Ajouter `-Wno-sign-compare`
+    ok: false
+    why: Masquer l’avertissement ne corrige rien.
+  e: |-
+    ```cpp
+    #include <utility>
+    if (std::cmp_less(i, v.size())) { … }        // toujours correct
+    if (std::in_range<std::size_t>(i)) { … }     // i tient-il dans un size_t ?
+    ```
+
+    Le problème de fond : `i < n` avec `i` signé et `n` non signé convertit `i` en non signé. `-1 < 3u` est **faux**.
+
+    Avant C++20, les parades :
+    - éviter la comparaison mixte : `for (std::size_t i = 0; i + 1 < v.size(); ++i)` ;
+    - `std::ssize(v)` (C++20) renvoie un **signé** ;
+    - garder ses index dans un seul type, du début à la fin.
+
+    Compile avec `-Wsign-compare` (dans `-Wall`) et `-Wconversion`. Ces avertissements sont bruyants au début, et ils t'éviteront exactement ce bug — qui, en embarqué, se traduit par une boucle de 4 milliards d'itérations.

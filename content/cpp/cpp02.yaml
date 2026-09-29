@@ -1,0 +1,681 @@
+id: cpp02
+track: cpp
+title: Valeurs, références, const
+goal: Choisir entre copie, référence et référence const sans réfléchir deux fois.
+level: avance
+requires:
+- cpp01
+concepts:
+- valeur-ref
+- const
+- const-correctness
+- init
+lesson:
+  minutes: 17
+  intro: |
+    En Python, une fonction reçoit toujours l'objet lui-même. En C++, **tu choisis** : une copie, l'original, ou l'original en lecture seule. Ce choix, écrit dans chaque signature, décide de la vitesse du programme (copier 100 000 mesures ou pas) et de sa sûreté (qui a le droit de modifier quoi). Ce module te donne les règles pour choisir sans hésiter, et le mot-clé qui rend le compilateur gardien de tes intentions : `const`.
+  steps:
+    - level: 1
+      title: Photocopie, original, original sous vitre
+      body: |
+        Tu confies un rapport de mesures à un collègue. Trois façons de le faire :
+
+        - lui donner une **photocopie** (passage par **valeur**) : il peut griffonner dessus, ton original ne bouge pas. Mais photocopier 300 pages prend du temps ;
+        - lui donner **l'original** (passage par **référence**, `&`) : pas de copie, et ses annotations apparaissent sur ton exemplaire ;
+        - lui donner l'original **sous vitre** (référence **constante**, `const&`) : pas de copie, et il peut lire mais pas écrire.
+
+        Et un **pointeur**, c'est un papier sur lequel est notée l'**adresse** du rapport : on peut le rayer pour noter une autre adresse, ou n'y noter aucune adresse (`nullptr`).
+    - level: 2
+      title: Références, const, et règles de passage
+      body: |
+        - `T& r = x;` fait de `r` un **autre nom** pour `x`. Une référence doit être initialisée, ne peut jamais être « rebranchée » sur un autre objet, et n'est jamais nulle.
+        - `const T& r = x;` : autre nom, en lecture seule. Une `const&` peut aussi se lier à un **temporaire** (`const std::string& s = "abc";`), dont elle prolonge alors la durée de vie.
+        - `const` sur une méthode (`double valeur() const;`) promet qu'elle ne modifie pas l'objet : c'est la seule sorte de méthode qu'on peut appeler sur un objet `const` ou vu par une `const&`.
+        - Déclarations avec pointeurs : se lisent **de droite à gauche**. `const int* p` : p est un pointeur vers un int constant (on ne modifie pas la cible, on peut changer p). `int* const p` : p est un pointeur constant vers un int (on modifie la cible, pas p).
+        - Dans une boucle, `for (auto x : v)` **copie** chaque élément ; `for (auto& x : v)` travaille sur les éléments eux-mêmes ; `for (const auto& x : v)` les lit sans copie.
+
+        **Règles de passage d'un paramètre** :
+
+        | Le paramètre est… | Écriture |
+        |---|---|
+        | petit et bon marché à copier (`int`, `double`, pointeur, `std::string_view`, `std::span`) | par valeur : `double x` |
+        | gros, et seulement lu (`std::string`, `std::vector`, objet) | `const std::vector<double>& v` |
+        | à modifier chez l'appelant | `std::vector<double>& v` (mais préfère renvoyer un résultat) |
+      check:
+        q: "`int a = 1; int& r = a; int b = a; r = 5; b = 7;` Que valent `a`, `r` et `b` ?"
+        choices:
+          - t: "5, 5 et 7"
+            ok: true
+            why: "`r` est un autre nom pour `a` ; `b` est une copie indépendante."
+          - t: "1, 5 et 7"
+            why: "Écrire dans `r`, c'est écrire dans `a` : une référence n'est pas une copie."
+          - t: "7, 7 et 7"
+            why: "`b` a été initialisé par copie de `a` : il vit sa vie à part."
+    - level: 3
+      title: Copie, référence, référence constante
+      code: |
+        #include <iostream>
+        #include <vector>
+
+        double moyenne(const std::vector<double>& v) {        // lecture seule, aucune copie
+            if (v.empty()) return 0.0;
+            double s = 0.0;
+            for (double x : v) s += x;
+            return s / static_cast<double>(v.size());
+        }
+
+        void calibrer(std::vector<double>& v, double offset) {        // modifie l'original
+            for (double& x : v) x -= offset;
+        }
+
+        void calibrer_copie(std::vector<double> v, double offset) {   // travaille sur une copie
+            for (double& x : v) x -= offset;
+        }
+
+        int main() {
+            std::vector<double> mesures{20.5, 21.0, 21.5};
+            calibrer_copie(mesures, 0.5);
+            std::cout << moyenne(mesures) << '\n';     // inchangé
+            calibrer(mesures, 0.5);
+            std::cout << moyenne(mesures) << '\n';
+
+            int a = 1;
+            int& r = a;
+            int b = a;
+            r = 5;
+            b = 7;
+            std::cout << a << " " << r << " " << b << '\n';
+
+            for (auto x : mesures) x = 0;              // x est une copie : rien ne change
+            std::cout << mesures[0] << '\n';
+            for (auto& x : mesures) x = 0;             // x est l'élément lui-même
+            std::cout << mesures[0] << '\n';
+        }
+      flags: [-Wno-unused-but-set-variable]
+      out: |
+        21
+        20.5
+        5 5 7
+        20
+        0
+      after: |
+        `calibrer_copie` a travaillé pour rien : elle a corrigé une photocopie, puis l'a jetée, et aucun avertissement ne le signale. La boucle `for (auto x : mesures) x = 0;`, elle, est repérée par `-Wall` : `warning: variable 'x' set but not used`.
+    - level: 4
+      title: const dans les classes, sous le capot
+      body: |
+        Une référence est, en pratique, implémentée comme un pointeur que le langage empêche d'être nul ou rebranché : passer par `const&` coûte l'équivalent de copier une adresse (8 octets), quelle que soit la taille de l'objet.
+
+        Dans une classe, `const` après la parenthèse d'une méthode rend `this` constant pour la durée de l'appel : le compilateur refuse toute modification d'un membre. Les membres s'initialisent dans la **liste d'initialisation** du constructeur, et toujours **dans l'ordre de leur déclaration** dans la classe, quel que soit l'ordre écrit dans la liste.
+      code: |
+        #include <iostream>
+        #include <string>
+        #include <utility>
+
+        class Capteur {
+        public:
+            Capteur(std::string nom, double offset)
+                : nom_(std::move(nom)), offset_(offset) {}        // liste d'initialisation
+
+            const std::string& nom() const { return nom_; }        // lecture seule
+            double corriger(double brut) const { return brut - offset_; }
+            void regler_offset(double o) { offset_ = o; }          // modifie : pas const
+
+        private:
+            std::string nom_;
+            double offset_;
+        };
+
+        void afficher(const Capteur& c) {
+            std::cout << c.nom() << " : " << c.corriger(21.3) << '\n';
+            // c.regler_offset(0.0);   ← refusé : méthode non const sur un objet const
+        }
+
+        int main() {
+            Capteur t1("T1", 0.3);
+            afficher(t1);
+            t1.regler_offset(1.3);
+            afficher(t1);
+
+            const std::string& s = std::string("temporaire");     // durée de vie prolongée
+            std::cout << s.size() << '\n';
+
+            int x = 1, y = 2;
+            const int* p = &x;       // on ne peut pas écrire *p = 3…
+            p = &y;                  // …mais on peut viser ailleurs
+            int* const q = &x;       // on ne peut pas écrire q = &y…
+            *q = 10;                 // …mais on peut modifier la cible
+            std::cout << *p << " " << x << '\n';
+        }
+      out: |
+        T1 : 21
+        T1 : 20
+        10
+        2 10
+      after: |
+        La ligne commentée, décommentée, donne : `error: passing 'const Capteur' as 'this' argument discards qualifiers`. Traduction : « tu appelles une méthode qui n'a pas promis de ne rien modifier, sur un objet que tu as promis de ne pas modifier ».
+    - level: 5
+      title: Sur le terrain
+      body: |
+        - `const` par défaut : toute variable locale qui ne change pas, tout paramètre `&` qui n'est que lu, toute méthode qui ne modifie pas l'objet. Le compilateur devient le gardien de tes intentions, et le lecteur sait immédiatement ce qui bouge.
+        - Pour les constantes : `constexpr double VREF = 3.3;` plutôt que `#define VREF 3.3` (typé, visible par le débogueur, respecte les portées).
+        - Préfère **renvoyer** un résultat (ou une petite `struct` de résultats) plutôt que de remplir un paramètre `&` : `auto stats = analyser(v);` se lit mieux que `analyser(v, moyenne, ecart);`.
+        - Ne renvoie **jamais** une référence ou un pointeur vers une variable locale : elle est détruite à la sortie de la fonction.
+        - Chaînes en lecture seule : `std::string_view` évite même la création d'une `std::string` temporaire, à condition que le texte vive plus longtemps que la vue (module suivant).
+  recap:
+    - "Valeur = copie ; `&` = l'original ; `const&` = l'original en lecture seule, sans copie."
+    - "Petits types par valeur, gros objets lus par `const&`, modification : `&` ou mieux, valeur de retour."
+    - "Méthode `const` : seule appelable sur un objet `const` ou une `const&`."
+    - "`const int* p` : cible constante ; `int* const p` : pointeur constant (lire de droite à gauche)."
+    - "`for (auto x : v)` copie ; `for (auto& x : v)` modifie ; `for (const auto& x : v)` lit."
+  pieges: [cpp-passage-par-valeur, cpp-copie-boucle, cpp-methode-const-oubliee, cpp-reference-pendouillante]
+exercises:
+- id: cpp02.1
+  type: qcm
+  level: 1
+  concepts:
+  - valeur-ref
+  q: Comment passer un `std::vector<double>` de 100 000 mesures à une fonction qui ne fait que le lire ?
+  choices:
+  - t: '`void f(const std::vector<double>& v)`'
+    ok: true
+    why: Aucune copie, et le `const` documente et garantit la lecture seule.
+  - t: '`void f(std::vector<double> v)`'
+    ok: false
+    why: Copie les 800 ko à chaque appel.
+  - t: '`void f(std::vector<double>& v)`'
+    ok: false
+    why: Pas de copie, mais rien n’empêche la fonction de modifier — et l’appelant ne peut pas passer un temporaire.
+  - t: '`void f(std::vector<double>* v)`'
+    ok: false
+    why: 'Style C : oblige à tester le pointeur nul et à écrire `->` partout.'
+  e: |-
+    Règle par défaut en C++ moderne :
+
+    | Cas | Signature |
+    | --- | --- |
+    | lecture seule, objet lourd | `const T&` |
+    | lecture seule, objet trivial (`int`, `double`, `std::span`) | `T` par valeur |
+    | modification en place | `T&` |
+    | la fonction **prend possession** | `T` par valeur (l’appelant fait `std::move`) |
+    | paramètre optionnel | `const T*` ou `std::optional` |
+
+    `const T&` accepte aussi les temporaires : `f({1.0, 2.0})` compile. `T&` non.
+- id: cpp02.2
+  type: qcm
+  level: 3
+  concepts:
+  - const
+  q: Quelle est la différence entre `const int* p` et `int* const p` ?
+  choices:
+  - t: 'Le 1er : pointeur modifiable vers un entier non modifiable. Le 2nd : pointeur constant vers un entier modifiable'
+    ok: true
+    why: Lis de droite à gauche autour du nom.
+  - t: Ils sont identiques
+    ok: false
+    why: Non, `const` s’applique à ce qui est à sa gauche (ou à droite s’il est en tête).
+  - t: Le 1er est invalide
+    ok: false
+    why: '`const int*` est parfaitement valide, c’est même le plus courant.'
+  - t: Le 2nd interdit toute modification
+    ok: false
+    why: '`*p = 5` reste autorisé.'
+  e: |-
+    Lis **de droite à gauche** en partant du nom :
+
+    ```cpp
+    const int* p;        // p : pointeur vers int const   → *p = 5 interdit, p++ ok
+    int* const p = &x;   // p : pointeur const vers int   → *p = 5 ok, p++ interdit
+    const int* const p;  // les deux verrouillés
+    ```
+
+    `const int*` et `int const*` sont **strictement identiques**. Beaucoup d’équipes écrivent le `const` à droite (« east const ») justement parce que la règle droite-à-gauche devient uniforme.
+
+    En embarqué : un pointeur vers un registre matériel est typiquement `volatile uint32_t* const`.
+- id: cpp02.3
+  type: bug
+  level: 2
+  concepts:
+  - const-correctness
+  q: Cette classe ne compile pas quand on l’utilise via une référence `const`. Clique sur la ligne à corriger.
+  lang: cpp
+  code: |-
+    class Capteur {
+        double dernier_ = 0.0;
+    public:
+        void ecrire(double v) { dernier_ = v; }
+        double lire() { return dernier_; }
+    };
+
+    void afficher(const Capteur& c) { std::cout << c.lire(); }
+  bad: 5
+  fix: '    double lire() const { return dernier_; }'
+  e: |-
+    Sur un objet `const`, seules les méthodes marquées `const` sont appelables.
+
+    Le `const` après la liste de paramètres signifie « cette méthode ne modifie pas l’état observable ». C’est une **promesse au compilateur**, vérifiée par lui.
+
+    Règle : **marque `const` toute méthode qui ne modifie pas l’objet, dès l’écriture.** L’ajouter après coup se propage en cascade dans tout le code appelant (« const poisoning ») et devient vite pénible.
+
+    Échappatoire pour un cache interne : `mutable` sur le membre concerné.
+- id: cpp02.4
+  type: predict
+  level: 2
+  concepts:
+  - init
+  q: Que vaut chaque variable ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    int g;                   // global
+    int main() {
+        int a;               // local, non initialisé
+        int b{};             // initialisation par accolades vides
+        static int c;        // statique locale
+        std::cout << g << " " << b << " " << c << "\n";
+        // (a n'est volontairement pas affiché)
+    }
+  answer: 0 0 0
+  e: |-
+    - Les variables de **durée statique** (globales, `static`) sont initialisées à zéro avant `main`. Garanti.
+    - Une variable **locale** non initialisée contient des ordures. La lire est un **comportement indéfini** — pas « une valeur aléatoire » : le compilateur a le droit de supposer que ça n’arrive pas et d’optimiser en conséquence.
+    - `int b{}` fait une initialisation de valeur → 0.
+
+    Habitude à prendre : **initialise toujours à la déclaration**, avec des accolades.
+
+    `int x{3.5};` refuse de compiler (rétrécissement), là où `int x = 3.5;` tronque en silence. C’est l’argument principal pour les accolades.
+- id: cpp02.5
+  type: code
+  level: 3
+  concepts:
+  - valeur-ref
+  - const
+  q: 'Écris `double moyenne(const std::vector<double>& v)` : moyenne arithmétique, `0.0` si le vecteur est vide. Aucune copie, aucune modification de l’entrée.'
+  lang: cpp
+  start: |-
+    #include <vector>
+    #include <numeric>
+
+    double moyenne(const std::vector<double>& v) {
+        // ton code
+    }
+  sol: |-
+    #include <vector>
+    #include <numeric>
+
+    double moyenne(const std::vector<double>& v) {
+        if (v.empty()) return 0.0;
+        return std::accumulate(v.begin(), v.end(), 0.0) / static_cast<double>(v.size());
+    }
+  tests: |-
+    #include <cassert>
+    #include <cmath>
+    #include <iostream>
+    int main() {
+        assert(moyenne({}) == 0.0);
+        assert(std::abs(moyenne({2.0}) - 2.0) < 1e-12);
+        assert(std::abs(moyenne({1.0, 2.0, 3.0}) - 2.0) < 1e-12);
+        std::vector<double> v{1.0, 3.0};
+        moyenne(v);
+        assert(v.size() == 2 && v[0] == 1.0);
+        std::cout << "OK\n";
+    }
+  e: |-
+    Trois détails qui séparent le code correct du code juste :
+    1. `0.0` comme valeur initiale de `accumulate` — avec `0` (int), l’accumulateur serait un **int** et tronquerait chaque addition. Bug classique et silencieux.
+    2. `static_cast<double>(v.size())` : `size()` renvoie un `size_t` non signé ; sans le cast, division entière/flottante ambiguë et avertissement de conversion.
+    3. Le cas vide **avant** la division.
+
+    `std::reduce` (C++17) est la version parallélisable ; `std::accumulate` garantit l’ordre de sommation, ce qui compte en flottant.
+- id: cpp02.6
+  type: predict
+  level: 2
+  concepts:
+  - init
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    #include <vector>
+    int main() {
+        std::vector<int> a(3);      // 3 éléments
+        std::vector<int> b{3};      // 1 élément valant 3
+        std::vector<int> c(3, 7);
+        std::cout << a.size() << b.size() << c.size() << " ";
+        std::cout << b[0] << c[0] << "\n";
+    }
+  answer: 313 37
+  e: |-
+    Le piège des accolades sur `std::vector` : dès qu'il existe un constructeur prenant une `initializer_list`, **il gagne** sur tous les autres.
+
+    - `vector<int> a(3)` → parenthèses → constructeur (taille) → `[0, 0, 0]`
+    - `vector<int> b{3}` → accolades → liste d'initialisation → `[3]`
+    - `vector<int> c(3, 7)` → `[7, 7, 7]`
+
+    Ailleurs, les accolades sont **préférables** : elles interdisent le rétrécissement (`int x{3.5}` ne compile pas) et évitent l'analyse la plus embarrassante (`Widget w();` déclare une fonction, `Widget w{};` un objet).
+
+    Règle pratique : **accolades partout, sauf pour donner une taille à un conteneur.**
+- id: cpp02.7
+  type: qcm
+  level: 3
+  concepts:
+  - const-correctness
+  q: Que signifie exactement `const` dans `int lire(const Capteur& c) const noexcept;` ?
+  choices:
+  - t: 'Le 1er : le capteur ne sera pas modifié. Le 2nd : la méthode ne modifie pas l’objet sur lequel elle est appelée'
+    ok: true
+    why: Deux promesses différentes, vérifiées par le compilateur.
+  - t: Les deux disent la même chose
+    ok: false
+    why: Le premier porte sur le paramètre, le second sur `*this`.
+  - t: Le 2nd rend la valeur de retour constante
+    ok: false
+    why: Ce serait `const int lire(...)`, ce qui n’a pas d’intérêt pour un `int`.
+  - t: Le 2nd est décoratif
+    ok: false
+    why: Il détermine si la méthode est appelable sur un objet const.
+  e: |-
+    ```cpp
+    class Banc {
+        int n_ = 0;
+    public:
+        int lire(const Capteur& c) const noexcept;  // ne modifie ni c, ni *this
+        void ajouter();                              // modifie *this
+    };
+
+    void f(const Banc& b) {
+        b.lire(capteur);   // OK
+        b.ajouter();       // ERREUR : méthode non const sur un objet const
+    }
+    ```
+
+    **Marque `const` toute méthode qui ne modifie pas l'objet, dès l'écriture.** L'ajouter après coup contamine tout le code appelant (« const poisoning ») et devient vite pénible.
+
+    Bonus : depuis C++11, les méthodes `const` doivent être **thread-safe en lecture** (c'est la garantie que fait la bibliothèque standard). Un cache interne modifié dans une méthode `const` doit donc être `mutable` **et** protégé.
+- id: cpp02.8
+  type: predict
+  level: 3
+  concepts:
+  - valeur-ref
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    #include <string>
+    void f(std::string s)        { s += "!"; }
+    void g(std::string& s)       { s += "?"; }
+    void h(const std::string& s) { std::cout << s.size(); }
+    int main() {
+        std::string m = "ok";
+        f(m); g(m); h(m);
+        std::cout << " " << m << "\n";
+    }
+  answer: 3 ok?
+  e: |-
+    - `f` reçoit une **copie** : la modification est perdue.
+    - `g` reçoit une **référence** : `m` devient `"ok?"`.
+    - `h` reçoit une référence const : elle lit `size()` = 3, sans copie.
+
+    L'ordre d'exécution des trois appels est garanti (ce sont des instructions séparées), donc `h` voit bien `"ok?"`.
+
+    Le tableau de décision, à connaître par cœur :
+
+    | Intention | Signature |
+    | --- | --- |
+    | lire un objet lourd | `const T&` |
+    | lire un type trivial (`int`, `double`, `span`) | `T` |
+    | modifier | `T&` |
+    | prendre possession | `T` (l'appelant fait `std::move`) |
+    | paramètre optionnel | `const T*` ou `std::optional` |
+- id: cpp02.9
+  type: bug
+  level: 3
+  concepts:
+  - const
+  q: Cette fonction ne compile pas. Clique sur la ligne fautive.
+  lang: cpp
+  code: |-
+    #include <vector>
+    double somme(const std::vector<double>& v) {
+        double t = 0;
+        for (auto& x : v) {
+            x *= 2;
+            t += x;
+        }
+        return t;
+    }
+  bad: 5
+  fix: |2-
+        for (const auto& x : v) {
+            t += x * 2;
+  e: |-
+    `v` est `const`, donc `auto&` se déduit en `const double&` : impossible d'écrire dedans.
+
+    C'est le compilateur qui te protège : la signature promet à l'appelant que son vecteur ne sera pas modifié.
+
+    Deux corrections selon l'intention :
+    - **Lire seulement** : `for (const auto& x : v) t += x * 2;`
+    - **Modifier vraiment** : change la signature en `std::vector<double>& v` (non const), et le nom de la fonction, parce que `somme` ne devrait pas modifier son entrée.
+
+    Le nom d'une fonction doit dire ses effets de bord. Une fonction qui s'appelle `somme` et double les valeurs est un bug de conception avant d'être un bug de compilation.
+- id: cpp02.10
+  type: cloze
+  level: 2
+  concepts:
+  - init
+  q: Initialise correctement les membres d’une classe.
+  lang: cpp
+  tpl: |-
+    class Capteur {
+        int canal_;
+        double gain_;
+        std::string nom_;
+    public:
+        Capteur(int canal, std::string nom)
+            ⟦0⟧ canal_(canal), gain_(1.0), nom_(std::⟦1⟧(nom)) {}
+    };
+  blanks:
+  - - ':'
+  - - move
+  e: |-
+    La **liste d'initialisation** (après le `:`) construit chaque membre **une seule fois**, directement dans son état final.
+
+    Affecter dans le corps du constructeur (`{ nom_ = nom; }`) construit d'abord `nom_` vide, puis l'affecte : deux opérations au lieu d'une. Pour un `std::string`, c'est une allocation gratuite en plus.
+
+    ⚠️ **L'ordre d'initialisation suit l'ordre de déclaration des membres**, pas l'ordre de la liste. Écrire `: gain_(1.0), canal_(canal)` compile mais initialise quand même `canal_` en premier — et `-Wreorder` t'avertit. Garde les deux ordres alignés.
+
+    `std::move(nom)` : le paramètre est pris **par valeur** (l'appelant a déjà payé la copie ou le déplacement), on le déplace ensuite dans le membre. C'est l'idiome moderne pour un paramètre dont on prend possession.
+- id: cpp02.11
+  type: qcm
+  level: 3
+  concepts:
+  - valeur-ref
+  - const
+  q: '`const std::string& s = "bonjour";` — que se passe-t-il exactement ?'
+  choices:
+  - t: Un `std::string` temporaire est créé, et sa durée de vie est prolongée à celle de la référence
+    ok: true
+    why: 'Règle spéciale : lier un temporaire à une référence **const** prolonge sa vie jusqu’à la fin de la portée de la référence.'
+  - t: La référence pointe sur le littéral, sans allocation
+    ok: false
+    why: 'Le littéral est un `const char[8]`, pas un `std::string` : une conversion a lieu.'
+  - t: Erreur de compilation
+    ok: false
+    why: C’est légal et courant.
+  - t: Référence pendouillante
+    ok: false
+    why: Justement non, grâce à la prolongation de durée de vie.
+  e: |-
+    C'est **la** raison pour laquelle on écrit `const T&` plutôt que `T&` en paramètre : `f({1.0, 2.0})` ou `f("texte")` compile avec `const&`, pas avec `&`.
+
+    La prolongation ne s'applique **que** :
+    - aux références `const` (et aux rvalue references `T&&`) ;
+    - liées **directement** au temporaire.
+
+    Elle **ne s'applique pas** :
+    ```cpp
+    const std::string& mauvais = obtenir().sous_chaine();  // pendouillant
+    std::string_view v = obtenir();                        // pendouillant (pas une référence)
+    struct S { const std::string& r; };                    // membre : jamais prolongé
+    ```
+
+    Retiens : la prolongation sauve le cas simple du paramètre, et **rien d'autre**. Ne compte jamais dessus pour un membre ou une valeur de retour.
+- id: cpp02.12
+  type: code
+  level: 3
+  concepts:
+  - const-correctness
+  q: 'Écris une classe `Registre` : un `int` privé, un constructeur, un accesseur `valeur()` utilisable sur un objet `const`, et `poser(int)`.'
+  lang: cpp
+  start: |-
+    class Registre {
+        // ton code
+    };
+  sol: |-
+    class Registre {
+        int v_;
+    public:
+        explicit Registre(int v) noexcept : v_(v) {}
+        int valeur() const noexcept { return v_; }
+        void poser(int v) noexcept { v_ = v; }
+    };
+  tests: |-
+    #include <cassert>
+    #include <iostream>
+    int main() {
+        Registre r{5};
+        assert(r.valeur() == 5);
+        r.poser(9);
+        assert(r.valeur() == 9);
+        const Registre cr{42};
+        assert(cr.valeur() == 42);            // exige valeur() const
+        static_assert(!std::is_convertible<int, Registre>::value,
+                      "le constructeur doit etre explicit");
+        std::cout << "OK\n";
+    }
+  e: |-
+    Trois exigences vérifiées par le test :
+    1. `valeur() const` — sans le `const`, la ligne `cr.valeur()` ne compile pas.
+    2. `explicit` — sans lui, `Registre r = 5;` compilerait, et pire, une fonction attendant un `Registre` accepterait n'importe quel `int` par conversion implicite. C'est ce que le `static_assert` vérifie.
+    3. `noexcept` — documente qu'aucune de ces opérations ne peut lever, ce qui permet des optimisations en aval.
+
+    **Marque `explicit` tout constructeur à un seul argument**, sauf si la conversion implicite est vraiment souhaitée (`std::string` depuis `const char*`, par exemple). C'est une règle des Core Guidelines (C.46).
+
+    Note aussi le `Registre r{5}` avec accolades : refuse silencieusement `Registre r{5.7}` (rétrécissement).
+- id: cpp02.13
+  type: flash
+  level: 2
+  concepts:
+  - valeur-ref
+  q: 'Référence ou pointeur : comment choisir ?'
+  back: |-
+    | Critère | Référence `T&` | Pointeur `T*` |
+    | --- | --- | --- |
+    | peut être nulle | non | oui |
+    | peut être réassignée | non | oui |
+    | syntaxe | `x.membre` | `p->membre` |
+    | arithmétique | non | oui |
+    | doit être initialisée | oui | non |
+
+    **Choisis une référence par défaut.** Prends un pointeur seulement si l'absence est un état valide, ou si tu dois pouvoir changer de cible.
+  e: |-
+    Une référence n'est pas un objet : elle n'a pas d'adresse propre, on ne peut pas faire de `vector<T&>`. Pour stocker des « références », il faut `std::reference_wrapper<T>` ou des pointeurs.
+
+    En C++ moderne, un pointeur nu `T*` signifie **observation sans propriété**. Dès qu'il y a propriété, c'est `unique_ptr`, `shared_ptr`, ou un objet par valeur.
+
+    Un paramètre optionnel : `const T*` (le nullptr signifie « absent ») ou `std::optional<T>` si tu prends une copie.
+- id: cpp02.14
+  type: predict
+  level: 3
+  concepts:
+  - const
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    struct Cache {
+        mutable int lectures = 0;
+        int valeur = 42;
+        int lire() const { ++lectures; return valeur; }
+    };
+    int main() {
+        const Cache c;
+        c.lire(); c.lire();
+        std::cout << c.lectures << " " << c.valeur << "\n";
+    }
+  answer: 2 42
+  e: |-
+    `mutable` autorise la modification d'un membre **même sur un objet const** et **même dans une méthode const**.
+
+    Usages légitimes, il y en a peu :
+    - un compteur de statistiques ;
+    - un cache de résultat (mémoïsation) ;
+    - un `std::mutex` membre, verrouillé dans une méthode `const` de lecture.
+
+    L'idée sous-jacente : `const` porte sur l'**état observable** de l'objet, pas sur ses octets. Un cache ne change pas ce que l'objet représente.
+
+    ⚠️ Rappelle-toi que `const` implique désormais « sûr en lecture concurrente ». Un `mutable int` incrémenté sans protection casse cette garantie : en multithread, il faudrait `mutable std::atomic<int>`.
+- id: cpp02.15
+  type: qcm
+  level: 2
+  concepts:
+  - init
+  - valeur-ref
+  q: Pourquoi préférer `auto x = f();` à `Type x = f();` dans du code moderne ?
+  choices:
+  - t: Impossible d’écrire un type inexact qui déclencherait une conversion silencieuse
+    ok: true
+    why: '`int x = v.size();` tronque en silence ; `auto x` prend le bon type.'
+  - t: C’est plus rapide à l’exécution
+    ok: false
+    why: 'Aucune différence : la déduction est purement statique.'
+  - t: '`auto` évite les copies'
+    ok: false
+    why: '`auto x = f()` copie autant que `Type x = f()`.'
+  - t: '`auto` rend le code plus court'
+    ok: false
+    why: Vrai, mais ce n’est pas l’argument principal.
+  e: |-
+    Les vrais arguments pour `auto` :
+    1. **Pas de conversion accidentelle.** `int n = v.size();` tronque sur un vecteur de plus de 2³¹ éléments et déclenche `-Wconversion`.
+    2. **Toujours initialisé** : `auto x;` ne compile pas.
+    3. **Résistant au refactoring** : si `f()` change de type de retour, le code suit.
+    4. **Types impossibles à nommer** : lambdas, itérateurs, types de `views`.
+
+    Les limites : n'utilise pas `auto` quand le type est l'information importante pour le lecteur (`auto r = calculer();` n'apprend rien). Et attention à `auto` avec les proxys : `auto b = v[0];` sur un `vector<bool>` donne un objet proxy, pas un `bool`.
+
+    Style « AAA » (Almost Always Auto) : c'est un choix d'équipe, pas une obligation.
+- id: cpp02.16
+  type: parsons
+  level: 3
+  concepts:
+  - valeur-ref
+  - const
+  q: Reconstitue une fonction de calibration avec des signatures correctes.
+  lang: cpp
+  lines:
+  - '#include <vector>'
+  - '#include <cstddef>'
+  - ''
+  - void calibrer(std::vector<double>& mesures,
+  - '              const std::vector<double>& coeffs) {'
+  - '    if (coeffs.size() < 2) return;'
+  - '    const double gain = coeffs[0];'
+  - '    const double offset = coeffs[1];'
+  - '    for (auto& m : mesures) {'
+  - '        m = gain * m + offset;'
+  - '    }'
+  - '}'
+  extra:
+  - void calibrer(std::vector<double> mesures,
+  - '    for (const auto& m : mesures) {'
+  e: |-
+    Chaque signature dit exactement son intention :
+    - `mesures` est modifié → `std::vector<double>&` (référence non const).
+    - `coeffs` est seulement lu → `const std::vector<double>&` (aucune copie, garantie de non-modification).
+    - `for (auto& m : mesures)` — le `&` est **indispensable** pour écrire dans le vecteur.
+
+    Les deux intrus sont les erreurs symétriques : prendre `mesures` par valeur (la fonction ne ferait rien de visible) et itérer en `const auto&` (ne compilerait pas, ou n'écrirait rien).
+
+    `gain` et `offset` sortis de la boucle : le compilateur le ferait probablement, mais l'écrire documente qu'ils sont invariants.
+
+    Le garde `coeffs.size() < 2` évite un accès hors bornes — `operator[]` ne vérifie rien.

@@ -1,0 +1,694 @@
+id: py08
+track: python
+title: Classes & modèle de données
+goal: Concevoir une classe qui s’intègre au langage (dunder, dataclass, property).
+level: avance
+requires:
+- py05
+concepts:
+- classes
+- dunder
+- dataclass
+- property
+- heritage
+lesson:
+  minutes: 18
+  intro: |
+    Une classe regroupe des données et les opérations qui vont avec : un capteur et sa lecture, une série et sa moyenne. Bien faite, elle **s'intègre au langage** : `len(serie)`, `for m in serie`, `print(mesure)` et `==` marchent comme sur les types de base. Ce module te donne les outils modernes pour y arriver sans écrire de code répétitif : `@dataclass`, `@property` et les méthodes spéciales.
+  steps:
+    - level: 1
+      title: Le plan et les instruments
+      body: |
+        Une **classe**, c'est le plan de fabrication d'un instrument. Les **instances** (ou objets) sont les instruments construits d'après ce plan : chacun a ses propres réglages (ses **attributs** : nom, offset, historique), mais tous partagent le même mode d'emploi (les **méthodes** : `lire()`, `calibrer()`).
+
+        Dans une méthode, `self` désigne « cet instrument-ci » : `t1.lire()` fait tourner le mode d'emploi commun sur les réglages de `t1`.
+    - level: 2
+      title: Attributs, méthodes spéciales, dataclass
+      body: |
+        - `__init__(self, …)` s'exécute à la création (`t = Thermocouple("TC1")`) et crée les attributs d'**instance** avec `self.nom = …`. Un attribut écrit directement dans le corps de la classe est un attribut de **classe**, partagé par toutes les instances.
+        - `t.lire()` est un raccourci pour `Thermocouple.lire(t)` : c'est ainsi que `self` reçoit l'objet.
+        - Les **méthodes spéciales** (*dunder*, pour *double underscore*) branchent ta classe sur la syntaxe de Python : `__repr__` pour l'affichage de débogage, `__eq__` pour `==`, `__len__` pour `len()`, `__iter__` pour `for`, `__contains__` pour `in`, `__getitem__` pour `obj[i]`, `__enter__`/`__exit__` pour `with`, `__add__` pour `+`.
+        - `@dataclass` écrit pour toi `__init__`, `__repr__` et `__eq__` à partir des champs annotés. Une valeur par défaut modifiable s'écrit `field(default_factory=list)` ; `@dataclass(frozen=True)` rend l'objet immuable et hashable ; `__post_init__` sert à valider.
+        - `@property` transforme une méthode en attribut calculé (`serie.moyenne`, sans parenthèses), et son `setter` permet de valider une affectation.
+        - **Héritage** (« est un ») : `class Thermocouple(Instrument)` reprend tout ce que fait `Instrument`. **Composition** (« a un ») : un `Banc` possède une liste d'instruments. Dans le doute, la composition.
+      check:
+        q: "`class Banc: journal = []` puis deux instances `b1`, `b2`. Après `b1.journal.append(\"ok\")`, que vaut `b2.journal` ?"
+        choices:
+          - t: "`[\"ok\"]`"
+            ok: true
+            why: "`journal` est un attribut de classe : une seule liste, partagée par toutes les instances."
+          - t: "`[]`"
+            why: Ce serait vrai si `journal` était créé dans `__init__` avec `self.journal = []`.
+          - t: AttributeError
+            why: "`b2.journal` trouve l'attribut sur la classe : pas d'erreur."
+    - level: 3
+      title: Une série de mesures qui parle Python
+      body: |
+        Deux dataclasses : `Mesure`, un simple conteneur, et `Serie`, qui ajoute trois méthodes spéciales et une propriété calculée.
+      code: |
+        from dataclasses import dataclass, field
+
+        @dataclass
+        class Mesure:
+            capteur: str
+            valeur: float
+            unite: str = "K"
+
+        @dataclass
+        class Serie:
+            nom: str
+            mesures: list = field(default_factory=list)    # une liste neuve par série
+
+            def ajouter(self, capteur, valeur):
+                self.mesures.append(Mesure(capteur, valeur))
+
+            def __len__(self):
+                return len(self.mesures)
+
+            def __iter__(self):
+                return iter(self.mesures)
+
+            @property
+            def moyenne(self):
+                return sum(m.valeur for m in self) / len(self) if self.mesures else 0.0
+
+        s = Serie("refroidissement")
+        s.ajouter("T1", 77.2)
+        s.ajouter("T1", 76.8)
+        print(s.mesures[0])
+        print(len(s), s.moyenne, [m.valeur for m in s])
+        print(Mesure("T1", 4.2) == Mesure("T1", 4.2))
+        print(Serie("autre").mesures)                      # vide : aucun partage
+      run: true
+      out: |
+        Mesure(capteur='T1', valeur=77.2, unite='K')
+        2 77.0 [77.2, 76.8]
+        True
+        []
+      after: |
+        Le `repr` lisible et le `==` qui compare les champs viennent gratuitement de `@dataclass`. Sans elle, `print(s.mesures[0])` afficherait `<__main__.Mesure object at 0x…>` et `==` comparerait les identités.
+    - level: 4
+      title: Héritage, classe abstraite, propriété validée
+      body: |
+        Une **classe abstraite** (`abc.ABC`) définit l'interface commune de tes pilotes d'instruments : toute sous-classe **doit** implémenter les méthodes marquées `@abstractmethod`, sinon Python refuse de l'instancier. `super().__init__(…)` laisse la classe mère initialiser sa part.
+
+        Une propriété avec `setter` valide chaque affectation, **y compris dans `__init__`** si on y écrit `self.kelvin = …`. La donnée elle-même est rangée sous un autre nom (`self._kelvin`), sinon le setter se rappellerait à l'infini.
+      code: |
+        from abc import ABC, abstractmethod
+
+        class Instrument(ABC):
+            nb_crees = 0                          # attribut de classe : partagé
+
+            def __init__(self, nom):
+                self.nom = nom                    # attribut d'instance
+                Instrument.nb_crees += 1
+
+            @abstractmethod
+            def lire(self) -> float: ...
+
+            def __repr__(self):
+                return f"{type(self).__name__}({self.nom!r})"
+
+        class Thermocouple(Instrument):
+            def __init__(self, nom, offset=0.0):
+                super().__init__(nom)
+                self.offset = offset
+
+            def lire(self):
+                return 21.5 + self.offset
+
+        t = Thermocouple("TC1", offset=-0.5)
+        print(t, t.lire(), Instrument.nb_crees, vars(t))
+        try:
+            Instrument("abstrait")
+        except TypeError as e:
+            print("TypeError : une classe abstraite ne s'instancie pas")
+
+        class Consigne:
+            def __init__(self, kelvin):
+                self.kelvin = kelvin              # passe par le setter
+            @property
+            def kelvin(self):
+                return self._kelvin
+            @kelvin.setter
+            def kelvin(self, v):
+                if v <= 0:
+                    raise ValueError(f"{v} K : une température absolue est positive")
+                self._kelvin = v
+            @property
+            def celsius(self):
+                return self._kelvin - 273.15
+
+        c = Consigne(300)
+        print(round(c.celsius, 2))
+        try:
+            c.kelvin = -5
+        except ValueError as e:
+            print("ValueError:", e)
+      run: true
+      out: |
+        Thermocouple('TC1') 21.0 1 {'nom': 'TC1', 'offset': -0.5}
+        TypeError : une classe abstraite ne s'instancie pas
+        26.85
+        ValueError: -5 K : une température absolue est positive
+    - level: 5
+      title: Sur le terrain
+      body: |
+        - Pour un conteneur de données (mesure, configuration, résultat d'essai) : `@dataclass`, et `frozen=True` dès que l'objet ne doit plus changer. Pour des millions de petits objets, `@dataclass(slots=True)` réduit la mémoire.
+        - Une classe abstraite `Instrument` te permet d'écrire un `ThermocoupleSimule` qui renvoie des valeurs connues : tout ton code se teste **sans le matériel**, sur ton Mac.
+        - Composition d'abord : un `Banc` **a** des instruments et un `Journal` ; il n'**est** ni l'un ni l'autre. L'héritage profond (plus de deux niveaux) rend le code difficile à suivre.
+        - Toujours un `__repr__` utile (la dataclass en fournit un) : c'est ce qui s'affiche dans les logs, le débogueur et les messages d'erreur.
+        - `@classmethod` pour les constructeurs alternatifs (`Serie.depuis_csv(chemin)`), `@staticmethod` pour une fonction utilitaire rangée dans la classe.
+  recap:
+    - "Classe = plan ; instance = objet ; `self` = l'objet courant."
+    - "Attributs d'instance dans `__init__` ; un attribut de classe est partagé par toutes les instances."
+    - "Méthodes spéciales : `__repr__`, `__eq__`, `__len__`, `__iter__`… branchent la classe sur la syntaxe."
+    - "`@dataclass` génère `__init__`, `__repr__`, `__eq__` ; `field(default_factory=list)` pour les listes."
+    - "`@property` + setter pour valider ; donnée stockée dans `_nom`."
+  pieges: [py-attribut-classe-mutable, py-property-recursion, py-arg-defaut-mutable]
+exercises:
+- id: py08.1
+  type: qcm
+  level: 2
+  concepts:
+  - dataclass
+  q: Que génère `@dataclass` par défaut ?
+  choices:
+  - t: '`__init__`, `__repr__` et `__eq__`'
+    ok: true
+    why: Exactement. Pas `__hash__` (mis à None dès que `eq=True`), pas d’ordre.
+  - t: '`__init__`, `__repr__`, `__eq__` et `__hash__`'
+    ok: false
+    why: '`__hash__` n’arrive qu’avec `frozen=True` ou `eq=False`.'
+  - t: Seulement `__init__`
+    ok: false
+    why: '`__repr__` et `__eq__` viennent aussi.'
+  - t: Tout, y compris `__lt__`
+    ok: false
+    why: L’ordre demande `@dataclass(order=True)`.
+  e: |-
+    ```python
+    from dataclasses import dataclass, field
+
+    @dataclass(frozen=True, slots=True)
+    class Mesure:
+        canal: int
+        valeur: float
+        unite: str = "V"
+    ```
+
+    - `frozen=True` → immuable **et** hashable → utilisable en clé de dict/set.
+    - `slots=True` (3.10+) → pas de `__dict__` : moins de mémoire, attributs plus rapides. Idéal pour des millions d’échantillons.
+    - `field(default_factory=list)` pour un défaut mutable.
+- id: py08.2
+  type: predict
+  level: 2
+  concepts:
+  - dunder
+  q: Sortie ?
+  code: |-
+    class Vec:
+        def __init__(self, x, y):
+            self.x, self.y = x, y
+        def __add__(self, o):
+            return Vec(self.x + o.x, self.y + o.y)
+        def __repr__(self):
+            return f"Vec({self.x}, {self.y})"
+
+    a = Vec(1, 2)
+    print(a + Vec(3, 4))
+    print([a])
+  answer: |-
+    Vec(4, 6)
+    [Vec(1, 2)]
+  e: |-
+    `__repr__` est ce qu’affichent la console, les conteneurs et les messages d’assertion pytest. `__str__` est pour l’utilisateur final ; s’il manque, Python retombe sur `__repr__`.
+
+    **Écris toujours `__repr__`** : ça change tout au débogage. Convention : une expression qui pourrait recréer l’objet.
+
+    Note : `@dataclass` te le donne gratuitement.
+- id: py08.3
+  type: cloze
+  level: 2
+  concepts:
+  - property
+  q: Expose une température en °C avec validation, et une lecture dérivée en K.
+  tpl: |-
+    class Sonde:
+        def __init__(self, celsius):
+            self.celsius = celsius        # passe par le setter
+
+        @⟦0⟧
+        def celsius(self):
+            return self._c
+
+        @celsius.⟦1⟧
+        def celsius(self, v):
+            if v < -273.15:
+                raise ValueError("sous le zéro absolu")
+            self._c = float(v)
+
+        @⟦0⟧
+        def kelvin(self):
+            return self._c + 273.15
+  blanks:
+  - - property
+  - - setter
+  e: |-
+    `@property` transforme une méthode en attribut **en lecture**. `@nom.setter` ajoute l’écriture avec validation.
+
+    Intérêt : tu commences avec un attribut public `self.celsius = c`, et le jour où tu as besoin de valider, tu ajoutes la property **sans changer une ligne de code appelant**. C’est pour ça qu’en Python on n’écrit pas de getters/setters dès le départ, contrairement au C++/Java.
+
+    `kelvin` est calculé : pas de risque d’incohérence entre deux champs.
+- id: py08.4
+  type: predict
+  level: 3
+  concepts:
+  - heritage
+  q: Sortie ?
+  code: |-
+    class A:
+        def qui(self): return "A"
+    class B(A):
+        def qui(self): return "B->" + super().qui()
+    class C(A):
+        def qui(self): return "C->" + super().qui()
+    class D(B, C):
+        def qui(self): return "D->" + super().qui()
+
+    print(D().qui())
+    print([c.__name__ for c in D.__mro__])
+  answer: |-
+    D->B->C->A
+    ['D', 'B', 'C', 'A', 'object']
+  e: |-
+    `super()` ne veut **pas** dire « la classe parente » mais « la suivante dans le MRO » (linéarisation C3).
+
+    Dans `B.qui`, `super()` pointe sur `C` — pas sur `A` — parce que le MRO de `D` est D→B→C→A→object. C’est ce qui rend les mixins coopératifs possibles.
+
+    En pratique : évite l’héritage multiple sauf pour des mixins sans état. La composition est presque toujours plus lisible.
+- id: py08.5
+  type: qcm
+  level: 3
+  concepts:
+  - dunder
+  q: Tu veux que ta classe `Trame` fonctionne avec `len()`, `for`, `in` et `t[0]`. Quel jeu minimal de méthodes ?
+  choices:
+  - t: '`__len__` et `__getitem__`'
+    ok: true
+    why: Avec `__getitem__` acceptant des entiers, Python fabrique l’itération et `in` automatiquement.
+  - t: '`__len__`, `__iter__`, `__contains__`, `__getitem__`'
+    ok: false
+    why: Ça marche, mais c’est plus que le minimum.
+  - t: '`__iter__` seul'
+    ok: false
+    why: Donne `for` et `in`, mais ni `len()` ni l’indexation.
+  - t: '`__next__` seul'
+    ok: false
+    why: '`__next__` fait un *itérateur*, pas un conteneur.'
+  e: |-
+    Le protocole de séquence est un **repli historique** : si `__iter__` manque, Python appelle `__getitem__` avec 0, 1, 2… jusqu’à `IndexError`.
+
+    En pratique, hérite de `collections.abc.Sequence` : tu implémentes `__len__` + `__getitem__` et tu récupères gratuitement `__contains__`, `__iter__`, `__reversed__`, `index`, `count`.
+
+    C’est le bon réflexe pour un objet « trame », « spectre » ou « série temporelle ».
+- id: py08.6
+  type: code
+  level: 3
+  concepts:
+  - classes
+  - dataclass
+  q: 'Écris une classe `Fenetre` : taille max `n`, méthode `push(v)`, propriété `moyenne` (0.0 si vide). Elle doit aussi supporter `len()` et être affichable par `repr`.'
+  lang: python
+  start: |-
+    from collections import deque
+
+    class Fenetre:
+        def __init__(self, n):
+            ...
+  sol: |-
+    from collections import deque
+
+    class Fenetre:
+        def __init__(self, n):
+            if n <= 0:
+                raise ValueError("n doit etre > 0")
+            self._buf = deque(maxlen=n)
+
+        def push(self, v):
+            self._buf.append(float(v))
+            return self
+
+        @property
+        def moyenne(self):
+            return sum(self._buf) / len(self._buf) if self._buf else 0.0
+
+        def __len__(self):
+            return len(self._buf)
+
+        def __repr__(self):
+            return f"Fenetre(n={self._buf.maxlen}, {list(self._buf)!r})"
+  tests: |-
+    f = Fenetre(3)
+    assert f.moyenne == 0.0 and len(f) == 0
+    for v in (1, 2, 3, 4):
+        f.push(v)
+    assert len(f) == 3, len(f)
+    assert abs(f.moyenne - 3.0) < 1e-9, f.moyenne
+    assert "Fenetre" in repr(f)
+    try:
+        Fenetre(0); assert False, "n<=0 doit lever ValueError"
+    except ValueError:
+        pass
+    print("OK")
+  e: |-
+    Ce que le test vérifie, et pourquoi ça compte :
+    - **Éviction automatique** via `deque(maxlen=n)` : après 4 push sur une fenêtre de 3, la moyenne est (2+3+4)/3 = 3.
+    - `moyenne` est une **propriété** : elle se lit comme un attribut, mais reste calculée → jamais désynchronisée.
+    - `__len__` rend l’objet utilisable avec `len()` et dans un `if f:`.
+    - Validation à la construction : un objet mal formé ne doit pas pouvoir exister.
+
+    `{...!r}` dans une f-string appelle `repr()` au lieu de `str()`.
+- id: py08.7
+  type: predict
+  level: 2
+  concepts:
+  - dunder
+  q: Sortie ?
+  code: |-
+    class Temp:
+        def __init__(self, c): self.c = c
+        def __eq__(self, o): return isinstance(o, Temp) and self.c == o.c
+        def __lt__(self, o): return self.c < o.c
+        def __repr__(self): return f"Temp({self.c})"
+
+    v = [Temp(20), Temp(15), Temp(25)]
+    print(sorted(v))
+    print(Temp(20) == Temp(20), Temp(20) != Temp(15))
+    print(Temp(20) > Temp(15))
+  answer: |-
+    [Temp(15), Temp(20), Temp(25)]
+    True True
+    True
+  e: |-
+    Trois mécanismes de repli du modèle de données :
+    - `sorted` n'a besoin que de `__lt__`.
+    - `__ne__` est dérivé automatiquement de `__eq__` (depuis Python 3).
+    - `a > b` essaie `a.__gt__(b)` — absent — puis le **reflet** `b.__lt__(a)`, qui existe. Ça marche.
+
+    En revanche `a >= b` chercherait le reflet `b.__le__(a)`, qui n'existe pas ici : **`TypeError`**. Définir `__lt__` seul te donne `<` et `>`, mais ni `<=` ni `>=`.
+
+    Pour éviter d'écrire les six comparaisons : `@functools.total_ordering` génère les autres à partir de `__eq__` + une seule (`__lt__`). Ou `@dataclass(order=True)`.
+- id: py08.8
+  type: cloze
+  level: 2
+  concepts:
+  - dataclass
+  q: Déclare une mesure immuable, hashable, économe en mémoire, avec un historique par instance.
+  tpl: |-
+    from dataclasses import dataclass, ⟦0⟧
+
+    @dataclass(frozen=True, ⟦1⟧=True)
+    class Mesure:
+        canal: int
+        valeur: float
+        unite: str = "V"
+
+    @dataclass
+    class Journal:
+        entrees: list[Mesure] = ⟦0⟧(default_factory=⟦2⟧)
+  blanks:
+  - - field
+  - - slots
+  - - list
+  e: |-
+    - `frozen=True` → immuable **et** hashable : utilisable en clé de dict ou dans un set.
+    - `slots=True` (3.10+) → pas de `__dict__` : ~40 % de mémoire en moins et attributs plus rapides. Décisif sur des millions d'échantillons.
+    - `field(default_factory=list)` → un défaut mutable **par instance**. `entrees: list = []` lèverait `ValueError: mutable default` — les dataclasses refusent explicitement le piège du défaut mutable.
+
+    Autres options utiles : `order=True` (comparaisons), `kw_only=True` (3.10+, force les mots-clés), `field(compare=False)` pour exclure un champ de l'égalité (un horodatage, typiquement).
+- id: py08.9
+  type: qcm
+  level: 2
+  concepts:
+  - classes
+  q: Quelle est la différence entre `@staticmethod` et `@classmethod` ?
+  choices:
+  - t: '`classmethod` reçoit la classe en 1er argument (`cls`), `staticmethod` ne reçoit rien de spécial'
+    ok: true
+    why: 'D’où l’usage principal de `classmethod` : les constructeurs alternatifs, qui marchent aussi sur les sous-classes.'
+  - t: '`staticmethod` ne peut pas être appelée sur une instance'
+    ok: false
+    why: Si, `obj.methode()` fonctionne.
+  - t: '`classmethod` est plus rapide'
+    ok: false
+    why: Aucun rapport.
+  - t: Elles sont identiques
+    ok: false
+    why: La signature diffère.
+  e: |-
+    ```python
+    class Mesure:
+        @classmethod
+        def depuis_trame(cls, trame: bytes) -> "Mesure":
+            canal, valeur = struct.unpack("<Bf", trame)
+            return cls(canal, valeur)      # cls, pas Mesure : marche pour les sous-classes
+
+        @staticmethod
+        def crc_valide(trame: bytes) -> bool:
+            return crc8(trame[:-1]) == trame[-1]   # ne dépend ni de self ni de cls
+    ```
+
+    **`classmethod`** = constructeur alternatif (`dict.fromkeys`, `datetime.fromtimestamp`, `Path.cwd` en sont).
+    **`staticmethod`** = fonction utilitaire qu'on range dans la classe par cohérence de nommage. Si elle n'a aucun lien logique avec la classe, une fonction de module est plus simple.
+- id: py08.10
+  type: bug
+  level: 3
+  concepts:
+  - property
+  q: Cette classe entre en récursion infinie. Clique sur la ligne fautive.
+  code: |-
+    class Sonde:
+        @property
+        def celsius(self):
+            return self.celsius
+
+        @celsius.setter
+        def celsius(self, v):
+            self.celsius = v
+  bad: 4
+  fix: '        return self._celsius     # et self._celsius = v dans le setter'
+  e: |-
+    `self.celsius` **dans le getter** rappelle le getter → récursion → `RecursionError`.
+
+    Une property doit stocker dans un attribut **différent**, par convention préfixé d'un underscore : `self._celsius`.
+
+    ```python
+    @property
+    def celsius(self):
+        return self._celsius
+
+    @celsius.setter
+    def celsius(self, v):
+        if v < -273.15:
+            raise ValueError("sous le zéro absolu")
+        self._celsius = float(v)
+    ```
+
+    Cas particulier : avec `@dataclass(frozen=True)`, même `self._x = v` est interdit — il faut `object.__setattr__(self, "_x", v)`. Signe qu'il faut plutôt valider dans `__post_init__`.
+- id: py08.11
+  type: code
+  level: 3
+  concepts:
+  - dunder
+  q: 'Écris `Plage` : `Plage(0, 10)` avec `mini`/`maxi`. Elle doit supporter `in` (`5 in p`), `len()` (l’étendue, ici 10), et `repr`. `Plage(10, 0)` doit lever `ValueError`.'
+  lang: python
+  start: |-
+    class Plage:
+        def __init__(self, mini, maxi):
+            ...
+  sol: |-
+    class Plage:
+        def __init__(self, mini, maxi):
+            if maxi < mini:
+                raise ValueError(f"plage inversée : [{mini}, {maxi}]")
+            self.mini = mini
+            self.maxi = maxi
+
+        def __contains__(self, x):
+            return self.mini <= x <= self.maxi
+
+        def __len__(self):
+            return int(self.maxi - self.mini)
+
+        def __repr__(self):
+            return f"Plage({self.mini}, {self.maxi})"
+  tests: |-
+    p = Plage(0, 10)
+    assert 5 in p and 0 in p and 10 in p
+    assert -1 not in p and 11 not in p
+    assert len(p) == 10
+    assert repr(p) == "Plage(0, 10)", repr(p)
+    try:
+        Plage(10, 0); assert False, "doit lever ValueError"
+    except ValueError:
+        pass
+    assert 5.5 in Plage(0, 10), "doit marcher avec des flottants"
+    print("OK")
+  e: |-
+    `__contains__` rend `x in p` naturel et **rapide** : sans lui, Python retomberait sur `__iter__` et parcourrait tout.
+
+    `self.mini <= x <= self.maxi` : la comparaison chaînée dit exactement l'intention, bornes incluses.
+
+    Attention à `__len__` : il **doit** renvoyer un entier positif, sinon `TypeError`. Et il gouverne aussi `bool(p)` — une `Plage(5, 5)` de longueur 0 serait considérée comme **fausse** dans un `if p:`. Si ce n'est pas ce que tu veux, définis explicitement `__bool__`.
+
+    C'est exactement le genre de piège que les méthodes spéciales introduisent : elles branchent ta classe sur des mécanismes du langage auxquels tu ne pensais pas.
+- id: py08.12
+  type: qcm
+  level: 2
+  concepts:
+  - heritage
+  q: Tu veux réutiliser le code d’un `LecteurCSV` dans un `LecteurBinaire`. Héritage ou composition ?
+  choices:
+  - t: 'Composition : chacun contient un objet qui fait le travail commun'
+    ok: true
+    why: Les deux « sont » des lecteurs mais ne partagent pas de comportement substituable — l’héritage créerait un couplage inutile.
+  - t: 'Héritage : `LecteurBinaire(LecteurCSV)`'
+    ok: false
+    why: Un lecteur binaire n’est pas un lecteur CSV. Tu hériterais de méthodes qui n’ont aucun sens.
+  - t: Copier le code
+    ok: false
+    why: 'Duplication : les corrections ne se propagent pas.'
+  - t: Héritage multiple des deux
+    ok: false
+    why: Complexité maximale pour un besoin de réutilisation simple.
+  e: |-
+    Le test de l'héritage est **la substituabilité** (principe de Liskov) : partout où le code attend une `Base`, une `Derivee` doit fonctionner sans surprise.
+
+    En Python, l'héritage est encore moins nécessaire qu'ailleurs grâce au **duck typing** : deux classes sans lien de parenté qui exposent `lire()` sont interchangeables.
+
+    ```python
+    class Lecteur(Protocol):       # typing.Protocol : contrat structurel
+        def lire(self) -> list[Mesure]: ...
+
+    def traiter(l: Lecteur): ...   # accepte n'importe quoi qui a .lire()
+    ```
+
+    Réserve l'héritage à : une vraie relation « est-un », une classe de base abstraite (`abc.ABC`), ou un mixin sans état.
+- id: py08.13
+  type: predict
+  level: 3
+  concepts:
+  - classes
+  q: Sortie ?
+  code: |-
+    class A:
+        x = [1]
+        y = 1
+
+    a, b = A(), A()
+    a.x.append(2)
+    a.y = 99
+    print(A.x, A.y, b.x, b.y, a.y)
+  answer: '[1, 2] 1 [1, 2] 1 99'
+  e: |-
+    Deux comportements très différents :
+    - `a.x.append(2)` **mute** l'objet de classe : `A.x` et `b.x` voient le changement.
+    - `a.y = 99` **crée un attribut d'instance** sur `a` qui masque celui de classe. `A.y` et `b.y` restent à 1 ; seul `a.y` vaut 99.
+
+    Règle de résolution : Python cherche dans `instance.__dict__`, puis dans `type(instance).__dict__`, puis dans le MRO.
+
+    D'où la règle absolue : **jamais d'attribut de classe mutable**. Un `list` ou un `dict` au niveau de la classe est partagé par toutes les instances — c'est presque toujours un bug.
+
+    Les attributs de classe **immuables** sont en revanche parfaits pour des constantes : `BAUDRATE = 115200`.
+- id: py08.14
+  type: flash
+  level: 3
+  concepts:
+  - dunder
+  q: Cite les méthodes spéciales à connaître, groupées par ce qu’elles branchent.
+  back: |-
+    | Groupe | Méthodes |
+    | --- | --- |
+    | Représentation | `__repr__` (débogage), `__str__` (utilisateur), `__format__` |
+    | Comparaison | `__eq__`, `__lt__`, `__hash__` |
+    | Conteneur | `__len__`, `__getitem__`, `__setitem__`, `__contains__`, `__iter__` |
+    | Numérique | `__add__`, `__mul__`, `__iadd__`, et leurs reflets `__radd__` |
+    | Contexte | `__enter__`, `__exit__` |
+    | Appel | `__call__` (l'objet devient une fonction) |
+    | Attributs | `__getattr__` (si absent), `__setattr__` (toujours) |
+    | Cycle de vie | `__init__`, `__new__`, `__post_init__` (dataclass) |
+
+    Si tu n'en retiens qu'une : **`__repr__`**. Elle change tout au débogage.
+  e: '`__getattr__` n''est appelé que si l''attribut n''a **pas** été trouvé normalement — c''est ce qui permet les proxys et les API dynamiques (`instrument.MEAS_TEMP` → envoie `MEAS:TEMP?`). `__getattribute__`, lui, intercepte **tout** : à manier avec précaution, la récursion infinie guette.'
+- id: py08.15
+  type: parsons
+  level: 3
+  concepts:
+  - classes
+  - heritage
+  q: Reconstitue une classe de base abstraite pour tes pilotes d’instrument.
+  lang: python
+  lines:
+  - from abc import ABC, abstractmethod
+  - ''
+  - 'class Instrument(ABC):'
+  - '    @abstractmethod'
+  - '    def lire(self) -> float:'
+  - '        """Renvoie la mesure courante, en unité SI."""'
+  - ''
+  - '    def __enter__(self):'
+  - '        self.ouvrir()'
+  - '        return self'
+  - ''
+  - '    def __exit__(self, *exc):'
+  - '        self.fermer()'
+  - '        return False'
+  extra:
+  - '    def lire(self): pass'
+  - '        return True'
+  e: |-
+    `abc.ABC` + `@abstractmethod` : instancier une sous-classe qui n'implémente pas `lire` lève `TypeError` **à la construction**, pas au premier appel. L'erreur arrive au bon endroit.
+
+    Le premier intrus (`def lire(self): pass`) casse tout : une méthode concrète qui ne fait rien, donc plus aucune vérification.
+
+    Le second (`return True` dans `__exit__`) **avalerait toutes les exceptions** du bloc `with` — un instrument qui plante ne remonterait jamais.
+
+    Le reste de la classe (`__enter__`/`__exit__`) est du code **concret partagé** : c'est le bon usage d'une classe de base — factoriser ce qui est identique, imposer ce qui doit varier.
+- id: py08.16
+  type: qcm
+  level: 2
+  concepts:
+  - dataclass
+  - property
+  q: Où valider les champs d’une `@dataclass` ?
+  choices:
+  - t: Dans `__post_init__`, appelé automatiquement après l’`__init__` généré
+    ok: true
+    why: 'C’est le point d’extension prévu : tu gardes l’`__init__` généré et tu ajoutes tes vérifications.'
+  - t: En redéfinissant `__init__`
+    ok: false
+    why: Tu perds tout l’intérêt de la dataclass.
+  - t: Dans une `property` par champ
+    ok: false
+    why: Possible, mais verbeux et incompatible avec `frozen=True`.
+  - t: Nulle part, les annotations valident
+    ok: false
+    why: Les annotations ne sont jamais vérifiées à l’exécution.
+  e: |-
+    ```python
+    @dataclass
+    class Acquisition:
+        frequence_hz: float
+        duree_s: float
+        n_points: int = 0
+
+        def __post_init__(self):
+            if self.frequence_hz <= 0:
+                raise ValueError("fréquence doit être > 0")
+            self.n_points = int(self.frequence_hz * self.duree_s)   # champ dérivé
+    ```
+
+    `__post_init__` sert aussi à calculer les **champs dérivés**, ce qui évite de les passer au constructeur.
+
+    Avec `frozen=True`, l'affectation est bloquée : utilise `object.__setattr__(self, "n_points", ...)`, ou une `@property` calculée (souvent le meilleur choix — pas de risque d'incohérence).

@@ -1,0 +1,11 @@
+{
+  "id": "py-02",
+  "ordre": 2,
+  "lang": "python",
+  "genre": "lab",
+  "niveau": "avancé",
+  "minutes": 45,
+  "titre": "Trames binaires et regroupements",
+  "modules": ["py03", "py04"],
+  "resume": "Décoder des trames capteur avec struct, vérifier leur somme de contrôle, puis regrouper et compter les mesures avec les bons outils de collections."
+}

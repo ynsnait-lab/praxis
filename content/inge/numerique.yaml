@@ -1,0 +1,777 @@
+id: numerique
+title: Électronique numérique
+en: Digital electronics
+desc: Binaire et hexadécimal, logique combinatoire et séquentielle, niveaux logiques et conversion analogique-numérique.
+intro: |
+  Tout ce qui est numérique repose sur une idée simple : deux états, 0 et 1. Avec eux, on compte (binaire), on décide (logique), on se souvient (bascules) et on mesure le monde réel (convertisseurs).
+
+  Ces notions servent autant pour lire une fiche technique de microcontrôleur que pour câbler un capteur sur un automate.
+notions:
+  # ------------------------------------------------------------------ binaire
+  - id: num-binaire
+    title: Binaire, hexadécimal et opérations sur les bits
+    en: Binary, hexadecimal and bitwise operations
+    goal: Convertir entre décimal, binaire et hexadécimal, et manipuler des bits avec des masques.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Compter avec deux doigts
+          body: |
+            Nous comptons en base 10 parce que nous avons dix doigts : après 9, on ajoute une colonne (10). Un circuit électronique n'a que deux « doigts » : courant ou pas, tension haute ou basse. Il compte donc en **base 2** : 0, 1, puis 10, 11, 100…
+        - level: 2
+          title: Bits, octets et hexadécimal
+          body: |
+            Un chiffre binaire est un **bit**. Huit bits font un **octet** (*byte*), qui peut prendre $2^8 = 256$ valeurs, de 0 à 255.
+
+            Chaque position vaut une puissance de 2 : de droite à gauche, 1, 2, 4, 8, 16, 32, 64, 128.
+
+            Écrire des suites de 0 et de 1 est illisible. On regroupe donc les bits par **paquets de 4**, qui prennent 16 valeurs : c'est l'**hexadécimal** (0 à 9 puis A à F). Un octet s'écrit avec exactement deux chiffres hexadécimaux : `1010 1100` = `0xAC`.
+          check:
+            q: Combien de valeurs différentes peut-on coder sur 8 bits ?
+            choices:
+              - t: 256, de 0 à 255
+                ok: true
+              - t: 255
+                why: De 0 à 255, il y a 256 valeurs (le zéro compte).
+              - t: 16
+                why: 16 valeurs, c'est 4 bits (un chiffre hexadécimal).
+        - level: 3
+          title: Conversions et masques
+          body: |
+            **Binaire → décimal** : on additionne les poids des bits à 1. $1101_2 = 8 + 4 + 0 + 1 = 13$.
+
+            **Hexadécimal → décimal** : $\text{0x3F} = 3 \times 16 + 15 = 63$.
+
+            Sur $n$ bits : $2^n$ valeurs, de 0 à $2^n - 1$. À connaître : $2^8 = 256$, $2^{10} = 1024$, $2^{12} = 4096$, $2^{16} = 65\,536$.
+
+            **Opérations bit à bit** (mêmes opérateurs en C, C++ et Python) :
+          code: |
+            reg = 0b1011_0110          # 0xB6
+            print(reg & 0x0F)          # ET : garde les 4 bits de poids faible → 6
+            print(bin(reg | (1 << 3))) # OU : force le bit 3 à 1
+            print(bin(reg & ~(1 << 2) & 0xFF))  # ET avec l'inverse : force le bit 2 à 0
+            print((reg >> 4) & 1)      # décale puis masque : lit le bit 4 → 1
+            print(hex(reg ^ 0xFF))     # OU exclusif : inverse tous les bits
+          run: true
+          out: |
+            6
+            0b10111110
+            0b10110010
+            1
+            0x49
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Pourquoi l'hexadécimal ?** Parce que 16 = 2⁴ : chaque chiffre hexadécimal correspond exactement à 4 bits, sans calcul. On lit `0xC8` comme `1100 1000` directement, ce qui est impossible avec le décimal 200.
+
+            **Ordre des octets** (*endianness*) : un nombre sur 16 ou 32 bits occupe plusieurs octets. En **petit-boutiste** (*little endian*, la plupart des processeurs), l'octet de poids faible vient en premier en mémoire ; en **gros-boutiste** (*big endian*, souvent les protocoles réseau et Modbus), c'est l'inverse. Lire des données brutes d'un appareil avec le mauvais ordre donne des valeurs absurdes.
+
+            **ko ou Kio ?** 1 ko = 1000 octets (SI) ; 1 Kio = 1024 octets (binaire). Les deux sont souvent confondus.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Les **registres** des microcontrôleurs et des capteurs se décrivent bit par bit dans les fiches techniques, en hexadécimal.
+            - Les **mots d'état** des variateurs, contrôleurs d'axes et automates sont des champs de bits : bit 0 « prêt », bit 3 « défaut »… On les teste avec des masques.
+            - En Python : `bin()`, `hex()`, `int("3F", 16)`, `int("1101", 2)` ; la calculatrice des ordinateurs a un mode « programmeur ».
+      recap:
+        - "n bits : 2ⁿ valeurs, de 0 à 2ⁿ − 1 (8 bits : 0 à 255)."
+        - "Un chiffre hexadécimal = 4 bits ; un octet = 2 chiffres hex."
+        - "ET pour masquer/lire, OU pour forcer à 1, ET avec ~ pour forcer à 0, XOR pour inverser."
+        - "Décalages : 1 << n construit le masque du bit n."
+        - "Attention à l'ordre des octets (little/big endian)."
+      pieges: [ing-2n-moins-1, ing-hex-decimal]
+    vocab:
+      - bit = bit
+      - octet = byte
+      - hexadécimal = hexadecimal
+      - bit de poids faible / fort = least / most significant bit (LSB / MSB)
+      - masque = mask
+      - décalage = shift
+      - ordre des octets = endianness
+      - registre = register
+    exercises:
+      - id: num-binaire.1
+        type: numeric
+        level: 1
+        q: Que vaut 1101 0110 (binaire) en décimal ?
+        answer: 214
+        tol: 0.001
+        calc: "0b11010110"
+        trap_values:
+          - v: 107
+            why: Tu as lu les bits dans le mauvais sens ou décalé d'une position. Le bit de droite vaut 1, le bit de gauche 128.
+        e: 128 + 64 + 16 + 4 + 2 = 214.
+      - id: num-binaire.2
+        type: numeric
+        level: 1
+        q: Que vaut 0x3F en décimal ?
+        answer: 63
+        tol: 0.001
+        calc: "0x3F"
+        trap_values:
+          - v: 315
+            why: « 3F » n'est pas un nombre décimal. 3 × 16 + 15 = 63.
+        piege: ing-hex-decimal
+        e: $3 \times 16 + 15 = 63$, soit 0011 1111 en binaire.
+      - id: num-binaire.3
+        type: numeric
+        level: 1
+        q: Quelle est la plus grande valeur représentable sur 12 bits (non signé) ?
+        answer: 4095
+        tol: 0.0001
+        calc: 2**12 - 1
+        trap_values:
+          - v: 4096
+            why: C'est le nombre de valeurs. Comme on commence à 0, la plus grande vaut 2¹² − 1.
+        piege: ing-2n-moins-1
+        e: $2^{12} - 1 = 4095$. Un convertisseur 12 bits rend donc des valeurs de 0 à 4095.
+      - id: num-binaire.4
+        type: qcm
+        level: 1
+        q: Comment s'écrit 200 en hexadécimal ?
+        choices:
+          - t: 0xC8
+            ok: true
+          - t: 0x200
+            why: 0x200 vaut 512.
+          - t: 0x8C
+            why: Les chiffres sont inversés ; 0x8C vaut 140.
+        e: 200 = 12 × 16 + 8, et 12 s'écrit C.
+      - id: num-binaire.5
+        type: qcm
+        level: 2
+        q: Comment mettre à 1 le bit 3 d'un registre `reg` sans modifier les autres bits ?
+        choices:
+          - t: "reg |= (1 << 3)"
+            ok: true
+          - t: "reg = (1 << 3)"
+            why: Cela écrase tous les autres bits à 0.
+          - t: "reg &= (1 << 3)"
+            why: Le ET met tous les autres bits à 0.
+        e: Le OU avec un masque ne modifie que les bits à 1 du masque.
+      - id: num-binaire.6
+        type: numeric
+        level: 2
+        q: Que vaut 0xB6 & 0x0F (ET bit à bit), en décimal ?
+        answer: 6
+        tol: 0.001
+        calc: 0xB6 & 0x0F
+        e: Le masque 0x0F garde les 4 bits de poids faible de 0xB6, soit 0x6 = 6.
+      - id: num-binaire.7
+        type: flash
+        level: 1
+        q: Donne 2⁸, 2¹⁰, 2¹², 2¹⁶.
+        back: |
+          2⁸ = 256 ; 2¹⁰ = 1024 ; 2¹² = 4096 ; 2¹⁶ = 65 536.
+        e: 2¹⁰ ≈ 10³, d'où « kilo » binaire (Kio) ; 2²⁰ ≈ 10⁶, 2³⁰ ≈ 10⁹.
+  # ------------------------------------------------------------------ logique
+  - id: num-logique
+    title: Logique combinatoire et De Morgan
+    en: Combinational logic and De Morgan's laws
+    goal: Lire et écrire des conditions logiques, dresser une table de vérité et appliquer De Morgan.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: La presse à deux mains
+          body: |
+            Une presse dangereuse ne descend que si l'opérateur appuie sur **deux** boutons à la fois, un pour chaque main : ses mains ne peuvent pas être sous l'outil. C'est un **ET**.
+
+            Une sonnette avec un bouton devant et un derrière la maison sonne si on appuie sur l'un **OU** l'autre.
+        - level: 2
+          title: Les portes logiques
+          body: |
+            Les opérations de base sur des valeurs vrai/faux (1/0) :
+            - **ET** (*AND*) : vrai si **toutes** les entrées sont vraies ;
+            - **OU** (*OR*) : vrai si **au moins une** entrée est vraie ;
+            - **NON** (*NOT*) : inverse ;
+            - **OU exclusif** (*XOR*) : vrai si les entrées sont **différentes**.
+
+            Un circuit **combinatoire** calcule sa sortie uniquement à partir des entrées présentes, sans mémoire. En automatisme, des contacts en **série** font un ET, en **parallèle** un OU.
+          check:
+            q: Un va-et-vient (deux interrupteurs qui commandent la même lampe, chacun pouvant l'allumer ou l'éteindre) réalise quelle fonction ?
+            choices:
+              - t: Un OU exclusif (XOR)
+                ok: true
+                why: Changer n'importe lequel des deux interrupteurs inverse l'état de la lampe.
+              - t: Un ET
+                why: Avec un ET, il faudrait que les deux soient en position « marche ».
+              - t: Un OU
+                why: Avec un OU, un interrupteur en position « marche » empêcherait l'autre d'éteindre.
+        - level: 3
+          title: Tables de vérité et De Morgan
+          body: |
+            | A | B | A ET B | A OU B | A XOR B |
+            | --- | --- | --- | --- | --- |
+            | 0 | 0 | 0 | 0 | 0 |
+            | 0 | 1 | 0 | 1 | 1 |
+            | 1 | 0 | 0 | 1 | 1 |
+            | 1 | 1 | 1 | 1 | 0 |
+
+            Avec $n$ entrées, une table de vérité a $2^n$ lignes.
+
+            **Lois de De Morgan** :
+            $$\overline{A \cdot B} = \overline A + \overline B \qquad \overline{A + B} = \overline A \cdot \overline B$$
+            « Pas (A et B) » = « pas A ou pas B » ; « pas (A ou B) » = « ni A ni B ».
+
+            **Exemple** : une machine doit s'arrêter si la porte est ouverte OU si l'arrêt d'urgence est actionné. Elle peut donc fonctionner si NON(porte ouverte OU AU), soit (porte fermée ET AU non actionné).
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Porte universelle** : avec des NAND seules (ou des NOR seules), on peut construire toutes les autres fonctions. C'est ainsi que sont bâtis beaucoup de circuits.
+
+            **Logique négative** : beaucoup de signaux sont **actifs à l'état bas** : `/RESET`, `nCS`, `EN_N`. « Actif » veut dire 0 V. De Morgan permet de passer d'une logique à l'autre sans erreur.
+
+            **En programmation** : `and`/`&&` et `or`/`||` sont évalués en **court-circuit** : dans `a and f()`, si `a` est faux, `f()` n'est jamais appelée. À distinguer des opérateurs bit à bit `&` et `|`, qui travaillent sur tous les bits d'un entier.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Avant de programmer un **verrouillage** (interlock), écris sa table de vérité : c'est le moyen le plus sûr de ne pas oublier un cas.
+            - En sécurité machine, les conditions d'arrêt s'appuient sur des contacts **normalement fermés** (un fil coupé déclenche l'arrêt) : voir les automatismes.
+            - Sur un schéma ou une fiche, repère la barre, le `n` ou le `_N` qui signale un signal actif à l'état bas.
+      recap:
+        - "ET : toutes vraies ; OU : au moins une ; XOR : différentes ; NON : inverse."
+        - "n entrées → table de vérité de 2ⁿ lignes."
+        - "De Morgan : non(A·B) = Ā + B̄ ; non(A + B) = Ā·B̄."
+        - "Contacts en série = ET, en parallèle = OU."
+        - "Signaux actifs à l'état bas : /RESET, nCS, _N."
+      pieges: [ing-de-morgan]
+    vocab:
+      - porte logique = logic gate
+      - table de vérité = truth table
+      - OU exclusif = exclusive OR (XOR)
+      - logique combinatoire = combinational logic
+      - actif à l'état bas = active low
+      - verrouillage = interlock
+      - lois de De Morgan = De Morgan's laws
+      - évaluation en court-circuit = short-circuit evaluation
+    exercises:
+      - id: num-logique.1
+        type: qcm
+        level: 1
+        q: Selon De Morgan, NON(A ET B) est égal à…
+        piege: ing-de-morgan
+        choices:
+          - t: (NON A) OU (NON B)
+            ok: true
+          - t: (NON A) ET (NON B)
+            piege: true
+            why: En distribuant le NON, le ET devient un OU.
+          - t: A OU B
+            why: Il faut inverser chaque terme.
+        e: « Pas les deux à la fois » = « au moins un des deux est faux ».
+      - id: num-logique.2
+        type: numeric
+        level: 1
+        q: Combien de lignes compte la table de vérité d'une fonction à 4 entrées ?
+        answer: 16
+        tol: 0.001
+        calc: 2**4
+        e: $2^4 = 16$ combinaisons.
+      - id: num-logique.3
+        type: qcm
+        level: 2
+        q: "La condition « arrêter si porte ouverte OU pression trop haute » est programmée. Quelle est la condition pour autoriser la marche ?"
+        piege: ing-de-morgan
+        choices:
+          - t: Porte fermée ET pression correcte
+            ok: true
+          - t: Porte fermée OU pression correcte
+            piege: true
+            why: Avec un OU, la machine tournerait porte ouverte si la pression est correcte.
+          - t: Porte ouverte ET pression trop haute
+            why: C'est une condition d'arrêt (et elle est même trop restrictive).
+        e: NON(ouverte OU haute) = fermée ET correcte.
+      - id: num-logique.4
+        type: qcm
+        level: 1
+        q: Que vaut A XOR B quand A = 1 et B = 1 ?
+        choices:
+          - t: "0"
+            ok: true
+          - t: "1"
+            why: Le XOR n'est vrai que si les entrées diffèrent.
+          - t: "2"
+            why: Ce n'est pas une addition, c'est une opération logique (l'addition binaire sans retenue).
+        e: 1 XOR 1 = 0, c'est le bit de somme d'un demi-additionneur.
+      - id: num-logique.5
+        type: qcm
+        level: 2
+        q: Un circuit a une broche nommée /CS (ou nCS). Pour le sélectionner, tu mets cette broche…
+        choices:
+          - t: à 0 V (état bas)
+            ok: true
+          - t: à la tension d'alimentation
+            why: La barre (ou le n) indique un signal actif à l'état bas.
+          - t: en l'air
+            why: Une entrée ne doit jamais rester flottante.
+        e: C'est le cas de la broche Chip Select des composants SPI.
+      - id: num-logique.6
+        type: flash
+        level: 1
+        q: Donne les tables de vérité du ET, du OU et du XOR.
+        back: |
+          A B | ET | OU | XOR
+          0 0 |  0 |  0 |  0
+          0 1 |  0 |  1 |  1
+          1 0 |  0 |  1 |  1
+          1 1 |  1 |  1 |  0
+        e: Le XOR vaut 1 quand les entrées sont différentes.
+  # ------------------------------------------------------------------ séquentiel
+  - id: num-sequentiel
+    title: Logique séquentielle, bascules et machines à états
+    en: Sequential logic, flip-flops and state machines
+    goal: Comprendre la mémoire d'un circuit numérique, les fronts, les compteurs et les machines à états.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Le bouton de la lampe de chevet
+          body: |
+            Un appui sur le bouton de la lampe l'allume, un deuxième appui l'éteint. Le même geste produit deux résultats différents : la lampe doit **se souvenir** de son état. Aucune combinaison de ET et de OU n'y suffit : il faut de la **mémoire**.
+        - level: 2
+          title: Mémoire et horloge
+          body: |
+            Un circuit **séquentiel** calcule sa sortie à partir des entrées **et** de son état mémorisé.
+            - La **bascule** (*flip-flop*) mémorise un bit.
+            - L'**horloge** cadence le système : les bascules ne changent d'état qu'au **front** (montant, le passage de 0 à 1, ou descendant) de l'horloge.
+            - Plusieurs bascules forment un **registre** (un octet, un mot) ou un **compteur**.
+
+            Une **machine à états** décrit un comportement par une liste d'états (« arrêt », « marche », « défaut ») et les conditions qui font passer de l'un à l'autre. C'est le modèle de presque tout séquencement de machine.
+          check:
+            q: Pourquoi faut-il détecter le front d'un bouton plutôt que son état pour faire un marche/arrêt à un seul bouton ?
+            choices:
+              - t: Parce que tant qu'on appuie, l'état reste « appuyé », et l'action se répéterait à chaque cycle
+                ok: true
+              - t: Parce que le front est plus rapide à lire
+                why: Le front est un événement (le changement), pas une lecture plus rapide.
+              - t: Ce n'est pas nécessaire
+                why: Sans front, la lampe clignoterait tant que le bouton est enfoncé.
+        - level: 3
+          title: Bascules, compteurs, diviseurs
+          body: |
+            - **Bascule D** : au front d'horloge, la sortie Q prend la valeur de l'entrée D, et la garde jusqu'au front suivant.
+            - **Bascule T** : à chaque front, elle **inverse** sa sortie. Sa sortie a donc une fréquence moitié de celle de l'horloge.
+            - **Compteur** $n$ bits : compte de 0 à $2^n - 1$ puis repart à 0 (débordement).
+            - **Diviseur de fréquence** : $n$ bascules T en cascade divisent la fréquence par $2^n$. 16 MHz divisés par $2^{10}$ donnent 15 625 Hz.
+
+            **Détection de front en logiciel** : l'entrée reste à 1 pendant trois cycles, mais le front n'est vu qu'une fois.
+          code: |
+            precedent = False
+            for entree in [False, True, True, True, False, True]:
+                front_montant = entree and not precedent
+                if front_montant:
+                    print("front montant")
+                precedent = entree
+          run: true
+          out: |
+            front montant
+            front montant
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Temps d'établissement et de maintien** : une bascule n'échantillonne correctement que si l'entrée est stable un peu avant (*setup*) et un peu après (*hold*) le front d'horloge.
+
+            **Métastabilité** : si un signal extérieur (asynchrone) change pile au moment du front, la bascule peut rester un court instant dans un état indécis. On **synchronise** les signaux extérieurs avec deux bascules en série avant de les utiliser.
+
+            **Pourquoi la conception synchrone** : entre deux fronts, les signaux combinatoires peuvent présenter des états transitoires parasites (*glitches*). En n'échantillonnant qu'aux fronts, on ignore ces transitoires.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Les **timers** d'un microcontrôleur sont des compteurs cadencés par une horloge divisée (prédiviseur).
+            - Le comptage des impulsions d'un **codeur** est un compteur piloté par les fronts des signaux A et B.
+            - Dans un automate, les fonctions **R_TRIG** et **F_TRIG** détectent les fronts montants et descendants.
+            - Un séquencement de machine (étapes, transitions) est une machine à états, que l'on dessine souvent en **GRAFCET** (voir les automatismes).
+      recap:
+        - "Combinatoire : sortie = f(entrées) ; séquentiel : sortie = f(entrées, état)."
+        - "Bascule = 1 bit de mémoire ; changements aux fronts d'horloge."
+        - "Compteur n bits : 0 à 2ⁿ − 1 ; n bascules T divisent par 2ⁿ."
+        - "Front montant = entrée ET NON(entrée précédente)."
+        - "Synchroniser les signaux extérieurs (deux bascules)."
+    vocab:
+      - logique séquentielle = sequential logic
+      - bascule = flip-flop (latch pour la version sans horloge)
+      - horloge = clock
+      - front montant / descendant = rising / falling edge
+      - compteur = counter
+      - diviseur de fréquence = frequency divider (prescaler)
+      - machine à états = state machine
+      - métastabilité = metastability
+    exercises:
+      - id: num-sequentiel.1
+        type: numeric
+        level: 1
+        q: Un compteur 8 bits part de 0. Quelle valeur atteint-il juste avant de repartir à 0 ?
+        answer: 255
+        tol: 0.001
+        calc: 2**8 - 1
+        trap_values:
+          - v: 256
+            why: Il y a 256 états, de 0 à 255.
+        piege: ing-2n-moins-1
+        e: $2^8 - 1 = 255$, puis débordement vers 0.
+      - id: num-sequentiel.2
+        type: numeric
+        level: 2
+        q: Une horloge de 16 MHz traverse 10 bascules T en cascade. Fréquence de sortie, en Hz ?
+        answer: 15625
+        tol: 0.001
+        unit: Hz
+        calc: 16e6 / 2**10
+        trap_values:
+          - v: 1600000
+            why: Chaque bascule divise par 2, donc 10 bascules divisent par 2¹⁰ = 1024, pas par 10.
+        e: 16 000 000 / 1024 = 15 625 Hz.
+      - id: num-sequentiel.3
+        type: qcm
+        level: 2
+        q: En logiciel, quelle expression détecte un front montant de l'entrée `e` (avec `p` sa valeur au cycle précédent) ?
+        choices:
+          - t: "e and not p"
+            ok: true
+          - t: "e and p"
+            why: C'est vrai tant que l'entrée reste à 1, pas seulement au changement.
+          - t: "not e and p"
+            why: C'est le front descendant.
+        e: Le front montant est l'instant où l'entrée vaut 1 alors qu'elle valait 0 juste avant. N'oublie pas de mettre à jour `p` à chaque cycle.
+      - id: num-sequentiel.4
+        type: qcm
+        level: 3
+        q: Un bouton est lu par une logique cadencée par une horloge. Comment éviter les problèmes de métastabilité ?
+        choices:
+          - t: Faire passer le signal par deux bascules en série cadencées par la même horloge avant de l'utiliser
+            ok: true
+          - t: Augmenter la fréquence d'horloge
+            why: Cela augmente plutôt la probabilité du problème.
+          - t: Utiliser le signal directement dans plusieurs bascules
+            why: Chacune pourrait lire une valeur différente, c'est la pire configuration.
+        e: C'est le synchroniseur à deux étages, standard pour tout signal asynchrone.
+      - id: num-sequentiel.5
+        type: qcm
+        level: 1
+        q: Qu'est-ce qui caractérise une machine à états ?
+        choices:
+          - t: Un ensemble d'états, un état courant, et des transitions déclenchées par des conditions
+            ok: true
+          - t: Une suite d'instructions exécutée une seule fois
+            why: Une machine à états tourne en permanence et réagit selon son état.
+          - t: Une fonction logique sans mémoire
+            why: C'est la définition de la logique combinatoire.
+        e: Exemple, « arrêt » → (marche demandée) → « démarrage » → (vitesse atteinte) → « marche » → (défaut) → « défaut ».
+      - id: num-sequentiel.6
+        type: flash
+        level: 1
+        q: Quelle différence entre logique combinatoire et logique séquentielle ?
+        back: |
+          **Combinatoire** : la sortie ne dépend que des entrées présentes (portes ET, OU…). Pas de mémoire.
+          **Séquentielle** : la sortie dépend des entrées et de l'état mémorisé (bascules, compteurs, machines à états). Elle a une mémoire et, le plus souvent, une horloge.
+        e: Un additionneur est combinatoire ; un compteur est séquentiel.
+  # ------------------------------------------------------------------ niveaux
+  - id: num-niveaux
+    title: Niveaux logiques, pull-up et entrées flottantes
+    en: Logic levels, pull-ups and floating inputs
+    goal: Relier correctement des signaux 3,3 V, 5 V et 24 V, et définir l'état de toutes les entrées.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Parler assez fort
+          body: |
+            Pour que deux personnes se comprennent, il faut que ce que l'une appelle « fort » soit bien entendu comme « fort » par l'autre, et que personne ne crie au point d'abîmer les oreilles de l'autre.
+
+            Entre deux circuits numériques, c'est pareil : un « 1 » doit être une tension assez haute pour être reconnue, sans dépasser ce que l'entrée supporte.
+        - level: 2
+          title: Seuils et zones interdites
+          body: |
+            Une entrée numérique lit « 1 » au-dessus d'un seuil haut, « 0 » en dessous d'un seuil bas, et **rien de garanti entre les deux**. Les familles courantes : 5 V, 3,3 V, 1,8 V, et 24 V en industrie.
+
+            Deux dangers :
+            - un signal 5 V sur une entrée 3,3 V peut la **détruire** (sauf entrée annoncée « 5 V tolérante ») ;
+            - un signal 3,3 V sur une entrée 5 V peut ne **pas** être reconnu comme un 1.
+
+            Une entrée **non connectée** (flottante) ne vaut ni 0 ni 1 : elle capte les parasites et lit n'importe quoi. Une **résistance de rappel** (*pull-up* vers le +, *pull-down* vers la masse) lui donne un état par défaut.
+          check:
+            q: Un bouton relie une entrée de microcontrôleur à la masse, sans autre composant. Bouton relâché, l'entrée lit…
+            choices:
+              - t: une valeur aléatoire, car l'entrée est flottante
+                ok: true
+              - t: "1"
+                why: Seulement s'il y a une résistance de pull-up (externe ou interne activée).
+              - t: "0"
+                why: Relâché, le bouton ne relie plus rien à la masse.
+        - level: 3
+          title: Les chiffres
+          body: |
+            - Entrées CMOS : seuil haut souvent entre 0,6 et 0,7 × VCC, seuil bas vers 0,3 × VCC (à vérifier dans chaque fiche). Pour la famille 74HC en 5 V, un 1 doit dépasser 3,5 V : une sortie 3,3 V ne suffit pas.
+            - Entrées compatibles TTL (familles « T », 74HCT) : un 1 dès 2 V, donc une sortie 3,3 V convient.
+            - **Pull-up** typique : 4,7 à 10 kΩ. Avec 10 kΩ sous 3,3 V, un bouton appuyé fait passer 0,33 mA.
+            - Bouton câblé vers la masse avec pull-up : **appuyé = 0** (logique inversée, active à l'état bas).
+            - Adapter 5 V vers 3,3 V : diviseur (10 kΩ en haut, 20 kΩ en bas donne 3,33 V) pour des signaux lents, ou un **adaptateur de niveau** (*level shifter*) pour les signaux rapides et bidirectionnels.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Pourquoi une entrée flotte** : une entrée CMOS est la grille d'un transistor, c'est-à-dire un minuscule condensateur. Elle ne consomme presque rien, donc le moindre courant de fuite ou champ parasite suffit à la charger à n'importe quelle tension. Entre les seuils, les deux transistors de l'étage d'entrée conduisent à moitié : la consommation augmente et la sortie peut osciller.
+
+            **Diodes de protection** : les entrées ont des diodes vers VCC et vers la masse. Un signal 5 V sur une entrée 3,3 V injecte du courant dans l'alimentation 3,3 V à travers la diode : échauffement, et même alimentation parasite de tout le circuit par ses entrées.
+
+            **Sortie à drain ouvert** (*open-drain*, collecteur ouvert) : elle ne sait que tirer vers 0 ; le 1 est fourni par une résistance de pull-up. Plusieurs sorties peuvent partager la même ligne sans conflit, et la tension haute est choisie par la pull-up. C'est le principe du bus I²C.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Active les **pull-up internes** des microcontrôleurs quand elles suffisent (`INPUT_PULLUP` sur Arduino).
+            - Ne laisse **aucune entrée en l'air**, y compris les entrées inutilisées des circuits logiques.
+            - Capteurs industriels 24 V : sortie **PNP** (fournit +24 V quand actif) ou **NPN** (tire vers 0 V quand actif). Vers un microcontrôleur : optocoupleur ou diviseur avec protection.
+            - Sur les longs câbles, renforce les pull-up (valeurs plus faibles) et filtre.
+      recap:
+        - "Entre les seuils bas et haut : état indéterminé."
+        - "5 V sur une entrée 3,3 V non tolérante : risque de destruction."
+        - "Entrée flottante = lecture aléatoire : pull-up ou pull-down (4,7 à 10 kΩ)."
+        - "Bouton vers la masse + pull-up : appuyé = 0."
+        - "Drain ouvert : ne tire que vers 0, pull-up obligatoire (I²C)."
+      pieges: [ing-entree-flottante, ing-5v-sur-3v3]
+    vocab:
+      - niveau logique = logic level
+      - résistance de rappel = pull-up / pull-down resistor
+      - entrée flottante = floating input
+      - tolérant 5 V = 5 V tolerant
+      - adaptateur de niveau = level shifter
+      - drain ouvert = open-drain (open-collector)
+      - sortie PNP / NPN = sourcing / sinking output
+      - diode de protection = clamp (protection) diode
+    exercises:
+      - id: num-niveaux.1
+        type: numeric
+        level: 1
+        q: Un bouton avec une pull-up de 10 kΩ sous 3,3 V est appuyé (entrée reliée à la masse). Courant dans la résistance, en mA ?
+        answer: 0.33
+        tol: 0.01
+        unit: mA
+        calc: 3.3 / 10e3 * 1000
+        e: $I = 3{,}3/10\,000 = 0{,}33$ mA, négligeable.
+      - id: num-niveaux.2
+        type: numeric
+        level: 2
+        q: "Diviseur pour adapter un signal 5 V vers 3,3 V : résistance du haut 10 kΩ. Valeur de celle du bas, en kΩ ?"
+        answer: 19.41
+        tol: 0.01
+        unit: kΩ
+        calc: 10 * 3.3 / (5 - 3.3)
+        trap_values:
+          - v: 6.6
+            why: Tu as appliqué le rapport 3,3/5 directement à la résistance du haut. R_bas = R_haut × Us/(U − Us).
+        e: $R_{bas} = 10 \times 3{,}3/1{,}7 \approx 19{,}4$ kΩ ; 20 kΩ donne 3,33 V, acceptable pour une entrée qui tolère jusqu'à environ 3,6 V.
+      - id: num-niveaux.3
+        type: qcm
+        level: 2
+        q: Une sortie 3,3 V attaque une entrée 74HC alimentée en 5 V (seuil haut 3,5 V). Le 1 est-il fiable ?
+        choices:
+          - t: Non, 3,3 V est sous le seuil haut garanti
+            ok: true
+          - t: Oui, 3,3 V est proche de 3,5 V
+            why: « Proche » ne suffit pas ; entre les seuils, rien n'est garanti.
+          - t: Oui, tout signal non nul est un 1
+            why: Une entrée numérique a des seuils définis.
+        e: Solutions, une entrée 74HCT (seuil 2 V), un adaptateur de niveau, ou un transistor.
+      - id: num-niveaux.4
+        type: qcm
+        level: 1
+        q: Un bouton relie une entrée à la masse, avec une pull-up. Que lit l'entrée quand on appuie ?
+        choices:
+          - t: "0"
+            ok: true
+          - t: "1"
+            why: Appuyer relie l'entrée à la masse, donc 0. Relâché, la pull-up donne 1.
+          - t: Une valeur aléatoire
+            why: Grâce à la pull-up, l'état est toujours défini.
+        e: Logique inversée : dans le programme, « appuyé » correspond à `digitalRead(pin) == LOW`.
+      - id: num-niveaux.5
+        type: qcm
+        level: 2
+        q: Une entrée inutilisée d'un circuit logique CMOS est laissée non connectée. Quel est le risque ?
+        piege: ing-entree-flottante
+        choices:
+          - t: Elle flotte, peut osciller, augmenter la consommation et perturber le circuit
+            ok: true
+          - t: Aucun, puisqu'elle ne sert pas
+            piege: true
+            why: Une entrée CMOS en l'air capte les parasites et peut faire osciller son étage d'entrée.
+          - t: Elle est automatiquement à 0
+            why: Rien ne la tire vers 0.
+        e: Relie toujours les entrées inutilisées à la masse ou à VCC (selon la fonction), directement ou par une résistance.
+      - id: num-niveaux.6
+        type: flash
+        level: 2
+        q: Qu'est-ce qu'une sortie à drain ouvert, et pourquoi le bus I²C l'utilise-t-il ?
+        back: |
+          Une sortie qui ne peut que tirer la ligne vers 0 V (transistor vers la masse) ; le niveau haut est fourni par une résistance de pull-up.
+
+          Sur I²C, plusieurs composants partagent les mêmes fils : n'importe lequel peut tirer la ligne à 0 sans court-circuit (ET câblé), et la tension haute est fixée par la pull-up, ce qui facilite le mélange de niveaux.
+        e: Sans pull-up, une ligne à drain ouvert ne remonte jamais à 1.
+  # ------------------------------------------------------------------ CAN
+  - id: num-can
+    title: Conversion analogique-numérique
+    en: Analog-to-digital conversion
+    goal: Calculer un quantum (LSB), convertir un code en tension et distinguer résolution et précision.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: La règle graduée
+          body: |
+            Avec une règle graduée au millimètre, tu ne peux pas lire 12,37 mm : tu lis 12 mm. Un **convertisseur analogique-numérique** (CAN, *ADC*) fait pareil avec une tension : il la range dans une « case » numérotée, et c'est ce numéro que le programme reçoit.
+        - level: 2
+          title: Des cases de taille fixe
+          body: |
+            Un CAN de $n$ bits découpe sa plage (de 0 à une **tension de référence** $V_{ref}$) en $2^n$ cases. La largeur d'une case s'appelle le **quantum** ou **LSB**. Toute tension à l'intérieur d'une case donne le même code : c'est l'erreur de **quantification**, d'un demi-LSB au plus.
+
+            **Résolution n'est pas précision** : un CAN 16 bits affiche des valeurs très fines, mais si sa référence est fausse de 1 % ou si le signal est bruité, la mesure reste fausse de 1 % ou bruitée.
+
+            Le chemin inverse, du nombre vers la tension, est le **CNA** (*DAC*). Une sortie **PWM** filtrée en est une version économique.
+
+            ```svg caption="Quantification d'un convertisseur 3 bits : 8 codes, chaque marche mesure 1 LSB = Vref/2³. En pointillés, la conversion idéale continue."
+            <svg viewBox="0 0 460 220" width="460" role="img" aria-label="Escalier de quantification d'un convertisseur 3 bits">
+              <defs><marker id="ar-num1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="a"/></marker></defs>
+              <line class="s2" x1="60" y1="190" x2="440" y2="190"/>
+              <line class="s2" x1="60" y1="20" x2="60" y2="190"/>
+              <line class="ws dash" x1="60" y1="190" x2="420" y2="30"/>
+              <polyline class="as" points="60,190 105,190 105,170 150,170 150,150 195,150 195,130 240,130 240,110 285,110 285,90 330,90 330,70 375,70 375,50 420,50"/>
+              <text class="tm" x="48" y="194" text-anchor="end">0</text>
+              <text class="tm" x="48" y="154" text-anchor="end">2</text>
+              <text class="tm" x="48" y="114" text-anchor="end">4</text>
+              <text class="tm" x="48" y="74" text-anchor="end">6</text>
+              <text class="tm" x="48" y="54" text-anchor="end">7</text>
+              <text class="t" x="20" y="30">code</text>
+              <line class="as" x1="105" y1="205" x2="150" y2="205" marker-start="url(#ar-num1)" marker-end="url(#ar-num1)"/>
+              <text class="ta" x="158" y="209">1 LSB = Vref/8</text>
+              <text class="tm" x="420" y="208" text-anchor="middle">Vref</text>
+              <text class="t" x="444" y="194">V</text>
+            </svg>
+            ```
+          check:
+            q: Un CAN 10 bits rend des codes compris entre…
+            choices:
+              - t: 0 et 1023
+                ok: true
+              - t: 0 et 1024
+                why: 2¹⁰ = 1024 codes, numérotés de 0 à 1023.
+              - t: 0 et 10
+                why: 10, c'est le nombre de bits, pas le nombre de codes.
+        - level: 3
+          title: Les formules
+          body: |
+            $$q = \text{LSB} = \frac{V_{ref}}{2^n} \qquad N = \left\lfloor \frac{V}{V_{ref}} \, 2^n \right\rfloor \qquad V \approx N \times \frac{V_{ref}}{2^n}$$
+
+            | CAN | $V_{ref}$ | LSB |
+            | --- | --- | --- |
+            | 10 bits | 5 V | 4,88 mV |
+            | 12 bits | 3,3 V | 0,81 mV |
+            | 16 bits | 2,5 V | 38 µV |
+
+            **Exemple** : un capteur de température donne 10 mV/°C, lu par un CAN 10 bits sous 5 V. Un LSB (4,88 mV) vaut 0,49 °C : impossible de voir un dixième de degré, sauf à amplifier le signal.
+
+            **PWM** : la tension moyenne vaut $\alpha \times V$ ($\alpha$ : rapport cyclique). 25 % sur 24 V donnent 6 V en moyenne.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Types de CAN** : à approximations successives (SAR, le plus courant dans les microcontrôleurs, rapide et précis), sigma-delta (très haute résolution, 24 bits, mais lent : pesage, thermocouples), flash (très rapide, faible résolution).
+
+            **La référence est la mesure** : si $V_{ref}$ est l'alimentation 5 V d'un port USB (qui vaut en réalité 4,8 V et bruite), toutes les mesures sont décalées et bruitées d'autant. Une **référence de tension** dédiée change tout.
+
+            **Nombre de bits effectifs** (ENOB) : à cause du bruit, un CAN 12 bits ne donne souvent que 10 ou 11 bits utiles. **Suréchantillonner** et moyenner gagne de la résolution (4 fois plus d'échantillons pour 1 bit de plus), à condition qu'un peu de bruit soit présent.
+
+            L'**échantillonnage** et le repliement de spectre sont traités dans le traitement du signal.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Adapte la plage du capteur à celle du CAN (amplification, décalage) pour utiliser un maximum de codes.
+            - Une source de haute impédance (diviseur de fortes valeurs) charge mal le condensateur d'échantillonnage du CAN : ajoute un condensateur à l'entrée ou un suiveur.
+            - Boucle de courant **4-20 mA** : lue à travers une résistance de précision (150 Ω donnent 0,6 à 3 V), elle est insensible à la longueur de câble, et 0 mA signale un fil coupé.
+      recap:
+        - "LSB = Vref/2ⁿ ; codes de 0 à 2ⁿ − 1."
+        - "V ≈ N × Vref/2ⁿ ; erreur de quantification ≤ ½ LSB."
+        - "Résolution ≠ précision : référence, bruit, offset comptent."
+        - "Référence de tension dédiée plutôt que l'alimentation."
+        - "Suréchantillonner ×4 = +1 bit (avec un peu de bruit) ; PWM : moyenne = α·V."
+      pieges: [ing-resolution-precision, ing-vref-alim, ing-2n-moins-1]
+    vocab:
+      - convertisseur analogique-numérique = analog-to-digital converter (ADC)
+      - convertisseur numérique-analogique = digital-to-analog converter (DAC)
+      - quantum = LSB (quantization step)
+      - quantification = quantization
+      - tension de référence = voltage reference
+      - rapport cyclique = duty cycle
+      - suréchantillonnage = oversampling
+      - boucle de courant 4-20 mA = 4-20 mA current loop
+    exercises:
+      - id: num-can.1
+        type: numeric
+        level: 1
+        q: Quantum (LSB) d'un CAN 10 bits de référence 5 V, en mV ?
+        answer: 4.883
+        tol: 0.01
+        unit: mV
+        calc: 5 / 2**10 * 1000
+        trap_values:
+          - v: 5
+            why: 2¹⁰ = 1024, pas 1000.
+          - v: 500
+            why: Tu as divisé par 10 (le nombre de bits) au lieu de 2¹⁰.
+        e: $5/1024 \approx 4{,}88$ mV.
+      - id: num-can.2
+        type: numeric
+        level: 1
+        q: Un CAN 12 bits de référence 3,3 V rend le code 2048. Tension mesurée ?
+        answer: 1.65
+        tol: 0.01
+        unit: V
+        calc: 2048 * 3.3 / 2**12
+        e: $2048 \times 3{,}3/4096 = 1{,}65$ V, la moitié de la plage.
+      - id: num-can.3
+        type: numeric
+        level: 2
+        q: Un capteur de 10 mV/°C est lu par un CAN 10 bits sous 5 V. Résolution en température, en °C ?
+        answer: 0.4883
+        tol: 0.01
+        unit: °C
+        calc: (5 / 1024) / 0.010
+        e: 4,88 mV par LSB / 10 mV par °C ≈ 0,49 °C par code.
+      - id: num-can.4
+        type: numeric
+        level: 2
+        q: Un capteur 4-20 mA est lu à travers une résistance de 150 Ω. Quelle tension pour 12 mA ?
+        answer: 1.8
+        tol: 0.01
+        unit: V
+        calc: 0.012 * 150
+        e: $U = 150 \times 0{,}012 = 1{,}8$ V (plage de 0,6 V à 3 V).
+      - id: num-can.5
+        type: qcm
+        level: 2
+        q: Un CAN 16 bits est alimenté avec pour référence le 5 V d'un port USB (qui vaut en réalité entre 4,75 et 5,25 V). Les mesures sont…
+        piege: ing-vref-alim
+        choices:
+          - t: fines mais potentiellement fausses de plusieurs pourcents, et bruitées
+            ok: true
+          - t: précises à 16 bits près
+            piege: true
+            why: La résolution est de 16 bits, mais la précision dépend de la référence.
+          - t: impossibles
+            why: Elles sont possibles, simplement pas justes.
+        e: Toute erreur relative sur la référence se retrouve sur la mesure ; utilise une référence de tension dédiée.
+      - id: num-can.6
+        type: numeric
+        level: 1
+        q: Une sortie PWM de rapport cyclique 25 % commute une tension de 24 V. Tension moyenne ?
+        answer: 6
+        tol: 0.01
+        unit: V
+        calc: 0.25 * 24
+        e: $0{,}25 \times 24 = 6$ V en moyenne ; un filtre passe-bas ou l'inertie de la charge (moteur, chauffage) fait la moyenne.
+      - id: num-can.7
+        type: flash
+        level: 3
+        q: Comment gagner de la résolution sur un CAN en suréchantillonnant ?
+        back: |
+          En prenant 4ⁿ fois plus d'échantillons et en les moyennant, on gagne n bits de résolution (4 échantillons → +1 bit, 16 → +2 bits), à condition que le signal contienne un peu de bruit (au moins de l'ordre du LSB) pour « étaler » les valeurs entre les codes.
+        e: On paie ce gain en bande passante, car la moyenne ralentit la mesure.

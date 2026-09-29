@@ -1,0 +1,729 @@
+id: materiaux
+title: Matériaux
+en: Materials
+desc: Lire une courbe de traction, choisir une famille, décoder un acier, éviter la corrosion et les pièges du vide et du froid.
+intro: |
+  Choisir un matériau, c'est arbitrer entre la rigidité, la résistance, la masse, le prix, la facilité de fabrication et l'environnement (humidité, vide, froid, rayonnement). Aucun matériau n'est le meilleur partout.
+
+  Cette partie donne les ordres de grandeur et les réflexes qui évitent les erreurs coûteuses, notamment dans l'environnement particulier des instruments scientifiques : vide, cryogénie, métaux en contact.
+notions:
+  # ------------------------------------------------------------------ essai de traction
+  - id: mat-traction
+    title: L'essai de traction, lire la courbe
+    en: The tensile test and the stress-strain curve
+    goal: Lire E, Re, Rm et A% sur une courbe de traction, et distinguer un matériau ductile d'un matériau fragile.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Le trombone et la baguette de verre
+          body: |
+            Déplie un trombone et tire dessus, ou plie-le plusieurs fois : il se déforme énormément avant de casser. Une baguette de verre, elle, casse net, sans prévenir, alors qu'elle était parfaitement rigide juste avant.
+
+            Le premier matériau est **ductile** (il se déforme avant de rompre), le second est **fragile**. Pour une pièce mécanique, cette différence est capitale : une pièce ductile surchargée se tord et prévient ; une pièce fragile casse d'un coup.
+        - level: 2
+          title: L'essai de traction
+          body: |
+            Pour caractériser un matériau, on tire sur une éprouvette normalisée jusqu'à la rupture, en mesurant la force et l'allongement. On trace la contrainte $\sigma$ en fonction de la déformation $\varepsilon$.
+
+            ```svg caption="Courbe de traction d'un acier ductile (trait plein) et d'un matériau fragile (tirets) : domaine élastique, limite élastique, écrouissage, striction, rupture."
+            <svg viewBox="0 0 470 255" width="470" role="img" aria-label="Courbe contrainte-déformation ductile et fragile">
+              <line class="s" x1="50" y1="220" x2="450" y2="220"/>
+              <line class="s" x1="50" y1="220" x2="50" y2="15"/>
+              <text class="t" x="440" y="240">ε</text>
+              <text class="t" x="8" y="22">σ</text>
+              <line class="s2 dash" x1="50" y1="97" x2="100" y2="97"/>
+              <line class="s2 dash" x1="50" y1="55" x2="300" y2="55"/>
+              <text class="tw" x="16" y="101">Re</text>
+              <text class="tw" x="14" y="59">Rm</text>
+              <path class="as" d="M50,220 L80,97 L100,99 C150,66 240,52 300,55 C340,57 368,70 385,90"/>
+              <text class="tr" x="388" y="96">×</text>
+              <text class="tm" x="392" y="80">rupture</text>
+              <text class="tm" x="330" y="45">striction</text>
+              <text class="tm" x="175" y="95">écrouissage</text>
+              <text class="ta" x="60" y="165">E</text>
+              <text class="tm" x="84" y="140">pente</text>
+              <path class="ws dash" d="M50,220 L96,45"/>
+              <text class="tw" x="94" y="42">×</text>
+              <text class="tm" x="104" y="32">fragile</text>
+              <line class="s2" x1="370" y1="214" x2="370" y2="226"/>
+              <text class="tm" x="356" y="244">A %</text>
+            </svg>
+            ```
+
+            Au début, la courbe est une **droite** : c'est le domaine élastique, sa pente est le module $E$. Puis la courbe s'infléchit à la **limite élastique** $R_e$ : au-delà, la déformation devient permanente. La contrainte continue de monter (le métal se durcit en se déformant : c'est l'**écrouissage**) jusqu'à un maximum $R_m$. Ensuite, l'éprouvette s'amincit localement (**striction**) et casse.
+
+            Un matériau fragile suit la droite élastique… et casse au bout, sans plasticité.
+          check:
+            q: Sur la courbe de traction, où lit-on le module d'Young E ?
+            choices:
+              - t: C'est la pente de la partie droite, au début
+                ok: true
+                why: "Dans le domaine élastique, σ = E·ε : E est la pente."
+              - t: C'est la hauteur du point le plus haut
+                why: C'est Rm, la résistance maximale.
+              - t: C'est l'allongement à la rupture
+                why: C'est A %, une mesure de ductilité.
+        - level: 3
+          title: Les grandeurs à retenir
+          body: |
+            | Grandeur | Signification | Unité |
+            | --- | --- | --- |
+            | $E$ | rigidité du matériau (pente élastique) | GPa |
+            | $R_e$ ou $R_{p0,2}$ | limite élastique : début de la déformation permanente | MPa |
+            | $R_m$ | résistance maximale à la traction | MPa |
+            | $A\,\%$ | allongement après rupture : ductilité | % |
+
+            Beaucoup de métaux (alu, inox) n'ont pas de limite élastique nette : on prend $R_{p0,2}$, la contrainte qui laisse **0,2 % de déformation permanente**.
+
+            | Matériau | $R_e$ ou $R_{p0,2}$ | $R_m$ | $A$ |
+            | --- | --- | --- | --- |
+            | acier S235 | 235 | 360 à 510 | 26 % |
+            | acier S355 | 355 | 470 à 630 | 22 % |
+            | 42CrMo4 trempé-revenu | 650 à 900 | 900 à 1200 | 10 à 12 % |
+            | inox 304L | ≈ 200 à 230 | ≈ 500 à 700 | ≈ 45 % |
+            | alu 6061-T6 | ≈ 240 à 275 | ≈ 290 à 310 | ≈ 8 à 12 % |
+            | titane Ti-6Al-4V | ≈ 880 | ≈ 950 | ≈ 14 % |
+
+            (valeurs typiques en MPa ; les valeurs garanties dépendent de la norme, de l'épaisseur et de l'état.)
+        - level: 4
+          title: Ce qui se passe dans le métal
+          body: |
+            Dans le domaine élastique, les atomes s'écartent un peu de leur position et y reviennent : c'est la raideur des liaisons atomiques qui donne $E$. C'est pourquoi $E$ dépend si peu des traitements : il tient aux atomes, pas à leur arrangement fin.
+
+            La plasticité, elle, vient du glissement de défauts du réseau cristallin, les **dislocations**. En se multipliant et en s'enchevêtrant, elles se gênent : c'est l'écrouissage, qui augmente $R_e$ (un métal écroui à froid est plus dur mais moins ductile).
+
+            Les matériaux fragiles (verre, céramiques, fonte grise) ne peuvent pas relâcher les contraintes par plasticité : la moindre fissure concentre les efforts et se propage d'un coup. L'aire sous la courbe représente l'énergie absorbée avant rupture : grande pour un ductile, faible pour un fragile.
+
+            Attention à la température : les aciers ferritiques (aciers de construction courants) deviennent **fragiles au froid**, en dessous d'une température de transition souvent comprise entre −50 et 0 °C. Les inox austénitiques (304, 316), l'aluminium et le cuivre restent ductiles jusqu'à quelques kelvins.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Le **certificat matière** (type 3.1 selon EN 10204) accompagne une livraison de métal : il donne la composition et les $R_e$, $R_m$, $A$ réellement mesurés sur le lot. Demande-le pour toute pièce critique (levage, pression, vide).
+            - Le **soudage** modifie localement le matériau : un alu 6061-T6 perd une grande partie de sa résistance dans la zone affectée thermiquement. On dimensionne alors avec les caractéristiques de la zone soudée.
+            - Un matériau **ductile** est un choix de sécurité : il prévient avant de casser. Évite les matériaux fragiles dans les pièces qui encaissent des chocs ou des surcharges.
+      recap:
+        - "Courbe σ(ε) : droite élastique (pente E), limite élastique Re, écrouissage, maximum Rm, striction, rupture."
+        - "Rp0,2 : contrainte qui laisse 0,2 % de déformation permanente, pour les métaux sans limite nette."
+        - "A % : allongement après rupture, mesure de la ductilité."
+        - "E tient aux liaisons atomiques : il change à peine avec les traitements. Re et Rm, eux, changent beaucoup."
+        - "Aciers ferritiques fragiles au froid ; inox austénitiques, alu et cuivre restent ductiles."
+      pieges: [ing-fragile-froid]
+    vocab:
+      - essai de traction = tensile test
+      - courbe contrainte-déformation = stress-strain curve
+      - limite élastique = yield strength
+      - résistance à la traction = ultimate tensile strength
+      - allongement à la rupture = elongation at break
+      - ductile = ductile
+      - fragile = brittle
+      - écrouissage = strain hardening
+      - striction = necking
+    exercises:
+      - id: mat-traction.1
+        type: qcm
+        level: 1
+        q: Que signifie Rp0,2 ?
+        choices:
+          - t: La contrainte qui laisse une déformation permanente de 0,2 % après décharge
+            ok: true
+          - t: La contrainte à laquelle la pièce s'allonge de 0,2 mm
+            why: C'est une déformation relative (0,2 %), pas un allongement en mm.
+          - t: 20 % de la résistance maximale
+            why: Aucun rapport avec Rm.
+        e: C'est la limite élastique conventionnelle des matériaux dont la courbe s'infléchit progressivement (aluminium, inox, cuivre).
+      - id: mat-traction.2
+        type: numeric
+        level: 1
+        q: Une pièce en aluminium 6061-T6 (Rp0,2 = 240 MPa) travaille à 120 MPa au point le plus sollicité. Quel est son coefficient de sécurité vis-à-vis de la limite élastique ?
+        answer: 2
+        tol: 0.01
+        calc: 240 / 120
+        e: $s = R_{p0,2} / \sigma = 240 / 120 = 2$. Si la pièce est soudée, il faut refaire le calcul avec la résistance de la zone soudée, bien plus faible.
+      - id: mat-traction.3
+        type: qcm
+        level: 2
+        q: Pour une pièce qui doit fonctionner à 4 K (hélium liquide), lequel de ces matériaux est le plus risqué ?
+        piege: ing-fragile-froid
+        choices:
+          - t: Un acier de construction S235
+            ok: true
+            why: C'est un acier ferritique, qui devient fragile bien avant d'atteindre 4 K.
+          - t: Un inox austénitique 316L
+            piege: true
+            why: C'est au contraire un matériau de référence en cryogénie, il reste ductile.
+          - t: Un alliage d'aluminium
+            why: L'aluminium reste ductile à très basse température.
+          - t: Du cuivre OFHC
+            why: Le cuivre reste ductile et c'est un excellent conducteur thermique à froid.
+        e: Les métaux à structure cubique centrée (aciers ferritiques) ont une transition ductile-fragile. Les métaux cubiques à faces centrées (inox austénitiques, alu, cuivre, nickel) n'en ont pas.
+      - id: mat-traction.4
+        type: qcm
+        level: 2
+        q: Un fil de cuivre écroui (étiré à froid) est comparé au même fil recuit. Le fil écroui est…
+        choices:
+          - t: plus résistant mais moins ductile
+            ok: true
+          - t: plus rigide (E plus grand)
+            why: E ne change pratiquement pas. C'est Re qui augmente.
+          - t: plus ductile
+            why: C'est l'inverse, le recuit rend la ductilité.
+        e: L'écrouissage multiplie et enchevêtre les dislocations. Le recuit (chauffage) les réorganise et redonne la ductilité, au prix de la résistance.
+      - id: mat-traction.5
+        type: flash
+        level: 2
+        q: Cite les quatre grandeurs qu'on lit sur une courbe de traction, et ce que chacune mesure.
+        back: |
+          - $E$ : pente élastique, la rigidité du matériau (GPa)
+          - $R_e$ / $R_{p0,2}$ : limite élastique, début de la déformation permanente (MPa)
+          - $R_m$ : résistance maximale (MPa)
+          - $A\,\%$ : allongement après rupture, la ductilité
+        e: On dimensionne en général sur Re, la rigidité se calcule avec E, et A % renseigne sur le comportement en cas de surcharge.
+  # ------------------------------------------------------------------ familles
+  - id: mat-familles
+    title: Familles de matériaux et ordres de grandeur
+    en: Material families and orders of magnitude
+    goal: Connaître les grandes familles, leurs masses volumiques et rigidités, et choisir un matériau pour une pièce légère et rigide.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Pourquoi autant de matériaux ?
+          body: |
+            Des cadres de vélo existent en acier, en aluminium, en titane et en carbone. Aucun n'est « le meilleur » : l'acier est bon marché et solide, l'alu léger et facile à mettre en forme, le titane léger et quasi inaltérable, le carbone très léger et très rigide mais cher et sensible aux chocs.
+
+            Choisir un matériau, c'est toujours choisir un **compromis**.
+        - level: 2
+          title: Quatre familles, quatre caractères
+          body: |
+            - **Métaux** : rigides, résistants, ductiles, conducteurs de chaleur et d'électricité, usinables, recyclables.
+            - **Polymères** (plastiques) : légers, faciles à mouler, isolants, mais souples, sensibles à la température et au **fluage** (déformation lente sous charge constante).
+            - **Céramiques et verres** : très durs, résistants à la chaleur et à l'usure, isolants, mais fragiles.
+            - **Composites** (fibres de carbone ou de verre dans une résine) : très rigides et résistants pour leur masse, mais **anisotropes** (leurs propriétés dépendent de la direction des fibres) et plus délicats à concevoir et à assembler.
+        - level: 3
+          title: Les chiffres qui comptent
+          body: |
+            | Matériau | $\rho$ (g/cm³) | $E$ (GPa) | $E/\rho$ |
+            | --- | --- | --- | --- |
+            | acier | 7,85 | 210 | 27 |
+            | aluminium | 2,70 | 70 | 26 |
+            | titane (Ti-6Al-4V) | 4,43 | 114 | 26 |
+            | cuivre | 8,96 | 120 | 13 |
+            | verre | 2,5 | 70 | 28 |
+            | alumine (céramique) | 3,9 | 370 | 95 |
+            | carbone/époxy, fibres dans l'axe | 1,6 | 135 | 84 |
+            | PEEK | 1,3 | 3,6 | 2,8 |
+
+            La masse d'une pièce : $m = \rho \times V$. Avec $\rho$ en g/cm³ et $V$ en cm³, on obtient des grammes. Une plaque de 100 × 100 × 10 mm (100 cm³) pèse 785 g en acier et 270 g en aluminium.
+
+            Remarque surprenante : acier, aluminium et titane ont presque **la même rigidité par unité de masse** ($E/\rho \approx 26$). À masse égale, une barre en traction est aussi rigide dans les trois métaux.
+          check:
+            q: Deux tirants de même masse, l'un en acier et l'autre en aluminium, travaillent en traction. Lequel est le plus rigide ?
+            choices:
+              - t: Pratiquement les deux pareil
+                ok: true
+                why: "E/ρ est presque identique. L'alu, 3 fois moins dense, a une section 3 fois plus grande, ce qui compense son E 3 fois plus faible."
+              - t: L'acier, nettement
+                why: À dimensions égales oui, mais pas à masse égale.
+              - t: L'alu, nettement
+                why: En traction, l'avantage de l'alu disparaît à masse égale. Il n'apparaît qu'en flexion.
+        - level: 4
+          title: Sous le capot, les indices de performance
+          body: |
+            En traction, la rigidité à masse égale suit $E/\rho$. En **flexion**, c'est différent : si l'on garde la forme de la section mais qu'on l'agrandit, la rigidité varie comme $E \times a^4$ et la masse comme $\rho \times a^2$ ($a$ : taille de la section). Pour une rigidité donnée, la masse varie comme $\rho / \sqrt{E}$.
+
+            L'indice à maximiser devient $\sqrt{E}/\rho$ :
+
+            | Matériau | $\sqrt{E}/\rho$ |
+            | --- | --- |
+            | acier | 1,8 |
+            | titane | 2,4 |
+            | aluminium | 3,1 |
+            | carbone/époxy | 7,3 |
+
+            C'est pour ça que l'aluminium bat l'acier pour les poutres et les plaques légères et rigides : il peut se permettre une section plus épaisse, et la hauteur compte au cube. Cette méthode de sélection par indices est celle de Michael Ashby, et ses diagrammes (E en fonction de ρ, etc.) sont un outil classique de choix de matériau.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            Dans un laboratoire ou sur une ligne de lumière, on retrouve souvent :
+            - **alliages d'aluminium** 6061, 6082 ou 5083 : bâtis, plaques, supports, usinage facile ;
+            - **inox 304L / 316L / 316LN** : enceintes à vide, brides, pièces cryogéniques, faible dégazage, amagnétique à l'état recuit ;
+            - **cuivre OFHC** (sans oxygène, haute conductivité) : conduction thermique, absorbeurs, pièces refroidies ;
+            - **Invar** (Fe-Ni 36 %) : stabilité dimensionnelle, dilatation environ 10 fois plus faible que l'acier ;
+            - **PEEK, Vespel, alumine** : isolation électrique ou thermique sous vide ;
+            - **titane** : résistance et légèreté, amagnétique.
+
+            Le choix se fait rarement sur un seul critère : prix, délai, usinabilité, soudabilité, comportement sous vide et au froid comptent autant que les chiffres du tableau.
+      recap:
+        - "Métaux, polymères, céramiques, composites : chaque famille a ses forces et ses faiblesses."
+        - "ρ : acier 7,85 ; alu 2,70 ; titane 4,4 ; cuivre 8,96 g/cm³. m = ρ·V."
+        - "E/ρ ≈ 26 pour acier, alu et titane : même rigidité à masse égale en traction."
+        - "En flexion, l'indice est √E/ρ : l'alu bat l'acier pour les structures légères et rigides."
+        - "Composites : excellents indices, mais anisotropes."
+    vocab:
+      - masse volumique = density
+      - rigidité spécifique = specific stiffness
+      - polymère = polymer
+      - céramique = ceramic
+      - composite = composite
+      - fluage = creep
+      - anisotrope = anisotropic
+      - usinabilité = machinability
+    exercises:
+      - id: mat-familles.1
+        type: numeric
+        level: 1
+        q: Quelle est la masse d'une plaque d'acier de 200 × 100 × 20 mm ? (ρ = 7,85 g/cm³)
+        answer: 3.14
+        tol: 0.01
+        unit: kg
+        calc: 7.85 * (20 * 10 * 2) / 1000
+        trap_values:
+          - v: 3140
+            why: C'est la bonne valeur… en grammes. La question demande des kg.
+          - v: 1.08
+            why: C'est la masse en aluminium (2,70 g/cm³).
+        e: $V = 20 \times 10 \times 2 = 400\ \text{cm}^3$, donc $m = 7{,}85 \times 400 = 3140\ \text{g} = 3{,}14\ \text{kg}$. En aluminium, 1,08 kg.
+      - id: mat-familles.2
+        type: qcm
+        level: 2
+        q: Pour une plaque qui doit être à la fois légère et rigide en flexion, quel choix est le plus favorable, à masse égale ?
+        choices:
+          - t: L'aluminium, parce qu'il permet une plaque plus épaisse pour la même masse
+            ok: true
+            why: "En flexion, la rigidité croît avec le cube de l'épaisseur : l'indice √E/ρ favorise l'alu (3,1) face à l'acier (1,8)."
+          - t: L'acier, parce que son E est trois fois plus grand
+            why: À masse égale, la plaque d'acier est trois fois plus mince, et l'épaisseur compte au cube.
+          - t: Indifférent, E/ρ est le même
+            why: C'est vrai en traction, pas en flexion.
+        e: C'est la raison pour laquelle les plateaux, capots et structures légères sont souvent en aluminium, et encore mieux en composite ou en structure nid d'abeille.
+      - id: mat-familles.3
+        type: qcm
+        level: 1
+        q: Qu'est-ce que le fluage ?
+        choices:
+          - t: Une déformation lente et continue sous une charge constante
+            ok: true
+          - t: La rupture sous des charges répétées
+            why: C'est la fatigue.
+          - t: La dilatation sous l'effet de la chaleur
+            why: C'est la dilatation thermique.
+        e: Les polymères fluent déjà à température ambiante (un joint plastique serré se relâche avec le temps) ; les métaux fluent surtout à haute température. À prendre en compte pour tout serrage sur une pièce plastique.
+      - id: mat-familles.4
+        type: flash
+        level: 1
+        q: Donne les masses volumiques de l'acier, de l'aluminium, du titane et du cuivre.
+        back: |
+          - acier : 7,85 g/cm³
+          - aluminium : 2,70 g/cm³
+          - titane : 4,4 g/cm³
+          - cuivre : 8,96 g/cm³
+        e: Repère utile, l'alu pèse à peu près un tiers de l'acier, le titane un peu plus de la moitié.
+  # ------------------------------------------------------------------ aciers
+  - id: mat-aciers
+    title: "Aciers : désignations et traitements thermiques"
+    en: "Steels: designations and heat treatment"
+    goal: Décoder S235, C45, 42CrMo4 ou X5CrNi18-10, et savoir à quoi servent trempe, revenu et recuit.
+    minutes: 13
+    lesson:
+      steps:
+        - level: 1
+          title: Du fer, un peu de carbone
+          body: |
+            L'acier, c'est du fer avec **un peu de carbone** (moins de 2 %, souvent moins de 0,5 %). Plus il y a de carbone, plus l'acier est dur et résistant, mais moins il est souple et facile à souder.
+
+            Le forgeron le sait depuis des siècles : il chauffe la lame au rouge puis la plonge dans l'eau pour la **tremper** (la durcir), puis la réchauffe doucement pour la **revenir** (lui rendre un peu de souplesse, sinon elle casserait comme du verre).
+        - level: 2
+          title: Ce que font les éléments d'alliage
+          body: |
+            - **Carbone** : dureté et résistance, au détriment de la ductilité et de la soudabilité.
+            - **Chrome** : résistance à la corrosion et aptitude à la trempe. Au-delà de 10,5 % environ, il forme en surface une couche d'oxyde invisible qui se reforme seule : l'acier devient **inoxydable**.
+            - **Nickel** : ténacité, et avec assez de chrome, structure **austénitique** (inox 304, 316 : amagnétiques, ductiles au froid).
+            - **Molybdène** : résistance à chaud et, dans les inox, meilleure tenue à la corrosion par piqûres (316 par rapport au 304).
+        - level: 3
+          title: Décoder une désignation (EN 10027)
+          body: |
+            | Désignation | Lecture |
+            | --- | --- |
+            | **S235**, S355 | acier de construction, $R_e$ minimal 235 ou 355 MPa |
+            | **C45** | acier non allié pour traitement thermique, 0,45 % de carbone |
+            | **42CrMo4** | faiblement allié : 0,42 % de C, chrome (4/4 = 1 %), molybdène |
+            | **X5CrNi18-10** | fortement allié (X) : 0,05 % de C, 18 % Cr, 10 % Ni = **inox 304** |
+            | **X2CrNiMo17-12-2** | 0,02 % de C, 17 % Cr, 12 % Ni, 2 % Mo = **inox 316L** |
+
+            Dans les aciers faiblement alliés, les chiffres après les éléments sont multipliés par un facteur : ÷ 4 pour Cr, Co, Mn, Ni, Si, W ; ÷ 10 pour Al, Cu, Mo, Ti, V… Dans les X, ce sont directement des pourcentages.
+
+            **Traitements thermiques :**
+            - **trempe** : chauffage puis refroidissement rapide → acier très dur mais fragile ;
+            - **revenu** : réchauffage modéré après trempe → on regagne de la ténacité (trempe + revenu = « traité », noté +QT) ;
+            - **recuit** : chauffage puis refroidissement lent → acier adouci, contraintes internes éliminées, usinage facilité ;
+            - **cémentation, nitruration** : durcissement de la **surface** seulement (engrenages, axes de guidage).
+          check:
+            q: Que signifie le « 42 » dans 42CrMo4 ?
+            choices:
+              - t: 0,42 % de carbone
+                ok: true
+                why: Pour les aciers non alliés et faiblement alliés, le premier nombre est la teneur en carbone × 100.
+              - t: 42 % de chrome
+                why: Ce serait absurde, un tel acier serait un inox très fortement allié noté avec un X.
+              - t: Une limite élastique de 420 MPa
+                why: Seuls les aciers de construction (S…) indiquent Re dans leur nom.
+        - level: 4
+          title: Sous le capot, les structures
+          body: |
+            Le fer existe sous plusieurs arrangements cristallins :
+            - **ferrite** (cubique centré) : magnétique, ductile à l'ambiante mais fragile au froid ;
+            - **austénite** (cubique à faces centrées) : stable à chaud dans les aciers ordinaires, et stabilisée à l'ambiante par le nickel dans les inox 304/316 : amagnétique, ductile même à 4 K ;
+            - **martensite** : obtenue par trempe, le carbone reste piégé dans un réseau déformé : très dure, fragile.
+
+            Pourquoi le **L** de 316L (low carbon) : lors d'un soudage, le carbone peut se combiner au chrome aux joints de grains (**sensibilisation**), qui s'appauvrissent en chrome et rouillent. Avec moins de 0,03 % de carbone, ce risque disparaît. Un inox austénitique fortement écroui peut devenir légèrement magnétique (une partie se transforme en martensite).
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - **Enceintes et pièces sous vide** : inox 304L ou 316L (316LN quand on veut une très faible perméabilité magnétique). Le **303** contient du soufre pour faciliter l'usinage : il se soude mal, on l'évite pour les pièces soudées et les enceintes.
+            - **Pièces mécaniques courantes** : S235 ou S355 (mécano-soudure), C45 (axes, pièces usinées), 42CrMo4 traité (arbres et pièces très sollicitées).
+            - **Inox à haute résistance** : 17-4PH (durci par précipitation), quand on veut l'inox et la résistance.
+            - Sur un plan, la matière s'écrit avec sa désignation normalisée et son état : « 42CrMo4 +QT », « EN AW-6061-T6 », « X2CrNiMo17-12-2 ». Le numéro AISI (304, 316L) reste courant à l'oral.
+      recap:
+        - "Acier = fer + carbone (< 2 %). Plus de carbone : plus dur, moins ductile, moins soudable."
+        - "Inox : ≥ 10,5 % de chrome. 304 = X5CrNi18-10, 316L = X2CrNiMo17-12-2."
+        - "C45 : 0,45 % C ; 42CrMo4 : 0,42 % C, 1 % Cr, Mo ; S235 : Re ≥ 235 MPa."
+        - "Trempe : dur et fragile ; revenu : on regagne de la ténacité ; recuit : on adoucit."
+        - "316L : bas carbone contre la sensibilisation au soudage ; 303 : à éviter pour les pièces soudées."
+    vocab:
+      - acier = steel
+      - acier inoxydable = stainless steel
+      - trempe = quenching (hardening)
+      - revenu = tempering
+      - recuit = annealing
+      - nuance = grade
+      - traitement thermique = heat treatment
+      - cémentation = case hardening (carburizing)
+    exercises:
+      - id: mat-aciers.1
+        type: qcm
+        level: 1
+        q: À quel inox courant correspond la désignation X5CrNi18-10 ?
+        choices:
+          - t: 304
+            ok: true
+          - t: 316L
+            why: Le 316L contient du molybdène et moins de carbone, X2CrNiMo17-12-2.
+          - t: 430
+            why: Le 430 est un inox ferritique, sans nickel.
+        e: X = fortement allié, 5 = 0,05 % de carbone, puis 18 % de chrome et 10 % de nickel. C'est le « 18-10 » des casseroles.
+      - id: mat-aciers.2
+        type: qcm
+        level: 2
+        q: Pourquoi choisit-on du 316L plutôt que du 316 pour une enceinte soudée ?
+        choices:
+          - t: Moins de carbone, donc pas de sensibilisation (corrosion aux joints de grains) près des soudures
+            ok: true
+          - t: Il est plus résistant mécaniquement
+            why: C'est plutôt l'inverse, le carbone apporte un peu de résistance.
+          - t: Il est moins cher
+            why: La différence de prix n'est pas la raison.
+        e: Le L (low carbon, ≤ 0,03 % C) évite la précipitation de carbures de chrome lors du soudage. Même logique pour 304L.
+      - id: mat-aciers.3
+        type: qcm
+        level: 2
+        q: Un axe en C45 doit être dur en surface (usure) mais rester tenace à cœur. Quel traitement ?
+        choices:
+          - t: Une trempe superficielle (par induction) suivie d'un revenu
+            ok: true
+          - t: Un recuit
+            why: Le recuit adoucit l'ensemble de la pièce.
+          - t: Une trempe à cœur sans revenu
+            why: La pièce serait dure partout, mais fragile.
+        e: Les traitements de surface (trempe par induction, cémentation, nitruration) durcissent la peau en gardant un cœur tenace. C'est le cas typique des axes de guidage et des engrenages.
+      - id: mat-aciers.4
+        type: flash
+        level: 1
+        q: Qu'est-ce qui rend un acier « inoxydable » ?
+        back: |
+          Au moins 10,5 % de chrome environ. Le chrome forme en surface une couche d'oxyde très fine, continue et auto-réparante (**couche passive**), qui protège l'acier.
+
+          Cette couche peut être attaquée par les chlorures (eau de mer, certains produits de nettoyage) : corrosion par piqûres, d'où le molybdène du 316.
+        e: Inoxydable ne veut pas dire invulnérable, surtout en milieu chloré ou en cas de contact avec de l'acier ordinaire (pollution ferreuse lors de l'usinage).
+  # ------------------------------------------------------------------ corrosion
+  - id: mat-corrosion
+    title: Corrosion et couples galvaniques
+    en: Corrosion and galvanic couples
+    goal: Comprendre pourquoi deux métaux en contact peuvent se corroder, et savoir l'éviter.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: Le métal qui se ronge
+          body: |
+            Le fer rouille, l'aluminium semble ne jamais rouiller, l'inox reste brillant. Mais une vis en inox plantée dans une tôle d'aluminium, dehors, peut ronger l'aluminium autour d'elle en quelques mois.
+
+            Ce n'est pas un hasard : deux métaux différents en contact, avec un peu d'humidité, forment une **pile**. Et dans une pile, l'une des électrodes s'use.
+        - level: 2
+          title: La pile involontaire
+          body: |
+            La corrosion est une réaction électrochimique : le métal perd des électrons et passe à l'état d'ion (ou d'oxyde). L'aluminium et l'inox résistent grâce à une couche d'oxyde protectrice (ils sont **passivés**).
+
+            Quand deux métaux différents se touchent en présence d'un **électrolyte** (humidité, condensation, sueur, eau de mer), le moins « noble » devient l'**anode** et se corrode plus vite, le plus noble devient la **cathode** et est protégé.
+
+            **Effet de surface** : une petite anode reliée à une grande cathode est le pire cas (le courant de corrosion se concentre sur la petite surface). Une vis en acier dans une grande tôle inox se ronge vite ; une vis inox dans une grande tôle d'acier, beaucoup moins.
+          check:
+            q: Une vis en inox est montée dans une plaque d'aluminium exposée aux intempéries. Quel métal se corrode ?
+            choices:
+              - t: L'aluminium, autour de la vis
+                ok: true
+                why: L'aluminium est moins noble que l'inox. Il devient l'anode du couple.
+              - t: La vis en inox
+                why: L'inox est le plus noble des deux, il est protégé.
+              - t: Aucun, les deux sont inoxydables
+                why: L'alu et l'inox sont passivés séparément, mais leur contact crée une pile.
+        - level: 3
+          title: La série galvanique en pratique
+          body: |
+            On classe les métaux selon leur « indice anodique » (en volts, du plus noble au moins noble) :
+
+            | Métal | Indice anodique (V) |
+            | --- | --- |
+            | or | 0,00 |
+            | argent | ≈ 0,15 |
+            | nickel | 0,30 |
+            | cuivre | 0,35 |
+            | laiton, bronze | 0,40 |
+            | inox 18-8 (304) | 0,50 |
+            | acier ordinaire | 0,85 |
+            | alliages d'aluminium (hors série 2000) | 0,90 |
+            | acier galvanisé, zinc | 1,20 à 1,25 |
+            | magnésium | 1,75 |
+
+            Règle pratique pour l'écart acceptable entre deux métaux en contact : 0,15 V en environnement agressif (extérieur, salin), 0,25 V en environnement normal, 0,50 V en intérieur sec et contrôlé.
+
+            Inox (0,50) et aluminium (0,90) : écart de 0,40 V. Acceptable dans un labo sec, à éviter dehors sans isolation.
+        - level: 4
+          title: Sous le capot
+          body: |
+            À l'anode, le métal s'oxyde : $\text{Fe} \rightarrow \text{Fe}^{2+} + 2e^-$. Les électrons traversent le contact métallique jusqu'à la cathode, où ils réduisent l'oxygène dissous dans l'eau. Sans électrolyte pour fermer le circuit, pas de courant, donc pas de corrosion galvanique : d'où l'importance de l'humidité.
+
+            Autres formes à connaître :
+            - **piqûres** : attaque locale de la couche passive des inox par les chlorures ;
+            - **corrosion caverneuse** : dans les interstices confinés (sous une rondelle, un joint), l'eau stagne et s'appauvrit en oxygène ;
+            - **fragilisation par l'hydrogène** : les aciers à haute résistance (classe 10.9, 12.9) traités par électrolyse (zingage) peuvent absorber de l'hydrogène et casser plus tard, sans prévenir.
+
+            La **protection cathodique** retourne le principe : on sacrifie volontairement un métal moins noble. Le zinc de l'acier galvanisé se corrode à la place de l'acier ; des anodes en zinc protègent les coques de bateaux.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - **Isoler** les métaux incompatibles : rondelles et canons isolants, revêtements, pâte isolante.
+            - **Protéger la plus petite pièce** : c'est elle qui souffre si elle est l'anode.
+            - **Circuits de refroidissement à eau** : on n'y mélange pas n'importe quels métaux (cuivre et acier, par exemple) ; l'eau est souvent déminéralisée et sa chimie contrôlée, car les fuites viennent souvent de la corrosion.
+            - **Nettoyage des inox** : pas de chlore (javel), pas d'outils ou de brosses en acier ordinaire qui déposent des particules de fer (points de rouille ensuite).
+      recap:
+        - "Deux métaux différents + électrolyte = pile : le moins noble (anode) se corrode."
+        - "Pire cas : petite anode, grande cathode."
+        - "Écart d'indice anodique acceptable : 0,15 V (agressif), 0,25 V (normal), 0,50 V (intérieur sec)."
+        - "Inox/alu : 0,40 V d'écart, à isoler en extérieur."
+        - "Protection : isoler, revêtir, ou sacrifier un métal moins noble (zinc)."
+      pieges: [ing-galvanique]
+    vocab:
+      - corrosion = corrosion
+      - corrosion galvanique = galvanic corrosion
+      - anode = anode
+      - cathode = cathode
+      - électrolyte = electrolyte
+      - couche passive = passive layer
+      - corrosion par piqûres = pitting corrosion
+      - galvanisé = galvanized
+      - protection cathodique = cathodic protection
+    exercises:
+      - id: mat-corrosion.1
+        type: qcm
+        level: 1
+        q: Pourquoi une vis en acier ordinaire dans une grande tôle en inox se corrode-t-elle très vite ?
+        piege: ing-galvanique
+        choices:
+          - t: Petite anode (la vis) reliée à une grande cathode (la tôle) : la corrosion se concentre sur la vis
+            ok: true
+          - t: Parce que l'inox transmet sa rouille à la vis
+            why: La corrosion n'est pas contagieuse. C'est un courant électrochimique entre les deux métaux.
+          - t: Parce que la vis est plus lourde
+            why: La masse ne joue aucun rôle.
+        e: L'acier est moins noble que l'inox, il devient l'anode. Comme la surface de la vis est petite face à la tôle, le courant de corrosion par unité de surface est très élevé.
+      - id: mat-corrosion.2
+        type: qcm
+        level: 2
+        q: "D'après la règle des indices anodiques, lequel de ces couples est le plus acceptable en environnement extérieur humide (écart ≤ 0,15 V) ?"
+        choices:
+          - t: Acier ordinaire et aluminium (0,85 et 0,90)
+            ok: true
+            why: Écart de 0,05 V seulement. (L'acier nu rouillera quand même, mais ce n'est pas un problème galvanique.)
+          - t: Inox et aluminium (0,50 et 0,90)
+            why: Écart de 0,40 V, trop grand en extérieur.
+          - t: Cuivre et zinc (0,35 et 1,25)
+            why: Écart de 0,90 V, le zinc se corrode vite.
+        e: Contre-intuitif, un inox « de qualité » n'est pas forcément le meilleur voisin d'un aluminium. Ce qui compte, c'est l'écart entre les deux métaux.
+      - id: mat-corrosion.3
+        type: qcm
+        level: 2
+        q: À quoi sert la couche de zinc d'un acier galvanisé ?
+        choices:
+          - t: Elle se corrode à la place de l'acier, même là où elle est rayée
+            ok: true
+          - t: Elle rend l'acier plus résistant mécaniquement
+            why: Le zinc ne contribue pas à la résistance.
+          - t: Elle rend l'acier inoxydable
+            why: Seul le chrome, en proportion suffisante dans l'alliage, rend un acier inoxydable.
+        e: Le zinc est moins noble que l'acier. Il joue le rôle d'anode sacrificielle, c'est la protection cathodique.
+      - id: mat-corrosion.4
+        type: flash
+        level: 2
+        q: Trois moyens d'éviter la corrosion galvanique entre deux métaux ?
+        back: |
+          1. **Isoler** électriquement les pièces : rondelles, canons, revêtements isolants.
+          2. **Supprimer l'électrolyte** : environnement sec, étanchéité, pâte ou graisse de protection.
+          3. **Choisir des métaux proches** dans la série galvanique, ou faire en sorte que la pièce la moins noble soit la plus grande.
+        e: En dernier recours, on sacrifie volontairement un métal (anode en zinc).
+  # ------------------------------------------------------------------ vide et froid
+  - id: mat-vide-froid
+    title: Matériaux sous vide et à froid
+    en: Materials for vacuum and cryogenics
+    goal: Savoir quels matériaux dégazent, lesquels deviennent fragiles au froid, et comment gérer les contractions thermiques.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Des matériaux qui respirent
+          body: |
+            Dans une enceinte où l'on a fait le vide, certains matériaux « relâchent » lentement du gaz : de l'eau collée aux surfaces, des gaz piégés, des solvants ou plastifiants dans les plastiques. Le vide n'arrive jamais à descendre aussi bas qu'espéré. C'est le **dégazage**.
+
+            Au froid extrême (azote liquide à 77 K, hélium liquide à 4 K), d'autres surprises : certains aciers deviennent cassants comme du verre, et chaque pièce se rétracte différemment de sa voisine.
+        - level: 2
+          title: Ce qui dégaze et ce qui casse
+          body: |
+            **Sous vide**, les sources de gaz sont :
+            - l'**eau adsorbée** sur toutes les surfaces (c'est la principale, d'où l'étuvage) ;
+            - les **polymères et élastomères** (joints, colles, isolants), qui contiennent et laissent diffuser des gaz ;
+            - les **éléments volatils** : zinc (donc laiton), cadmium, plomb… qui s'évaporent à chaud ;
+            - les **volumes piégés** : un fond de trou taraudé fermé par une vis se vide très lentement, c'est une **fuite virtuelle**.
+
+            **Au froid**, les aciers ferritiques (cubiques centrés) passent d'un comportement ductile à un comportement fragile. Les métaux cubiques à faces centrées (inox austénitiques, aluminium, cuivre) restent ductiles.
+          check:
+            q: Qu'est-ce qu'une fuite virtuelle ?
+            choices:
+              - t: Un volume de gaz piégé à l'intérieur de l'enceinte qui se vide lentement
+                ok: true
+                why: Rien ne rentre de l'extérieur, mais le gaz piégé sort très lentement et limite le vide.
+              - t: Une fuite qui n'apparaît qu'au détecteur d'hélium
+                why: Au contraire, une fuite virtuelle n'est pas détectable par un test d'étanchéité vers l'extérieur.
+              - t: Une erreur de la jauge de pression
+                why: Le gaz est bien réel, il vient simplement de l'intérieur.
+        - level: 3
+          title: Les chiffres utiles
+          body: |
+            **Contraction thermique** entre l'ambiante (293 K) et 4 K (valeurs intégrées, ordres de grandeur) :
+
+            | Matériau | $\Delta L / L$ |
+            | --- | --- |
+            | Invar | ≈ 0,04 % |
+            | titane | ≈ 0,15 % |
+            | inox 304 | ≈ 0,30 % |
+            | cuivre | ≈ 0,33 % |
+            | aluminium | ≈ 0,41 % |
+            | PTFE | ≈ 2 % |
+
+            Une poutre d'aluminium de 1 m raccourcit d'environ 4 mm en descendant à 4 K ; une pièce en PTFE de 1 m, de 2 cm.
+
+            **Dégazage** : les écarts entre matériaux se comptent en **ordres de grandeur**. Un inox propre et étuvé dégaze des milliers de fois moins qu'un élastomère ; c'est pour ça que l'ultravide utilise des joints métalliques (brides CF à couteau et joint cuivre) plutôt que des joints toriques.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **L'étuvage.** Chauffer l'enceinte (typiquement 120 à 250 °C pendant plusieurs heures ou jours) donne assez d'énergie aux molécules d'eau adsorbées pour quitter les surfaces : on les pompe pendant la chauffe. Une fois refroidie, l'enceinte dégaze beaucoup moins, et l'on gagne plusieurs décades de pression.
+
+            **La transition ductile-fragile.** Dans un réseau cubique centré, les dislocations ont besoin d'agitation thermique pour se déplacer. Au froid, elles restent bloquées : le métal ne peut plus se déformer plastiquement et casse par clivage. L'essai Charpy (énergie absorbée par une éprouvette entaillée frappée par un mouton-pendule) mesure cette transition.
+
+            **Les contractions différentielles.** Deux pièces de matériaux différents assemblées à l'ambiante ne se rétractent pas pareil : un ajustement serré peut se desserrer, un jeu peut se fermer et bloquer un mécanisme, une vis peut perdre sa précharge.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            **Sous ultravide**, on retrouve typiquement : inox 304L/316L/316LN, cuivre OFHC, aluminium (avec des précautions), céramiques (alumine), Kapton, PEEK et Vespel en quantité limitée. On évite : laiton et zinc, pièces cadmiées ou zinguées, PVC, la plupart des colles et graisses ordinaires, matériaux poreux.
+
+            Les **vis ventilées** (percées dans l'axe) ou les trous de fuite évitent les volumes piégés. Les pièces se manipulent **avec des gants** (les traces de doigts dégazent), après un nettoyage adapté.
+
+            **En cryogénie** : inox austénitiques, aluminium, cuivre, titane, composites verre-époxy (G10) pour les supports isolants. Calcule les contractions différentielles pour chaque ajustement, chaque serrage et chaque câble ou tube qui relie une partie froide à une partie chaude.
+      recap:
+        - "Dégazage : eau adsorbée (étuvage), polymères, éléments volatils (zinc, cadmium), volumes piégés (fuites virtuelles)."
+        - "Ultravide : inox, cuivre OFHC, céramiques, joints métalliques ; pas de laiton ni de pièces zinguées."
+        - "Contraction 293 → 4 K : inox ≈ 0,3 %, alu ≈ 0,4 %, PTFE ≈ 2 %, Invar ≈ 0,04 %."
+        - "Aciers ferritiques fragiles au froid ; inox austénitiques, alu, cuivre restent ductiles."
+        - "Vis ventilées, gants, nettoyage : la propreté fait le vide."
+      pieges: [ing-fragile-froid, ing-zinc-vide, ing-fuite-virtuelle]
+    vocab:
+      - dégazage = outgassing
+      - ultravide = ultra-high vacuum (UHV)
+      - étuvage = bakeout
+      - fuite virtuelle = virtual leak
+      - vis ventilée = vented screw
+      - contraction thermique = thermal contraction
+      - transition ductile-fragile = ductile-to-brittle transition
+      - bride = flange
+    exercises:
+      - id: mat-vide-froid.1
+        type: qcm
+        level: 1
+        q: Quel matériau faut-il éviter dans une enceinte sous ultravide étuvée ?
+        piege: ing-zinc-vide
+        choices:
+          - t: Le laiton
+            ok: true
+            why: Le laiton contient du zinc, qui s'évapore à chaud sous vide et pollue l'enceinte.
+          - t: L'inox 316L
+            why: C'est le matériau de base des enceintes ultravide.
+          - t: Le cuivre OFHC
+            why: Il est couramment utilisé sous ultravide (joints de brides, pièces thermiques).
+          - t: L'alumine
+            why: Céramique très stable, utilisée pour les isolants sous vide.
+        e: Zinc et cadmium ont une pression de vapeur élevée, qui grimpe très vite à la température d'étuvage. Les vis zinguées ou cadmiées sont aussi à proscrire.
+      - id: mat-vide-froid.2
+        type: qcm
+        level: 2
+        q: Pourquoi utilise-t-on des vis percées dans l'axe (ventilées) sous vide ?
+        piege: ing-fuite-virtuelle
+        choices:
+          - t: Pour que le gaz piégé au fond du trou taraudé puisse être pompé
+            ok: true
+          - t: Pour les rendre plus légères
+            why: Le gain de masse est négligeable et sans intérêt.
+          - t: Pour mieux les serrer
+            why: Le perçage n'aide pas au serrage.
+        e: Le fond d'un trou borgne fermé par une vis forme un petit volume qui se vide à travers le filet, très lentement. C'est une fuite virtuelle, invisible au détecteur de fuites.
+      - id: mat-vide-froid.3
+        type: numeric
+        level: 2
+        q: Une poutre en aluminium mesure 1,2 m à 293 K. De combien raccourcit-elle à 4 K ? (contraction intégrée ≈ 0,41 %)
+        answer: 4.92
+        tol: 0.02
+        unit: mm
+        calc: 1200 * 0.41 / 100
+        trap_values:
+          - v: 492
+            why: 0,41 %, c'est 0,0041, pas 0,41.
+          - v: 0.00492
+            why: C'est la valeur en mètres.
+        e: $\Delta L = 1200 \times 0{,}0041 \approx 4{,}9$ mm. Un support en inox ne se rétracterait que de 3,6 mm : 1,3 mm de différence à absorber quelque part.
+      - id: mat-vide-froid.4
+        type: qcm
+        level: 2
+        q: Pourquoi l'ultravide utilise-t-il des brides à joint métallique (CF) plutôt que des joints toriques en élastomère ?
+        choices:
+          - t: Les élastomères dégazent et laissent diffuser les gaz, et supportent mal l'étuvage
+            ok: true
+          - t: Les joints métalliques sont moins chers
+            why: Ils sont à usage unique et plutôt plus chers.
+          - t: Les élastomères sont conducteurs
+            why: La conduction électrique n'est pas le problème.
+        e: Un joint cuivre écrasé par le couteau de la bride CF est étanche, ne dégaze presque pas et supporte l'étuvage. Les joints en Viton restent utilisés en vide secondaire (brides KF, ISO).
+      - id: mat-vide-froid.5
+        type: flash
+        level: 2
+        q: Pourquoi étuve-t-on une enceinte sous vide ?
+        back: |
+          Pour désorber l'eau (et les autres gaz) collée aux surfaces : chauffée vers 120 à 250 °C sous pompage, elle quitte les parois et est évacuée. Une fois l'enceinte refroidie, le dégazage a chuté de plusieurs décades et le vide descend beaucoup plus bas.
+        e: Sans étuvage, l'eau adsorbée limite la pression atteignable pendant des jours ou des semaines.

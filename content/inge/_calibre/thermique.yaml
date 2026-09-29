@@ -1,0 +1,287 @@
+domain: thermique
+exercises:
+- id: ig.the01
+  type: qcm
+  level: 1
+  q: 'Le premier principe de la thermodynamique exprime :'
+  choices:
+  - t: L'impossibilité du zéro absolu
+    ok: false
+  - t: La conservation de l'énergie d'un système
+    ok: true
+  - t: L'augmentation de l'entropie
+    ok: false
+  - t: La conservation de la masse
+    ok: false
+  e: 'ΔU = Q + W : l''énergie interne ne varie que par échange de chaleur ou de travail. Le deuxième principe, lui, introduit l''entropie et impose un SENS aux transformations. Le premier dit ce qui est comptable, le second ce qui est possible.'
+  src: calibre
+- id: ig.the02
+  type: qcm
+  level: 1
+  q: '0 °C correspond à :'
+  choices:
+  - t: 0 K
+    ok: false
+  - t: 373,15 K
+    ok: false
+  - t: 273,15 K
+    ok: true
+  - t: 100 K
+    ok: false
+  e: '273,15 K. Toute formule de rendement, de rayonnement ou de gaz parfait exige des kelvins : oublier la conversion est l''erreur la plus fréquente en thermodynamique. Un écart de température, en revanche, est identique en °C et en K.'
+  src: calibre
+- id: ig.the03
+  type: qcm
+  level: 2
+  q: 'Machine thermique fonctionnant entre 500 °C et 20 °C. Rendement maximal théorique :'
+  choices:
+  - t: ≈ 96 %
+    ok: false
+  - t: ≈ 62 %
+    ok: true
+  - t: ≈ 24 %
+    ok: false
+  - t: 100 %
+    ok: false
+  e: 'η_Carnot = 1 − Tf/Tc = 1 − 293/773 ≈ 0,62. Le réflexe : convertir en kelvins d''abord. En °C on aurait trouvé 96 %, absurde. Un cycle réel atteint environ la moitié du Carnot — d''où les 35-40 % d''une centrale thermique.'
+  src: calibre
+- id: ig.the04
+  type: qcm
+  level: 2
+  q: 'Le coefficient de performance (COP) d''une pompe à chaleur :'
+  choices:
+  - t: Peut largement dépasser 1
+    ok: true
+  - t: Est toujours inférieur à 1
+    ok: false
+  - t: Est égal au rendement de Carnot
+    ok: false
+  - t: Vaut exactement 1
+    ok: false
+  e: 'Le COP dépasse couramment 3 ou 4 : la PAC ne CRÉE pas d''énergie, elle en DÉPLACE. Le COP de Carnot vaut Tc/(Tc−Tf), donc d''autant meilleur que l''écart de température est faible — c''est pourquoi une PAC perd son intérêt par grand froid, exactement quand on en a le plus besoin.'
+  src: calibre
+- id: ig.the05
+  type: qcm
+  level: 2
+  q: 'La loi de Fourier décrit :'
+  choices:
+  - t: La conduction thermique, avec un flux proportionnel au gradient de température
+    ok: true
+  - t: Le rayonnement thermique
+    ok: false
+  - t: Le changement d'état
+    ok: false
+  - t: La convection forcée
+    ok: false
+  e: 'q = −λ·∇T : le flux est proportionnel au gradient et dirigé des chaudes vers les froides (d''où le signe moins). Le rayonnement suit Stefan-Boltzmann en T⁴, la convection la loi de Newton en h·ΔT. Trois modes, trois lois à ne pas mélanger.'
+  src: calibre
+- id: ig.the06
+  type: qcm
+  level: 2
+  q: 'Résistance thermique d''un mur plan d''épaisseur e, de conductivité λ, de surface S :'
+  choices:
+  - t: λ·S/e
+    ok: false
+  - t: e·S/λ
+    ok: false
+  - t: e/(λ·S)
+    ok: true
+  - t: λ·e/S
+    ok: false
+  e: 'R = e/(λS), en K/W. L''analogie électrique est directe : ΔT joue le rôle de la tension, le flux celui du courant, et les résistances de couches successives s''additionnent comme des résistances en série. C''est l''outil qui permet de traiter un mur multicouche en trois lignes.'
+  src: calibre
+- id: ig.the07
+  type: qcm
+  level: 2
+  q: 'Ordre de grandeur du coefficient d''échange convectif h pour de l''air en convection naturelle :'
+  choices:
+  - t: 500 à 1000 W/m²K
+    ok: false
+  - t: 10 000 W/m²K
+    ok: false
+  - t: 5 à 25 W/m²K
+    ok: true
+  - t: 0,1 W/m²K
+    ok: false
+  e: 'Air en convection naturelle : 5-25 W/m²K ; air ventilé : 25-250 ; eau : 500-10 000 ; ébullition ou condensation : jusqu''à 100 000. Ces ordres de grandeur expliquent tout le refroidissement : passer de l''air naturel à l''air forcé gagne un facteur 10, passer à l''eau un facteur 100.'
+  src: calibre
+- id: ig.the08
+  type: qcm
+  level: 2
+  q: 'Le flux rayonné par une surface varie comme :'
+  choices:
+  - t: √T
+    ok: false
+  - t: T²
+    ok: false
+  - t: T
+    ok: false
+  - t: T⁴
+    ok: true
+  e: 'Loi de Stefan-Boltzmann : φ = ε·σ·S·T⁴, avec σ = 5,67×10⁻⁸ W/m²K⁴ et T en kelvins impérativement. La puissance 4 signifie que le rayonnement est négligeable à température ambiante mais devient dominant dès quelques centaines de degrés — d''où son rôle central dans les fours et le vide, où convection et conduction disparaissent.'
+  src: calibre
+- id: ig.the09
+  type: qcm
+  level: 3
+  q: Pourquoi applique-t-on une pâte thermique entre un composant de puissance et son dissipateur ?
+  choices:
+  - t: Pour éviter la corrosion
+    ok: false
+  - t: Pour combler les micro-cavités d'air et réduire la résistance thermique de contact
+    ok: true
+  - t: Pour coller mécaniquement les deux pièces
+    ok: false
+  - t: Pour isoler électriquement
+    ok: false
+  e: 'Deux surfaces usinées ne se touchent réellement que sur quelques pourcents de leur aire ; le reste est de l''air, dont λ ≈ 0,025 W/mK — un isolant. La pâte remplace cet air par un milieu à λ ≈ 1-5. Elle n''est PAS un bon conducteur en soi : le film doit rester le plus mince possible, l''excès dégrade le contact.'
+  src: calibre
+- id: ig.the10
+  type: qcm
+  level: 2
+  q: 'Sur un dissipateur refroidissant un composant par l''air, on ajoute des ailettes côté air parce que :'
+  choices:
+  - t: Cela réduit le rayonnement
+    ok: false
+  - t: Les ailettes rigidifient le montage
+    ok: false
+  - t: Le coefficient d'échange côté air est faible, c'est donc la résistance dominante
+    ok: true
+  - t: L'air est plus chaud que le composant
+    ok: false
+  e: 'On augmente la surface là où h est faible, pour compenser. Règle générale des échangeurs : on ailette toujours le côté au h le plus bas (l''air dans un radiateur eau/air, le gaz dans un échangeur gaz/liquide). Ailetter le côté au h élevé ne rapporterait quasiment rien.'
+  src: calibre
+- id: ig.the11
+  type: qcm
+  level: 2
+  q: 'Énergie nécessaire pour porter 1 litre d''eau de 20 à 100 °C (c = 4185 J/kg·K) :'
+  choices:
+  - t: ≈ 33 kJ
+    ok: false
+  - t: ≈ 2260 kJ
+    ok: false
+  - t: ≈ 335 kJ
+    ok: true
+  - t: ≈ 3,3 MJ
+    ok: false
+  e: 'Q = m·c·ΔT = 1 × 4185 × 80 ≈ 335 kJ. À comparer avec les 2260 kJ nécessaires pour ensuite la VAPORISER : le changement d''état coûte presque sept fois plus que la montée de 20 à 100 °C. Cette dissymétrie fonde le fonctionnement des caloducs et des cycles frigorifiques.'
+  src: calibre
+- id: ig.the12
+  type: qcm
+  level: 3
+  q: 'Un nombre de Biot inférieur à 0,1 signifie que :'
+  choices:
+  - t: L'écoulement est laminaire
+    ok: false
+  - t: Le rayonnement domine
+    ok: false
+  - t: Le régime est permanent
+    ok: false
+  - t: La température peut être considérée uniforme dans le solide
+    ok: true
+  e: 'Bi = hL/λ compare la résistance de conduction INTERNE à la résistance de convection EXTERNE. Bi ≪ 1 : le solide s''homogénéise plus vite qu''il n''échange, on peut le traiter comme un point à une seule température — c''est ce qui légitime le modèle du premier ordre thermique et sa constante de temps unique.'
+  src: calibre
+- id: ig.the13
+  type: qcm
+  level: 2
+  q: 'Entre un échangeur à co-courant et un échangeur à contre-courant, à surface égale :'
+  choices:
+  - t: Ils sont équivalents
+    ok: false
+  - t: Le contre-courant est plus efficace
+    ok: true
+  - t: Le co-courant est plus efficace
+    ok: false
+  - t: Le co-courant permet de croiser les températures
+    ok: false
+  e: Le contre-courant maintient un écart de température plus uniforme sur toute la longueur, donc un ΔT moyen logarithmique plus grand et un meilleur échange. Il permet même à la sortie du froid de dépasser la sortie du chaud (croisement des températures), ce qui est physiquement impossible en co-courant.
+  src: calibre
+- id: ig.the14
+  type: qcm
+  level: 2
+  q: 'Le deuxième principe interdit :'
+  choices:
+  - t: De transformer du travail en chaleur
+    ok: false
+  - t: De comprimer un gaz
+    ok: false
+  - t: De transformer intégralement de la chaleur en travail au cours d'un cycle
+    ok: true
+  - t: De transférer de la chaleur du froid vers le chaud
+    ok: false
+  e: 'Transformer du travail en chaleur est trivial (frottement). L''inverse, intégralement et cycliquement, est interdit : il faut toujours rejeter au puits froid. Transférer du froid vers le chaud reste possible, à condition de fournir du travail — c''est exactement ce que fait un réfrigérateur.'
+  src: calibre
+- id: ig.the15
+  type: qcm
+  level: 2
+  q: 'Comprimer un gaz de façon adiabatique, comparé à une compression isotherme jusqu''à la même pression :'
+  choices:
+  - t: Demande moins de travail
+    ok: false
+  - t: Refroidit le gaz
+    ok: false
+  - t: Donne le même travail
+    ok: false
+  - t: Demande plus de travail et élève la température du gaz
+    ok: true
+  e: 'En adiabatique, aucune chaleur n''est évacuée : le gaz s''échauffe, sa pression monte plus vite et le travail à fournir augmente. C''est pourquoi les compresseurs industriels sont refroidis ou étagés avec refroidissement intermédiaire, pour s''approcher de l''isotherme, la moins coûteuse en énergie.'
+  src: calibre
+- id: ig.the16
+  type: qcm
+  level: 3
+  q: Dans un cycle frigorifique à compression, où le fluide absorbe-t-il la chaleur du milieu à refroidir ?
+  choices:
+  - t: Au condenseur
+    ok: false
+  - t: Au compresseur
+    ok: false
+  - t: À l'évaporateur
+    ok: true
+  - t: Au détendeur
+    ok: false
+  e: 'L''évaporateur : le fluide s''y vaporise à basse pression et basse température, absorbant la chaleur latente. Le condenseur rejette cette chaleur à l''extérieur, le compresseur remonte la pression, le détendeur la chute. Une pompe à chaleur est exactement le même cycle, où l''on valorise le condenseur au lieu de l''évaporateur.'
+  src: calibre
+- id: ig.the17
+  type: qcm
+  level: 2
+  q: 'Classe ces matériaux par conductivité thermique décroissante :'
+  choices:
+  - t: Acier > cuivre > aluminium > inox
+    ok: false
+  - t: Cuivre > aluminium > acier > inox
+    ok: true
+  - t: Aluminium > cuivre > inox > acier
+    ok: false
+  - t: Inox > acier > aluminium > cuivre
+    ok: false
+  e: 'Cuivre ≈ 400, alu ≈ 200, acier ≈ 50, inox ≈ 15 W/mK. L''inox conduit environ 25 fois moins bien que le cuivre — excellent pour un support isolant thermique sous vide, catastrophique pour un dissipateur. Repère bonus : l''air à 0,025 et la laine de verre à 0,04.'
+  src: calibre
+- id: ig.the18
+  type: qcm
+  level: 2
+  q: 'Conductivité thermique typique d''un isolant comme la laine de verre :'
+  choices:
+  - t: ≈ 0,4 W/mK
+    ok: false
+  - t: ≈ 40 W/mK
+    ok: false
+  - t: ≈ 0,04 W/mK
+    ok: true
+  - t: ≈ 4 W/mK
+    ok: false
+  e: ≈ 0,04 W/mK, soit à peine plus que l'air immobile (0,025). Tout le principe d'un isolant fibreux ou alvéolaire est justement d'immobiliser de l'air pour supprimer la convection. Aucun matériau usuel ne descend en dessous de l'air à pression atmosphérique — sauf les aérogels et les panneaux sous vide.
+  src: calibre
+- id: ig.the19
+  type: qcm
+  level: 3
+  q: 'Constante de temps thermique d''un corps thermiquement mince refroidi par convection :'
+  choices:
+  - t: τ = λ/(ρ·c)
+    ok: false
+  - t: τ = h·L/λ
+    ok: false
+  - t: τ = h·S/(ρ·V·c)
+    ok: false
+  - t: τ = ρ·V·c/(h·S)
+    ok: true
+  e: 'τ = ρVc/(hS) : capacité thermique divisée par conductance d''échange, exactement l''analogue de τ = RC en électricité. Cela dit aussitôt que pour refroidir vite il faut peu de masse et beaucoup de surface ventilée. λ/(ρc) est la diffusivité, hL/λ le nombre de Biot.'
+  src: calibre

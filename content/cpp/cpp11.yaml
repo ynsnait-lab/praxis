@@ -1,0 +1,813 @@
+id: cpp11
+track: cpp
+title: C++ embarqué
+goal: 'Écrire du code sûr sur MCU : volatile, registres, pas d’alloc, ISR.'
+level: avance
+requires:
+- cpp03
+- cpp09
+concepts:
+- volatile
+- registres
+- bitfields
+- isr
+- no-alloc
+lesson:
+  minutes: 20
+  intro: |
+    Sur un microcontrôleur (ESP32, STM32, AVR), il n'y a ni système d'exploitation pour te protéger, ni mémoire à profusion, et le matériel modifie lui-même des cases mémoire pendant que ton programme tourne. C++ y est excellent, à condition de connaître quelques règles que le PC ne t'apprend pas : `volatile`, l'accès aux registres, la discipline des interruptions et la vie sans allocation dynamique. Ce module te les donne, avec du code qui tourne sur PC en simulant le matériel.
+  steps:
+    - level: 1
+      title: Le pupitre et le coup de téléphone
+      body: |
+        Un microcontrôleur se pilote comme un **pupitre** : chaque bouton et chaque voyant est à un emplacement fixe (une **adresse**). Écrire un nombre à une adresse, c'est tourner un bouton (allumer une sortie, régler une vitesse de liaison série) ; lire une adresse, c'est regarder un voyant. Ces emplacements sont les **registres**.
+
+        Particularité : certains voyants changent **tout seuls**, parce que le matériel les modifie (un octet vient d'arriver, un convertisseur a fini sa mesure). Le compilateur, lui, croit que seule ton code modifie la mémoire : il faut le prévenir.
+
+        Une **interruption**, c'est un coup de téléphone qui arrive n'importe quand et coupe ce que tu faisais. La règle : décrocher, **noter le message**, raccrocher. Pas question de lancer un long travail pendant l'appel.
+    - level: 2
+      title: Registres, volatile, interruptions
+      body: |
+        - Un registre se manipule à travers un pointeur vers `volatile` : `auto* const ODR = reinterpret_cast<volatile std::uint32_t*>(0x4800'0014);` (c'est l'un des rares usages légitimes de `reinterpret_cast`). En pratique, les en-têtes du fabricant (CMSIS pour les STM32, ESP-IDF pour les ESP32) définissent tout cela : `GPIOA->ODR`.
+        - **`volatile`** oblige le compilateur à effectuer **chaque** lecture et **chaque** écriture, dans l'ordre du programme, sans garder la valeur dans un registre du processeur ni supprimer d'accès « inutiles ». Il ne rend **pas** une opération atomique.
+        - `reg |= bit` est une **lecture-modification-écriture** en trois étapes : lire, faire le OU, réécrire tout le registre. Une interruption qui tombe entre la lecture et l'écriture voit sa propre modification écrasée. Et sur un registre « à effacement par écriture de 1 » (*write-1-to-clear*), réécrire les bits lus à 1 les efface tous.
+        - **Routine d'interruption** (ISR) : courte, sans allocation, sans `printf`, sans attente (`delay`), sans verrou bloquant. Elle range la donnée dans un **tampon circulaire** préalloué et lève un drapeau.
+        - Données partagées entre ISR et boucle principale : `volatile` au minimum, `std::atomic` de préférence ; au-delà de la taille d'un mot (un `uint64_t` sur un processeur 32 bits), une **section critique** (interruptions masquées pendant la copie).
+        - **Pas d'allocation dynamique** après l'initialisation : fragmentation du tas et durées imprévisibles. `std::array`, tableaux statiques, capacité fixée à la compilation.
+        - **Gratuit en embarqué** : classes, références, `constexpr`, templates, `enum class`, `namespace`, RAII. On désactive souvent les exceptions et le RTTI (`-fno-exceptions -fno-rtti`).
+      check:
+        q: À quoi sert `volatile` exactement ?
+        choices:
+          - t: À forcer chaque lecture et chaque écriture à être réellement effectuée, sans être optimisée
+            ok: true
+            why: C'est tout. Le compilateur ne suppose plus que la valeur reste la même entre deux accès.
+          - t: À rendre les accès atomiques entre une interruption et la boucle principale
+            why: "`volatile` ne rend rien atomique : un `x = x + 1` reste lecture puis écriture, interruptible entre les deux."
+          - t: À placer la variable dans une mémoire plus rapide
+            why: "`volatile` ne change pas l'emplacement de la variable, seulement la façon dont le compilateur y accède."
+    - level: 3
+      title: Registres et file d'interruption, simulés sur PC
+      body: |
+        Une variable ordinaire joue ici le rôle du registre de sortie, pour que le code tourne sur ton ordinateur ; seule la ligne commentée change sur une vraie carte.
+      code: |
+        #include <array>
+        #include <cstddef>
+        #include <cstdint>
+        #include <cstdio>
+
+        // Sur une vraie carte : auto* const ODR = reinterpret_cast<volatile std::uint32_t*>(0x4800'0014);
+        volatile std::uint32_t registre_simule = 0;
+        volatile std::uint32_t* const ODR = &registre_simule;
+
+        constexpr std::uint32_t bit(unsigned n) { return 1u << n; }
+        constexpr std::uint32_t masque(unsigned pos, unsigned largeur) { return ((1u << largeur) - 1u) << pos; }
+        constexpr std::uint32_t inserer(std::uint32_t reg, unsigned pos, unsigned largeur, std::uint32_t v) {
+            return (reg & ~masque(pos, largeur)) | ((v << pos) & masque(pos, largeur));
+        }
+        constexpr std::uint32_t extraire(std::uint32_t reg, unsigned pos, unsigned largeur) {
+            return (reg >> pos) & ((1u << largeur) - 1u);
+        }
+        static_assert(extraire(inserer(0, 4, 3, 5), 4, 3) == 5);     // vérifié à la compilation
+
+        template <std::size_t N>
+        class Anneau {                                // file circulaire : ISR → boucle principale
+        public:
+            bool pousser(std::uint8_t v) {            // appelée par l'interruption
+                std::size_t suivant = (tete_ + 1) % N;
+                if (suivant == queue_) return false;  // pleine : donnée perdue, mais on le sait
+                tampon_[tete_] = v;
+                tete_ = suivant;
+                return true;
+            }
+            bool retirer(std::uint8_t& v) {           // appelée par la boucle principale
+                if (queue_ == tete_) return false;    // vide
+                v = tampon_[queue_];
+                queue_ = (queue_ + 1) % N;
+                return true;
+            }
+        private:
+            std::array<std::uint8_t, N> tampon_{};
+            volatile std::size_t tete_ = 0, queue_ = 0;   // sur cible : std::atomic
+        };
+
+        int main() {
+            *ODR = *ODR | bit(5);                     // allumer la broche 5 (lire, modifier, écrire)
+            *ODR = *ODR & ~bit(5);                    // l'éteindre
+            *ODR = inserer(*ODR, 8, 4, 0b1010);       // champ de 4 bits à la position 8
+            std::printf("ODR = 0x%08X, champ = %u\n", static_cast<unsigned>(*ODR),
+                        static_cast<unsigned>(extraire(*ODR, 8, 4)));
+
+            Anneau<4> file;                           // capacité utile : 3 (une case reste libre)
+            int acceptes = 0;
+            for (std::uint8_t octet = 10; octet < 15; ++octet) acceptes += file.pousser(octet);
+            std::uint8_t v;
+            std::printf("%d acceptés, lus :", acceptes);
+            while (file.retirer(v)) std::printf(" %u", static_cast<unsigned>(v));
+            std::printf("\n");
+        }
+      out: |
+        ODR = 0x00000A00, champ = 10
+        3 acceptés, lus : 10 11 12
+      after: |
+        L'écriture `*ODR = *ODR | bit(5);` montre les trois étapes que cache `*ODR |= bit(5);`. Détail de norme : C++20 a déprécié les affectations composées (`|=`, `+=`…) sur les `volatile` (GCC avertit avec `-Wvolatile`), puis C++23 a rétabli `|=`, `&=` et `^=`, omniprésents dans le code des fabricants.
+    - level: 4
+      title: Ce que le compilateur fait sans volatile
+      body: |
+        Une boucle d'attente sur un drapeau mis à jour par une interruption :
+
+        ```cpp
+        bool drapeau = false;                  // mis à true par une interruption
+        volatile bool drapeau_v = false;
+
+        void attendre()   { while (!drapeau) {} }
+        void attendre_v() { while (!drapeau_v) {} }
+        ```
+
+        compilée par `g++ -O2 -S` (x86-64, lignes techniques retirées) :
+
+        ```text
+        _Z8attendrev:                    # attendre() : la boucle a disparu !
+                ret
+        _Z10attendre_vv:                 # attendre_v()
+        .L4:
+                movzbl  drapeau_v(%rip), %eax   # relit la mémoire à chaque tour
+                testb   %al, %al
+                je      .L4
+                ret
+        ```
+
+        Sans `volatile`, le compilateur voit que rien dans la boucle ne peut modifier `drapeau` ; et une boucle sans effet qui ne se termine jamais est un comportement indéfini. Il en conclut que la boucle… n'a pas lieu d'être. Ton attente disparaît.
+
+        `volatile` ne suffit pas pour tout : une donnée de 64 bits se lit en **deux** fois sur un processeur 32 bits, et une interruption peut tomber entre les deux moitiés. On copie alors sous **section critique**, un objet RAII qui masque les interruptions dans son constructeur et les restaure dans son destructeur. Pour un simple drapeau, `std::atomic` fait l'affaire.
+      code: |
+        #include <atomic>
+        #include <cstdint>
+        #include <cstdio>
+
+        // Simulation (sur Cortex-M : __disable_irq() et __enable_irq())
+        bool interruptions_actives = true;
+        void desactiver_irq() { interruptions_actives = false; }
+        void activer_irq() { interruptions_actives = true; }
+
+        class SectionCritique {                          // RAII : masque, puis restaure
+        public:
+            SectionCritique() : etat_(interruptions_actives) { desactiver_irq(); }
+            ~SectionCritique() { if (etat_) activer_irq(); }
+            SectionCritique(const SectionCritique&) = delete;
+            SectionCritique& operator=(const SectionCritique&) = delete;
+        private:
+            bool etat_;
+        };
+
+        volatile std::uint32_t compteur_isr = 0;         // 32 bits : lu en une instruction
+        std::atomic<bool> trame_prete{false};            // drapeau ISR → boucle principale
+        std::uint64_t horodatage_us = 0;                 // 64 bits : lu en deux fois sur un MCU 32 bits
+
+        void isr_uart() {                                // appelée par le matériel
+            compteur_isr = compteur_isr + 1;
+            horodatage_us += 1000;
+            trame_prete.store(true, std::memory_order_release);
+        }
+
+        int main() {
+            isr_uart();                                  // simulons deux interruptions
+            isr_uart();
+            std::uint64_t copie;
+            {
+                SectionCritique sc;                      // aucune interruption pendant la copie
+                std::printf("pendant : %s\n", interruptions_actives ? "IRQ actives" : "IRQ masquées");
+                copie = horodatage_us;
+            }
+            std::printf("après : %s\n", interruptions_actives ? "IRQ actives" : "IRQ masquées");
+            if (trame_prete.exchange(false, std::memory_order_acquire))
+                std::printf("trame prête, %u interruptions, t = %llu µs\n",
+                            static_cast<unsigned>(compteur_isr), static_cast<unsigned long long>(copie));
+            std::printf("atomic<bool> sans verrou : %d\n", static_cast<int>(std::atomic<bool>::is_always_lock_free));
+        }
+      out: |
+        pendant : IRQ masquées
+        après : IRQ actives
+        trame prête, 2 interruptions, t = 2000 µs
+        atomic<bool> sans verrou : 1
+    - level: 5
+      title: Sur le terrain
+      body: |
+        - Registres : passe par les en-têtes du fabricant (CMSIS, ESP-IDF), lis le *reference manual* pour le type d'accès de chaque bit (`rw`, `w1c`…), et méfie-toi des `|=` sur les registres d'état.
+        - ISR : lire, ranger dans un tampon circulaire, lever un drapeau, sortir. Décodage, calculs, affichage et journal vont dans la boucle principale ou une tâche.
+        - ESP32 : deux cœurs et FreeRTOS, donc de la **vraie** concurrence. `volatile` ne suffit pas entre tâches : `std::atomic`, files FreeRTOS (`xQueueSendFromISR`) ou sections critiques `portENTER_CRITICAL`.
+        - Mémoire : aucune allocation après l'initialisation ; la pile d'une tâche ne fait que quelques kilo-octets, donc pas de gros tableaux locaux.
+        - Options typiques : `-Os -fno-exceptions -fno-rtti -Wall -Wextra -Wconversion`, et un œil sur le fichier `.map` pour savoir ce qui occupe la flash.
+        - Temps : `millis()` reboucle ; compare toujours des **différences** non signées (`millis() - debut >= duree`), jamais des instants absolus.
+  recap:
+    - "Registre = adresse fixe, accédée via un pointeur `volatile` (en pratique, les en-têtes du fabricant)."
+    - "`volatile` : chaque accès est réellement fait ; ni atomique, ni barrière."
+    - "`reg |= bit` = lire, modifier, écrire : interruptible, et destructeur sur un registre W1C."
+    - "ISR courte : tampon circulaire préalloué + drapeau ; ni `new`, ni `printf`, ni attente."
+    - "Données partagées : `std::atomic` ou section critique RAII ; aucune allocation après l'initialisation."
+  pieges: [cpp-volatile-isr, cpp-alloc-isr, cpp-rmw-registre, cpp-millis-debordement, cpp-delay-bloquant]
+exercises:
+- id: cpp11.1
+  type: qcm
+  level: 2
+  concepts:
+  - volatile
+  q: À quoi sert `volatile` exactement ?
+  choices:
+  - t: Interdire au compilateur d’optimiser, mettre en cache ou réordonner les accès à cette variable
+    ok: true
+    why: Chaque lecture/écriture dans le code source produit un accès mémoire réel.
+  - t: Rendre l’accès atomique entre threads
+    ok: false
+    why: '**Non.** C’est l’erreur classique : `volatile` ne donne aucune garantie d’atomicité ni d’ordonnancement mémoire. C’est `std::atomic` qu’il faut.'
+  - t: Placer la variable en RAM plutôt qu’en registre
+    ok: false
+    why: Conséquence, pas définition.
+  - t: Empêcher toute modification
+    ok: false
+    why: C’est `const`.
+  e: |-
+    `volatile` sert dans exactement **deux** cas :
+    1. Un **registre matériel** mappé en mémoire, qui change tout seul.
+    2. Une variable modifiée par une **routine d’interruption** et lue dans le code principal.
+
+    ```cpp
+    volatile bool trame_prete = false;   // écrit par l'ISR
+    while (!trame_prete) { }             // sans volatile : boucle infinie
+    ```
+    Sans `volatile`, le compilateur lit `trame_prete` une fois, le met en registre et boucle éternellement.
+
+    **Ce que `volatile` ne fait PAS** : pas d’atomicité, pas de barrière mémoire, pas de protection en multi-cœur. Pour du partage entre threads, c’est `std::atomic<bool>` — qui, lui, garantit les deux.
+- id: cpp11.2
+  type: cloze
+  level: 3
+  concepts:
+  - registres
+  q: Déclare l’accès à un registre de contrôle 32 bits à l’adresse `0x40021000`.
+  lang: cpp
+  tpl: |-
+    #include <cstdint>
+
+    // Pointeur constant vers un registre dont la valeur change seule
+    inline ⟦0⟧ uint32_t* const RCC_CR =
+        reinterpret_cast<⟦0⟧ uint32_t*>(0x40021000u);
+
+    constexpr uint32_t HSION = 1u << ⟦1⟧;   // bit 0
+
+    void activer_hsi() {
+        *RCC_CR |= HSION;
+    }
+  blanks:
+  - - volatile
+  - - '0'
+  e: |-
+    Décomposition de `volatile uint32_t* const` :
+    - `volatile` → la **valeur pointée** peut changer sans que le code l’écrive (le matériel la modifie).
+    - `* const` → l’**adresse**, elle, ne change jamais.
+
+    `1u << n` avec le suffixe `u` : sur un registre 32 bits, `1 << 31` en `int` signé est un UB. `1u << 31` est correct.
+
+    `*RCC_CR |= HSION;` fait bien un read-modify-write **réel** grâce à `volatile`.
+
+    ⚠️ Sur un registre où l’écriture d’un bit à 1 efface un drapeau (« write-1-to-clear »), le `|=` lit et réécrit tous les bits — et efface des drapeaux non voulus. Écris `*REG = MASQUE;` dans ce cas.
+- id: cpp11.3
+  type: qcm
+  level: 3
+  concepts:
+  - isr
+  q: Que peut-on faire **sans risque** dans une routine d’interruption (ISR) ?
+  choices:
+  - t: Écrire dans un buffer préalloué et lever un drapeau
+    ok: true
+    why: Court, borné, sans allocation, sans blocage. Le traitement se fait dans la boucle principale.
+  - t: Appeler `printf` pour tracer
+    ok: false
+    why: Non réentrant, lent, peut allouer et bloquer sur l’UART.
+  - t: Faire un `new` ou un `malloc`
+    ok: false
+    why: 'L’allocateur n’est pas réentrant : deadlock ou corruption du tas.'
+  - t: Attendre un sémaphore
+    ok: false
+    why: Bloquer dans une ISR fige tout le système.
+  e: |-
+    Règles d’or d’une ISR :
+    1. **Courte et bornée** — quelques microsecondes.
+    2. Aucune allocation, aucun `printf`, aucun blocage.
+    3. Toute variable partagée avec le code principal est `volatile` (ou `std::atomic`).
+    4. Le partage se fait par **buffer circulaire** : l’ISR écrit, le programme principal lit.
+
+    Le motif standard :
+    ```cpp
+    extern "C" void USART1_IRQHandler() {
+        buffer[tete] = USART1->DR;      // écrit
+        tete = (tete + 1) % TAILLE;     // avance
+        // le traitement se fait ailleurs
+    }
+    ```
+    `extern "C"` évite la décoration de nom C++ : sans lui, le vecteur d’interruption ne trouve pas ta fonction.
+- id: cpp11.4
+  type: qcm
+  level: 3
+  concepts:
+  - no-alloc
+  q: Pourquoi éviter `std::vector` et `new` dans une boucle de contrôle temps réel sur MCU ?
+  choices:
+  - t: Temps d’allocation non borné et fragmentation du tas
+    ok: true
+    why: Aucune garantie de temps maximum, et le tas peut se fragmenter jusqu’à l’échec après des heures.
+  - t: Ils ne compilent pas sans OS
+    ok: false
+    why: Ils compilent, avec une implémentation de `malloc` fournie.
+  - t: Ils consomment trop de Flash
+    ok: false
+    why: Un peu, mais ce n’est pas le problème principal.
+  - t: Ils sont interdits par le standard
+    ok: false
+    why: Aucune interdiction.
+  e: |-
+    Le problème n’est pas le coût **moyen**, c’est le **pire cas** : une allocation peut prendre 10 µs comme 500 µs selon l’état du tas. Une boucle de régulation à 1 kHz ne peut pas vivre avec ça.
+
+    Alternatives :
+    - `std::array<T, N>` — taille figée à la compilation.
+    - Buffer statique + index (ring buffer).
+    - `etl::vector` (Embedded Template Library) : conteneurs STL-like à capacité fixe.
+    - Pool d’objets préalloués.
+
+    Si tu dois allouer : fais-le **une seule fois au démarrage**, jamais dans la boucle. C’est la règle MISRA/AUTOSAR, et elle est justifiée.
+- id: cpp11.5
+  type: qcm
+  level: 3
+  concepts:
+  - bitfields
+  q: 'Pourquoi les champs de bits (`struct { unsigned a : 3; }`) sont-ils déconseillés pour mapper un registre matériel ?'
+  choices:
+  - t: L’ordre d’allocation des bits et le remplissage sont **définis par l’implémentation**
+    ok: true
+    why: Le même struct ne donne pas la même disposition selon compilateur, ABI et endianness.
+  - t: Ils sont plus lents
+    ok: false
+    why: Parfois, mais ce n’est pas la raison de fond.
+  - t: Ils ne compilent pas en C++
+    ok: false
+    why: Ils compilent parfaitement.
+  - t: Ils sont limités à 8 bits
+    ok: false
+    why: 'Faux : un champ peut couvrir la largeur du type sous-jacent. La limite n’est pas là.'
+  e: |-
+    Le standard ne dit pas si `a` occupe les bits de poids faible ou fort, ni comment le remplissage est inséré. Ton code marche sur GCC/ARM et casse sur un autre compilateur, en silence.
+
+    À la place, des masques et décalages explicites :
+    ```cpp
+    constexpr uint32_t MODE_POS  = 4;
+    constexpr uint32_t MODE_MASK = 0b111u << MODE_POS;
+
+    reg = (reg & ~MODE_MASK) | ((valeur << MODE_POS) & MODE_MASK);
+    ```
+
+    C’est plus verbeux, mais **portable et lisible**. Encapsule-le dans une petite fonction `constexpr` et tu retrouves la concision sans le risque.
+- id: cpp11.6
+  type: code
+  level: 3
+  concepts:
+  - no-alloc
+  - isr
+  q: 'Écris un buffer circulaire `Ring` de capacité fixe 4 (`uint8_t`) : `push(v)` renvoie `false` si plein, `pop(v&)` renvoie `false` si vide. Aucune allocation dynamique.'
+  lang: cpp
+  start: |-
+    #include <cstdint>
+    #include <cstddef>
+
+    class Ring {
+        static constexpr std::size_t N = 4;
+        uint8_t buf_[N]{};
+        std::size_t tete_ = 0, queue_ = 0, taille_ = 0;
+    public:
+        // ton code
+    };
+  sol: |-
+    #include <cstdint>
+    #include <cstddef>
+
+    class Ring {
+        static constexpr std::size_t N = 4;
+        uint8_t buf_[N]{};
+        std::size_t tete_ = 0, queue_ = 0, taille_ = 0;
+    public:
+        bool push(uint8_t v) {
+            if (taille_ == N) return false;
+            buf_[tete_] = v;
+            tete_ = (tete_ + 1) % N;
+            ++taille_;
+            return true;
+        }
+        bool pop(uint8_t& out) {
+            if (taille_ == 0) return false;
+            out = buf_[queue_];
+            queue_ = (queue_ + 1) % N;
+            --taille_;
+            return true;
+        }
+        bool vide()  const { return taille_ == 0; }
+        bool plein() const { return taille_ == N; }
+        std::size_t taille() const { return taille_; }
+    };
+  tests: |-
+    #include <cassert>
+    #include <iostream>
+    int main() {
+        Ring r;
+        uint8_t v = 0;
+        assert(!r.pop(v));
+        for (uint8_t i = 1; i <= 4; ++i) assert(r.push(i));
+        assert(!r.push(5) && "doit refuser quand plein");
+        assert(r.pop(v) && v == 1);
+        assert(r.pop(v) && v == 2);
+        assert(r.push(5) && "de la place s'est liberee");
+        assert(r.pop(v) && v == 3);
+        assert(r.pop(v) && v == 4);
+        assert(r.pop(v) && v == 5 && "l'indice doit avoir boucle");
+        assert(!r.pop(v));
+        std::cout << "OK\n";
+    }
+  e: |-
+    Le compteur `taille_` explicite lève l’ambiguïté classique **plein vs vide** : avec seulement deux index, `tete == queue` peut vouloir dire les deux. L’autre solution est de sacrifier un emplacement (`(tete+1) % N == queue` ⇒ plein).
+
+    Points de conception :
+    - `static constexpr std::size_t N` : la taille est dans le type, aucune allocation.
+    - `push`/`pop` renvoient un `bool` plutôt que de lever : pas d’exception en embarqué.
+    - `% N` : si N est une **puissance de 2**, `& (N - 1)` est plus rapide (une instruction au lieu d’une division).
+
+    Pour un usage ISR ↔ boucle principale : un seul producteur, un seul consommateur, index en `std::atomic` → ça devient une file lock-free.
+- id: cpp11.7
+  type: bug
+  level: 3
+  concepts:
+  - volatile
+  - isr
+  q: Ce code partage un compteur entre une ISR et la boucle principale. Clique sur la ligne qui pose problème.
+  lang: cpp
+  code: |-
+    volatile uint32_t compteur = 0;
+
+    extern "C" void TIM2_IRQHandler() { ++compteur; }
+
+    void boucle() {
+        uint64_t total = compteur;   // 32 bits : lecture atomique sur ARM
+        if (compteur - dernier > 1000) { traiter(); }
+    }
+  bad: 7
+  fix: |2-
+        const uint32_t instantane = compteur;   // UNE seule lecture
+        if (instantane - dernier > 1000) { traiter(); }
+  e: |-
+    `compteur` est `volatile`, donc **chaque occurrence produit une lecture matérielle distincte**. Ligne 7, il est lu une fois pour la soustraction ; si l'ISR se déclenche entre deux évaluations dans une expression plus complexe, tu compares deux valeurs différentes.
+
+    Le motif correct : **copier une fois dans une variable locale**, puis raisonner sur la copie. C'est cohérent (une seule vue de l'état) et plus rapide.
+
+    Deux pièges connexes :
+    1. `volatile` ne donne **aucune atomicité**. Sur un 32 bits, une lecture `uint32_t` alignée est atomique par le matériel, mais un `uint64_t` ne l'est pas : l'ISR peut s'intercaler entre les deux moitiés. Il faut alors désactiver les interruptions ou utiliser `std::atomic`.
+    2. `compteur - dernier` en **non signé** est volontairement correct au bouclage : `(uint32_t)(5 - 4294967290)` donne 11. C'est le motif standard de comparaison de temps.
+
+    Pour du multi-cœur ou du vrai partage : `std::atomic<uint32_t>`, qui donne atomicité **et** barrières mémoire.
+- id: cpp11.8
+  type: qcm
+  level: 3
+  concepts:
+  - registres
+  q: Un registre de statut efface ses drapeaux quand on écrit 1 dessus (« write-1-to-clear »). Que fait `*SR |= (1u << 3);` ?
+  choices:
+  - t: Il lit tous les drapeaux et les réécrit — effaçant au passage tous ceux qui étaient à 1
+    ok: true
+    why: 'Le `|=` fait un read-modify-write : les autres drapeaux actifs sont réécrits à 1, donc effacés.'
+  - t: Il n’efface que le bit 3
+    ok: false
+    why: C’est ce qu’on voulait, mais pas ce que fait le code.
+  - t: Il ne fait rien
+    ok: false
+    why: L’écriture a bien lieu.
+  - t: Il met le bit 3 à 1 durablement
+    ok: false
+    why: Sur ce type de registre, écrire 1 efface.
+  e: |-
+    `*SR |= x` se décompose en : lire `*SR`, faire un OU, réécrire **tout le registre**. Sur un registre write-1-to-clear, tous les drapeaux qui valaient 1 sont réécrits à 1 — donc effacés. Tu perds des événements, de façon intermittente.
+
+    L'écriture correcte est une **affectation simple** :
+    ```cpp
+    *SR = (1u << 3);      // efface UNIQUEMENT le drapeau 3
+    ```
+
+    Trois familles de registres, trois usages :
+    | Type | Écriture correcte |
+    | --- | --- |
+    | lecture/écriture normal | `*R = (*R & ~MASQUE) \| valeur;` |
+    | write-1-to-clear | `*R = MASQUE;` |
+    | lecture seule | jamais d'écriture |
+    | write-only | ne pas faire de `\|=` (la lecture est indéfinie) |
+
+    **Lis toujours la datasheet avant d'écrire dans un registre.** Le type d'accès de chaque bit y est spécifié.
+- id: cpp11.9
+  type: cloze
+  level: 3
+  concepts:
+  - no-alloc
+  - isr
+  q: Protège une section critique partagée avec une interruption, façon RAII.
+  lang: cpp
+  tpl: |-
+    class SectionCritique {
+        uint32_t etat_;
+    public:
+        SectionCritique() ⟦0⟧ : etat_(sauver_et_masquer_irq()) {}
+        ~SectionCritique() { restaurer_irq(etat_); }
+
+        SectionCritique(const SectionCritique&) = ⟦1⟧;
+        SectionCritique& operator=(const SectionCritique&) = ⟦1⟧;
+    };
+
+    void maj_partagee() {
+        ⟦2⟧ sc;              // interruptions masquées
+        compteur += 1;
+        horodatage = maintenant();
+    }                        // restaurées
+  blanks:
+  - - noexcept
+  - - delete
+  - - SectionCritique
+  e: |-
+    Le motif fondamental de l'embarqué : garantir qu'une séquence de plusieurs écritures n'est pas coupée par une interruption.
+
+    Points essentiels :
+    - **Sauver puis restaurer** l'état des interruptions, plutôt que de les réactiver aveuglément : si l'appelant les avait déjà masquées, tu ne dois pas les rallumer.
+    - `noexcept` sur le constructeur : rien ne doit lever avant que l'état soit sauvegardé.
+    - **Non copiable** : deux objets restaureraient deux fois.
+    - La section doit être **la plus courte possible** — quelques instructions. Chaque cycle passé interruptions masquées augmente la latence du système.
+
+    Sur ARM Cortex-M : `__get_PRIMASK()` / `__disable_irq()` / `__set_PRIMASK(etat)`.
+
+    Alternative sans masquage quand un seul mot est partagé : `std::atomic<uint32_t>`, plus fin et sans impact sur la latence.
+  verify_prelude: |
+    #include <cstdint>
+    inline std::uint32_t sauver_et_masquer_irq() { return 0; }
+    inline void restaurer_irq(std::uint32_t) {}
+    inline std::uint32_t maintenant() { return 0; }
+    inline std::uint32_t compteur = 0;
+    inline std::uint32_t horodatage = 0;
+- id: cpp11.10
+  type: qcm
+  level: 3
+  concepts:
+  - no-alloc
+  q: Quelles fonctionnalités C++ sont **gratuites** en embarqué (aucun coût par rapport au C) ?
+  choices:
+  - t: Classes, templates, `constexpr`, RAII, références, lambdas sans capture, `std::array`
+    ok: true
+    why: 'Toutes résolues à la compilation : le code généré est identique à du C écrit à la main.'
+  - t: Toutes les fonctionnalités C++
+    ok: false
+    why: Exceptions, RTTI, `virtual`, allocation dynamique ont un coût réel.
+  - t: 'Aucune : le C++ est toujours plus lourd'
+    ok: false
+    why: 'Faux, et mesurable : compile les deux et compare la taille.'
+  - t: Seulement les classes
+    ok: false
+    why: Les templates et `constexpr` sont tout aussi gratuits.
+  e: |-
+    | Gratuit (zéro coût) | Coûteux |
+    | --- | --- |
+    | classes, méthodes | `virtual` (vtable + appel indirect) |
+    | templates, `constexpr` | exceptions (tables en Flash) |
+    | RAII, destructeurs | RTTI, `dynamic_cast` |
+    | références, `std::array`, `span` | `new`/`delete` (temps non borné) |
+    | lambdas (sans `std::function`) | `std::function` (effacement de type) |
+    | `enum class`, `<cstdint>` | flux `iostream` (~30 ko) |
+
+    Le drapeau de compilation typique d'un projet MCU :
+    ```
+    -std=c++17 -fno-exceptions -fno-rtti -fno-threadsafe-statics -Os
+    ```
+
+    Avec ça, le C++ « embarqué » est du C avec des types plus sûrs, RAII et des abstractions gratuites. Il n'y a **aucune raison technique** de rester en C sur un Cortex-M moderne.
+
+    Vérifie toi-même : compare la taille de `.text` avec `arm-none-eabi-size`, ou regarde l'assembleur sur godbolt.org.
+- id: cpp11.11
+  type: code
+  level: 3
+  concepts:
+  - bitfields
+  - registres
+  q: 'Écris deux fonctions `constexpr` : `extraire(reg, pos, largeur)` et `inserer(reg, pos, largeur, v)`, pour manipuler un champ d’un registre 32 bits.'
+  lang: cpp
+  start: |-
+    #include <cstdint>
+
+    constexpr uint32_t extraire(uint32_t reg, uint32_t pos, uint32_t largeur) {
+        // ton code
+    }
+
+    constexpr uint32_t inserer(uint32_t reg, uint32_t pos, uint32_t largeur, uint32_t v) {
+        // ton code
+    }
+  sol: |-
+    #include <cstdint>
+
+    constexpr uint32_t masque_de(uint32_t largeur) {
+        return largeur >= 32 ? 0xFFFFFFFFu : ((1u << largeur) - 1u);
+    }
+
+    constexpr uint32_t extraire(uint32_t reg, uint32_t pos, uint32_t largeur) {
+        return (reg >> pos) & masque_de(largeur);
+    }
+
+    constexpr uint32_t inserer(uint32_t reg, uint32_t pos, uint32_t largeur, uint32_t v) {
+        const uint32_t m = masque_de(largeur) << pos;
+        return (reg & ~m) | ((v << pos) & m);
+    }
+  tests: |-
+    #include <cassert>
+    #include <iostream>
+    int main() {
+        static_assert(extraire(0xABCD1234u, 0, 4) == 0x4u);
+        static_assert(extraire(0xABCD1234u, 4, 4) == 0x3u);
+        static_assert(extraire(0xF0u, 4, 4) == 0xFu);
+        static_assert(inserer(0x00u, 4, 4, 0xFu) == 0xF0u);
+        static_assert(inserer(0xFFu, 4, 4, 0x0u) == 0x0Fu);
+        static_assert(inserer(0xFFu, 0, 4, 0xAu) == 0xFAu);
+        static_assert(inserer(0x00u, 0, 4, 0xFFu) == 0x0Fu, "la valeur doit etre masquee");
+        static_assert(extraire(0xFFFFFFFFu, 0, 32) == 0xFFFFFFFFu, "largeur 32");
+        std::cout << "OK\n";
+    }
+  e: |-
+    Trois points que les tests vérifient :
+    1. **La valeur insérée est masquée** : `(v << pos) & m` empêche un `v` trop grand de déborder sur les champs voisins. Sans ce masque, `inserer(0, 0, 4, 0xFF)` écraserait 8 bits au lieu de 4.
+    2. **Le champ est effacé avant insertion** (`reg & ~m`), sinon on ne fait qu'ajouter des bits.
+    3. **Largeur 32** : `1u << 32` est un **UB**. Le cas est traité explicitement — c'est exactement le genre de détail qui passe les tests « normaux » et casse un jour.
+
+    `constexpr` : sur des constantes, tout est calculé à la compilation, zéro instruction générée. Vérifié par les `static_assert`, qui échouent à la **compilation** si la fonction n'est pas évaluable.
+
+    C'est plus verbeux qu'un champ de bits, mais **portable** — la disposition des bitfields dépend du compilateur et de l'ABI.
+- id: cpp11.12
+  type: qcm
+  level: 3
+  concepts:
+  - volatile
+  - isr
+  q: '`std::atomic<uint32_t>` ou `volatile uint32_t` pour un compteur partagé entre une ISR et la boucle principale sur un monocœur ?'
+  choices:
+  - t: '`std::atomic` : il donne l’atomicité **et** les barrières mémoire ; `volatile` ne donne ni l’un ni l’autre'
+    ok: true
+    why: Sur monocœur, `volatile` suffit souvent en pratique, mais `atomic` est le seul correct par contrat.
+  - t: '`volatile`, c’est fait pour ça'
+    ok: false
+    why: '`volatile` empêche l’optimisation de l’accès, rien de plus. Aucune garantie d’atomicité.'
+  - t: Les deux sont équivalents
+    ok: false
+    why: Ils répondent à deux problèmes différents.
+  - t: Aucun des deux, il faut masquer les interruptions
+    ok: false
+    why: Nécessaire pour un état composé de plusieurs mots, superflu pour un seul mot atomique.
+  e: |-
+    Distinction fondamentale :
+
+    | | `volatile` | `std::atomic` |
+    | --- | --- | --- |
+    | empêche l'élision de l'accès | oui | oui |
+    | atomicité lecture/écriture | **non** | oui |
+    | barrières mémoire (ordre) | **non** | oui |
+    | opérations read-modify-write atomiques | **non** | oui (`fetch_add`) |
+
+    `volatile uint32_t c; ++c;` n'est **pas** atomique : c'est lire, ajouter, écrire. Si l'ISR incrémente aussi, un incrément est perdu.
+
+    `std::atomic<uint32_t> c; c.fetch_add(1, std::memory_order_relaxed);` est atomique et se compile en une seule instruction sur Cortex-M (LDREX/STREX ou équivalent).
+
+    Usage de `volatile` **aujourd'hui** : uniquement pour les **registres matériels mappés en mémoire**, où l'accès lui-même est l'effet recherché. Pour tout partage entre contextes d'exécution, c'est `std::atomic`.
+- id: cpp11.13
+  type: flash
+  level: 2
+  concepts:
+  - no-alloc
+  q: Les règles d’or du C++ embarqué, en dix lignes.
+  back: |-
+    1. `<cstdint>` partout : `uint16_t`, pas `unsigned`.
+    2. Aucune allocation dynamique après l'initialisation.
+    3. `std::array` / `std::span`, jamais de tableau C nu en paramètre.
+    4. `constexpr` pour tout ce qui peut être calculé à la compilation (tables, masques).
+    5. RAII pour toute paire acquérir/libérer (GPIO, chip-select, section critique).
+    6. ISR courtes et bornées : écrire dans un tampon, lever un drapeau, sortir.
+    7. `volatile` pour les registres, `std::atomic` pour le partage entre contextes.
+    8. Pas d'exception, pas de RTTI (`-fno-exceptions -fno-rtti`).
+    9. Séparer la logique (testable sur PC) de l'accès matériel.
+    10. `-Wall -Wextra -Wconversion -Werror`, et tester la logique sous ASan/UBSan **sur PC**.
+  e: |-
+    La règle 9 est celle qui change tout : si ton décodeur de trame, ton PID et ta machine à états sont des fonctions **pures** prenant des données en entrée, tu peux les tester sur PC avec ASan, UBSan et une vraie suite de tests. Il ne reste sur cible que quelques dizaines de lignes d'accès matériel.
+
+    C'est aussi ce qui rend possible la simulation : rejouer un enregistrement de trames réelles à travers ta logique, sans matériel.
+
+    Le corollaire de la règle 2 : dimensionne tes tampons à la compilation, et vérifie la pile (`arm-none-eabi-size`, remplissage de motif). Un débordement de pile en embarqué se manifeste par des symptômes aléatoires très loin de la cause.
+- id: cpp11.14
+  type: predict
+  level: 3
+  concepts:
+  - bitfields
+  q: Sortie sur x86-64 avec GCC ? (et pourquoi ce n’est pas portable)
+  lang: cpp
+  code: |-
+    #include <cstdio>
+    #include <cstdint>
+    struct S {
+        uint8_t a : 3;
+        uint8_t b : 5;
+    };
+    int main() {
+        S s{};
+        s.a = 0b101;
+        s.b = 0b11111;
+        printf("%zu %u %u\n", sizeof(S), s.a, s.b);
+    }
+  answer: 1 5 31
+  e: |-
+    Sur cette plateforme, les deux champs tiennent dans un seul octet : `sizeof(S) == 1`.
+
+    Mais **rien de tout cela n'est garanti par le standard** :
+    - l'ordre d'allocation des bits (poids faible ou fort d'abord) est défini par l'implémentation ;
+    - le remplissage entre champs est libre ;
+    - le type sous-jacent autorisé varie.
+
+    Le même struct sur un autre compilateur, une autre architecture ou en changeant l'endianness peut donner une disposition différente — donc un mauvais décodage d'un registre ou d'un protocole, **sans le moindre avertissement**.
+
+    D'où la règle : **jamais de champs de bits pour mapper un registre matériel ou une trame réseau.** Utilise des masques et décalages explicites (`extraire` / `inserer`), quitte à les envelopper dans des fonctions `constexpr`.
+
+    Les champs de bits restent acceptables pour des drapeaux **internes** à ton programme, où la disposition n'est jamais observée de l'extérieur.
+- id: cpp11.15
+  type: parsons
+  level: 3
+  concepts:
+  - isr
+  - no-alloc
+  q: Reconstitue une file lock-free à un producteur (ISR) et un consommateur (boucle principale).
+  lang: cpp
+  lines:
+  - template <typename T, std::size_t N>
+  - class FileSpsc {
+  - '    static_assert((N & (N - 1)) == 0, "N puissance de 2");'
+  - '    std::array<T, N> buf_{};'
+  - '    std::atomic<std::size_t> tete_{0};   // écrit par le producteur'
+  - '    std::atomic<std::size_t> queue_{0};  // écrit par le consommateur'
+  - 'public:'
+  - '    bool push(const T& v) noexcept {          // appelé depuis l''ISR'
+  - '        const auto t = tete_.load(std::memory_order_relaxed);'
+  - '        const auto suivant = (t + 1) & (N - 1);'
+  - '        if (suivant == queue_.load(std::memory_order_acquire)) return false;'
+  - '        buf_[t] = v;'
+  - '        tete_.store(suivant, std::memory_order_release);'
+  - '        return true;'
+  - '    }'
+  - '};'
+  extra:
+  - '        std::lock_guard<std::mutex> g(m_);'
+  - '        tete_ = suivant;   // sans barriere'
+  e: |-
+    Une file **SPSC** (un producteur, un consommateur) n'a besoin d'aucun verrou : chaque index n'est écrit que par un seul contexte.
+
+    Les ordres mémoire ne sont pas décoratifs :
+    - `release` sur `tete_.store` garantit que l'écriture de `buf_[t]` est **visible avant** la publication de l'index. Sans lui, le consommateur pourrait voir le nouvel index et lire une case pas encore écrite.
+    - `acquire` sur `queue_.load` apparie la lecture avec le `release` du consommateur.
+    - `relaxed` sur `tete_.load` : seul le producteur écrit `tete_`, il n'a rien à synchroniser avec lui-même.
+
+    Les intrus : un mutex dans une ISR est un interblocage garanti (le consommateur ne pourra jamais le relâcher) ; une écriture non atomique sans barrière casse la publication.
+
+    C'est le motif exact d'un tampon UART ou ADC vers la boucle principale.
+  verify_prelude: |
+    #include <atomic>
+    #include <array>
+    #include <cstddef>
+- id: cpp11.16
+  type: qcm
+  level: 2
+  concepts:
+  - no-alloc
+  - registres
+  q: Pourquoi éviter `std::cout` et `printf` dans une boucle de contrôle temps réel ?
+  choices:
+  - t: Temps d’exécution non borné (formatage, tampon, transmission UART) et souvent non réentrant
+    ok: true
+    why: Un `printf` sur UART à 115 200 bauds coûte ~90 µs pour 10 caractères — une éternité à 1 kHz.
+  - t: Ils ne compilent pas sans OS
+    ok: false
+    why: Ils compilent, avec des stubs (`_write`).
+  - t: Ils consomment trop de RAM uniquement
+    ok: false
+    why: '`iostream` est effectivement lourd (~30 ko Flash), mais le problème principal est le temps.'
+  - t: Ils sont interdits par le standard
+    ok: false
+    why: Aucune interdiction.
+  e: |-
+    Ordres de grandeur, à 115 200 bauds : un caractère = 10 bits ≈ 87 µs. Dix caractères = 0,9 ms. Dans une boucle à 1 kHz (1 ms de budget), un seul `printf` fait tout rater.
+
+    Et `printf` n'est pas réentrant : l'appeler depuis une ISR **et** depuis la boucle principale corrompt le tampon.
+
+    Les alternatives :
+    1. **Tampon circulaire + transmission par DMA ou interruption** : la boucle écrit dans le tampon (quelques cycles), l'UART se vide en arrière-plan.
+    2. **Journal binaire** : émettre un identifiant + des valeurs brutes, formater côté PC. 10× plus compact et plus rapide.
+    3. **ITM/SWO** (Cortex-M) : trace matérielle presque gratuite.
+    4. **Une broche GPIO** basculée : le meilleur profileur du monde, avec un oscilloscope — coût : une instruction.
+
+    Cette dernière technique est celle que tu utiliseras le plus : mets la broche à 1 en entrée de fonction, à 0 en sortie, et lis la durée exacte à l'oscilloscope.

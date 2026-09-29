@@ -1,0 +1,807 @@
+id: info
+title: Informatique pour l'ingénieur
+en: Computing essentials for engineers
+desc: Représentation des nombres, complexité des algorithmes, réseaux IP, Git et ligne de commande Linux.
+intro: |
+  Un ingénieur mécatronicien écrit des scripts, configure des appareils en réseau, versionne son code et travaille sur des machines Linux. Ces cinq notions sont le socle commun, en complément des pistes Python et C++ qui les approfondissent.
+notions:
+  # ------------------------------------------------------------------ nombres
+  - id: inf-nombres
+    title: Entiers et flottants en mémoire
+    en: Integers and floating-point numbers
+    goal: Connaître les plages des entiers, le complément à deux, les limites des flottants et comparer des flottants correctement.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Le compteur kilométrique
+          body: |
+            Un vieux compteur kilométrique à 6 chiffres repasse à 000000 après 999999 km. Un ordinateur range les nombres dans un nombre fixe de bits : lui aussi finit par **déborder**. Et comme une calculatrice qui affiche 0,3333333, il ne peut pas écrire exactement tous les nombres à virgule.
+        - level: 2
+          title: Des cases de taille fixe
+          body: |
+            **Entiers** : sur $n$ bits, un entier non signé va de 0 à $2^n - 1$ ; un entier signé de $-2^{n-1}$ à $2^{n-1} - 1$. Au-delà, il **déborde** et repart de l'autre côté (ou le comportement est indéfini en C/C++ pour les signés).
+
+            **Flottants** (norme IEEE 754) : un nombre à virgule est stocké en notation scientifique binaire (signe, exposant, mantisse). Conséquences :
+            - précision limitée : environ **7 chiffres** significatifs en `float` (32 bits), **15-16** en `double` (64 bits, le `float` de Python) ;
+            - beaucoup de nombres décimaux simples (0,1, 0,2) n'ont **pas** d'écriture binaire exacte, comme 1/3 en décimal.
+
+            D'où la règle : **ne jamais comparer deux flottants avec `==`**.
+          check:
+            q: En Python, que vaut `0.1 + 0.2 == 0.3` ?
+            choices:
+              - t: "False"
+                ok: true
+                why: 0.1 + 0.2 vaut 0.30000000000000004 en double précision.
+              - t: "True"
+                why: Mathématiquement oui, mais 0,1 et 0,2 sont arrondis en binaire.
+              - t: Une erreur
+                why: La comparaison est valide, elle donne simplement un résultat surprenant.
+        - level: 3
+          title: Plages et démonstration
+          body: |
+            | Type | Plage |
+            | --- | --- |
+            | `int8_t` / `uint8_t` | −128 à 127 / 0 à 255 |
+            | `int16_t` / `uint16_t` | −32 768 à 32 767 / 0 à 65 535 |
+            | `int32_t` / `uint32_t` | ≈ ±2,1 × 10⁹ / 0 à ≈ 4,3 × 10⁹ |
+            | `float` (32 bits) | ≈ 7 chiffres significatifs |
+            | `double` (64 bits) | ≈ 15-16 chiffres significatifs |
+
+            **Complément à deux** : pour obtenir $-x$, on inverse tous les bits de $x$ et on ajoute 1. Sur 8 bits, `0xFF` vaut 255 non signé, mais −1 signé.
+          code: |
+            import math, struct
+
+            print(0.1 + 0.2)                      # pas exactement 0.3
+            print(0.1 + 0.2 == 0.3)
+            print(math.isclose(0.1 + 0.2, 0.3))   # comparaison avec tolérance
+
+            def f32(v):                           # arrondi à un float 32 bits, comme en C
+                return struct.unpack("f", struct.pack("f", v))[0]
+
+            print(f32(16777216.0 + 1.0))          # 2^24 + 1 n'est pas représentable en float 32
+            print(f32(0.1))                       # 0.1 stocké en float 32
+          run: true
+          out: |
+            0.30000000000000004
+            False
+            True
+            16777216.0
+            0.10000000149011612
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Pourquoi le complément à deux ?** Avec lui, l'addition binaire ordinaire marche pour les nombres positifs et négatifs, sans circuit spécial : $5 + (-3)$ se calcule comme une addition classique en ignorant la retenue finale. Et zéro n'a qu'une seule représentation.
+
+            **Flottant = signe × mantisse × 2^exposant** : la mantisse d'un `float` a 24 bits significatifs, donc au-delà de $2^{24} = 16\,777\,216$, tous les entiers ne sont plus représentables. Un compteur de temps en `float` qui ajoute 1 ms à chaque tour finit par ne plus avancer.
+
+            **Absorption** : ajouter un nombre très petit à un très grand peut ne rien changer. En calcul numérique, on somme de préférence les petits nombres d'abord, ou on utilise `math.fsum`.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Compare les flottants avec une tolérance : `math.isclose(a, b, rel_tol=1e-9)` en Python, `std::abs(a - b) < eps` en C++.
+            - Pour l'argent ou les quantités qui doivent être exactes en décimal : `decimal.Decimal` en Python, ou des entiers (centimes, micromètres).
+            - Sur microcontrôleur, choisis la taille des entiers selon la plage **réelle** (un compteur d'impulsions sur `int16_t` déborde à 32 767) et préfère les types à taille fixe (`int32_t`, `uint16_t`).
+            - Les données brutes d'un appareil (Modbus, trames série) se décodent en connaissant le type exact : signé ou non, 16 ou 32 bits, flottant, ordre des octets.
+      recap:
+        - "n bits : non signé 0 à 2ⁿ − 1 ; signé −2ⁿ⁻¹ à 2ⁿ⁻¹ − 1 ; au-delà, débordement."
+        - "Complément à deux : inverser les bits et ajouter 1 ; 0xFF = −1 sur 8 bits signés."
+        - "float ≈ 7 chiffres, double ≈ 15-16 ; 0,1 n'est pas exact en binaire."
+        - "Jamais == entre flottants : math.isclose ou tolérance."
+        - "Au-delà de 2²⁴, un float 32 bits ne représente plus tous les entiers."
+      pieges: [ing-float-egalite, ing-debordement-entier]
+    vocab:
+      - entier signé / non signé = signed / unsigned integer
+      - complément à deux = two's complement
+      - débordement = overflow
+      - virgule flottante = floating point
+      - mantisse, exposant = mantissa (significand), exponent
+      - simple / double précision = single / double precision
+      - erreur d'arrondi = rounding error
+      - absorption = loss of significance
+    exercises:
+      - id: inf-nombres.1
+        type: numeric
+        level: 1
+        q: Valeur maximale d'un entier signé sur 16 bits (int16_t) ?
+        answer: 32767
+        tol: 0.0001
+        calc: 2**15 - 1
+        trap_values:
+          - v: 65535
+            why: C'est le maximum d'un entier non signé sur 16 bits.
+          - v: 32768
+            why: Un bit sert au signe, et le zéro occupe une valeur, d'où 2¹⁵ − 1.
+        e: $2^{15} - 1 = 32\,767$.
+      - id: inf-nombres.2
+        type: numeric
+        level: 2
+        q: Un compteur int16_t vaut 32 767. On lui ajoute 1 (arithmétique modulaire). Quelle valeur obtient-on ?
+        answer: -32768
+        tol: 0.0001
+        calc: -2**15
+        piege: ing-debordement-entier
+        e: Il repart à −32 768, la plus petite valeur. En C/C++, le débordement d'un signé est même un comportement indéfini.
+      - id: inf-nombres.3
+        type: numeric
+        level: 2
+        q: L'octet 0xFF est interprété comme un entier signé sur 8 bits. Que vaut-il ?
+        answer: -1
+        tol: 0.0001
+        calc: 0xFF - 256
+        trap_values:
+          - v: 255
+            why: C'est sa valeur en non signé. En complément à deux sur 8 bits, 0xFF vaut −1.
+        e: Le bit de poids fort est à 1, donc négatif ; 256 − 255 = 1, soit −1.
+      - id: inf-nombres.4
+        type: qcm
+        level: 1
+        q: Comment tester en Python si deux flottants a et b sont « égaux » ?
+        piege: ing-float-egalite
+        choices:
+          - t: math.isclose(a, b) (ou abs(a − b) < tolérance)
+            ok: true
+          - t: a == b
+            piege: true
+            why: Les erreurs d'arrondi rendent l'égalité exacte aléatoire.
+          - t: str(a) == str(b)
+            why: Ça compare des textes, avec les mêmes problèmes d'arrondi (et d'autres).
+        e: La tolérance se choisit selon le problème (relative ou absolue).
+      - id: inf-nombres.5
+        type: qcm
+        level: 2
+        q: Un temps en secondes est stocké dans un float 32 bits et incrémenté de 0,001 s à chaque tour. Après quelques jours…
+        choices:
+          - t: les incréments sont arrondis, le temps avance mal ou plus du tout
+            ok: true
+          - t: tout va bien, 0,001 est un petit nombre
+            why: C'est justement l'absorption d'un petit incrément par un grand nombre à 7 chiffres significatifs.
+          - t: le programme plante
+            why: Il ne plante pas, il calcule faux, ce qui est plus sournois.
+        e: Au bout de quelques jours (environ 10⁵ s), il ne reste plus assez de chiffres pour les millisecondes. Utilise un double ou un entier de millisecondes.
+      - id: inf-nombres.6
+        type: flash
+        level: 2
+        q: Comment obtient-on −x en complément à deux, et pourquoi ce codage ?
+        back: |
+          On inverse tous les bits de x puis on ajoute 1. Exemple sur 8 bits : 5 = 0000 0101 → 1111 1010 + 1 = 1111 1011 = −5.
+
+          Intérêt : l'addition binaire ordinaire fonctionne pour les positifs et les négatifs, et zéro a une seule représentation.
+        e: Le bit de poids fort indique le signe (1 = négatif).
+  # ------------------------------------------------------------------ complexité
+  - id: inf-complexite
+    title: Complexité des algorithmes
+    en: Algorithmic complexity
+    goal: Estimer comment le temps d'un programme évolue avec la taille des données, et choisir les bonnes structures.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: Chercher dans l'annuaire
+          body: |
+            Pour trouver un nom dans un annuaire, personne ne lit toutes les pages une par une : on ouvre au milieu, on regarde si le nom est avant ou après, et on recommence. En une vingtaine de gestes, on trouve un nom parmi un million.
+
+            La façon de s'y prendre compte bien plus que la vitesse à laquelle on tourne les pages.
+        - level: 2
+          title: Comment le temps grandit
+          body: |
+            La **complexité** décrit comment le temps (ou la mémoire) d'un algorithme augmente quand la taille $n$ des données grandit :
+            - $O(1)$ : constant (lire un élément d'un tableau, chercher une clé dans un dictionnaire) ;
+            - $O(\log n)$ : logarithmique (recherche dichotomique dans une liste triée) ;
+            - $O(n)$ : linéaire (parcourir une liste une fois) ;
+            - $O(n \log n)$ : les bons tris ;
+            - $O(n^2)$ : deux boucles imbriquées sur les mêmes données.
+
+            Sur de petites données, tout va vite. Mais passer de 1000 à 1 000 000 d'éléments multiplie un $O(n)$ par 1000 et un $O(n^2)$ par un **million**.
+          check:
+            q: Un traitement en O(n²) prend 1 s pour 1000 mesures. Combien pour 10 000 mesures ?
+            choices:
+              - t: Environ 100 s
+                ok: true
+                why: n × 10 donne n² × 100.
+              - t: Environ 10 s
+                why: Ce serait vrai pour un O(n).
+              - t: Environ 1 s
+                why: Le temps dépend de n.
+        - level: 3
+          title: Compter les étapes
+          body: |
+            | $n$ | $\log_2 n$ | $n \log_2 n$ | $n^2$ |
+            | --- | --- | --- | --- |
+            | 1 000 | 10 | 10⁴ | 10⁶ |
+            | 1 000 000 | 20 | 2 × 10⁷ | 10¹² |
+
+            Un processeur exécute de l'ordre de 10⁸ à 10⁹ opérations simples par seconde (plutôt 10⁷ en Python pur) : $10^{12}$ opérations, c'est des heures, voire des jours.
+
+            Recherche linéaire contre recherche dichotomique :
+          code: |
+            def recherche_lineaire(liste, cible):
+                etapes = 0
+                for x in liste:
+                    etapes += 1
+                    if x == cible:
+                        break
+                return etapes
+
+            def recherche_dichotomique(liste, cible):      # liste triée
+                bas, haut, etapes = 0, len(liste) - 1, 0
+                while bas <= haut:
+                    etapes += 1
+                    milieu = (bas + haut) // 2
+                    if liste[milieu] == cible:
+                        break
+                    if liste[milieu] < cible:
+                        bas = milieu + 1
+                    else:
+                        haut = milieu - 1
+                return etapes
+
+            for n in (1_000, 1_000_000):
+                donnees = list(range(n))
+                cible = n - 1                      # pire cas pour la recherche linéaire
+                print(f"n = {n:>9} : linéaire {recherche_lineaire(donnees, cible):>9} étapes, "
+                      f"dichotomie {recherche_dichotomique(donnees, cible):>2} étapes")
+          run: true
+          out: |
+            n =      1000 : linéaire      1000 étapes, dichotomie 10 étapes
+            n =   1000000 : linéaire   1000000 étapes, dichotomie 20 étapes
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Les structures de données décident de la complexité** :
+            - `x in liste` parcourt la liste : $O(n)$ ;
+            - `x in ensemble` (`set`) ou `cle in dictionnaire` utilisent une **table de hachage** : $O(1)$ en moyenne.
+
+            Une boucle qui fait `if x in liste` pour chacun des $n$ éléments d'une autre liste est donc en $O(n^2)$ ; avec un `set`, elle devient $O(n)$.
+
+            **Les pièges cachés** : insérer au début d'une liste Python (`insert(0, x)`) décale tout, $O(n)$ ; concaténer des chaînes dans une boucle recrée la chaîne à chaque fois. Utilise `collections.deque` pour une file et `"".join(morceaux)` pour assembler du texte.
+
+            **En Python scientifique**, les opérations vectorisées de NumPy tournent en C, souvent 10 à 100 fois plus vite qu'une boucle Python.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Avant d'optimiser, **mesure** (`time.perf_counter`, `cProfile`) : le goulot n'est presque jamais là où on l'attend.
+            - Traitement de gros fichiers de mesures : évite les doubles boucles, pense dictionnaires, tri préalable, NumPy et pandas.
+            - Sur microcontrôleur, une boucle en $O(n^2)$ dans une interruption ou une boucle temps réel peut faire rater des échéances.
+      recap:
+        - "O(1) < O(log n) < O(n) < O(n log n) < O(n²)."
+        - "n × 10 : O(n) × 10, O(n²) × 100."
+        - "Recherche dichotomique : ≈ 20 étapes pour un million d'éléments triés."
+        - "x in set/dict : O(1) ; x in list : O(n)."
+        - "Mesurer (profiler) avant d'optimiser ; vectoriser avec NumPy."
+      pieges: [ing-complexite-cachee]
+    vocab:
+      - complexité = time complexity
+      - notation grand O = big O notation
+      - recherche dichotomique = binary search
+      - table de hachage = hash table
+      - ensemble = set
+      - dictionnaire = dictionary (hash map)
+      - profilage = profiling
+      - vectorisation = vectorization
+    exercises:
+      - id: inf-complexite.1
+        type: numeric
+        level: 1
+        q: Un algorithme en O(n²) prend 1 s pour n = 1000. Temps estimé pour n = 10 000, en secondes ?
+        answer: 100
+        tol: 0.01
+        unit: s
+        calc: 1 * (10000 / 1000)**2
+        trap_values:
+          - v: 10
+            why: Ce serait vrai pour un algorithme linéaire. En O(n²), n × 10 donne un temps × 100.
+        piege: ing-complexite-cachee
+        e: $(10)^2 = 100$, soit 100 s.
+      - id: inf-complexite.2
+        type: numeric
+        level: 1
+        q: Combien d'étapes (au plus, environ) pour une recherche dichotomique dans une liste triée d'un million d'éléments ?
+        answer: 20
+        tol: 0.05
+        calc: log2(1e6)
+        e: $\log_2(10^6) \approx 20$.
+      - id: inf-complexite.3
+        type: numeric
+        level: 2
+        q: Un traitement linéaire prend 10 ms pour 10⁶ points. Combien pour 10⁸ points, en secondes ?
+        answer: 1
+        tol: 0.01
+        unit: s
+        calc: 0.010 * 100
+        e: 100 fois plus de points, 100 fois plus de temps, soit 1 s.
+      - id: inf-complexite.4
+        type: qcm
+        level: 2
+        q: "Pour chaque identifiant d'une liste de 100 000, on teste `if ident in deja_vus` où `deja_vus` est une liste qui grandit. Comment accélérer ?"
+        piege: ing-complexite-cachee
+        choices:
+          - t: Remplacer la liste deja_vus par un set
+            ok: true
+          - t: Trier la liste à chaque tour
+            why: Trier coûte n log n à chaque tour, c'est pire.
+          - t: Utiliser un ordinateur plus rapide
+            why: Un facteur 2 de vitesse ne compense pas un O(n²) qui passe en O(n).
+        e: Le test d'appartenance à un set est en O(1) en moyenne ; l'ensemble devient O(n).
+      - id: inf-complexite.5
+        type: qcm
+        level: 1
+        q: Quelle est la complexité de deux boucles imbriquées qui parcourent chacune les n mêmes éléments ?
+        choices:
+          - t: O(n²)
+            ok: true
+          - t: O(2n)
+            why: Ce serait deux boucles l'une après l'autre (soit O(n)).
+          - t: O(n log n)
+            why: C'est la complexité des bons algorithmes de tri.
+        e: Pour chaque élément de la première boucle, on parcourt les n éléments de la seconde.
+      - id: inf-complexite.6
+        type: flash
+        level: 1
+        q: Classe O(1), O(n), O(n²), O(log n), O(n log n) du plus rapide au plus lent, avec un exemple chacun.
+        back: |
+          O(1) : lire tableau[i], clé dans un dict.
+          O(log n) : recherche dichotomique.
+          O(n) : parcourir une liste, chercher dans une liste non triée.
+          O(n log n) : bon tri (sorted).
+          O(n²) : doubles boucles, comparer tous les couples.
+        e: Au-delà (O(2ⁿ), O(n!)), seuls les tout petits n sont traitables.
+  # ------------------------------------------------------------------ réseau
+  - id: inf-reseau
+    title: Réseaux IP pour les appareils
+    en: IP networking for instruments
+    goal: Configurer une adresse IP et un masque, comprendre TCP, UDP et les ports, et diagnostiquer une liaison.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Adresses et portes
+          body: |
+            Pour envoyer une lettre, il faut l'adresse de l'immeuble et le numéro de l'appartement. Sur un réseau, l'**adresse IP** désigne la machine, et le **port** désigne le programme qui doit recevoir le message (le serveur web, le serveur Modbus…).
+        - level: 2
+          title: Adresse, masque, port
+          body: |
+            - **Adresse IPv4** : 4 nombres de 0 à 255, par exemple `192.168.1.10`.
+            - **Masque de sous-réseau** : indique quelle partie de l'adresse désigne le réseau. Avec `255.255.255.0` (noté `/24`), les machines `192.168.1.x` sont sur le même réseau local et se parlent directement. Pour joindre un autre réseau, il faut passer par une **passerelle** (routeur).
+            - **Port** : de 0 à 65 535 ; 80 (HTTP), 443 (HTTPS), 22 (SSH), 502 (Modbus TCP).
+            - **TCP** : connexion fiable, données livrées dans l'ordre, retransmises si perdues. **UDP** : envoi simple et rapide, sans garantie.
+            - **DNS** : traduit un nom (`www.esrf.fr`) en adresse IP.
+
+            Plages **privées** (réseaux locaux) : `10.x.x.x`, `172.16.x.x` à `172.31.x.x`, `192.168.x.x`.
+          check:
+            q: Un PC en 192.168.1.20/24 doit parler à un appareil neuf réglé en 192.168.0.100/24, branchés sur le même switch. Ça marche ?
+            choices:
+              - t: Non, ils ne sont pas dans le même sous-réseau ; il faut changer l'adresse de l'un des deux (ou ajouter un routage)
+                ok: true
+              - t: Oui, ils sont sur le même switch
+                why: Le switch transmet, mais chaque machine croit que l'autre est sur un autre réseau et cherche une passerelle.
+              - t: Oui, 192.168 est un réseau privé
+                why: Les deux sont privés, mais dans deux sous-réseaux /24 différents (1 et 0).
+        - level: 3
+          title: Les chiffres
+          body: |
+            - Un réseau `/24` contient 256 adresses, dont 254 utilisables (la première désigne le réseau, la dernière est l'adresse de diffusion).
+            - **Débits** : les réseaux s'expriment en **bits** par seconde, les fichiers en **octets**. 100 Mbit/s = 12,5 Mo/s au mieux. Transférer 1 Go à 100 Mbit/s prend au moins 80 s.
+            - **Latence** (temps d'aller-retour, mesuré par `ping`) : de 0,1 à 1 ms sur un réseau local, des dizaines de ms sur Internet. Un protocole qui fait une question-réponse par mesure est limité par la latence, pas par le débit.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Les couches** : Ethernet transporte des trames entre machines d'un même réseau (adresses MAC) ; IP achemine des paquets entre réseaux (adresses IP) ; TCP ou UDP livrent les données au bon programme (ports) ; l'application (HTTP, Modbus TCP, SSH) donne le sens des données.
+
+            **Pourquoi UDP ?** Pour les flux où une donnée en retard ne sert plus à rien (vidéo, voix, certaines données de mesure en temps réel), ou pour la diffusion à plusieurs destinataires. TCP retransmettrait, ce qui ajoute du retard.
+
+            **Pare-feu** : il filtre les connexions par adresse et par port. Un `ping` qui répond ne garantit pas que le port de l'application est ouvert.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Diagnostic dans l'ordre : câble et voyant de liaison → adresse et masque (`ip addr` sous Linux, `ipconfig` sous Windows) → `ping` → le port (`nc -zv 192.168.1.50 502`) → l'application.
+            - Les appareils neufs ont souvent une adresse par défaut (192.168.0.x, 192.168.1.x, 10.0.0.x) : lis la notice, ou connecte-toi en direct avec un PC réglé dans le même sous-réseau.
+            - Sur une installation, les réseaux de contrôle-commande sont séparés du réseau bureautique : demande une adresse aux administrateurs plutôt que d'en inventer une.
+      recap:
+        - "IP = la machine ; port = le programme ; masque = ce qui est local."
+        - "Même sous-réseau pour se parler directement, sinon passerelle."
+        - "TCP fiable et ordonné ; UDP rapide sans garantie."
+        - "Débits en bits : 100 Mbit/s = 12,5 Mo/s."
+        - "Diagnostic : liaison → adresse → ping → port → application."
+      pieges: [ing-sous-reseau, ing-bits-octets]
+    vocab:
+      - adresse IP = IP address
+      - masque de sous-réseau = subnet mask
+      - passerelle = gateway
+      - port = port
+      - pare-feu = firewall
+      - latence = latency
+      - débit = throughput (bandwidth)
+      - commutateur = switch
+    exercises:
+      - id: inf-reseau.1
+        type: numeric
+        level: 1
+        q: Combien d'adresses de machines utilisables dans un sous-réseau /24 ?
+        answer: 254
+        tol: 0.001
+        calc: 2**8 - 2
+        trap_values:
+          - v: 256
+            why: La première adresse désigne le réseau, la dernière sert à la diffusion.
+        e: 2⁸ − 2 = 254.
+      - id: inf-reseau.2
+        type: numeric
+        level: 1
+        q: Un lien réseau à 100 Mbit/s transfère au maximum combien de mégaoctets par seconde ?
+        answer: 12.5
+        tol: 0.01
+        unit: Mo/s
+        calc: 100 / 8
+        trap_values:
+          - v: 100
+            why: Les débits réseau sont en bits ; 1 octet = 8 bits.
+        piege: ing-bits-octets
+        e: 100/8 = 12,5 Mo/s, un peu moins en pratique (en-têtes des protocoles).
+      - id: inf-reseau.3
+        type: numeric
+        level: 2
+        q: Temps minimal pour transférer 1 Go (10⁹ octets) sur un lien de 100 Mbit/s, en secondes ?
+        answer: 80
+        tol: 0.01
+        unit: s
+        calc: 1e9 * 8 / 100e6
+        trap_values:
+          - v: 10
+            why: Tu as oublié le facteur 8 entre octets et bits.
+        piege: ing-bits-octets
+        e: $8 \times 10^9 / 10^8 = 80$ s, sans compter les en-têtes et les pertes.
+      - id: inf-reseau.4
+        type: qcm
+        level: 2
+        q: Un appareil répond au ping, mais le logiciel Modbus TCP n'arrive pas à s'y connecter. Piste la plus probable ?
+        choices:
+          - t: Le port 502 est fermé ou filtré (pare-feu), ou le service Modbus n'est pas actif sur l'appareil
+            ok: true
+          - t: L'adresse IP est fausse
+            why: Le ping répond, l'adresse est donc bonne.
+          - t: Le câble est défectueux
+            why: Le ping passe par le même câble.
+        e: Vérifie le port avec `nc -zv adresse 502`, puis la configuration de l'appareil et du pare-feu.
+      - id: inf-reseau.5
+        type: qcm
+        level: 2
+        q: Tu envoies des consignes de mouvement à un contrôleur ; chaque commande doit arriver, dans l'ordre. TCP ou UDP ?
+        choices:
+          - t: TCP
+            ok: true
+          - t: UDP
+            why: UDP ne garantit ni l'arrivée ni l'ordre.
+          - t: Indifférent
+            why: Ici la fiabilité est essentielle.
+        e: UDP convient aux flux où une donnée perdue ou en retard peut être ignorée.
+      - id: inf-reseau.6
+        type: qcm
+        level: 1
+        q: Deux machines 192.168.1.20/24 et 192.168.0.100/24 sont sur le même switch. Peuvent-elles se parler directement ?
+        piege: ing-sous-reseau
+        choices:
+          - t: Non, elles sont dans deux sous-réseaux différents
+            ok: true
+          - t: Oui, elles sont sur le même switch
+            piege: true
+            why: Chacune considère l'autre comme distante et cherche une passerelle.
+          - t: Oui, si le câble est croisé
+            why: Le câble n'y est pour rien ; c'est l'adressage.
+        e: Mets-les dans le même sous-réseau (par exemple 192.168.1.20 et 192.168.1.100).
+      - id: inf-reseau.7
+        type: flash
+        level: 1
+        q: Que désignent l'adresse IP, le masque, la passerelle et le port ?
+        back: |
+          **Adresse IP** : l'identifiant de la machine sur le réseau.
+          **Masque** : quelle partie de l'adresse désigne le réseau local (qui est joignable directement).
+          **Passerelle** : le routeur à qui confier les paquets destinés aux autres réseaux.
+          **Port** : le programme (service) destinataire sur la machine.
+        e: Et le DNS traduit les noms en adresses IP.
+  # ------------------------------------------------------------------ git
+  - id: inf-git
+    title: Versionner avec Git
+    en: Version control with Git
+    goal: Utiliser le cycle de base de Git (modifier, indexer, valider, pousser), les branches, et éviter les erreurs classiques.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: Les versions d'un rapport
+          body: |
+            `rapport_v2_final_VRAIMENT_final_corrigé.docx` : tout le monde a connu ça. **Git** remplace ces copies par un historique propre : chaque version enregistrée, avec qui l'a faite, quand et pourquoi, et la possibilité de revenir en arrière ou de travailler à plusieurs sans s'écraser.
+        - level: 2
+          title: Les notions de base
+          body: |
+            - Un **dépôt** (*repository*) contient les fichiers et tout leur historique.
+            - Un **commit** est une photo de l'état des fichiers, avec un message qui explique le changement.
+            - L'**index** (*staging area*) sert à choisir ce qui entrera dans le prochain commit (`git add`).
+            - Une **branche** est une ligne de développement parallèle : on y travaille sans perturber la branche principale (`main`), puis on **fusionne** (*merge*).
+            - Un **dépôt distant** (GitHub, GitLab) sert à partager : `git push` envoie, `git pull` récupère.
+          check:
+            q: Tu as modifié capteur.py. Quelle suite de commandes enregistre et partage la modification ?
+            choices:
+              - t: git add capteur.py, git commit -m "…", git push
+                ok: true
+              - t: git push, puis git commit
+                why: On ne peut pousser que des commits déjà faits.
+              - t: git commit seul suffit à partager
+                why: Le commit reste local tant qu'on ne pousse pas.
+        - level: 3
+          title: Le cycle quotidien
+          body: |
+            ```text
+            git clone https://github.com/moi/projet.git
+            cd projet
+            git switch -c correction-capteur      # nouvelle branche
+            # … modifications …
+            git status                            # qu'est-ce qui a changé ?
+            git diff                              # voir les modifications
+            git add capteur.py
+            git commit -m "Corrige la mise à l'échelle 4-20 mA du capteur de pression"
+            git push -u origin correction-capteur
+            ```
+
+            Puis on ouvre une **pull request** (demande de fusion) sur GitHub : quelqu'un relit, les tests tournent, on fusionne dans `main`.
+
+            **Bon message de commit** : une première ligne courte à l'impératif qui dit **quoi et pourquoi** (« Corrige… », « Ajoute… »), pas « modif » ou « test ».
+
+            **`.gitignore`** : la liste de ce qu'on ne versionne pas : fichiers générés (`build/`, `__pycache__/`), environnements (`.venv/`), gros fichiers de données, et **jamais** de mots de passe ou de clés.
+        - level: 4
+          title: Sous le capot
+          body: |
+            Chaque commit contient un instantané complet des fichiers (stocké efficacement), un lien vers son ou ses parents et un identifiant (hash SHA) calculé à partir de tout ce contenu. Modifier un ancien commit change son identifiant et celui de tous ses descendants : l'historique est **infalsifiable**… et **indélébile**. Un mot de passe commité puis supprimé reste lisible dans l'historique.
+
+            **Conflit de fusion** : si deux branches ont modifié les mêmes lignes, Git ne peut pas choisir. Il marque le fichier (`<<<<<<<`, `=======`, `>>>>>>>`), tu choisis la bonne version, puis tu valides.
+
+            `git pull` = `git fetch` (télécharger) + `git merge` (fusionner). `git log --oneline --graph` montre l'historique ; `git bisect` trouve, par dichotomie, le commit qui a introduit un bug.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - Commits petits et fréquents, un sujet par commit.
+            - `main` doit toujours fonctionner ; on travaille sur des branches.
+            - Versionne aussi les **fichiers de configuration** des automates, des contrôleurs et des scripts d'installation : c'est souvent là que tout se perd.
+            - Un secret commité par erreur : considère-le comme compromis et **change-le**, même après l'avoir supprimé de l'historique.
+      recap:
+        - "Cycle : modifier → git add → git commit -m → git push."
+        - "Branches pour travailler, pull request pour relire et fusionner."
+        - "Messages de commit : quoi et pourquoi, à l'impératif."
+        - ".gitignore : fichiers générés, environnements, données lourdes, jamais de secrets."
+        - "L'historique est indélébile : un secret commité est compromis."
+      pieges: [ing-secret-git]
+    vocab:
+      - dépôt = repository
+      - commit = commit
+      - index = staging area (index)
+      - branche = branch
+      - fusion = merge
+      - conflit = merge conflict
+      - demande de fusion = pull request (merge request)
+      - dépôt distant = remote
+    exercises:
+      - id: inf-git.1
+        type: qcm
+        level: 1
+        q: Que fait `git add fichier.py` ?
+        choices:
+          - t: Il place la version actuelle du fichier dans l'index, pour le prochain commit
+            ok: true
+          - t: Il envoie le fichier sur GitHub
+            why: C'est le rôle de git push (après un commit).
+          - t: Il crée un commit
+            why: Le commit se fait avec git commit.
+        e: L'index permet de choisir précisément ce qui entre dans chaque commit.
+      - id: inf-git.2
+        type: qcm
+        level: 2
+        q: Tu as commité un fichier contenant un mot de passe, puis tu l'as supprimé dans le commit suivant. Est-ce réglé ?
+        piege: ing-secret-git
+        choices:
+          - t: Non ; il reste dans l'historique. Il faut changer le mot de passe (et nettoyer l'historique si besoin)
+            ok: true
+          - t: Oui, le fichier n'existe plus
+            piege: true
+            why: L'ancien commit le contient toujours, et n'importe qui ayant accès au dépôt peut le lire.
+          - t: Oui, si le dépôt est privé
+            why: Un dépôt privé peut devenir public, être cloné, ou être accessible à plus de monde que prévu.
+        e: Un secret qui a été poussé est compromis ; on le remplace. Ensuite, secrets dans des variables d'environnement ou un fichier ignoré.
+      - id: inf-git.3
+        type: qcm
+        level: 1
+        q: Que mettre dans le .gitignore d'un projet Python ?
+        choices:
+          - t: .venv/, __pycache__/, les fichiers générés et les fichiers de secrets
+            ok: true
+          - t: Les fichiers .py
+            why: Ce sont les sources, on veut justement les versionner.
+          - t: Le README
+            why: Le README doit être versionné.
+        e: On versionne ce qu'on écrit, pas ce qui se regénère.
+      - id: inf-git.4
+        type: qcm
+        level: 2
+        q: Quel message de commit est le meilleur ?
+        choices:
+          - t: "Corrige la conversion des mm en µm dans l'export CSV"
+            ok: true
+          - t: "modif"
+            why: Il ne dit ni quoi ni pourquoi.
+          - t: "J'ai changé plein de trucs dans export.py et ailleurs"
+            why: Trop vague, et le signe qu'il fallait plusieurs commits.
+        e: Dans six mois, l'historique est ta documentation.
+      - id: inf-git.5
+        type: qcm
+        level: 2
+        q: Que fait `git pull` ?
+        choices:
+          - t: Il récupère les nouveaux commits du dépôt distant et les fusionne dans ta branche
+            ok: true
+          - t: Il envoie tes commits
+            why: C'est git push.
+          - t: Il annule tes modifications locales
+            why: Il ne les annule pas ; en cas de conflit, il te demande de les résoudre.
+        e: git pull = git fetch + git merge (ou rebase selon la configuration).
+      - id: inf-git.6
+        type: flash
+        level: 1
+        q: Donne les commandes Git du quotidien et leur rôle.
+        back: |
+          git clone (copier un dépôt) ; git status (état) ; git diff (voir les changements) ; git add (indexer) ; git commit -m (enregistrer) ; git push (envoyer) ; git pull (récupérer) ; git switch -c (nouvelle branche) ; git log --oneline (historique).
+        e: Et git stash pour mettre de côté des modifications en cours.
+  # ------------------------------------------------------------------ Linux
+  - id: inf-linux
+    title: La ligne de commande Linux
+    en: The Linux command line
+    goal: Naviguer, chercher, lire des fichiers, enchaîner des commandes et comprendre les permissions.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Parler directement à la machine
+          body: |
+            Les serveurs, les PC de contrôle d'une ligne de lumière, les Raspberry Pi : ils tournent presque tous sous Linux, souvent sans écran. On les pilote en tapant des commandes dans un **terminal**. Quelques dizaines de commandes suffisent pour 90 % des besoins.
+        - level: 2
+          title: Les commandes de base
+          body: |
+            - Se repérer : `pwd` (où suis-je), `ls -l` (lister), `cd dossier` (aller dans).
+            - Lire : `cat fichier`, `less fichier` (page par page), `head`, `tail -f journal.log` (suivre un journal en direct).
+            - Chercher : `grep "erreur" fichier`, `grep -r "motif" dossier/`, `find . -name "*.py"`.
+            - Manipuler : `cp`, `mv`, `mkdir`, `rm` (sans corbeille !).
+            - Processus : `ps aux`, `top` ou `htop`, `kill PID`.
+            - À distance : `ssh utilisateur@machine`, `scp fichier utilisateur@machine:dossier/`.
+
+            **Chemins** : absolu depuis la racine (`/home/ada/mesures`) ou relatif au dossier courant (`mesures/`, `../config`). `~` désigne ton dossier personnel.
+          check:
+            q: Tu es dans /home/ada/projet. Où mène `cd ../mesures` ?
+            choices:
+              - t: /home/ada/mesures
+                ok: true
+              - t: /home/ada/projet/mesures
+                why: « .. » remonte d'abord d'un niveau.
+              - t: /mesures
+                why: Ce serait un chemin absolu depuis la racine.
+        - level: 3
+          title: Enchaîner et rediriger
+          body: |
+            La force du terminal : combiner de petits outils.
+            - `|` (tube) envoie la sortie d'une commande dans la suivante ;
+            - `>` écrit la sortie dans un fichier (en l'**écrasant**), `>>` l'ajoute à la fin.
+
+            ```text
+            grep "ERREUR" journal.log | wc -l          # combien de lignes d'erreur ?
+            ps aux | grep python                       # quels programmes Python tournent ?
+            tail -n 100 journal.log > extrait.txt      # garder les 100 dernières lignes
+            ls -l /dev/tty*                            # quels ports série existent ?
+            ```
+
+            **Permissions** : chaque fichier a des droits de lecture (r), écriture (w) et exécution (x) pour le propriétaire, le groupe et les autres. `-rwxr-xr-x` s'écrit **755** (r = 4, w = 2, x = 1 : 4+2+1, 4+1, 4+1) ; `-rw-r--r--` s'écrit **644**.
+
+            `chmod +x script.sh` rend un script exécutable ; `sudo` exécute une commande avec les droits d'administrateur.
+        - level: 4
+          title: Sous le capot
+          body: |
+            **Tout est fichier** : les disques, les ports série (`/dev/ttyUSB0`), les informations du système (`/proc/cpuinfo`) apparaissent comme des fichiers. On lit un port série comme un fichier, avec les bons droits (groupe `dialout` souvent).
+
+            **Variables d'environnement** : `PATH` liste les dossiers où le shell cherche les commandes. Un « command not found » vient souvent d'un programme installé hors du `PATH` ou d'un environnement virtuel non activé.
+
+            **Codes de retour** : chaque commande renvoie 0 si tout va bien, autre chose sinon (`echo $?`). Les scripts s'en servent pour enchaîner (`commande1 && commande2` : la seconde seulement si la première a réussi).
+        - level: 5
+          title: Sur le terrain
+          body: |
+            - `rm -rf` ne pardonne pas : vérifie le chemin (surtout avec des variables) avant d'appuyer sur Entrée.
+            - Ne mets jamais `chmod 777` pour « régler un problème de droits » : donne le droit nécessaire à qui en a besoin.
+            - `man commande` ou `commande --help` pour l'aide ; `history` pour retrouver une commande ; Ctrl+R pour la chercher.
+            - Pour les tâches longues à distance, `tmux` ou `screen` gardent la session active si la connexion SSH coupe.
+      recap:
+        - "pwd, ls, cd ; cat, less, tail -f ; grep, find ; ps, top, kill ; ssh, scp."
+        - "Chemin absolu (/…) ou relatif (.., ~)."
+        - "| enchaîne ; > écrase ; >> ajoute."
+        - "Permissions rwx : 755 = rwxr-xr-x, 644 = rw-r--r-- ; jamais 777 par facilité."
+        - "rm sans corbeille : vérifier le chemin avant."
+      pieges: [ing-chmod-777, ing-redirection-ecrase]
+    vocab:
+      - terminal, interpréteur = terminal, shell
+      - répertoire = directory
+      - chemin absolu / relatif = absolute / relative path
+      - tube = pipe
+      - redirection = redirection
+      - droits d'accès = file permissions
+      - processus = process
+      - variable d'environnement = environment variable
+    exercises:
+      - id: inf-linux.1
+        type: numeric
+        level: 1
+        q: Quel nombre octal correspond aux droits rw-r--r-- ?
+        answer: 644
+        tol: 0.0001
+        calc: "644"
+        trap_values:
+          - v: 755
+            why: 755 correspond à rwxr-xr-x (avec l'exécution).
+        e: rw- = 4 + 2 = 6 ; r-- = 4 ; r-- = 4, soit 644.
+      - id: inf-linux.2
+        type: qcm
+        level: 1
+        q: Que fait `grep -r "timeout" config/` ?
+        choices:
+          - t: Il cherche le mot timeout dans tous les fichiers du dossier config et de ses sous-dossiers
+            ok: true
+          - t: Il supprime les lignes contenant timeout
+            why: grep ne modifie rien, il affiche.
+          - t: Il renomme le dossier
+            why: Aucun rapport.
+        e: -r pour récursif, -i pour ignorer la casse, -n pour afficher les numéros de ligne.
+      - id: inf-linux.3
+        type: qcm
+        level: 2
+        q: "Quelle est la différence entre `commande > log.txt` et `commande >> log.txt` ?"
+        piege: ing-redirection-ecrase
+        choices:
+          - t: ">" écrase le fichier, ">>" ajoute à la fin
+            ok: true
+          - t: Aucune
+            piege: true
+            why: Avec ">", l'ancien contenu est perdu.
+          - t: ">>" écrit deux fois
+            why: Il ajoute une fois, à la fin du fichier existant.
+        e: Pour un journal qu'on complète, toujours ">>".
+      - id: inf-linux.4
+        type: qcm
+        level: 2
+        q: Un script refuse d'accéder à /dev/ttyUSB0 (Permission denied). Quelle est la bonne solution ?
+        piege: ing-chmod-777
+        choices:
+          - t: Ajouter l'utilisateur au groupe propriétaire du port (souvent dialout), puis se reconnecter
+            ok: true
+          - t: chmod 777 /dev/ttyUSB0
+            piege: true
+            why: Tout le monde aurait tous les droits, et le réglage disparaît au prochain branchement.
+          - t: Lancer tout le script avec sudo
+            why: Ça marche, mais donne les droits administrateur à tout le programme sans nécessité.
+        e: Donne le droit nécessaire, à qui en a besoin, de façon durable.
+      - id: inf-linux.5
+        type: qcm
+        level: 1
+        q: "Que fait `ps aux | grep python` ?"
+        choices:
+          - t: Il liste les processus et ne garde que les lignes contenant python
+            ok: true
+          - t: Il lance Python
+            why: Il ne lance rien, il filtre une liste.
+          - t: Il arrête les processus Python
+            why: Pour arrêter, c'est kill (ou pkill).
+        e: Le tube « | » envoie la sortie de ps dans l'entrée de grep.
+      - id: inf-linux.6
+        type: flash
+        level: 1
+        q: Cite une commande pour chacun de ces besoins - se repérer, lire un fichier, suivre un journal, chercher un texte, voir les processus, se connecter à distance.
+        back: |
+          Se repérer : pwd, ls -l, cd
+          Lire : cat, less
+          Suivre un journal : tail -f fichier.log
+          Chercher : grep (-r), find
+          Processus : ps aux, top/htop, kill
+          À distance : ssh, scp
+        e: man commande pour le manuel de chacune.

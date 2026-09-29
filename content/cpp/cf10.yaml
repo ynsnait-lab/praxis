@@ -1,0 +1,267 @@
+id: cf10
+track: cpp
+title: En-têtes et compilation séparée
+goal: Découper un programme en fichiers .hpp et .cpp, compiler un projet de plusieurs fichiers, et comprendre les erreurs de l'éditeur de liens.
+level: fondations
+requires: [cf09]
+concepts: [header, include, pragma-once, linker, namespace, cmake]
+lesson:
+  minutes: 17
+  intro: |
+    Un vrai programme ne tient pas dans un fichier : un pilote de capteur ici, un filtre là, le programme principal ailleurs. C++ découpe le code en **en-têtes** (`.hpp`, ce qu'on promet) et **sources** (`.cpp`, comment on le fait). C'est la structure de tout projet PlatformIO, ESP-IDF ou CMake. Ce cours explique la mécanique, et les trois erreurs qu'elle produit quand on s'y prend mal.
+  steps:
+    - level: 1
+      title: La table des matières et les chapitres
+      body: |
+        Pense à un livre technique écrit à plusieurs :
+
+        - l'**en-tête** `capteur.hpp` est la **table des matières** d'un chapitre : la liste de ce qu'il contient (déclarations de fonctions, définitions de `struct` et de `class`) ;
+        - la **source** `capteur.cpp` est le **chapitre** lui-même : le code des fonctions ;
+        - un autre fichier qui veut utiliser le capteur **inclut la table des matières** (`#include "capteur.hpp"`) : il sait ce qui existe et comment l'appeler, sans avoir besoin de lire le chapitre.
+
+        C'est ce qui permet de ne recompiler que le fichier modifié, et de livrer une bibliothèque sans son code source.
+    - level: 2
+      title: Trois fichiers, une commande
+      body: |
+        ```cpp
+        // conversions.hpp — ce qu'on promet
+        #pragma once
+        double bar_vers_pa(double p_bar);
+        double c_vers_k(double t_c);
+        ```
+
+        ```cpp
+        // conversions.cpp — comment on le fait
+        #include "conversions.hpp"
+        double bar_vers_pa(double p_bar) { return p_bar * 1e5; }
+        double c_vers_k(double t_c) { return t_c + 273.15; }
+        ```
+
+        ```cpp
+        // main.cpp — qui s'en sert
+        #include <iostream>
+        #include "conversions.hpp"
+        int main() {
+            std::cout << bar_vers_pa(1.013) << " Pa\n";
+        }
+        ```
+
+        On compile **toutes les sources** ensemble (les en-têtes ne se compilent pas seuls, ils sont inclus) :
+
+        ```shell
+        clang++ -std=c++20 -Wall -Wextra main.cpp conversions.cpp -o app
+        ```
+
+        - `#include <...>` (chevrons) pour la bibliothèque standard et les bibliothèques installées ;
+        - `#include "..."` (guillemets) pour **tes** fichiers, cherchés d'abord dans le dossier courant.
+        - `#pragma once` en tête d'un en-tête empêche qu'il soit inclus deux fois dans la même compilation.
+    - level: 3
+      title: CMake, pour ne plus taper la commande
+      body: |
+        Dès trois fichiers, taper la commande de compilation devient pénible. **CMake** est l'outil standard qui décrit le projet une fois pour toutes, dans un fichier `CMakeLists.txt` :
+
+        ```cmake
+        cmake_minimum_required(VERSION 3.20)
+        project(banc_thermique CXX)
+        set(CMAKE_CXX_STANDARD 20)
+        add_compile_options(-Wall -Wextra)
+
+        add_library(conversions conversions.cpp)       # une petite bibliothèque
+        add_executable(app main.cpp)                   # le programme
+        target_link_libraries(app PRIVATE conversions) # app utilise la bibliothèque
+        ```
+
+        Puis, depuis le dossier du projet :
+
+        ```shell
+        cmake -S . -B build        # configure (une fois)
+        cmake --build build        # compile ce qui a changé
+        ./build/app
+        ```
+
+        Le dossier `build/` contient tous les fichiers générés : on ne le versionne jamais avec git. VS Code (extension *CMake Tools*) lit ce fichier et compile d'un clic. Le lab `cpp-07` te fait monter un projet CMake complet avec ses tests.
+    - level: 4
+      title: Les trois erreurs de la compilation séparée
+      body: |
+        **1. « undefined reference » / « Undefined symbols » (éditeur de liens).** La fonction est **déclarée** (le `.hpp` a été inclus, donc le compilateur est content), mais son **code** n'a été trouvé nulle part au moment d'assembler l'exécutable. Causes : tu as oublié `conversions.cpp` dans la commande (ou dans `CMakeLists.txt`), ou la signature de la définition diffère de la déclaration (`double c_vers_k(float)` au lieu de `double`).
+
+        **2. « multiple definition » (éditeur de liens).** Tu as écrit le **corps** d'une fonction dans le `.hpp`. Chaque `.cpp` qui l'inclut en reçoit une copie, et l'éditeur de liens trouve plusieurs définitions du même nom. C'est la règle de la **définition unique** (*One Definition Rule*). Correction : le corps dans le `.cpp`, ou la fonction marquée `inline` si elle doit rester dans l'en-tête.
+
+        **3. « redefinition of 'struct Mesure' » (compilation).** Un en-tête sans `#pragma once` (ou sans garde `#ifndef`) inclus deux fois, directement ou via un autre en-tête.
+
+        Un bon moyen de les distinguer : les erreurs de **compilation** citent un fichier et une ligne (`main.cpp:12:5: error:`) ; celles de l'**éditeur de liens** citent un nom de fonction sans numéro de ligne, souvent avec `ld:` ou `collect2:`.
+    - level: 5
+      title: Espaces de noms et organisation d'un projet
+      body: |
+        Deux bibliothèques peuvent définir une fonction `init()` : collision. Les **espaces de noms** (`namespace`) rangent les noms dans des tiroirs :
+
+        ```cpp
+        namespace capteurs {
+            double lire_temperature();
+        }
+        // appel : capteurs::lire_temperature();
+        ```
+
+        `std::` est l'espace de noms de la bibliothèque standard. Écrire `using namespace std;` en tête d'un **fichier `.cpp`** est toléré dans de petits programmes, mais **jamais dans un `.hpp`** : tous les fichiers qui l'incluent se retrouveraient avec les milliers de noms de `std` déversés dans leur espace global.
+
+        L'organisation PlatformIO, que tu connais, suit exactement ces règles :
+
+        ```text
+        projet/
+        ├── platformio.ini
+        ├── include/     ← les .hpp partagés
+        ├── src/         ← main.cpp et les .cpp
+        ├── lib/         ← bibliothèques locales (chacune avec ses .hpp/.cpp)
+        └── test/        ← tests unitaires
+        ```
+  recap:
+    - "`.hpp` : déclarations (ce qu'on promet), `#pragma once` en tête. `.cpp` : définitions (le code)."
+    - "`#include \"mon.hpp\"` pour tes fichiers, `#include <...>` pour la bibliothèque standard."
+    - "Compiler toutes les sources : `clang++ main.cpp conversions.cpp -o app`, ou CMake (`cmake -S . -B build && cmake --build build`)."
+    - "`undefined reference` : code introuvable au lien. `multiple definition` : un corps de fonction dans un en-tête."
+    - "`namespace` range les noms ; jamais de `using namespace std;` dans un en-tête."
+  pieges: [cpp-undefined-reference, cpp-definition-dans-header, cpp-using-namespace-header]
+exercises:
+  - id: cf10.1
+    type: qcm
+    level: 1
+    q: "Que met-on dans un fichier d'en-tête `.hpp` ?"
+    choices:
+      - t: "Les déclarations : prototypes de fonctions, définitions de `struct`/`class`, constantes."
+        ok: true
+      - t: "Le code complet de toutes les fonctions."
+        why: "Un corps de fonction non `inline` dans un en-tête inclus par plusieurs `.cpp` provoque une erreur `multiple definition`."
+      - t: "Uniquement la fonction `main`."
+        why: "`main` se trouve dans un `.cpp`."
+    e: "L'en-tête dit **quoi** (l'interface) ; le `.cpp` dit **comment** (l'implémentation)."
+  - id: cf10.2
+    type: qcm
+    level: 2
+    q: "`clang++ main.cpp -o app` échoue avec `Undefined symbols: \"c_vers_k(double)\"`. `main.cpp` inclut `conversions.hpp`, et `c_vers_k` est écrite dans `conversions.cpp`. Que faut-il faire ?"
+    piege: cpp-undefined-reference
+    choices:
+      - t: "Ajouter `conversions.cpp` à la commande de compilation."
+        ok: true
+      - t: "Ajouter `#include \"conversions.cpp\"` dans `main.cpp`."
+        piege: true
+        why: "Ça marcherait ici par accident, mais dès que deux fichiers l'incluent : `multiple definition`. On n'inclut jamais un `.cpp`."
+      - t: "Ajouter un deuxième `#include \"conversions.hpp\"`."
+        why: "La déclaration est déjà connue : c'est le code qui manque, pas la déclaration."
+    e: "L'en-tête a satisfait le compilateur (la fonction existe quelque part), mais l'éditeur de liens n'a pas trouvé son code : il faut lui donner `conversions.cpp` (ou l'ajouter dans `add_executable`/`add_library` de CMake)."
+  - id: cf10.3
+    type: bug
+    level: 2
+    q: "Cet en-tête est inclus par `main.cpp` et par `capteur.cpp`. Le projet échoue au lien avec `multiple definition of 'gain_defaut()'`. Quelle ligne corriger ?"
+    lang: cpp
+    code: |
+      // reglages.hpp
+      #pragma once
+
+      double gain_defaut() {
+          return 2.5;
+      }
+
+      double offset_defaut();
+    bad: 4
+    fix: "inline double gain_defaut() {"
+    piege: cpp-definition-dans-header
+    e: "Le corps de la fonction est dans l'en-tête : chaque `.cpp` qui l'inclut en contient une définition, et l'éditeur de liens en trouve deux. `inline` autorise plusieurs définitions identiques (c'est fait pour ça). Sinon, on déplace le corps dans un `.cpp`. Remarque : `#pragma once` n'y peut rien, il n'agit qu'à l'intérieur d'**une** compilation."
+  - id: cf10.4
+    type: qcm
+    level: 2
+    q: "À quoi sert `#pragma once` en tête d'un en-tête ?"
+    choices:
+      - t: "À éviter qu'il soit inclus deux fois dans le même fichier compilé (directement ou via un autre en-tête)."
+        ok: true
+      - t: "À ce que la fonction ne soit définie qu'une fois dans tout le programme."
+        why: "Non : chaque `.cpp` est compilé séparément, et `#pragma once` agit fichier par fichier. C'est le rôle de `inline` ou d'un `.cpp` unique."
+      - t: "À compiler l'en-tête une seule fois pour accélérer."
+        why: "Un en-tête n'est jamais compilé seul, il est copié-collé dans les `.cpp` qui l'incluent."
+    e: "L'ancienne forme, toujours valide : `#ifndef CAPTEUR_HPP` / `#define CAPTEUR_HPP` / ... / `#endif`, qu'on appelle une garde d'inclusion."
+  - id: cf10.5
+    type: cloze
+    level: 1
+    q: "Complète l'en-tête d'un module de conversions."
+    lang: cpp
+    tpl: |
+      // conversions.hpp
+      #pragma ⟦0⟧
+
+      namespace ⟦1⟧ {
+          double bar_vers_pa(double p_bar)⟦2⟧
+      }
+    blanks:
+      - [once]
+      - [conv, conversions, unites]
+      - [";"]
+    verify: skip
+    e: "`#pragma once`, un espace de noms pour ranger les fonctions, et une **déclaration** terminée par `;` (le corps sera dans `conversions.cpp`, écrit dans le même `namespace`)."
+  - id: cf10.6
+    type: flash
+    level: 2
+    q: "Comment distinguer une erreur de compilation d'une erreur d'édition de liens dans un message ?"
+    back: |
+      - **Compilation** : cite un fichier, une ligne et une colonne, `main.cpp:12:5: error: ...`
+      - **Édition de liens** : cite un symbole (nom de fonction) sans ligne, avec `ld:`, `collect2:`, `undefined reference`, `Undefined symbols` ou `multiple definition`.
+    e: "Une erreur de lien ne se corrige pas dans le code de la ligne signalée : elle se corrige dans la **liste des fichiers compilés** ou dans la **cohérence** entre déclaration et définition."
+  - id: cf10.7
+    type: qcm
+    level: 2
+    q: "Pourquoi ne jamais écrire `using namespace std;` dans un fichier `.hpp` ?"
+    piege: cpp-using-namespace-header
+    choices:
+      - t: "Parce que tous les fichiers qui incluent cet en-tête héritent de tous les noms de `std` dans leur espace global, avec des risques de collision."
+        ok: true
+      - t: "Parce que ça ne compile pas dans un en-tête."
+        why: "Ça compile, c'est le problème : les effets se propagent en silence."
+      - t: "Parce que ça ralentit l'exécution."
+        why: "Aucun effet sur l'exécution, seulement sur la résolution des noms à la compilation."
+    e: "Un en-tête doit être « poli » avec ceux qui l'incluent : pas de `using namespace`, des `#include` minimaux, et des noms rangés dans un `namespace` propre."
+  - id: cf10.8
+    type: parsons
+    level: 2
+    q: "Reconstruis un `CMakeLists.txt` minimal : un exécutable `app` construit à partir de `main.cpp` et d'une bibliothèque `filtres` (fichier `filtres.cpp`)."
+    lang: cmake
+    lines:
+      - "cmake_minimum_required(VERSION 3.20)"
+      - "project(banc CXX)"
+      - "set(CMAKE_CXX_STANDARD 20)"
+      - "add_library(filtres filtres.cpp)"
+      - "add_executable(app main.cpp)"
+      - "target_link_libraries(app PRIVATE filtres)"
+    extra:
+      - "add_executable(app main.cpp filtres.hpp.cpp)"
+      - "#include \"filtres.hpp\""
+    e: "La bibliothèque est déclarée avant d'être liée à l'exécutable. Les intrus : un nom de fichier inventé, et une directive du préprocesseur C++ qui n'a rien à faire dans un fichier CMake."
+  - id: cf10.9
+    type: qcm
+    level: 3
+    q: "La déclaration dans `mesure.hpp` est `double filtrer(double x, double alpha);`, et la définition dans `mesure.cpp` est `double filtrer(double x, float alpha) { ... }`. Tout compile, mais le lien échoue. Pourquoi ?"
+    piege: cpp-undefined-reference
+    choices:
+      - t: "À cause de la surcharge, ce sont deux fonctions différentes : celle qui est appelée (avec `double`) n'a jamais été définie."
+        ok: true
+      - t: "Parce que `float` n'est pas autorisé dans une définition."
+        why: "`float` est parfaitement autorisé."
+      - t: "Parce qu'il manque `#pragma once`."
+        why: "Ça n'a rien à voir avec les inclusions multiples."
+    e: "En C++, le nom « complet » d'une fonction inclut les types de ses paramètres. La définition avec `float` crée une **autre** fonction ; l'appel compile avec la déclaration `double`, puis l'éditeur de liens ne trouve pas son code. Copie-colle toujours la signature du `.hpp` vers le `.cpp`."
+  - id: cf10.10
+    type: predict
+    level: 2
+    q: Qu'affiche ce programme ?
+    code: |
+      #include <iostream>
+
+      namespace moteur {
+          int vitesse() { return 1500; }
+      }
+      namespace ventilateur {
+          int vitesse() { return 900; }
+      }
+
+      int main() {
+          std::cout << moteur::vitesse() - ventilateur::vitesse() << '\n';
+      }
+    answer: "600"
+    e: "Deux fonctions `vitesse` coexistent sans conflit, chacune dans son espace de noms. On les distingue par le préfixe `moteur::` ou `ventilateur::`."

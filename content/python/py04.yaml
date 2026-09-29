@@ -1,0 +1,570 @@
+id: py04
+track: python
+title: Dictionnaires, sets & hachage
+goal: Choisir la bonne structure et savoir pourquoi un objet est hashable ou non.
+level: avance
+requires:
+- py03
+concepts:
+- dict
+- set
+- hash
+- collections
+lesson:
+  minutes: 15
+  intro: |
+    Chercher un élément dans une liste de 100 000 mesures, c'est les regarder une par une. Dans un dictionnaire ou un ensemble, c'est **immédiat**, quelle que soit la taille. Ce module explique d'où vient cette rapidité (le hachage), ce qu'elle impose (des clés immuables), et les outils de `collections` qui évitent d'écrire à la main compteurs, regroupements et files.
+  steps:
+    - level: 1
+      title: Une armoire à tiroirs étiquetés
+      body: |
+        Une **liste**, c'est une pile de fiches : pour trouver celle du capteur « T3 », il faut les parcourir une à une.
+
+        Un **dictionnaire** (`dict`), c'est une armoire dont chaque tiroir porte une étiquette : tu vas directement au tiroir « T3 ». Le secret : l'étiquette est transformée en **numéro de tiroir** par un calcul appelé *hachage*, un peu comme un code postal qui dit tout de suite dans quelle ville chercher.
+
+        Un **ensemble** (`set`), c'est la même armoire avec seulement les étiquettes, sans contenu : il répond instantanément à « cette étiquette existe-t-elle ? » et ne garde jamais de doublon.
+    - level: 2
+      title: Clés, hachage et ensembles
+      body: |
+        **Dictionnaire** : `d[cle]` renvoie la valeur et lève `KeyError` si la clé est absente ; `d.get(cle, defaut)` renvoie une valeur de repli ; `cle in d` teste la présence. On parcourt `d` (les clés), `d.values()` ou `d.items()` (les paires). L'ordre d'insertion est conservé (garanti depuis Python 3.7).
+
+        **Hachage** : `hash(cle)` calcule un entier à partir de la clé, et le dict s'en sert pour choisir la case. D'où la règle : une clé doit être **hashable**, c'est-à-dire que son hash ne doit jamais changer. En pratique : nombres, `str`, `bytes`, tuples d'immuables, `frozenset`. Les `list`, `dict` et `set` sont refusés.
+
+        **Ensemble** : éléments uniques, test d'appartenance immédiat, et les opérations de la théorie des ensembles : `a | b` (union), `a & b` (intersection), `a - b` (différence), `a ^ b` (l'un ou l'autre mais pas les deux). L'ordre d'un set n'est **pas** garanti.
+
+        **`collections`** : `Counter` compte, `defaultdict` crée une valeur par défaut à la première lecture d'une clé absente, `deque` est une file efficace aux deux bouts.
+      check:
+        q: Laquelle de ces clés un dictionnaire refuse-t-il ?
+        choices:
+          - t: "`[\"ADC1\", 3]`"
+            ok: true
+            why: "Une liste est modifiable, donc non hashable : `TypeError: unhashable type: 'list'`."
+          - t: "`(\"ADC1\", 3)`"
+            why: Un tuple d'éléments immuables est hashable : c'est la clé composite classique.
+          - t: "`\"ADC1-3\"`"
+            why: Une chaîne est immuable et hashable.
+    - level: 3
+      title: Regrouper, compter, comparer
+      body: |
+        Un journal de mesures mélange plusieurs capteurs. En quelques lignes : regrouper par capteur, compter, vérifier des seuils et repérer les capteurs manquants.
+      code: |
+        from collections import Counter, defaultdict
+
+        journal = [("T1", 20.5), ("T2", 21.0), ("T1", 20.7), ("P1", 1.2e-6), ("T2", 21.4)]
+
+        par_capteur = defaultdict(list)          # une liste vide créée à la demande
+        for capteur, valeur in journal:
+            par_capteur[capteur].append(valeur)
+        print(dict(par_capteur))
+
+        compte = Counter(c for c, _ in journal)
+        print(compte.most_common(2))
+
+        seuils = {"T1": 25.0, "T2": 21.2}
+        for capteur, valeurs in par_capteur.items():
+            seuil = seuils.get(capteur)          # None si pas de seuil
+            if seuil is not None and max(valeurs) > seuil:
+                print("alarme", capteur)
+
+        attendus = {"T1", "T2", "T3", "P1"}
+        recus = set(par_capteur)
+        print("manquants :", attendus - recus, "| inconnus :", recus - attendus)
+
+        try:
+            seuils["T3"]
+        except KeyError as e:
+            print("KeyError:", e)
+      run: true
+      out: |
+        {'T1': [20.5, 20.7], 'T2': [21.0, 21.4], 'P1': [1.2e-06]}
+        [('T1', 2), ('T2', 2)]
+        alarme T2
+        manquants : {'T3'} | inconnus : set()
+        KeyError: 'T3'
+    - level: 4
+      title: Sous le capot, la table de hachage
+      body: |
+        Un dict est un tableau de cases. Pour ranger une clé, Python calcule `hash(cle)`, en déduit un numéro de case, et y range la paire. Pour la retrouver, même calcul, puis `==` pour confirmer (deux clés différentes peuvent tomber sur la même case : c'est une *collision*, gérée en essayant d'autres cases). Quand la table se remplit, elle est agrandie d'un coup. Résultat : recherche, ajout et suppression en temps constant **en moyenne**.
+
+        Conséquences directes :
+        - **contrat** : si `a == b`, alors `hash(a) == hash(b)`. C'est pourquoi `hash(3.0) == hash(3)` ;
+        - si une clé pouvait changer après insertion, elle serait rangée dans la mauvaise case, donc introuvable : d'où l'interdiction des objets modifiables ;
+        - une classe qui définit `__eq__` perd son `__hash__` par défaut et devient non hashable. La solution propre : `@dataclass(frozen=True)`, qui génère les deux ;
+        - le hash des chaînes est **tiré au hasard à chaque lancement** de Python (sécurité). Ne stocke jamais un `hash()` dans un fichier, et ne compte pas sur l'ordre d'un set de chaînes.
+      code: |
+        from dataclasses import dataclass
+
+        print(hash(42), hash(3.0) == hash(3), hash((1, 2)) == hash((1, 2)))
+        try:
+            hash([1, 2])                      # ce que fait un dict avec chaque clé
+        except TypeError as e:
+            print("TypeError:", e)
+
+        @dataclass(frozen=True)
+        class Voie:
+            capteur: str
+            canal: int
+
+        gains = {Voie("ADC1", 0): 1.02, Voie("ADC1", 1): 0.98}
+        print(gains[Voie("ADC1", 1)])
+
+        class VoieNaive:
+            def __init__(self, capteur, canal):
+                self.capteur, self.canal = capteur, canal
+            def __eq__(self, autre):
+                return (self.capteur, self.canal) == (autre.capteur, autre.canal)
+
+        try:
+            hash(VoieNaive("ADC1", 0))
+        except TypeError as e:
+            print("TypeError:", e)
+      run: true
+      out: |
+        42 True True
+        TypeError: unhashable type: 'list'
+        0.98
+        TypeError: unhashable type: 'VoieNaive'
+    - level: 5
+      title: Sur le terrain
+      body: |
+        - `d[cle]` quand l'absence est un **bug** (tu veux l'erreur tout de suite) ; `d.get(cle, defaut)` quand l'absence est **normale** (paramètre de configuration facultatif).
+        - Compter : `Counter`. Regrouper : `defaultdict(list)`. Garder les N dernières mesures : `deque(maxlen=N)`.
+        - Ne supprime jamais d'entrées pendant que tu parcours un dict : reconstruis-le avec une compréhension, `{k: v for k, v in d.items() if v is not None}`.
+        - **JSON** ne connaît que des clés texte : `{1: "a"}` revient de `json.loads(json.dumps(...))` sous la forme `{"1": "a"}`.
+        - Pour tester souvent « est-ce que x fait partie de … », convertis la liste en set une fois : `x in liste` parcourt tout, `x in ensemble` est immédiat.
+        - Pour afficher un set de façon reproductible : `sorted(ensemble)`.
+  recap:
+    - "Dict et set trouvent un élément en temps constant grâce au hachage."
+    - "Clé hashable = immuable : nombres, str, tuple d'immuables, frozenset. Jamais list, dict, set."
+    - "`d[k]` lève KeyError ; `d.get(k, defaut)` non ; `k in d` teste."
+    - "Contrat : `a == b` implique `hash(a) == hash(b)` ; `@dataclass(frozen=True)` le respecte."
+    - "Counter pour compter, defaultdict pour regrouper, deque pour une file."
+  pieges: [py-keyerror, py-hash-mutable, py-modifier-en-iterant]
+exercises:
+- id: py04.1
+  type: qcm
+  level: 2
+  concepts:
+  - hash
+  q: 'Coche ce qui peut servir de **clé de dictionnaire** :'
+  multi: true
+  choices:
+  - t: '`(1, 2)`'
+    ok: true
+    why: Tuple d’immuables → hashable.
+  - t: '`[1, 2]`'
+    ok: false
+    why: '`list` est mutable → non hashable (`TypeError: unhashable type`).'
+  - t: '`frozenset({1, 2})`'
+    ok: true
+    why: Hashable, contrairement à `set`.
+  - t: '`(1, [2])`'
+    ok: false
+    why: Tuple contenant une liste → le hachage récursif échoue.
+  - t: une instance de classe sans `__eq__`
+    ok: true
+    why: Par défaut, hachage sur l’identité — ça marche.
+  - t: une instance avec `__eq__` mais sans `__hash__`
+    ok: false
+    why: Définir `__eq__` met `__hash__` à `None`. Il faut le redéfinir ou utiliser `@dataclass(frozen=True)`.
+  e: |-
+    Contrat : **si `a == b` alors `hash(a) == hash(b)`**, et le hash ne doit jamais changer pendant la vie de l’objet.
+
+    C’est pour ça que Python interdit les mutables comme clés : muter la clé la rendrait introuvable dans sa propre table.
+
+    `@dataclass(frozen=True)` génère `__eq__` **et** `__hash__` : c’est la façon la plus simple d’avoir une clé composite propre (ex. `(capteur, canal)`).
+- id: py04.2
+  type: predict
+  level: 1
+  concepts:
+  - dict
+  q: Sortie ?
+  code: |-
+    d = {"a": 1}
+    print(d.get("b"))
+    print(d.get("b", 0))
+    print(d.setdefault("b", 5), d)
+  answer: |-
+    None
+    0
+    5 {'a': 1, 'b': 5}
+  e: |-
+    - `get(k)` → `None` si absent, jamais d’exception.
+    - `get(k, defaut)` → valeur de repli, **sans** écrire dans le dict.
+    - `setdefault(k, v)` → écrit `v` si absent **et** renvoie la valeur.
+
+    Pour accumuler : `collections.defaultdict(list)` est plus lisible que `setdefault` en boucle.
+- id: py04.3
+  type: cloze
+  level: 2
+  concepts:
+  - dict
+  q: Compte les occurrences de chaque code d’erreur, puis prends les 3 plus fréquents.
+  tpl: |-
+    from collections import ⟦0⟧
+
+    codes = ["E12", "E04", "E12", "E31", "E12", "E04"]
+    compte = ⟦0⟧(codes)
+    print(compte.⟦1⟧(3))
+  blanks:
+  - - Counter
+  - - most_common
+  e: |-
+    `Counter` est un `dict` spécialisé : `Counter(iterable)`, `+`/`-` entre compteurs, `most_common(n)`.
+
+    Sur un fichier de logs d’une manip, c’est trois lignes pour savoir ce qui casse le plus souvent.
+- id: py04.4
+  type: predict
+  level: 2
+  concepts:
+  - set
+  q: Sortie ?
+  code: |-
+    a = {1, 2, 3}
+    b = {3, 4}
+    print(sorted(a | b), sorted(a & b), sorted(a - b), sorted(a ^ b))
+  answer: '[1, 2, 3, 4] [3] [1, 2] [1, 2, 4]'
+  e: |-
+    `|` union · `&` intersection · `-` différence · `^` différence symétrique.
+
+    Cas d’usage direct : comparer la liste des canaux attendus et celle des canaux reçus.
+
+    `attendus - recus` → ce qui manque. `recus - attendus` → ce qui est en trop. Beaucoup plus clair qu’une double boucle.
+- id: py04.5
+  type: bug
+  level: 2
+  concepts:
+  - dict
+  q: 'Ce code doit supprimer les mesures invalides. Clique sur la ligne qui lève `RuntimeError: dictionary changed size during iteration`.'
+  code: |-
+    mesures = {"t1": 20.5, "t2": None, "t3": 21.0}
+
+    for cle, val in mesures.items():
+        if val is None:
+            del mesures[cle]
+
+    print(mesures)
+  bad: 3
+  fix: |-
+    for cle in list(mesures):          # copie des clés
+        if mesures[cle] is None:
+            del mesures[cle]
+  e: |-
+    On ne peut pas modifier la taille d’un dict (ou d’un set) pendant qu’on l’itère.
+
+    Deux solutions :
+    1. Itérer sur une **copie des clés** : `for cle in list(mesures):`
+    2. Reconstruire (souvent le plus lisible) :
+    ```python
+    mesures = {k: v for k, v in mesures.items() if v is not None}
+    ```
+
+    Même piège avec `for x in liste: liste.remove(x)` — là, pas d’exception, juste des éléments sautés. Encore pire.
+- id: py04.6
+  type: qcm
+  level: 3
+  concepts:
+  - dict
+  - collections
+  q: Tu dois garder les 500 dernières mesures d’un capteur, en écrasant les plus vieilles. Le meilleur outil standard ?
+  choices:
+  - t: '`collections.deque(maxlen=500)`'
+    ok: true
+    why: 'Buffer circulaire natif : ajout O(1), éviction automatique de l’autre bout.'
+  - t: '`list` + `del v[0]` quand trop long'
+    ok: false
+    why: 'Fonctionne mais `del v[0]` est en O(n) : tu payes 500 décalages à chaque échantillon.'
+  - t: '`dict` indexé par timestamp'
+    ok: false
+    why: Pas d’éviction automatique, et l’ordre est celui d’insertion, pas temporel.
+  - t: '`queue.Queue(maxsize=500)`'
+    ok: false
+    why: Bloque ou lève quand plein — c’est une file de communication entre threads, pas un buffer glissant.
+  e: |-
+    `deque(maxlen=n)` : quand il est plein, chaque `append` **évince** automatiquement l’élément opposé. C’est le ring buffer de la bibliothèque standard.
+
+    ```python
+    from collections import deque
+    buf = deque(maxlen=500)
+    buf.append(mesure)
+    moyenne = sum(buf) / len(buf)
+    ```
+
+    Note : il est **thread-safe** pour `append`/`popleft` (opérations atomiques sous le GIL).
+- id: py04.7
+  type: predict
+  level: 2
+  concepts:
+  - dict
+  q: Sortie ? (Python 3.9+)
+  code: |-
+    base = {"gain": 1.0, "offset": 0.0}
+    patch = {"offset": 2.5, "unite": "C"}
+    print(base | patch)
+    print(base)
+  answer: |-
+    {'gain': 1.0, 'offset': 2.5, 'unite': 'C'}
+    {'gain': 1.0, 'offset': 0.0}
+  e: |-
+    Deux choses :
+
+    1. **La droite gagne.** ` | ` fusionne, et en cas de conflit c'est la valeur de droite qui l'emporte. Identique à `{**base, **patch}` et à `dict.update`.
+    2. ` | ` renvoie un **nouveau** dict : `base` est intact. C'est ` |= ` (ou `update`) qui modifie en place.
+
+    Motif utile pour une config : `config = DEFAUTS | fichier | cli` — les priorités se lisent de gauche à droite.
+- id: py04.8
+  type: code
+  level: 3
+  concepts:
+  - dict
+  - hash
+  q: 'Écris `grouper(mesures)` qui prend une liste de tuples `(capteur, canal, valeur)` et renvoie un dict `{(capteur, canal): [valeurs...]}`, dans l’ordre de première apparition.'
+  lang: python
+  start: |-
+    def grouper(mesures):
+        ...
+  sol: |-
+    from collections import defaultdict
+
+    def grouper(mesures):
+        out = defaultdict(list)
+        for capteur, canal, valeur in mesures:
+            out[(capteur, canal)].append(valeur)
+        return dict(out)
+  tests: |-
+    m = [("T", 0, 20.1), ("P", 1, 3.0), ("T", 0, 20.3), ("T", 1, 19.9)]
+    r = grouper(m)
+    assert r[("T", 0)] == [20.1, 20.3], r
+    assert r[("P", 1)] == [3.0]
+    assert list(r) == [("T", 0), ("P", 1), ("T", 1)], "ordre de premiere apparition"
+    assert grouper([]) == {}
+    print("OK")
+  e: |-
+    Deux idées :
+    - La clé composite est un **tuple** → hashable, lisible, pas de concaténation de chaînes bricolée (`f"{capteur}_{canal}"` casse dès qu’un nom contient un underscore).
+    - `defaultdict(list)` évite le `if cle not in out`. On reconvertit en `dict` à la sortie pour ne pas propager le comportement « crée à la lecture ».
+
+    Depuis 3.7, l’ordre d’insertion d’un dict fait partie du langage : le test sur l’ordre est légitime.
+- id: py04.9
+  type: predict
+  level: 2
+  concepts:
+  - dict
+  q: Sortie ?
+  code: |-
+    d = {"a": 1, "b": 2}
+    for k in d:
+        print(k, end=" ")
+    print()
+    print(list(d.items())[0], "a" in d, 1 in d)
+  answer: |-
+    a b
+    ('a', 1) True False
+  e: |-
+    Trois choses :
+    1. Itérer un dict donne ses **clés**, pas ses paires. Pour les paires : `.items()`.
+    2. L'ordre d'insertion est garanti depuis Python 3.7 (c'était un détail d'implémentation en 3.6).
+    3. `x in d` teste les **clés**, jamais les valeurs. `1 in d` est faux ici. Pour les valeurs : `1 in d.values()` — mais c'est O(n).
+
+    `.keys()`, `.values()`, `.items()` renvoient des **vues** : elles reflètent les modifications du dict et ne coûtent rien à créer. `d.keys() & autre.keys()` fait même une intersection d'ensembles.
+- id: py04.10
+  type: code
+  level: 3
+  concepts:
+  - dict
+  - collections
+  q: 'Écris `inverser(d)` qui renvoie `{valeur: [clés...]}`. Les clés de chaque liste doivent être dans l’ordre d’apparition.'
+  lang: python
+  start: |-
+    def inverser(d):
+        ...
+  sol: |-
+    from collections import defaultdict
+
+    def inverser(d):
+        out = defaultdict(list)
+        for cle, val in d.items():
+            out[val].append(cle)
+        return dict(out)
+  tests: |-
+    assert inverser({}) == {}
+    assert inverser({"a": 1}) == {1: ["a"]}
+    r = inverser({"a": 1, "b": 2, "c": 1})
+    assert r == {1: ["a", "c"], 2: ["b"]}, r
+    assert list(r) == [1, 2], "ordre de premiere apparition des valeurs"
+    assert inverser({"x": (1, 2)}) == {(1, 2): ["x"]}
+    print("OK")
+  e: |-
+    Deux points :
+    - Un dict n'est pas injectif : plusieurs clés peuvent partager une valeur. D'où la **liste** en sortie — `{v: k for k, v in d.items()}` perdrait silencieusement des données.
+    - Les valeurs deviennent des clés, donc elles doivent être **hashables**. Un dict `{"x": [1, 2]}` ferait échouer l'inversion avec `TypeError`. Le test avec un tuple vérifie que ça marche pour les composites légitimes.
+
+    Cas d'usage : à partir de `{capteur: canal}`, retrouver quels capteurs partagent un canal.
+- id: py04.11
+  type: bug
+  level: 2
+  concepts:
+  - set
+  q: Ce code doit dédupliquer des mesures en gardant l’ordre. Clique sur la ligne qui casse l’ordre.
+  code: |-
+    def dedupliquer(v):
+        return list(set(v))
+
+    print(dedupliquer([3, 1, 3, 2, 1]))
+  bad: 2
+  fix: '    return list(dict.fromkeys(v))'
+  e: |-
+    Un `set` **n'a pas d'ordre**. `list(set(v))` renvoie les éléments dans l'ordre de la table de hachage — stable au sein d'une exécution, mais arbitraire et différent d'une version de Python à l'autre.
+
+    L'idiome moderne : `list(dict.fromkeys(v))`. Un dict garde l'ordre d'insertion et déduplique par les clés — une ligne, O(n), et ça se lit.
+
+    Si les éléments ne sont pas hashables :
+    ```python
+    vus, out = set(), []
+    for x in v:
+        k = tuple(x) if isinstance(x, list) else x
+        if k not in vus:
+            vus.add(k); out.append(x)
+    ```
+- id: py04.12
+  type: qcm
+  level: 3
+  concepts:
+  - hash
+  q: Tu définis `__eq__` sur une classe pour comparer deux capteurs par leur numéro de série. Que se passe-t-il si tu oublies `__hash__` ?
+  choices:
+  - t: 'La classe devient non hashable : impossible de l’utiliser en clé de dict ou dans un set'
+    ok: true
+    why: Python met `__hash__ = None` dès que tu définis `__eq__`, pour éviter un contrat incohérent.
+  - t: Rien, le hash par défaut sur l’identité est conservé
+    ok: false
+    why: 'Ce serait incohérent : deux objets égaux auraient des hashs différents.'
+  - t: Le hash est calculé automatiquement depuis `__eq__`
+    ok: false
+    why: Python ne peut pas deviner quels champs comparer.
+  - t: '`__eq__` est ignoré'
+    ok: false
+    why: '`__eq__` fonctionne parfaitement, c’est `hash()` qui devient impossible.'
+  e: |-
+    Le contrat : **`a == b` ⟹ `hash(a) == hash(b)`**. Si tu changes l'égalité sans changer le hachage, un set ne retrouverait plus ses éléments.
+
+    Python te force donc la main. Trois sorties :
+    ```python
+    def __hash__(self):
+        return hash(self.serie)          # cohérent avec __eq__
+
+    @dataclass(frozen=True)              # génère les deux, correctement
+    class Capteur:
+        serie: str
+    ```
+    Ou laisse la classe non hashable si elle est mutable — c'est le choix **correct** pour un objet dont l'état change.
+
+    Corollaire : une clé de dict ne doit **jamais** être un objet mutable dont l'égalité dépend de champs modifiables.
+- id: py04.13
+  type: cloze
+  level: 2
+  concepts:
+  - dict
+  q: Compte le nombre de mesures par capteur, avec une valeur par défaut propre.
+  tpl: |-
+    from collections import ⟦0⟧
+
+    par_capteur = ⟦0⟧(list)
+    for capteur, valeur in mesures:
+        par_capteur[capteur].⟦1⟧(valeur)
+
+    # Sans defaultdict, l'équivalent en une ligne :
+    for capteur, valeur in mesures:
+        normal.⟦2⟧(capteur, []).append(valeur)
+  blanks:
+  - - defaultdict
+  - - append
+  - - setdefault
+  e: |-
+    `defaultdict(fabrique)` appelle `fabrique()` à chaque **lecture** d'une clé absente et l'insère.
+
+    Attention à l'effet de bord : `par_capteur["inconnu"]` **crée** l'entrée. Pour tester sans créer : `if "inconnu" in par_capteur`, ou `.get()`.
+
+    `setdefault(cle, defaut)` fait la même chose ponctuellement, mais construit `defaut` **à chaque tour** même quand la clé existe — plus lent dans une boucle chaude.
+
+    Convertis à la sortie (`dict(par_capteur)`) pour ne pas propager le comportement magique au reste du code.
+- id: py04.14
+  type: predict
+  level: 3
+  concepts:
+  - set
+  q: Sortie ?
+  code: |-
+    attendus = {"T1", "T2", "P1"}
+    recus = {"T1", "P1", "H1"}
+    print(sorted(attendus - recus))
+    print(sorted(recus - attendus))
+    print(attendus.isdisjoint({"X"}), attendus >= {"T1"})
+  answer: |-
+    ['T2']
+    ['H1']
+    True True
+  e: |-
+    Le diagnostic d'une acquisition en trois lignes :
+    - `attendus - recus` → **manquants** (capteur muet)
+    - `recus - attendus` → **inattendus** (mauvaise config, collision d'adresse)
+    - `attendus & recus` → ce qui va bien
+
+    `isdisjoint` évite de construire l'intersection quand tu veux juste savoir s'il y a chevauchement.
+
+    `>=` est l'inclusion (`issuperset`), `<=` le sous-ensemble. Attention : contrairement aux nombres, l'ordre des sets est **partiel** — `a <= b` et `b <= a` peuvent être faux tous les deux.
+- id: py04.15
+  type: qcm
+  level: 2
+  concepts:
+  - collections
+  q: Quel outil de `collections` pour associer un nom lisible à chaque champ d’une trame décodée, sans écrire une classe ?
+  choices:
+  - t: '`typing.NamedTuple` (ou `collections.namedtuple`)'
+    ok: true
+    why: 'Tuple avec des noms : `t.canal` au lieu de `t[1]`, immuable, léger, compatible avec le décompactage.'
+  - t: '`collections.OrderedDict`'
+    ok: false
+    why: Un dict ordinaire garde déjà l’ordre depuis 3.7. `OrderedDict` ne sert plus qu’à `move_to_end` et à l’égalité sensible à l’ordre.
+  - t: '`collections.ChainMap`'
+    ok: false
+    why: Sert à empiler des dicts de configuration, pas à nommer des champs.
+  - t: '`collections.UserDict`'
+    ok: false
+    why: Sert à sous-classer un dict proprement.
+  e: |-
+    ```python
+    from typing import NamedTuple
+
+    class Mesure(NamedTuple):
+        canal: int
+        valeur: float
+        unite: str = "V"
+
+    m = Mesure(*struct.unpack("<Bf", trame), "V")
+    print(m.valeur)      # lisible
+    canal, valeur, _ = m # décompactable comme un tuple
+    ```
+
+    Coût mémoire identique à un tuple (pas de `__dict__`), donc adapté à des millions d'échantillons.
+
+    Choisis `NamedTuple` si l'objet est **immuable et purement données**, `@dataclass` s'il a des méthodes ou doit changer.
+- id: py04.16
+  type: flash
+  level: 3
+  concepts:
+  - dict
+  - hash
+  q: Pourquoi `d[cle]` est-il en O(1) alors qu’une liste met O(n) ? Et quand ça devient O(n) ?
+  back: |-
+    Un dict est une **table de hachage** : `hash(cle)` donne directement l'emplacement, sans parcourir.
+
+    Ça dégénère en O(n) quand beaucoup de clés partagent le même hash (**collisions**). En pratique ça n'arrive presque jamais :
+    - `hash` des types standards est bien réparti ;
+    - Python randomise le hash des chaînes à chaque exécution (`PYTHONHASHSEED`), ce qui empêche un attaquant de forger des collisions.
+
+    Coût caché : mémoire (~3× une liste) et un `hash()` par accès — donc pour < 10 éléments, une liste de paires est souvent plus rapide.
+  e: |-
+    Deux conséquences pratiques :
+    - Un `__hash__` maison qui renvoie une constante (`return 0`) est *correct* mais transforme ton dict en liste chaînée. Hache tous les champs qui participent à `__eq__`.
+    - L'ordre d'itération d'un `set` de chaînes change d'une exécution à l'autre à cause de la randomisation. Ne t'appuie jamais dessus dans un test.

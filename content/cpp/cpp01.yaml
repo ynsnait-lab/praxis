@@ -1,0 +1,651 @@
+id: cpp01
+track: cpp
+title: Modèle de compilation & types
+goal: Savoir ce que produit chaque phase et ce que valent réellement tes entiers.
+level: avance
+requires:
+- cf13
+concepts:
+- compilation
+- odr
+- entiers
+- promotions
+- auto
+lesson:
+  minutes: 18
+  intro: |
+    Les Fondations t'ont fait écrire du C++ qui compile. Ce module ouvre le capot : ce que fait **exactement** `g++` entre ton fichier `.cpp` et l'exécutable, pourquoi une erreur au « link » n'a rien à voir avec une erreur de compilation, et ce que valent **réellement** tes entiers et tes flottants sur un Mac, un PC ou un microcontrôleur. C'est le socle de tout le reste : la moitié des bugs C++ en embarqué viennent d'un type mal compris.
+  steps:
+    - level: 1
+      title: Une usine en trois ateliers
+      body: |
+        Transformer tes fichiers `.cpp` en programme, c'est une fabrication en trois ateliers :
+
+        1. **Le préprocesseur** : un employé qui fait du copier-coller. Chaque `#include` est remplacé par le contenu du fichier inclus, chaque macro par sa valeur. Il ne comprend rien au C++ : il manipule du texte.
+        2. **Le compilateur** : chaque fichier `.cpp` (avec tout ce qui y a été collé) est traduit **séparément** en code machine, dans un fichier objet `.o`. Comme des ateliers qui fabriquent chacun leur sous-ensemble d'après les plans, sans voir les autres.
+        3. **L'éditeur de liens** (*linker*) : l'assemblage final. Il réunit les `.o`, et relie chaque appel à la fonction correspondante, où qu'elle ait été fabriquée. S'il manque une pièce, ou s'il y en a deux identiques, c'est lui qui proteste.
+    - level: 2
+      title: Unités de traduction et vrais types
+      body: |
+        **Compilation séparée** : une *unité de traduction*, c'est un `.cpp` après le préprocesseur. Le compilateur n'en voit qu'une à la fois ; il lui suffit de connaître la **déclaration** d'une fonction (sa signature) pour compiler un appel. La **définition** (le corps) peut être ailleurs : c'est le linker qui fera le lien.
+
+        **Règle de la définition unique** (*ODR*) : une déclaration peut être répétée autant de fois qu'on veut, une définition une seule fois dans tout le programme. D'où le partage des rôles : les en-têtes `.hpp` contiennent les déclarations, les `.cpp` les définitions. Deux erreurs typiques du linker : `undefined reference` (déclaré, jamais défini) et `multiple definition` (défini dans un en-tête inclus plusieurs fois).
+
+        **Entiers** : la norme ne fixe que des tailles **minimales**. `int` fait 32 bits sur PC, Mac et ARM, mais 16 bits sur un AVR (Arduino Uno) ; `long` fait 64 bits sur Linux et macOS, 32 bits sous Windows. Pour une taille exacte : `<cstdint>` (`std::int16_t`, `std::uint32_t`…). Pour une taille ou un index : `std::size_t` (non signé).
+
+        **Conversions implicites** :
+        - tout calcul sur des types plus petits que `int` (`uint8_t`, `int16_t`, `char`) se fait d'abord **en `int`** (*promotion*) ;
+        - si un signé et un non signé de même rang se rencontrent, le signé est converti en **non signé** : `-1` devient 4 294 967 295 ;
+        - un non signé qui déborde **reboucle** (comportement défini) ; un signé qui déborde est un **comportement indéfini**.
+
+        **Flottants** : `float` (32 bits, environ 7 chiffres significatifs), `double` (64 bits, environ 16). `0.1f` et `0.1` ne sont pas le même nombre.
+      check:
+        q: "Un en-tête `config.hpp` contient `int compteur = 0;` et il est inclus par trois `.cpp`. Que se passe-t-il ?"
+        choices:
+          - t: "Chaque `.cpp` compile, puis le linker signale `multiple definition of compteur`"
+            ok: true
+            why: Trois unités de traduction contiennent chacune une définition de `compteur` ; le linker en trouve trois.
+          - t: Le compilateur refuse le premier `.cpp`
+            why: Chaque unité de traduction, prise seule, est parfaitement valide. Le problème n'apparaît qu'à l'assemblage.
+          - t: Les trois `.cpp` partagent la même variable sans problème
+            why: Il faudrait `extern int compteur;` dans l'en-tête et une seule définition dans un `.cpp`, ou `inline int compteur = 0;` (C++17).
+    - level: 3
+      title: Ce que valent vraiment tes nombres
+      body: |
+        Compilé sur Linux 64 bits avec `g++ -std=c++20 -Wall -Wextra`. Prédis chaque ligne avant de regarder la sortie.
+      code: |
+        #include <cstdint>
+        #include <iostream>
+        #include <limits>
+        #include <vector>
+
+        int main() {
+            std::cout << "int " << sizeof(int) << " o, long " << sizeof(long)
+                      << " o, double " << sizeof(double) << " o, pointeur " << sizeof(void*) << " o\n";
+            std::cout << "int max = " << std::numeric_limits<int>::max() << '\n';
+
+            std::uint8_t a = 200, b = 100;
+            auto somme = a + b;                  // promotion en int : pas de débordement
+            std::uint8_t tronque = a + b;        // 300 ne tient pas sur 8 bits
+            std::cout << somme << " " << +tronque << '\n';   // + : afficher un nombre, pas un caractère
+
+            unsigned int u = 0;
+            u = u - 1;                           // non signé : reboucle (défini)
+            std::cout << u << '\n';
+
+            int moins_un = -1;
+            std::vector<int> v{1, 2, 3};
+            std::cout << (moins_un < v.size() ? "vrai" : "faux !") << '\n';   // -1 devient non signé
+
+            float f = 0.1f;
+            double d = 0.1;
+            std::cout << (f == d ? "égaux" : "différents") << ", " << std::numeric_limits<float>::digits10
+                      << " contre " << std::numeric_limits<double>::digits10 << " chiffres garantis\n";
+        }
+      out: |
+        int 4 o, long 8 o, double 8 o, pointeur 8 o
+        int max = 2147483647
+        300 44
+        4294967295
+        faux !
+        différents, 6 contre 15 chiffres garantis
+      after: |
+        `-Wall -Wextra` avait prévenu pour la comparaison piégée : `warning: comparison of integer expressions of different signedness: 'int' and 'std::vector<int>::size_type'`. Un avertissement ignoré, c'est un bug qui attend son heure. Et sous Windows, la première ligne afficherait `long 4 o`.
+    - level: 4
+      title: Suivre la chaîne de fabrication
+      body: |
+        Tu peux arrêter `g++` après chaque atelier :
+
+        ```shell
+        g++ -std=c++20 -E main.cpp -o main.ii     # préprocesseur seul : du texte, souvent des dizaines de milliers de lignes
+        g++ -std=c++20 -S main.cpp                # compilation jusqu'à l'assembleur : main.s
+        g++ -std=c++20 -c main.cpp capteur.cpp    # fichiers objets : main.o, capteur.o
+        g++ main.o capteur.o -o banc              # édition de liens : l'exécutable
+        ```
+
+        Et reconnaître les messages du linker, qui citent des **symboles** et non des lignes de code. Ici, un en-tête qui déclare `moyenne` sans que personne ne la définisse, et qui **définit** `int compteur = 0;`, inclus par deux `.cpp` :
+
+        ```text
+        /usr/bin/ld: capteur.o:(.bss+0x0): multiple definition of `compteur'; main.o:(.bss+0x0): first defined here
+        /usr/bin/ld: main.o: in function `main':
+        main.cpp:(.text+0x42): undefined reference to `moyenne(double const*, int)'
+        collect2: error: ld returned 1 exit status
+        ```
+
+        Quelques outils du langage vivent entre les ateliers : `static_assert` vérifie une condition **à la compilation** (idéal pour documenter une hypothèse sur une taille de type), `constexpr` fait calculer une valeur par le compilateur, et un `namespace` anonyme (ou `static`) rend un nom **invisible hors de son fichier**, donc impossible à confondre au link.
+      code: |
+        #include <cstdint>
+        #include <iostream>
+
+        static_assert(sizeof(std::uint16_t) == 2, "uint16_t doit faire 2 octets");
+        static_assert(sizeof(int) >= 4, "ce code suppose un int d'au moins 32 bits");
+
+        constexpr std::uint32_t HORLOGE_HZ = 16'000'000;           // calculé à la compilation
+        constexpr std::uint32_t PERIODE_NS = 1'000'000'000 / HORLOGE_HZ;
+
+        namespace {                  // visible dans ce fichier seulement
+        int appels = 0;
+        }
+
+        std::uint16_t combiner(std::uint8_t fort, std::uint8_t faible) {
+            ++appels;
+            return static_cast<std::uint16_t>((fort << 8) | faible);
+        }
+
+        int main() {
+            std::cout << PERIODE_NS << " ns\n";
+            std::cout << std::hex << combiner(0x12, 0x34) << std::dec << " (" << appels << " appel)\n";
+            std::int8_t t = -3;
+            std::cout << static_cast<int>(t) << " " << +static_cast<std::uint8_t>(t) << '\n';
+        }
+      out: |
+        62 ns
+        1234 (1 appel)
+        -3 253
+      after: |
+        62 ns et non 62,5 : la division de deux entiers est entière. Et −3 stocké sur 8 bits, relu comme non signé, donne 253 (256 − 3, le complément à deux).
+    - level: 5
+      title: Sur le terrain
+      body: |
+        - Compile toujours avec `-Wall -Wextra -Wpedantic`, et ajoute `-Wconversion -Wshadow` dès que possible. En intégration continue, `-Werror` transforme chaque avertissement en erreur.
+        - En phase de mise au point : `-O0 -g -fsanitize=address,undefined` (module Outillage). En production : `-O2`. Pour un microcontrôleur à la mémoire comptée : `-Os`.
+        - Registres, trames, protocoles : **uniquement** des types à taille fixe (`std::uint16_t`…), et un `static_assert` sur toute hypothèse de taille.
+        - Tailles et index : `std::size_t`. Si tu dois faire des calculs qui peuvent devenir négatifs, `std::ssize(v)` (C++20) donne une taille signée.
+        - Sur ton Mac, `g++` est en réalité **Apple Clang** (vérifie avec `g++ --version`) : les messages diffèrent un peu de ceux de GCC, mais les règles du langage sont les mêmes.
+  recap:
+    - "Préprocesseur (texte), compilation (un `.cpp` à la fois), édition de liens (assemblage)."
+    - "Déclarations dans les `.hpp`, définitions dans les `.cpp` : une seule définition par programme."
+    - "`int` et `long` changent de taille selon la plateforme ; `<cstdint>` pour une taille exacte."
+    - "Promotion en `int` pour les petits types ; signé + non signé = non signé (−1 devient énorme)."
+    - "Débordement non signé : reboucle ; débordement signé : comportement indéfini."
+  pieges: [cpp-signe-non-signe, cpp-uint8-cout, cpp-definition-dans-header, cpp-undefined-reference]
+exercises:
+- id: cpp01.1
+  type: qcm
+  level: 1
+  concepts:
+  - compilation
+  q: Dans quel ordre s’enchaînent les étapes qui transforment `main.cpp` en exécutable ?
+  choices:
+  - t: préprocesseur → compilation → assemblage → édition de liens
+    ok: true
+    why: Le préprocesseur produit une unité de traduction, le compilateur un .o, le linker l’exécutable.
+  - t: compilation → préprocesseur → édition de liens
+    ok: false
+    why: 'Le préprocesseur passe en premier : le compilateur ne voit jamais tes `#include`.'
+  - t: édition de liens → compilation → assemblage
+    ok: false
+    why: Le linker est toujours le dernier.
+  - t: préprocesseur → édition de liens → compilation
+    ok: false
+    why: 'Impossible : le linker assemble des fichiers objets, qui n’existent qu’après la compilation.'
+  e: |-
+    Savoir **à quelle étape** ça casse divise ton temps de débogage par trois :
+
+    | Message | Étape | Cause typique |
+    | --- | --- | --- |
+    | `No such file or directory` | préprocesseur | chemin d’include |
+    | `expected ';'`, `no matching function` | compilation | syntaxe, types |
+    | `undefined reference to 'f()'` | **linker** | déclaré mais jamais défini, ou .cpp non compilé |
+    | `multiple definition of 'x'` | **linker** | définition dans un .h inclus deux fois |
+
+    Pour voir l’unité de traduction : `g++ -E main.cpp | less`. Pour s’arrêter à l’objet : `g++ -c`.
+- id: cpp01.2
+  type: predict
+  level: 2
+  concepts:
+  - entiers
+  q: Sortie sur une machine 64 bits (Linux, g++) ?
+  lang: cpp
+  code: |-
+    #include <cstdio>
+    int main() {
+        printf("%zu %zu %zu %zu\n",
+               sizeof(char), sizeof(int), sizeof(long), sizeof(void*));
+        return 0;
+    }
+  answer: 1 4 8 8
+  e: |-
+    Le standard ne garantit que des **minimums** : `char` ≥ 8 bits, `short` ≥ 16, `int` ≥ 16, `long` ≥ 32, `long long` ≥ 64, et `sizeof(char) == 1` par définition.
+
+    Sur un ESP32 (32 bits), `int` fait 4 octets mais `void*` en fait 4, pas 8. Sur un AVR 8 bits, `int` fait **2** octets — un compteur qui déborde à 32 767.
+
+    D’où la règle en embarqué : **`<cstdint>` systématiquement** — `uint8_t`, `int16_t`, `uint32_t`. Le code devient portable et l’intention explicite.
+- id: cpp01.3
+  type: predict
+  level: 3
+  concepts:
+  - promotions
+  q: Que produit ce programme ? (le piège classique des comparaisons)
+  lang: cpp
+  code: |-
+    #include <iostream>
+    int main() {
+        int a = -1;
+        unsigned int b = 1;
+        std::cout << (a < b) << "\n";
+        std::cout << (a < static_cast<int>(b)) << "\n";
+    }
+  answer: |-
+    0
+    1
+  e: |-
+    Conversion arithmétique usuelle : quand on compare `int` et `unsigned int` de même rang, le **signé est converti en non signé**. `-1` devient `4294967295`, donc `a < b` est **faux**.
+
+    C’est la source du bug le plus courant en C++ :
+    ```cpp
+    for (int i = 0; i < v.size() - 1; ++i)   // v.size() est unsigned !
+    ```
+    Si `v` est vide, `v.size() - 1` vaut 18446744073709551615 → la boucle part en vrille.
+
+    Remèdes : `for (std::size_t i = 0; i + 1 < v.size(); ++i)`, ou `std::ssize(v)` (C++20), ou une boucle sur intervalle. Et compile avec `-Wsign-compare` (inclus dans `-Wall`).
+- id: cpp01.4
+  type: qcm
+  level: 2
+  concepts:
+  - odr
+  q: Tu mets `int compteur = 0;` dans un `.h` inclus par trois `.cpp`. Que se passe-t-il ?
+  choices:
+  - t: 'Erreur du linker : `multiple definition of compteur`'
+    ok: true
+    why: 'Chaque unité de traduction définit le symbole : violation de l’ODR.'
+  - t: Chaque .cpp a sa propre copie, sans erreur
+    ok: false
+    why: Ce serait le cas avec `static`.
+  - t: Rien, le compilateur fusionne
+    ok: false
+    why: 'Il ne peut pas : ce sont des compilations séparées.'
+  - t: Ça compile mais la valeur est indéterminée
+    ok: false
+    why: Ça ne link pas du tout.
+  e: |-
+    **One Definition Rule** : un symbole = une seule définition dans tout le programme.
+
+    Solutions, de la meilleure à la pire :
+    1. `inline int compteur = 0;` dans le .h (C++17) — une seule instance, propre.
+    2. `extern int compteur;` dans le .h + `int compteur = 0;` dans **un seul** .cpp.
+    3. `static int compteur = 0;` — une copie **par unité** : compile, mais probablement pas ce que tu veux.
+
+    Les fonctions définies dans un .h doivent être `inline` (ou membres de classe, ou templates — implicitement inline).
+- id: cpp01.5
+  type: predict
+  level: 2
+  concepts:
+  - auto
+  q: Quels types déduit `auto` ici ?
+  lang: cpp
+  code: |-
+    #include <vector>
+    #include <iostream>
+    int main() {
+        std::vector<int> v{1, 2, 3};
+        auto a = v[0];
+        auto& b = v[0];
+        const auto& c = v[0];
+        b = 99;
+        std::cout << a << " " << v[0] << " " << c << "\n";
+    }
+  answer: 1 99 99
+  e: |-
+    - `auto a = v[0]` → `int` : **copie**. `a` reste à 1.
+    - `auto& b` → `int&` : référence, `b = 99` modifie `v[0]`.
+    - `const auto& c` → `const int&` : lie sans copier, lecture seule ; il voit 99.
+
+    `auto` seul **enlève** toujours les références et les qualificatifs const de haut niveau. Si tu veux une référence, écris-la.
+
+    Motif à mémoriser pour les boucles :
+    ```cpp
+    for (const auto& x : v)   // lecture, sans copie
+    for (auto& x : v)         // modification
+    for (auto x : v)          // copie — volontaire seulement
+    ```
+    Oublier le `&` sur un `vector<std::string>` copie chaque chaîne à chaque tour.
+- id: cpp01.6
+  type: cloze
+  level: 2
+  concepts:
+  - entiers
+  - compilation
+  q: Écris un en-tête portable pour un registre 16 bits en embarqué.
+  lang: cpp
+  tpl: |-
+    #include <⟦0⟧>
+
+    ⟦1⟧ uint16_t masque_erreur = 0x8000;
+
+    struct Statut {
+        ⟦2⟧ pret;
+        ⟦2⟧ erreur;
+    };
+  blanks:
+  - - cstdint
+  - - constexpr
+    - inline constexpr
+    - static constexpr
+  - - bool
+  e: |-
+    - `<cstdint>` fournit les types de largeur **fixe** : `uint8_t`, `int16_t`, `uint32_t`, `int64_t`, plus `uintptr_t` et `size_t`.
+    - `constexpr` : constante calculée à la compilation, zéro octet en RAM, utilisable comme taille de tableau. Il implique `const` **et** `inline` pour une variable de portée namespace en C++17 → pas de violation d’ODR dans un .h.
+    - `bool` plutôt que `int` pour un drapeau : l’intention est dans le type.
+
+    Jamais de `#define MASQUE 0x8000` : pas de type, pas de portée, invisible au débogueur.
+- id: cpp01.7
+  type: predict
+  level: 2
+  concepts:
+  - entiers
+  - promotions
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <cstdio>
+    #include <cstdint>
+    int main() {
+        uint8_t a = 250, b = 10;
+        printf("%d %d\n", a + b, static_cast<uint8_t>(a + b));
+        int8_t c = -1;
+        printf("%d %u\n", c, static_cast<unsigned char>(c));
+    }
+  answer: |-
+    260 4
+    -1 255
+  e: |-
+    **Promotion entière** : tout type plus petit qu'`int` est promu en `int` avant toute opération. `a + b` est donc calculé sur 32 bits → 260, sans débordement.
+
+    Le `static_cast<uint8_t>` tronque ensuite : 260 mod 256 = 4.
+
+    Deuxième ligne : le **même motif binaire** (tous les bits à 1) se lit `-1` en signé et `255` en non signé. Le type n'est pas dans la mémoire, il est dans ta déclaration.
+
+    Conséquence pratique : `if (a + b > 255)` **fonctionne** (le calcul est en `int`), mais `uint8_t s = a + b;` perd l'information. Choisis explicitement le type du résultat, ne le laisse pas au hasard de l'affectation.
+- id: cpp01.8
+  type: qcm
+  level: 2
+  concepts:
+  - auto
+  q: Quel est le type de `x` dans `auto x = v.size();` où `v` est un `std::vector<int>` ?
+  choices:
+  - t: '`std::size_t` — un entier **non signé**'
+    ok: true
+    why: C’est la source du bug `i < v.size() - 1` sur un vecteur vide.
+  - t: '`int`'
+    ok: false
+    why: '`size()` ne renvoie jamais un `int`.'
+  - t: '`long`'
+    ok: false
+    why: C’est `size_t`, dont la taille dépend de la plateforme.
+  - t: '`unsigned int`'
+    ok: false
+    why: Sur une machine 64 bits, `size_t` fait 64 bits, pas 32.
+  e: |-
+    `size_t` est un entier **non signé** assez grand pour indexer n'importe quel objet.
+
+    Le piège classique :
+    ```cpp
+    for (int i = 0; i < v.size() - 1; ++i)   // v vide → 0u - 1 = énorme
+    ```
+
+    Trois écritures sûres :
+    ```cpp
+    for (std::size_t i = 0; i + 1 < v.size(); ++i)   // pas de soustraction
+    for (int i = 0; i < std::ssize(v) - 1; ++i)      // C++20 : signé
+    for (const auto& x : v)                          // le mieux quand l'index est inutile
+    ```
+
+    Compile avec `-Wsign-compare` (inclus dans `-Wall`) : il signale toute comparaison signé/non signé.
+- id: cpp01.9
+  type: cloze
+  level: 2
+  concepts:
+  - compilation
+  q: Les commandes qui arrêtent la compilation à chaque étape.
+  lang: shell
+  verify: skip
+  tpl: |-
+    g++ -⟦0⟧ main.cpp            # préprocesseur seul (unité de traduction)
+    g++ -S main.cpp             # jusqu'à l'assembleur (.s)
+    g++ -⟦1⟧ main.cpp            # jusqu'à l'objet (.o), sans édition de liens
+    g++ main.o autre.o -o app   # édition de liens
+    nm -C app | grep lire       # symboles : T = défini, U = indéfini
+  blanks:
+  - - E
+  - - c
+  e: |-
+    Savoir s'arrêter à la bonne étape divise ton temps de débogage :
+
+    | Symptôme | Étape | Commande de diagnostic |
+    | --- | --- | --- |
+    | `No such file` sur un include | préprocesseur | `g++ -E` et vérifier `-I` |
+    | `expected ';'`, `no matching function` | compilation | `g++ -c` |
+    | `undefined reference` | linker | `nm -C fichier.o` |
+    | `multiple definition` | linker | chercher une définition dans un `.h` |
+
+    `g++ -E main.cpp | wc -l` sur un fichier qui inclut `<iostream>` : environ 40 000 lignes. C'est ce que le compilateur avale à chaque unité de traduction — d'où l'intérêt des déclarations anticipées et, en C++20, des modules.
+- id: cpp01.10
+  type: bug
+  level: 3
+  concepts:
+  - odr
+  - headers
+  q: Cet en-tête provoque `multiple definition` au link. Clique sur la ligne fautive.
+  lang: cpp
+  code: |-
+    #pragma once
+    #include <string>
+
+    const int MAX = 100;
+
+    std::string nom() { return "capteur"; }
+
+    inline double gain() { return 1.5; }
+  bad: 6
+  fix: inline std::string nom() { return "capteur"; }
+  e: |-
+    Une **fonction** définie dans un en-tête est dupliquée dans chaque unité de traduction qui l'inclut → violation de l'ODR au link.
+
+    Trois cas à distinguer :
+    - `const int MAX = 100;` — OK : en C++, un `const` de portée namespace a une liaison **interne** (une copie par unité, mais aucun conflit).
+    - `std::string nom() { … }` — **KO** : liaison externe, plusieurs définitions.
+    - `inline double gain() { … }` — OK : `inline` autorise explicitement les définitions multiples identiques.
+
+    Sont implicitement `inline` : les fonctions membres définies dans la classe, les templates, les `constexpr`.
+
+    En C++17, `inline` marche aussi sur les **variables** : `inline int compteur = 0;` dans un `.h` donne une instance unique.
+- id: cpp01.11
+  type: qcm
+  level: 2
+  concepts:
+  - entiers
+  q: Sur un ESP32 (32 bits) et un AVR (8 bits), quel type garantit exactement 16 bits non signés ?
+  choices:
+  - t: '`uint16_t` de `<cstdint>`'
+    ok: true
+    why: Largeur fixe garantie, ou le type n’existe pas sur la plateforme.
+  - t: '`unsigned int`'
+    ok: false
+    why: 4 octets sur ESP32, **2 octets** sur AVR.
+  - t: '`unsigned short`'
+    ok: false
+    why: Au moins 16 bits, mais rien n’interdit plus.
+  - t: '`size_t`'
+    ok: false
+    why: 'Sa taille suit celle des pointeurs : 4 octets sur ESP32, 2 sur AVR.'
+  e: |-
+    Le standard ne garantit que des **minimums** : `int` ≥ 16 bits, `long` ≥ 32, `long long` ≥ 64.
+
+    Sur AVR (Arduino Uno), `int` fait 2 octets : un compteur de millisecondes en `int` déborde après 32 secondes. C'est un bug réel et fréquent.
+
+    Les types de `<cstdint>` :
+    | Besoin | Type |
+    | --- | --- |
+    | largeur exacte | `int8_t`, `uint16_t`, `int32_t`, `uint64_t` |
+    | au moins n bits | `int_least16_t` |
+    | le plus rapide ≥ n bits | `int_fast8_t` |
+    | contenir un pointeur | `uintptr_t` |
+
+    Littéraux typés : `UINT32_C(1) << 31`. Formats printf : `PRIu32` de `<cinttypes>`.
+
+    **En embarqué, `<cstdint>` n'est pas optionnel.**
+- id: cpp01.12
+  type: predict
+  level: 3
+  concepts:
+  - compilation
+  - auto
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    #include <typeinfo>
+    int main() {
+        const int a = 5;
+        auto b = a;            // const enlevé ?
+        auto& c = a;
+        b = 10;                // légal ?
+        std::cout << a << " " << b << " " << c << "\n";
+        std::cout << std::is_same<decltype(b), int>::value
+                  << std::is_same<decltype(c), const int&>::value << "\n";
+    }
+  answer: |-
+    5 10 5
+    11
+  e: |-
+    `auto` **enlève** toujours les références et le `const` de haut niveau : `b` est un `int` modifiable, indépendant de `a`.
+
+    `auto&` conserve la constance de la source : `c` est un `const int&` — écrire `c = 1` ne compilerait pas.
+
+    `decltype(expr)` fait l'inverse d'`auto` : il conserve exactement le type, références et `const` compris.
+
+    Règle pratique pour les boucles :
+    ```cpp
+    for (const auto& x : v)   // lecture, sans copie — le défaut
+    for (auto& x : v)         // modification
+    for (auto x : v)          // copie, seulement si tu la veux
+    ```
+    Oublier le `&` sur un `vector<std::string>` de 10 000 éléments = 10 000 allocations par boucle.
+- id: cpp01.13
+  type: code
+  level: 3
+  concepts:
+  - entiers
+  q: Écris `uint16_t combiner(uint8_t poids_fort, uint8_t poids_faible)` qui assemble deux octets en un mot 16 bits (big-endian).
+  lang: cpp
+  start: |-
+    #include <cstdint>
+
+    uint16_t combiner(uint8_t poids_fort, uint8_t poids_faible) {
+        // ton code
+    }
+  sol: |-
+    #include <cstdint>
+
+    uint16_t combiner(uint8_t poids_fort, uint8_t poids_faible) {
+        return static_cast<uint16_t>((static_cast<uint16_t>(poids_fort) << 8) | poids_faible);
+    }
+  tests: |-
+    #include <cassert>
+    #include <iostream>
+    int main() {
+        assert(combiner(0x12, 0x34) == 0x1234);
+        assert(combiner(0x00, 0xFF) == 0x00FF);
+        assert(combiner(0xFF, 0xFF) == 0xFFFF);
+        assert(combiner(0x80, 0x00) == 0x8000);
+        assert(combiner(0, 0) == 0);
+        std::cout << "OK\n";
+    }
+  e: |-
+    Trois pièges dans trois lignes :
+    1. `poids_fort << 8` promeut d'abord en `int` : le résultat est correct ici, mais le type intermédiaire est signé. Le `static_cast<uint16_t>` avant le décalage rend l'intention explicite.
+    2. Le `static_cast<uint16_t>` final évite l'avertissement `-Wconversion` sur la troncature de `int` vers `uint16_t`.
+    3. `| poids_faible` et non `+` : le OU binaire dit « je fusionne des champs de bits », l'addition suggérerait une arithmétique.
+
+    C'est la fonction que tu écris à chaque lecture de capteur I²C : la plupart renvoient leur mesure en deux octets consécutifs, poids fort en premier.
+
+    L'inverse : `uint8_t fort = mot >> 8; uint8_t faible = mot & 0xFF;`
+- id: cpp01.14
+  type: qcm
+  level: 3
+  concepts:
+  - promotions
+  q: '`float f = 0.1f; double d = 0.1;` — que vaut `f == d` ?'
+  choices:
+  - t: '`false` : `f` est converti en `double`, mais son arrondi sur 24 bits diffère de celui de `d` sur 53 bits'
+    ok: true
+    why: La conversion float→double est exacte, mais elle propage l’erreur déjà commise.
+  - t: '`true`, les deux valent 0.1'
+    ok: false
+    why: 0,1 n’est représentable exactement dans aucun des deux formats.
+  - t: Erreur de compilation
+    ok: false
+    why: La comparaison est légale (avec un avertissement possible).
+  - t: Comportement indéfini
+    ok: false
+    why: Parfaitement défini, juste faux.
+  e: |-
+    `float` a 24 bits de mantisse (~7 chiffres décimaux), `double` en a 53 (~16). L'approximation de 0,1 n'est pas la même, et la conversion vers `double` conserve l'erreur du `float`.
+
+    En embarqué, ça compte doublement :
+    - Sur un Cortex-M4F, la FPU est **simple précision** : un `double` est émulé en logiciel, 10 à 50× plus lent. Écris `0.1f` et `sinf()`, pas `0.1` et `sin()`.
+    - `float f = 0.1;` (sans le `f`) crée un `double` puis le convertit : sur AVR sans FPU, c'est du gaspillage pur.
+
+    Pour comparer : `std::abs(a - b) <= tol`, avec une tolérance **relative** aux ordres de grandeur en jeu. Et rappelle-toi qu'un compteur en virgule fixe entière évite tout le problème.
+- id: cpp01.15
+  type: flash
+  level: 2
+  concepts:
+  - compilation
+  q: Que fait chaque niveau d’optimisation de GCC, et lequel utiliser quand ?
+  back: |-
+    | Option | Effet | Usage |
+    | --- | --- | --- |
+    | `-O0` | aucune optimisation, compilation rapide | débogage pas à pas |
+    | `-O1` | optimisations sûres | avec les sanitizers |
+    | `-O2` | optimisations complètes | **production, par défaut** |
+    | `-O3` | + vectorisation agressive, déroulage | à mesurer, pas toujours mieux |
+    | `-Os` | optimise la **taille** | embarqué, Flash limitée |
+    | `-Og` | optimise mais garde le débogage utilisable | mise au point |
+
+    Toujours avec `-g` : les symboles de débogage ne ralentissent pas l'exécutable, ils l'agrandissent seulement.
+  e: |-
+    Deux conséquences que les débutants découvrent douloureusement :
+    - Un **comportement indéfini** peut ne se manifester qu'à `-O2`. « Ça marchait en debug » signifie souvent « j'ai un UB ».
+    - Mesurer les performances à `-O0` ne veut **rien dire** : le compilateur n'a même pas mis les variables en registre.
+
+    En embarqué, `-Os` est souvent le bon choix : le goulot est la Flash, et un code plus petit tient mieux dans le cache d'instructions.
+- id: cpp01.16
+  type: parsons
+  level: 3
+  concepts:
+  - odr
+  - compilation
+  q: Reconstitue un en-tête de module correct pour un projet embarqué.
+  lang: cpp
+  lines:
+  - '#pragma once'
+  - ''
+  - '#include <cstdint>'
+  - ''
+  - namespace capteur {
+  - ''
+  - inline constexpr uint32_t FREQUENCE_HZ = 1000;
+  - ''
+  - struct Mesure {
+  - '    uint32_t horodatage;'
+  - '    int16_t  valeur;'
+  - '};'
+  - ''
+  - bool lire(Mesure& out) noexcept;   // définie dans le .cpp
+  - ''
+  - '}  // namespace capteur'
+  extra:
+  - int compteur = 0;
+  - using namespace std;
+  e: |-
+    Six décisions, toutes justifiées :
+    - `#pragma once` : protection contre la double inclusion.
+    - `<cstdint>` : types de largeur fixe, obligatoire en embarqué.
+    - `namespace` : évite les collisions de noms, sans coût à l'exécution.
+    - `inline constexpr` : la constante existe une seule fois (C++17), en Flash, sans occuper de RAM.
+    - La fonction est **déclarée**, pas définie : sa définition va dans le `.cpp`. `noexcept` documente qu'elle ne lève pas.
+    - `Mesure& out` + retour `bool` : pas d'allocation, pas d'exception — le style embarqué.
+
+    Les deux intrus sont des fautes classiques : `int compteur = 0;` viole l'ODR (variable non-`inline` dans un en-tête), et `using namespace std;` dans un `.h` impose la pollution à tous ceux qui incluent le fichier.

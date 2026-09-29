@@ -1,0 +1,287 @@
+domain: electrotech
+exercises:
+- id: ig.ele01
+  type: qcm
+  level: 1
+  q: 'Puissance active consommée par une charge monophasée sous 230 V, 5 A, cos φ = 0,8 :'
+  choices:
+  - t: 1150 W
+    ok: false
+  - t: 1438 W
+    ok: false
+  - t: 184 W
+    ok: false
+  - t: 920 W
+    ok: true
+  e: 'P = U·I·cos φ = 230 × 5 × 0,8 = 920 W. La puissance APPARENTE vaut 1150 VA (sans le cos φ) : c''est elle qui dimensionne câbles et protections, alors que seule la puissance active est facturée au tarif domestique. Confondre les deux mène à sous-dimensionner l''installation.'
+  src: calibre
+- id: ig.ele02
+  type: qcm
+  level: 2
+  q: 'Puissance active d''une charge triphasée équilibrée (U = tension entre phases) :'
+  choices:
+  - t: √3·U·I·cos φ
+    ok: true
+  - t: U·I·cos φ
+    ok: false
+  - t: 3·U·I·cos φ
+    ok: false
+  - t: U·I/√3
+    ok: false
+  e: P = √3·U·I·cos φ avec U composée et I de ligne. Le √3 est l'oubli numéro un en électrotechnique — il fait une erreur de 73 %. La forme 3·V·I·cos φ est équivalente mais avec V, la tension SIMPLE (phase-neutre), qui vaut U/√3.
+  src: calibre
+- id: ig.ele03
+  type: qcm
+  level: 2
+  q: 'Un moteur triphasé porte la plaque « 230/400 V ». Sur un réseau 400 V entre phases, il faut le coupler :'
+  choices:
+  - t: En triangle
+    ok: false
+  - t: Indifféremment
+    ok: false
+  - t: En triangle avec neutre
+    ok: false
+  - t: En étoile
+    ok: true
+  e: 'Chaque enroulement supporte 230 V. En étoile sur un réseau 400 V, chacun ne voit que 400/√3 ≈ 230 V : correct. En triangle il verrait 400 V et grillerait. La plaque se lit toujours ainsi : la tension la plus basse correspond au couplage triangle, la plus haute au couplage étoile.'
+  src: calibre
+- id: ig.ele04
+  type: qcm
+  level: 2
+  q: 'Vitesse de synchronisme d''un moteur asynchrone à 6 pôles alimenté en 50 Hz :'
+  choices:
+  - t: 1500 tr/min
+    ok: false
+  - t: 3000 tr/min
+    ok: false
+  - t: 1000 tr/min
+    ok: true
+  - t: 750 tr/min
+    ok: false
+  e: 'Ns = 60·f/p avec p = nombre de PAIRES de pôles = 3, donc 60×50/3 = 1000 tr/min. La série complète à 50 Hz : 2 pôles → 3000, 4 pôles → 1500, 6 pôles → 1000, 8 pôles → 750. Confondre pôles et paires de pôles donne systématiquement un facteur 2.'
+  src: calibre
+- id: ig.ele05
+  type: qcm
+  level: 2
+  q: 'Un moteur asynchrone 4 pôles (50 Hz) tourne à 1470 tr/min. Glissement :'
+  choices:
+  - t: 6 %
+    ok: false
+  - t: 4 %
+    ok: false
+  - t: 1 %
+    ok: false
+  - t: 2 %
+    ok: true
+  e: 'Ns = 1500, g = (1500 − 1470)/1500 = 2 %. Un asynchrone travaille typiquement entre 2 et 5 % de glissement à charge nominale. À glissement nul il ne développerait aucun couple : sans glissement, pas de courants induits au rotor, donc pas de couple.'
+  src: calibre
+- id: ig.ele06
+  type: qcm
+  level: 2
+  q: 'Courant absorbé par un moteur asynchrone au démarrage direct, en multiple du courant nominal :'
+  choices:
+  - t: 5 à 8 fois
+    ok: true
+  - t: 20 à 30 fois
+    ok: false
+  - t: 1 à 2 fois
+    ok: false
+  - t: 2 à 3 fois
+    ok: false
+  e: 5 à 8·In pendant quelques secondes, avec un couple de démarrage médiocre. C'est ce qui motive les démarreurs étoile-triangle, les démarreurs progressifs et les variateurs de fréquence — ces derniers démarrant à courant maîtrisé avec le couple nominal disponible dès l'arrêt.
+  src: calibre
+- id: ig.ele07
+  type: qcm
+  level: 2
+  q: 'Un variateur de fréquence pilotant un moteur asynchrone maintient le rapport U/f constant afin de :'
+  choices:
+  - t: Économiser de l'énergie
+    ok: false
+  - t: Conserver le flux magnétique, donc le couple disponible
+    ok: true
+  - t: Protéger les roulements
+    ok: false
+  - t: Limiter le bruit
+    ok: false
+  e: 'Le flux est proportionnel à U/f : le garder constant conserve la capacité de couple à toute vitesse. Si on baissait f sans baisser U, le moteur saturerait magnétiquement et chaufferait. Au-delà de la fréquence nominale, U ne peut plus suivre : on entre en défluxage et le couple décroît — c''est la zone à puissance constante.'
+  src: calibre
+- id: ig.ele08
+  type: qcm
+  level: 3
+  q: 'Un moteur asynchrone piloté par variateur tourne longtemps à 10 Hz, à couple nominal. Principal risque :'
+  choices:
+  - t: Un échauffement excessif par défaut de ventilation propre
+    ok: true
+  - t: Une survitesse
+    ok: false
+  - t: Une perte de couple immédiate
+    ok: false
+  - t: Aucun, le variateur protège tout
+    ok: false
+  e: 'Le ventilateur est monté sur l''arbre : à 10 Hz il tourne cinq fois moins vite et ne refroidit presque plus, alors que le courant reste nominal. Le moteur cuit, sans que le variateur voie quoi que ce soit d''anormal. Solutions : moteur à ventilation forcée indépendante, déclassement du couple à basse vitesse, ou sonde thermique dans les enroulements.'
+  src: calibre
+- id: ig.ele09
+  type: qcm
+  level: 2
+  q: 'On améliore le facteur de puissance d''une installation inductive en ajoutant :'
+  choices:
+  - t: Des condensateurs en parallèle
+    ok: true
+  - t: Des inductances en série
+    ok: false
+  - t: Des résistances en série
+    ok: false
+  - t: Un transformateur
+    ok: false
+  e: 'Les condensateurs fournissent la puissance réactive que les moteurs absorbent, ce qui réduit le courant de ligne, les pertes et la pénalité tarifaire. Attention en présence de variateurs : une batterie de condensateurs mal placée peut entrer en résonance avec les harmoniques et se détruire — d''où les selfs anti-harmoniques.'
+  src: calibre
+- id: ig.ele10
+  type: qcm
+  level: 2
+  q: 'Un transformateur abaisseur a 1000 spires au primaire et 50 au secondaire, alimenté en 230 V. Tension au secondaire à vide :'
+  choices:
+  - t: 11,5 V
+    ok: true
+  - t: 23 V
+    ok: false
+  - t: 46 V
+    ok: false
+  - t: 4,6 V
+    ok: false
+  e: 'U2 = U1 × N2/N1 = 230 × 50/1000 = 11,5 V. Les courants suivent le rapport inverse : le secondaire peut débiter 20 fois plus de courant que le primaire. Rappel essentiel : un transformateur ne fonctionne qu''en alternatif, puisqu''il exige une variation de flux.'
+  src: calibre
+- id: ig.ele11
+  type: qcm
+  level: 2
+  q: 'Dans un moteur à courant continu à excitation constante, le couple est proportionnel :'
+  choices:
+  - t: Au carré de la tension
+    ok: false
+  - t: À la tension d'alimentation
+    ok: false
+  - t: À la vitesse de rotation
+    ok: false
+  - t: Au courant d'induit
+    ok: true
+  e: 'C = k·I, tandis que la vitesse est fixée par la tension (via la force contre-électromotrice E = k·ω). D''où le pilotage classique : la tension commande la vitesse, le courant commande le couple. C''est la raison pour laquelle une limitation de courant est la protection naturelle d''un axe motorisé.'
+  src: calibre
+- id: ig.ele12
+  type: qcm
+  level: 2
+  q: 'Principal avantage d''un moteur brushless à aimants permanents sur un asynchrone de même puissance :'
+  choices:
+  - t: Il est moins cher
+    ok: false
+  - t: Il fonctionne directement sur le réseau
+    ok: false
+  - t: Il ne nécessite aucune électronique
+    ok: false
+  - t: Un meilleur rendement et une densité de couple plus élevée
+    ok: true
+  e: 'Pas de pertes Joule au rotor (le champ vient des aimants) : rendement souvent supérieur de 5 à 15 points, encombrement réduit, excellent comportement à basse vitesse. En contrepartie, il exige impérativement un variateur avec information de position, et les aimants en terres rares coûtent cher.'
+  src: calibre
+- id: ig.ele13
+  type: qcm
+  level: 2
+  q: 'Un moteur pas-à-pas piloté en boucle ouverte, si le couple de charge dépasse son couple disponible :'
+  choices:
+  - t: Augmente son courant automatiquement
+    ok: false
+  - t: Perd des pas sans qu'aucun défaut ne soit signalé
+    ok: true
+  - t: Ralentit proportionnellement
+    ok: false
+  - t: S'arrête en sécurité
+    ok: false
+  e: 'Il décroche silencieusement, et la position réelle diverge de la position commandée sans aucune alarme. C''est le défaut structurel de la boucle ouverte : on croit savoir où on est. D''où l''usage d''un codeur (closed-loop stepper) ou d''un servomoteur dès que la perte de position est inacceptable.'
+  src: calibre
+- id: ig.ele14
+  type: qcm
+  level: 3
+  q: 'Le pilotage en micro-pas d''un moteur pas-à-pas :'
+  choices:
+  - t: Augmente le couple disponible
+    ok: false
+  - t: Améliore la résolution et la douceur, sans améliorer la précision absolue
+    ok: true
+  - t: Supprime tout risque de perte de pas
+    ok: false
+  - t: Améliore la précision de positionnement absolu
+    ok: false
+  e: Le micro-pas subdivise électriquement le pas et supprime les résonances et le bruit, mais la position réelle reste dominée par l'erreur angulaire du moteur (typiquement ±5 % du pas entier) et par les frottements. En 1/256ᵉ de pas, le couple de maintien par micro-pas devient d'ailleurs si faible que la position est incertaine. Résolution et précision sont deux choses distinctes.
+  src: calibre
+- id: ig.ele15
+  type: qcm
+  level: 2
+  q: 'Sur un câble d''alimentation long, la chute de tension est proportionnelle :'
+  choices:
+  - t: À la tension d'alimentation
+    ok: false
+  - t: À la longueur et au courant, et inversement à la section
+    ok: true
+  - t: Au carré de la longueur
+    ok: false
+  - t: À la fréquence
+    ok: false
+  e: 'ΔU = ρ·2L·I/S en continu : doubler la longueur double la chute, doubler la section la divise par deux. La norme impose de rester sous 3 à 5 % selon les circuits. C''est le calcul qui décide la section d''un câble sur une machine étendue, souvent avant même le critère d''échauffement.'
+  src: calibre
+- id: ig.ele16
+  type: qcm
+  level: 2
+  q: 'Un dispositif différentiel 30 mA protège avant tout :'
+  choices:
+  - t: Les câbles contre les surcharges
+    ok: false
+  - t: Les circuits contre les courts-circuits
+    ok: false
+  - t: Le moteur contre les surtensions
+    ok: false
+  - t: Les personnes contre les contacts indirects et directs
+    ok: true
+  e: 'Il détecte la fuite de courant vers la terre et coupe avant que le courant traversant un corps ne devienne dangereux (le seuil de fibrillation est de l''ordre de quelques dizaines de mA). Les surcharges et courts-circuits relèvent du disjoncteur magnéto-thermique : deux fonctions distinctes, souvent réunies dans un même boîtier mais jamais interchangeables.'
+  src: calibre
+- id: ig.ele17
+  type: qcm
+  level: 3
+  q: Pourquoi un ensemble de variateurs de vitesse peut-il faire chauffer anormalement le conducteur de neutre d'une installation ?
+  choices:
+  - t: Parce qu'ils consomment trop de puissance active
+    ok: false
+  - t: Parce qu'ils fonctionnent en continu
+    ok: false
+  - t: Parce qu'ils injectent des harmoniques de rang 3 qui s'additionnent dans le neutre
+    ok: true
+  - t: Parce qu'ils élèvent la tension
+    ok: false
+  e: 'Les harmoniques de rang 3 et multiples de 3 sont en phase sur les trois phases : au lieu de s''annuler dans le neutre comme le fondamental d''un système équilibré, elles s''y ajoutent. Le neutre peut alors transporter plus de courant que les phases. D''où le surdimensionnement du neutre et les filtres d''harmoniques dans les installations à forte électronique de puissance.'
+  src: calibre
+- id: ig.ele18
+  type: qcm
+  level: 2
+  q: 'Dans un hacheur (convertisseur DC/DC abaisseur) piloté en MLI avec un rapport cyclique de 25 % sous 24 V, la tension moyenne de sortie vaut :'
+  choices:
+  - t: 24 V
+    ok: false
+  - t: 12 V
+    ok: false
+  - t: 18 V
+    ok: false
+  - t: 6 V
+    ok: true
+  e: 'Umoy = α·U = 0,25 × 24 = 6 V. Le principe de toute l''électronique de puissance moderne : on ne dissipe pas l''excédent comme le ferait un régulateur linéaire, on découpe et on filtre — d''où des rendements de 90 à 98 % au lieu de 25 % ici.'
+  src: calibre
+- id: ig.ele19
+  type: qcm
+  level: 3
+  q: 'Un moteur électrique entraîné par sa charge au-delà de sa vitesse de synchronisme (descente d''un ascenseur, freinage) :'
+  choices:
+  - t: S'arrête immédiatement
+    ok: false
+  - t: Fonctionne en générateur et renvoie de l'énergie
+    ok: true
+  - t: Change de sens de rotation
+    ok: false
+  - t: Consomme deux fois plus
+    ok: false
+  e: 'Il passe en mode génératrice : le couple s''inverse et l''énergie remonte vers le variateur. Il faut alors la dissiper dans une résistance de freinage, ou la renvoyer au réseau (variateur réversible). Sans provision pour ce flux, le bus continu du variateur monte en tension et déclenche en surtension — panne classique sur un axe vertical.'
+  src: calibre

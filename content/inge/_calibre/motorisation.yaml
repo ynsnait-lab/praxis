@@ -1,0 +1,287 @@
+domain: motorisation
+exercises:
+- id: ig.mot01
+  type: qcm
+  level: 1
+  q: 'Puissance mécanique développée par un arbre transmettant 10 N·m à 1500 tr/min :'
+  choices:
+  - t: ≈ 1,6 kW
+    ok: true
+  - t: ≈ 15 kW
+    ok: false
+  - t: ≈ 10 kW
+    ok: false
+  - t: ≈ 150 W
+    ok: false
+  e: 'P = C·ω avec ω = 1500 × 2π/60 ≈ 157 rad/s, donc P ≈ 1570 W. Piège classique : utiliser les tr/min directement dans la formule. Astuce de calcul mental : P(W) ≈ C(N·m) × N(tr/min)/9,55.'
+  src: calibre
+- id: ig.mot02
+  type: qcm
+  level: 2
+  q: 'Pour convertir une vitesse de tr/min en rad/s, il faut :'
+  choices:
+  - t: Diviser par 2π
+    ok: false
+  - t: Diviser par 9,55
+    ok: true
+  - t: Multiplier par 60
+    ok: false
+  - t: Multiplier par 2π
+    ok: false
+  e: 'ω = N × 2π/60 = N/9,55. Repère utile : 1000 tr/min ≈ 105 rad/s, et 3000 tr/min ≈ 314 rad/s. Cette conversion est la source d''erreur numéro un dans les calculs de motorisation, souvent d''un facteur 9,55 ou 60.'
+  src: calibre
+- id: ig.mot03
+  type: qcm
+  level: 2
+  q: 'Réducteur de rapport 20 (rendement supposé parfait). Sur l''arbre de sortie, par rapport au moteur :'
+  choices:
+  - t: Couple ×20 et vitesse /20
+    ok: true
+  - t: Couple /20 et vitesse ×20
+    ok: false
+  - t: Couple ×20 et vitesse ×20
+    ok: false
+  - t: Couple et vitesse inchangés
+    ok: false
+  e: 'La puissance se conserve (P = Cω) : ce qu''on gagne en couple, on le perd en vitesse. C''est précisément l''intérêt du réducteur — un moteur électrique est efficace en vitesse élevée et couple faible, alors que la charge demande l''inverse. Avec un rendement réel de 0,95, le couple de sortie vaut 19 fois celui du moteur.'
+  src: calibre
+- id: ig.mot04
+  type: qcm
+  level: 2
+  q: 'Réducteur de rapport 20. L''inertie de la charge ramenée à l''arbre moteur est :'
+  choices:
+  - t: Inchangée
+    ok: false
+  - t: Divisée par 20
+    ok: false
+  - t: Multipliée par 20
+    ok: false
+  - t: Divisée par 400
+    ok: true
+  e: 'J_ramenée = J_charge/k², soit /400. Le carré rend le réducteur extraordinairement efficace pour masquer une charge inertielle : c''est souvent la raison principale de sa présence dans un axe dynamique, avant même la question du couple.'
+  src: calibre
+- id: ig.mot05
+  type: qcm
+  level: 2
+  q: 'Pour un axe effectuant des cycles répétés d''accélération et de décélération, le critère dimensionnant vis-à-vis de l''échauffement du moteur est :'
+  choices:
+  - t: Le couple de crête seul
+    ok: false
+  - t: Le couple efficace (RMS) sur le cycle complet
+    ok: true
+  - t: Le couple nominal
+    ok: false
+  - t: La vitesse maximale
+    ok: false
+  e: Les pertes Joule varient en I², donc l'échauffement dépend du couple EFFICACE calculé sur tout le cycle, temps d'arrêt compris. On vérifie séparément que le couple de crête reste sous le maximum admissible du moteur et du variateur. Dimensionner sur le seul couple de crête conduit à un moteur trois fois trop gros ; sur le seul couple nominal, à un moteur qui brûle.
+  src: calibre
+- id: ig.mot06
+  type: qcm
+  level: 2
+  q: 'Rendement typique d''un réducteur à roue et vis sans fin, comparé à un train d''engrenages droits :'
+  choices:
+  - t: Identique
+    ok: false
+  - t: Toujours supérieur à 0,95
+    ok: false
+  - t: Bien meilleur
+    ok: false
+  - t: Nettement plus faible, souvent 0,5 à 0,8 contre 0,97 par étage
+    ok: true
+  e: 'Le contact roue-vis est un glissement, pas un roulement : beaucoup de frottement, donc échauffement et rendement médiocre, d''autant plus mauvais que le rapport est élevé. En échange : grands rapports en un seul étage, compacité, renvoi d''angle et souvent irréversibilité — utile pour tenir une charge sans frein.'
+  src: calibre
+- id: ig.mot07
+  type: qcm
+  level: 3
+  q: 'Tu motorises un axe VERTICAL avec une vis à billes (rendement ≈ 0,9). Précaution indispensable :'
+  choices:
+  - t: Utiliser un moteur plus puissant
+    ok: false
+  - t: Aucune, la vis tient la charge
+    ok: false
+  - t: Prévoir un frein, car la vis à billes est réversible et la charge redescend à la coupure
+    ok: true
+  - t: Lubrifier davantage
+    ok: false
+  e: 'Bon rendement signifie réversibilité : coupez l''alimentation et la charge entraîne la vis en rotation, l''axe descend seul. Il faut un frein à manque de courant, qui serre à la coupure. Une vis trapézoïdale à pas fin, elle, est souvent irréversible — moins bon rendement, mais sécurité intrinsèque. Arbitrage classique et sécuritaire.'
+  src: calibre
+- id: ig.mot08
+  type: qcm
+  level: 2
+  q: 'Couple moteur nécessaire pour accélérer une charge :'
+  choices:
+  - t: C = couple résistant uniquement
+    ok: false
+  - t: C = J·ω
+    ok: false
+  - t: C = J·α uniquement
+    ok: false
+  - t: C = J·α + couple résistant (frottements, gravité, procédé)
+    ok: true
+  e: 'Il faut sommer le terme inertiel J·α et tous les couples résistants : frottements, gravité sur un axe vertical, effort de coupe ou de process. Oublier le terme statique est l''erreur classique — le moteur accélère parfaitement à vide et cale dès que l''axe est chargé.'
+  src: calibre
+- id: ig.mot09
+  type: qcm
+  level: 2
+  q: 'Avantage principal d''une courroie crantée (synchrone) sur une courroie trapézoïdale :'
+  choices:
+  - t: Elle transmet plus de puissance
+    ok: false
+  - t: Elle ne glisse pas, le rapport de transmission est exact
+    ok: true
+  - t: Elle est plus silencieuse
+    ok: false
+  - t: Elle ne nécessite aucune tension
+    ok: false
+  e: 'L''engrènement des dents garantit la synchronisation, indispensable dès qu''un codeur est monté côté moteur et qu''on asservit une position. La trapézoïdale transmet par adhérence : elle glisse, ce qui protège en cas de blocage mais interdit tout positionnement précis. Les deux exigent d''ailleurs une tension correcte.'
+  src: calibre
+- id: ig.mot10
+  type: qcm
+  level: 3
+  q: 'Le jeu (backlash) d''un réducteur dans un axe asservi en position :'
+  choices:
+  - t: N'a pas d'incidence si le codeur est côté moteur
+    ok: false
+  - t: Introduit une non-linéarité qui dégrade la précision et peut faire osciller la boucle
+    ok: true
+  - t: Améliore l'amortissement
+    ok: false
+  - t: Se compense entièrement par logiciel
+    ok: false
+  e: 'Dans la zone de jeu, le moteur tourne sans que la charge bouge : le retour d''information mentit, et la boucle peut entrer en cycle limite (oscillation entretenue autour de la consigne). Une compensation logicielle n''aide qu''en mouvement unidirectionnel. Vraies solutions : réducteur de précision (planétaire, harmonique), précharge, ou codeur monté côté CHARGE.'
+  src: calibre
+- id: ig.mot11
+  type: qcm
+  level: 2
+  q: 'Rapport d''inertie charge/moteur (ramené à l''arbre moteur) généralement recommandé pour un axe dynamique :'
+  choices:
+  - t: Inférieur à 5-10
+    ok: true
+  - t: Exactement 1
+    ok: false
+  - t: Supérieur à 100
+    ok: false
+  - t: Sans importance
+    ok: false
+  e: Au-delà d'un rapport de 10, la charge domine et toute élasticité de la transmission crée un mode de résonance qui plafonne la bande passante de l'asservissement. On le ramène dans les clous en choisissant un réducteur (effet en 1/k²) ou un moteur de plus forte inertie. Une transmission très rigide permet de tolérer davantage.
+  src: calibre
+- id: ig.mot12
+  type: qcm
+  level: 2
+  q: 'Vérin pneumatique de 40 mm d''alésage alimenté à 6 bar. Force théorique en poussée :'
+  choices:
+  - t: ≈ 7500 N
+    ok: false
+  - t: ≈ 240 N
+    ok: false
+  - t: ≈ 75 N
+    ok: false
+  - t: ≈ 750 N
+    ok: true
+  e: F = P·S = 6×10⁵ × π×0,02² ≈ 6×10⁵ × 1,26×10⁻³ ≈ 754 N. En traction, la force est plus faible car la tige réduit la surface utile. Et en dynamique il faut déclasser de 30 à 50 % pour tenir compte des frottements et de la contre-pression d'échappement.
+  src: calibre
+- id: ig.mot13
+  type: qcm
+  level: 2
+  q: Pourquoi un actionneur pneumatique est-il mal adapté à un positionnement précis en boucle fermée ?
+  choices:
+  - t: L'air est compressible, ce qui rend le système souple et difficile à asservir
+    ok: true
+  - t: Il consomme trop
+    ok: false
+  - t: Il manque de force
+    ok: false
+  - t: Il est trop rapide
+    ok: false
+  e: 'La compressibilité de l''air agit comme un ressort mou en série avec la charge : faible raideur, résonance basse, comportement très non linéaire et frottements secs importants. On l''emploie donc en tout-ou-rien entre butées. L''hydraulique, quasi incompressible, s''asservit bien mieux et offre une densité de puissance élevée.'
+  src: calibre
+- id: ig.mot14
+  type: qcm
+  level: 3
+  q: 'Un moteur à entraînement direct (direct drive, sans réducteur) offre :'
+  choices:
+  - t: Un couple beaucoup plus élevé à encombrement égal
+    ok: false
+  - t: Un coût plus faible
+    ok: false
+  - t: Aucun jeu et une excellente dynamique, mais un couple massique plus faible et un rapport d'inertie défavorable
+    ok: true
+  - t: Une meilleure irréversibilité
+    ok: false
+  e: 'Supprimer le réducteur supprime jeu, usure et élasticité : rigidité et fidélité de trajectoire remarquables. Mais on perd la multiplication de couple ET la division d''inertie par k², donc le moteur doit être gros et voit toute l''inertie de la charge. Choix de référence en machine de précision, pas en axe fortement chargé.'
+  src: calibre
+- id: ig.mot15
+  type: qcm
+  level: 2
+  q: 'La durée de vie L10 d''un roulement correspond :'
+  choices:
+  - t: À la durée avant laquelle 10 % des roulements ont subi une avarie
+    ok: true
+  - t: À la charge maximale admissible
+    ok: false
+  - t: À 10 000 heures de fonctionnement
+    ok: false
+  - t: À la durée de vie garantie de tous les roulements
+    ok: false
+  e: 'C''est une durée statistique : 90 % des roulements identiques dépassent L10, 10 % pas. La formule L10 = (C/P)^3 × 10⁶ tours pour un roulement à billes montre la sensibilité brutale à la charge : doubler la charge divise la durée de vie par 8. D''où la rentabilité d''un léger surdimensionnement.'
+  src: calibre
+- id: ig.mot16
+  type: qcm
+  level: 2
+  q: 'Sur un axe vertical, le couple que le moteur doit fournir à l''arrêt pour maintenir la charge en position :'
+  choices:
+  - t: Est égal au couple dû à la gravité, ce qui échauffe le moteur à l'arrêt
+    ok: true
+  - t: Est nul, puisque l'axe ne bouge pas
+    ok: false
+  - t: Dépend uniquement de l'inertie
+    ok: false
+  - t: Est égal au couple de crête
+    ok: false
+  e: 'À vitesse nulle, le courant reste maximal alors qu''il n''y a plus de ventilation ni de rotation : c''est le cas de charge le plus contraignant thermiquement pour un servomoteur, et il faut consulter sa courbe de couple à l''arrêt. La solution propre est un frein mécanique qui prend le relais du maintien.'
+  src: calibre
+- id: ig.mot17
+  type: qcm
+  level: 3
+  q: 'Remplacer un profil de vitesse trapézoïdal par un profil en S (jerk limité) permet :'
+  choices:
+  - t: D'aller plus vite
+    ok: false
+  - t: De limiter les à-coups, donc les vibrations résiduelles et l'usure de la transmission
+    ok: true
+  - t: De supprimer le besoin de réducteur
+    ok: false
+  - t: D'économiser un capteur
+    ok: false
+  e: 'Le trapèze impose un saut d''accélération (jerk infini) qui excite les modes propres de la structure : la charge continue de vibrer après l''arrêt. Le profil en S lisse l''accélération et supprime cette excitation, au prix d''un temps de cycle légèrement plus long — souvent regagné puisqu''on n''attend plus la stabilisation.'
+  src: calibre
+- id: ig.mot18
+  type: qcm
+  level: 2
+  q: 'Un coefficient de sécurité de 2 sur un dimensionnement signifie :'
+  choices:
+  - t: La pièce est deux fois plus lourde que nécessaire
+    ok: false
+  - t: Les calculs sont deux fois plus précis
+    ok: false
+  - t: La contrainte admissible retenue vaut la moitié de la limite du matériau, pour couvrir les incertitudes
+    ok: true
+  - t: La pièce ne cassera jamais
+    ok: false
+  e: 'Il couvre l''ignorance : dispersion du matériau, écarts de charge réelle, approximations du modèle, corrosion, vieillissement. Il ne rend rien infaillible — il rend l''échec improbable. Les valeurs usuelles vont de 1,5 (charges bien connues) à 5 ou plus (levage, sécurité des personnes, données incertaines).'
+  src: calibre
+- id: ig.mot19
+  type: qcm
+  level: 3
+  q: 'Un axe demande 500 W mécaniques. Le rendement du réducteur est 0,9 et celui du moteur 0,85. Puissance électrique à prévoir :'
+  choices:
+  - t: ≈ 1000 W
+    ok: false
+  - t: ≈ 654 W
+    ok: true
+  - t: ≈ 500 W
+    ok: false
+  - t: ≈ 425 W
+    ok: false
+  e: 'Les rendements se multiplient en cascade : 500/(0,9 × 0,85) ≈ 654 W. Il faut ensuite majorer pour les pointes d''accélération, qui peuvent demander deux à trois fois la puissance en régime établi — c''est le variateur, pas la puissance moyenne, qui doit encaisser ce pic.'
+  src: calibre

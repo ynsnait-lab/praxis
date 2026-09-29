@@ -1,0 +1,767 @@
+id: cpp05
+track: cpp
+title: Copie, déplacement, règle de 0/3/5
+goal: Écrire une classe qui possède une ressource sans fuite ni double libération.
+level: avance
+requires:
+- cpp04
+concepts:
+- copie-cpp
+- move
+- rule-of-five
+- value-semantics
+lesson:
+  minutes: 20
+  intro: |
+    Que se passe-t-il quand on écrit `Tampon b = a;` ? Et `Tampon c = std::move(a);` ? Pour un entier, rien de spécial. Pour un objet qui possède un million de valeurs, un port série ou un bloc mémoire, la réponse décide de la vitesse du programme… et de sa survie : une copie mal faite, c'est deux propriétaires pour une seule ressource, donc une double libération. Ce module t'apprend la mécanique (copie, déplacement, les cinq fonctions spéciales) et surtout la règle qui dispense presque toujours de l'écrire : la **règle de zéro**.
+  steps:
+    - level: 1
+      title: Photocopier ou remettre le dossier
+      body: |
+        **Copier**, c'est photocopier un dossier : à la fin, il y en a deux, indépendants. Pour 500 pages, c'est long. Et certaines choses ne se photocopient pas du tout : une clé de laboratoire, un port série physique.
+
+        **Déplacer**, c'est remettre le dossier à un collègue : il récupère **le contenu**, instantanément, et toi tu gardes une chemise vide, encore utilisable (tu peux y ranger autre chose, ou la jeter), mais sans rien dedans.
+
+        Pour un objet qui possède un gros bloc de mémoire, déplacer revient à transmettre **l'adresse** du bloc : trois pointeurs recopiés au lieu d'un million de valeurs.
+    - level: 2
+      title: Les cinq fonctions spéciales
+      body: |
+        Une classe a cinq fonctions spéciales qui gèrent sa ressource, que le compilateur **génère** si tu ne les écris pas, en traitant chaque membre à son tour :
+
+        | Fonction | Signature | Appelée par |
+        |---|---|---|
+        | destructeur | `~T()` | fin de vie |
+        | constructeur de copie | `T(const T&)` | `T b = a;` |
+        | affectation de copie | `T& operator=(const T&)` | `b = a;` |
+        | constructeur de déplacement | `T(T&&) noexcept` | `T c = std::move(a);`, retour de fonction |
+        | affectation de déplacement | `T& operator=(T&&) noexcept` | `c = std::move(a);` |
+
+        - `T&&` est une **référence vers un temporaire** (*rvalue reference*) : un objet sans nom ou qu'on n'utilisera plus, donc qu'on a le droit de piller.
+        - `std::move(a)` **ne déplace rien** : c'est une conversion qui dit « tu peux piller `a` ». Après le déplacement, `a` est dans un état **valide mais non spécifié** (en pratique, vide) : on peut le détruire ou lui affecter une valeur, pas compter sur son contenu.
+        - **Règle de zéro** : si tous les membres savent se gérer seuls (`std::vector`, `std::string`, `std::unique_ptr`), n'écris **aucune** des cinq : les versions générées sont correctes.
+        - **Règle de trois / cinq** : si tu dois en écrire une (parce que la classe gère elle-même une ressource brute), tu dois décider des autres : les écrire, ou les supprimer avec `= delete`.
+      check:
+        q: "Après `std::string b = std::move(a);`, que peut-on faire de `a` sans risque ?"
+        choices:
+          - t: Lui affecter une nouvelle valeur, ou le laisser être détruit
+            ok: true
+            why: Un objet déplacé reste valide, mais son contenu n'est pas spécifié. Réaffectation et destruction sont sûres.
+          - t: Lire son contenu, qui n'a pas changé
+            why: "`b` a récupéré le contenu ; `a` est en pratique vide. Compter dessus est un bug."
+          - t: Rien, tout usage est un comportement indéfini
+            why: La norme garantit un état valide pour les types standard : destruction et réaffectation sont permises.
+    - level: 3
+      title: Voir les copies et les déplacements
+      body: |
+        La classe `Tampon` affiche un message à chaque copie et à chaque déplacement. Observe aussi ce qui **ne** s'affiche pas.
+      code: |
+        #include <cstddef>
+        #include <iostream>
+        #include <utility>
+        #include <vector>
+
+        class Tampon {
+        public:
+            explicit Tampon(std::size_t n) : donnees_(n, 0.0) {}
+            Tampon(const Tampon& autre) : donnees_(autre.donnees_) {
+                std::cout << "  copie (" << donnees_.size() << " valeurs)\n";
+            }
+            Tampon(Tampon&& autre) noexcept : donnees_(std::move(autre.donnees_)) {
+                std::cout << "  déplacement\n";
+            }
+            Tampon& operator=(const Tampon&) = default;
+            Tampon& operator=(Tampon&&) noexcept = default;
+            ~Tampon() = default;
+            std::size_t taille() const { return donnees_.size(); }
+        private:
+            std::vector<double> donnees_;
+        };
+
+        Tampon acquerir() {
+            Tampon t(1000);
+            return t;                        // en pratique ni copie ni déplacement (élision)
+        }
+
+        int main() {
+            Tampon a(1'000'000);
+            std::cout << "b = a :\n";
+            Tampon b = a;                    // copie : un million de valeurs dupliquées
+            std::cout << "c = std::move(a) :\n";
+            Tampon c = std::move(a);         // déplacement : on récupère le bloc mémoire
+            std::cout << "a " << a.taille() << ", b " << b.taille() << ", c " << c.taille() << '\n';
+
+            std::cout << "acquerir() :\n";
+            Tampon d = acquerir();
+            std::cout << "d " << d.taille() << '\n';
+
+            std::vector<Tampon> file;
+            file.reserve(2);
+            std::cout << "push_back(d) :\n";
+            file.push_back(d);               // copie
+            std::cout << "push_back(std::move(d)) :\n";
+            file.push_back(std::move(d));    // déplacement
+        }
+      out: |
+        b = a :
+          copie (1000000 valeurs)
+        c = std::move(a) :
+          déplacement
+        a 0, b 1000000, c 1000000
+        acquerir() :
+        d 1000
+        push_back(d) :
+          copie (1000 valeurs)
+        push_back(std::move(d)) :
+          déplacement
+      after: |
+        `acquerir()` n'affiche rien : le compilateur construit `t` directement à l'emplacement de `d` (**élision de copie**). C'est pourquoi on renvoie les objets par valeur sans crainte, et pourquoi il ne faut **pas** écrire `return std::move(t);`, qui empêcherait cette optimisation.
+    - level: 4
+      title: Écrire les cinq, et pourquoi noexcept
+      body: |
+        Quand une classe gère elle-même une ressource brute (un identifiant de périphérique, un pointeur venu d'une bibliothèque C), les versions générées ne conviennent plus : copier l'identifiant ferait deux propriétaires. Le schéma type d'une ressource **à propriétaire unique** : copie supprimée, déplacement qui **vide la source** (`std::exchange` renvoie l'ancienne valeur et pose la nouvelle en une fois), destructeur qui ne libère que si l'objet possède encore quelque chose.
+
+        Deuxième détail décisif : `std::vector`, quand il grandit, doit transférer ses éléments dans un nouveau bloc. Il ne les **déplace** que si le constructeur de déplacement est `noexcept` ; sinon, il les **copie**, pour pouvoir tout annuler si une exception survient au milieu. Un `noexcept` oublié, et chaque réallocation copie tout.
+      code: |
+        #include <iostream>
+        #include <utility>
+        #include <vector>
+
+        class Poignee {                       // possède un périphérique identifié par un numéro
+        public:
+            explicit Poignee(int id) : id_(id) { std::cout << "ouvre " << id_ << '\n'; }
+            ~Poignee() { if (id_ != 0) std::cout << "ferme " << id_ << '\n'; }
+            Poignee(const Poignee&) = delete;                 // un seul propriétaire
+            Poignee& operator=(const Poignee&) = delete;
+            Poignee(Poignee&& autre) noexcept : id_(std::exchange(autre.id_, 0)) {}
+            Poignee& operator=(Poignee&& autre) noexcept {
+                if (this != &autre) {
+                    if (id_ != 0) std::cout << "ferme " << id_ << '\n';
+                    id_ = std::exchange(autre.id_, 0);
+                }
+                return *this;
+            }
+            int id() const { return id_; }
+        private:
+            int id_;
+        };
+
+        struct AvecNoexcept {
+            AvecNoexcept() = default;
+            AvecNoexcept(const AvecNoexcept&) { ++copies; }
+            AvecNoexcept(AvecNoexcept&&) noexcept { ++deplacements; }
+            static inline int copies = 0, deplacements = 0;
+        };
+        struct SansNoexcept {
+            SansNoexcept() = default;
+            SansNoexcept(const SansNoexcept&) { ++copies; }
+            SansNoexcept(SansNoexcept&&) { ++deplacements; }       // noexcept oublié
+            static inline int copies = 0, deplacements = 0;
+        };
+
+        template <typename T>
+        void remplir() {
+            std::vector<T> v;
+            for (int i = 0; i < 100; ++i) v.emplace_back();      // plusieurs réallocations
+            std::cout << T::copies << " copies, " << T::deplacements << " déplacements\n";
+        }
+
+        int main() {
+            {
+                Poignee p1(7);
+                Poignee p2 = std::move(p1);      // p1 vide, p2 possède 7
+                Poignee p3(8);
+                p3 = std::move(p2);              // p3 ferme 8 et prend 7
+                std::cout << p1.id() << " " << p2.id() << " " << p3.id() << '\n';
+            }                                    // seul p3 a encore quelque chose à fermer
+            remplir<AvecNoexcept>();
+            remplir<SansNoexcept>();
+        }
+      out: |
+        ouvre 7
+        ouvre 8
+        ferme 8
+        0 0 7
+        ferme 7
+        0 copies, 127 déplacements
+        127 copies, 0 déplacements
+      after: |
+        127 transferts pour 100 éléments : le vecteur a grandi en doublant sa capacité (1, 2, 4… 128) et a transféré 1 + 2 + 4 + 8 + 16 + 32 + 64 éléments. Sans `noexcept`, chacun de ces transferts est une copie.
+    - level: 5
+      title: Sur le terrain
+      body: |
+        - **Règle de zéro** en priorité : compose tes classes avec des membres qui se gèrent seuls. Une ressource brute se range **une fois** dans une petite classe RAII dédiée (ou un `unique_ptr` avec suppresseur), et tout le reste suit la règle de zéro.
+        - Si tu écris un destructeur, pose-toi immédiatement la question de la copie et du déplacement, et réponds par écrit : implémentation, ou `= delete`.
+        - Constructeur et affectation de déplacement : **toujours** `noexcept`.
+        - Paramètre « puits » (la fonction garde une copie de l'argument) : prends-le **par valeur** et déplace-le, `void ajouter(std::string nom) { noms_.push_back(std::move(nom)); }`. L'appelant choisit : copie s'il passe une variable, déplacement s'il passe un temporaire ou `std::move(x)`.
+        - Pas de `std::move` sur une variable `const` (il copie en silence), ni sur un `return` de variable locale (il empêche l'élision : GCC le signale avec `-Wpessimizing-move`).
+  recap:
+    - "Copie = deux objets indépendants ; déplacement = transfert du contenu, source valide mais vide."
+    - "`std::move` ne déplace rien : il autorise le pillage."
+    - "Règle de zéro : des membres autonomes, aucune fonction spéciale à écrire."
+    - "Ressource brute : règle de cinq, ou copie `= delete` et déplacement qui vide la source."
+    - "Déplacement toujours `noexcept`, sinon `std::vector` copie à chaque réallocation."
+  pieges: [cpp-regle-de-trois, cpp-move-apres, cpp-double-delete]
+exercises:
+- id: cpp05.1
+  type: qcm
+  level: 2
+  concepts:
+  - rule-of-five
+  q: Tu écris un destructeur non trivial dans une classe. Que dit la « règle de 3/5 » ?
+  choices:
+  - t: Il faut aussi gérer copie et déplacement (constructeur + affectation), ou les interdire
+    ok: true
+    why: Un destructeur non trivial = la classe possède une ressource ; la copie par défaut la dupliquerait mal.
+  - t: Il faut écrire exactement 5 méthodes
+    ok: false
+    why: La bonne réponse est souvent d’en écrire **zéro** (règle de 0).
+  - t: Il faut rendre le destructeur virtuel
+    ok: false
+    why: Autre sujet.
+  - t: Ça ne concerne que les classes template
+    ok: false
+    why: Non, toutes les classes.
+  e: |-
+    Les cinq : destructeur, constructeur de copie, affectation de copie, constructeur de déplacement, affectation de déplacement.
+
+    Si tu en écris **un**, tu dois considérer les cinq — sinon le compilateur en génère qui font une copie membre à membre, donc deux objets pointant sur la même ressource → **double libération**.
+
+    Mais la vraie cible est la **règle de 0** : n’écris aucune des cinq. Utilise `std::vector`, `std::string`, `std::unique_ptr` comme membres, et les versions générées sont automatiquement correctes.
+
+    Tu n’écris les cinq que si tu implémentes toi-même une abstraction de ressource (un handle système, un buffer DMA).
+- id: cpp05.2
+  type: predict
+  level: 3
+  concepts:
+  - move
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    #include <string>
+    #include <utility>
+    int main() {
+        std::string a = "mesure";
+        std::string b = std::move(a);
+        std::cout << "[" << b << "] " << a.empty() << "\n";
+    }
+  answer: '[mesure] 1'
+  e: |-
+    `std::move` **ne déplace rien** : c’est un simple `static_cast` vers une référence rvalue (`std::string&&`). C’est le constructeur de déplacement de `std::string` qui, lui, vole le pointeur interne.
+
+    Après déplacement, `a` est dans un état « valide mais non spécifié ». En pratique, libstdc++ laisse une chaîne vide → `empty()` vaut 1. **Mais le standard ne le garantit pas** : la seule chose légale est de réaffecter `a` ou de le détruire.
+
+    Ne lis jamais la valeur d’un objet déplacé. `-Wuse-after-move` (clang-tidy) t’aide.
+- id: cpp05.3
+  type: bug
+  level: 3
+  concepts:
+  - copie-cpp
+  q: Cette classe provoque une double libération. Clique sur la ligne qui **manque de contrepartie**.
+  lang: cpp
+  code: |-
+    class Buffer {
+        int* data_;
+        std::size_t n_;
+    public:
+        Buffer(std::size_t n) : data_(new int[n]), n_(n) {}
+        ~Buffer() { delete[] data_; }
+    };
+
+    void f(Buffer b) {}      // copie !
+  bad: 6
+  fix: |2-
+        Buffer(const Buffer&) = delete;
+        Buffer& operator=(const Buffer&) = delete;
+        // …ou une vraie copie profonde
+  e: |-
+    Le destructeur ligne 6 libère `data_`. Le constructeur de copie généré par défaut copie **le pointeur**, pas le tableau. Deux `Buffer` pointent sur la même mémoire, chacun la libère → double `delete[]` = corruption du tas.
+
+    Trois issues, par ordre de préférence :
+    1. **Règle de 0** : remplace `int*` par `std::vector<int>` et supprime le destructeur. Fin du problème.
+    2. Interdire la copie (`= delete`) et fournir un déplacement.
+    3. Écrire une copie profonde (les 5 méthodes, idiome copy-and-swap).
+
+    En vrai code, choisis 1. Les 2 et 3 ne servent que si tu enveloppes une ressource non-C++.
+- id: cpp05.4
+  type: qcm
+  level: 3
+  concepts:
+  - value-semantics
+  q: '`std::vector<Mesure> v; v.push_back(m);` puis `v.push_back(std::move(m2));`. Quelle différence ?'
+  choices:
+  - t: Le 1er copie `m`, le 2nd déplace `m2` (si `Mesure` a un constructeur de déplacement)
+    ok: true
+    why: Et si le déplacement n’existe pas, le compilateur retombe silencieusement sur la copie.
+  - t: Aucune, `push_back` copie toujours
+    ok: false
+    why: Il y a une surcharge `push_back(T&&)`.
+  - t: Le 2nd est invalide
+    ok: false
+    why: Parfaitement valide.
+  - t: Le 2nd ajoute une référence, pas une valeur
+    ok: false
+    why: Un vector stocke des valeurs, jamais des références.
+  e: |-
+    Trois façons d’ajouter :
+    ```cpp
+    v.push_back(m);              // copie
+    v.push_back(std::move(m));   // déplace
+    v.emplace_back(1, 20.5);     // construit sur place, zéro temporaire
+    ```
+
+    `emplace_back` est le plus efficace quand tu construis à partir des arguments.
+
+    Point de vigilance : si ton constructeur de déplacement n’est **pas** `noexcept`, `vector` refuse de l’utiliser lors d’une réallocation (il ne pourrait pas garantir la forte exception-safety) et **copie** à la place. Marque toujours `noexcept` les déplacements.
+- id: cpp05.5
+  type: cloze
+  level: 3
+  concepts:
+  - rule-of-five
+  - move
+  q: Complète une classe qui possède un handle système, non copiable mais déplaçable.
+  lang: cpp
+  tpl: |-
+    class Port {
+        int fd_ = -1;
+    public:
+        explicit Port(int fd) : fd_(fd) {}
+        ~Port() { if (fd_ >= 0) ::close(fd_); }
+
+        Port(const Port&) = ⟦0⟧;
+        Port& operator=(const Port&) = ⟦0⟧;
+
+        Port(Port&& o) ⟦1⟧ : fd_(o.fd_) { o.fd_ = ⟦2⟧; }
+    };
+  blanks:
+  - - delete
+  - - noexcept
+  - - '-1'
+  e: |-
+    Le motif du **handle unique** :
+    - `= delete` sur la copie : deux objets ne peuvent pas posséder le même descripteur.
+    - `noexcept` sur le déplacement : indispensable pour que `std::vector<Port>` déplace au lieu de copier (et ici, copier est impossible).
+    - **Neutraliser la source** (`o.fd_ = -1`) : sans ça, le destructeur de l’objet déplacé fermerait le descripteur volé.
+
+    C’est la partie que tout le monde oublie. Le test à se poser : *après le déplacement, la destruction de la source est-elle inoffensive ?*
+- id: cpp05.6
+  type: predict
+  level: 2
+  concepts:
+  - copie-cpp
+  - move
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    struct T {
+        T() { std::cout << "c"; }
+        T(const T&) { std::cout << "C"; }
+        T(T&&) noexcept { std::cout << "M"; }
+        ~T() { std::cout << "."; }
+    };
+    T fabriquer() { return T{}; }
+    int main() {
+        T a = fabriquer();
+        T b = a;
+        T d = std::move(a);
+        std::cout << "|";
+    }
+  answer: cCM|...
+  e: |-
+    Trois constructions, trois comportements :
+    - `T a = fabriquer();` → `c` seulement. L'**élision de copie** est *garantie* depuis C++17 : l'objet est construit directement dans `a`, aucun temporaire, aucun déplacement.
+    - `T b = a;` → `C` : `a` est une lvalue, donc **copie**.
+    - `T d = std::move(a);` → `M` : `std::move` produit une rvalue, donc **déplacement**.
+
+    Puis trois destructions à la fin de `main`.
+
+    Retiens : **renvoyer par valeur ne coûte rien** en C++17. Écrire `return std::move(x);` sur une locale est même contre-productif — ça empêche l'élision (NRVO) et force un déplacement.
+- id: cpp05.7
+  type: qcm
+  level: 3
+  concepts:
+  - move
+  q: Pourquoi un constructeur de déplacement doit-il être `noexcept` ?
+  choices:
+  - t: Sinon `std::vector` **copie** au lieu de déplacer lors des réallocations
+    ok: true
+    why: Pour garantir la forte sûreté des exceptions, `vector` n’utilise le déplacement que s’il ne peut pas lever.
+  - t: C’est une obligation du langage
+    ok: false
+    why: Le compilateur accepte un déplacement qui peut lever.
+  - t: Ça accélère l’appel
+    ok: false
+    why: '`noexcept` n’accélère pas l’appel lui-même.'
+  - t: Ça permet la copie
+    ok: false
+    why: Aucun rapport.
+  e: |-
+    Lors d'une réallocation, `vector` doit transférer n éléments vers le nouveau bloc. Si le déplacement du 5ᵉ élément levait, les 4 premiers seraient déjà « vidés » et le vecteur serait irrécupérable.
+
+    `vector` utilise donc `std::move_if_noexcept` : sans `noexcept`, il **copie** — et tu perds tout le bénéfice de la sémantique de déplacement, silencieusement.
+
+    ```cpp
+    Port(Port&& o) noexcept : fd_(o.fd_) { o.fd_ = -1; }
+    Port& operator=(Port&&) noexcept;
+    void swap(Port&) noexcept;
+    ~Port();                    // noexcept implicite
+    ```
+
+    Vérifie-le : `static_assert(std::is_nothrow_move_constructible_v<Port>);`
+
+    Règle : **déplacement et swap sont toujours `noexcept`.** Si ton déplacement peut lever, c'est que tu alloues dedans — donc que ce n'est pas un vrai déplacement.
+- id: cpp05.8
+  type: bug
+  level: 3
+  concepts:
+  - rule-of-five
+  q: Cette classe compile mais provoque une double libération. Clique sur la ligne à ajouter… ou plutôt sur celle qui la rend nécessaire.
+  lang: cpp
+  code: |-
+    class Tampon {
+        int* d_;
+        std::size_t n_;
+    public:
+        explicit Tampon(std::size_t n) : d_(new int[n]), n_(n) {}
+        ~Tampon() { delete[] d_; }
+        int& operator[](std::size_t i) { return d_[i]; }
+    };
+  bad: 6
+  fix: |2-
+        // Règle de 5 : ajouter copie et déplacement, ou
+        // Règle de 0 : remplacer int* par std::vector<int>
+  e: |-
+    Le destructeur ligne 6 libère `d_`. Le compilateur génère alors une copie **membre à membre** : deux `Tampon` pointent sur le même tableau, chacun le libère → corruption du tas.
+
+    La **règle de 3/5** dit : si tu écris l'un des cinq (destructeur, copie ×2, déplacement ×2), considère les cinq.
+
+    Les trois issues, par ordre de préférence :
+    1. **Règle de 0** — `std::vector<int> d_;` et supprimer le destructeur. Tout devient correct gratuitement.
+    2. **Interdire** la copie (`= delete`) et fournir un déplacement `noexcept`.
+    3. **Implémenter** la copie profonde (idiome copy-and-swap).
+
+    Choisis 1 en pratique. Les 2 et 3 ne servent que pour envelopper une ressource non-C++.
+
+    Détection : `-fsanitize=address` signale « attempting double-free » avec les deux piles d'appel.
+- id: cpp05.9
+  type: cloze
+  level: 3
+  concepts:
+  - move
+  - value-semantics
+  q: Complète les cinq fonctions spéciales d’une classe qui possède un handle.
+  lang: cpp
+  tpl: |-
+    class Port {
+        int fd_ = -1;
+    public:
+        ~Port() { if (fd_ >= 0) ::close(fd_); }
+
+        Port(const Port&) = ⟦0⟧;
+        Port& operator=(const Port&) = ⟦0⟧;
+
+        Port(Port&& o) ⟦1⟧ : fd_(o.fd_) { o.fd_ = -1; }
+
+        Port& operator=(Port&& o) ⟦1⟧ {
+            if (this ⟦2⟧ &o) {
+                if (fd_ >= 0) ::close(fd_);
+                fd_ = o.fd_;
+                o.fd_ = -1;
+            }
+            return *this;
+        }
+    };
+  blanks:
+  - - delete
+  - - noexcept
+  - - '!='
+  e: |-
+    Les quatre obligations d'une affectation par déplacement :
+    1. **Protection contre l'auto-affectation** (`this != &o`) : `p = std::move(p)` fermerait puis réutiliserait un descripteur invalide.
+    2. **Libérer sa propre ressource** avant de prendre celle de l'autre — sinon fuite.
+    3. **Neutraliser la source** (`o.fd_ = -1`) : sans ça, le destructeur de `o` fermerait le descripteur volé.
+    4. **`noexcept`**, pour que `vector` déplace au lieu de copier.
+    5. Renvoyer `*this`, par convention.
+
+    Le test à se poser à chaque fois : *après le déplacement, la destruction de la source est-elle inoffensive ?*
+
+    Alternative plus sûre et plus courte : `std::exchange` :
+    ```cpp
+    Port(Port&& o) noexcept : fd_(std::exchange(o.fd_, -1)) {}
+    ```
+- id: cpp05.10
+  type: code
+  level: 3
+  concepts:
+  - rule-of-five
+  q: 'Écris `Poignee` : possède un `int id_` (0 = vide), non copiable, déplaçable. Le déplacement doit mettre la source à 0.'
+  lang: cpp
+  start: |-
+    #include <utility>
+
+    class Poignee {
+        int id_ = 0;
+    public:
+        // ton code
+    };
+  sol: |-
+    #include <utility>
+
+    class Poignee {
+        int id_ = 0;
+    public:
+        explicit Poignee(int id) noexcept : id_(id) {}
+        int id() const noexcept { return id_; }
+
+        Poignee(const Poignee&) = delete;
+        Poignee& operator=(const Poignee&) = delete;
+
+        Poignee(Poignee&& o) noexcept : id_(std::exchange(o.id_, 0)) {}
+        Poignee& operator=(Poignee&& o) noexcept {
+            if (this != &o) id_ = std::exchange(o.id_, 0);
+            return *this;
+        }
+    };
+  tests: |-
+    #include <cassert>
+    #include <iostream>
+    #include <type_traits>
+    #include <vector>
+    int main() {
+        Poignee a{7};
+        assert(a.id() == 7);
+        Poignee b = std::move(a);
+        assert(b.id() == 7 && a.id() == 0 && "la source doit etre neutralisee");
+        Poignee c{1};
+        c = std::move(b);
+        assert(c.id() == 7 && b.id() == 0);
+        c = std::move(c);
+        assert(c.id() == 7 && "auto-affectation sans degat");
+        static_assert(!std::is_copy_constructible<Poignee>::value, "non copiable");
+        static_assert(std::is_nothrow_move_constructible<Poignee>::value, "move noexcept");
+        std::vector<Poignee> v;
+        v.push_back(Poignee{3});
+        v.push_back(Poignee{4});
+        assert(v[0].id() == 3 && v[1].id() == 4);
+        std::cout << "OK\n";
+    }
+  e: |-
+    `std::exchange(o.id_, 0)` fait exactement ce qu'il faut : il renvoie l'ancienne valeur **et** remet la source à 0, en une expression. C'est l'idiome moderne du déplacement.
+
+    Le test d'auto-affectation (`c = std::move(c)`) est celui que tout le monde oublie : sans le garde `this != &o`, `id_` serait écrasé par 0.
+
+    Le `static_assert` sur `is_nothrow_move_constructible` vérifie le `noexcept` : sans lui, le `vector` du test essaierait de **copier** lors de la réallocation, et ne compilerait pas puisque la copie est supprimée. Le test échoue donc pour la bonne raison.
+
+    C'est le squelette de tout wrapper de ressource : descripteur de fichier, poignée d'instrument, contexte de bibliothèque C.
+- id: cpp05.11
+  type: qcm
+  level: 2
+  concepts:
+  - value-semantics
+  q: Quelle est la bonne signature pour une fonction qui **prend possession** d’une chaîne ?
+  choices:
+  - t: '`void poser(std::string s)` — par valeur, l’appelant fait `std::move` s’il veut'
+    ok: true
+    why: Une seule surcharge couvre copie et déplacement, avec au plus un déplacement de surcoût.
+  - t: '`void poser(const std::string& s)`'
+    ok: false
+    why: Force une copie à l’intérieur, même quand l’appelant pouvait déplacer.
+  - t: '`void poser(std::string&& s)`'
+    ok: false
+    why: 'Interdit de passer une lvalue : l’appelant doit toujours écrire `std::move`.'
+  - t: Deux surcharges `const&` et `&&`
+    ok: false
+    why: Optimal mais doublé pour chaque paramètre — combinatoire ingérable.
+  e: |-
+    ```cpp
+    class Capteur {
+        std::string nom_;
+    public:
+        void poser(std::string s) { nom_ = std::move(s); }
+    };
+
+    capteur.poser("T1");            // temporaire → déplacé
+    capteur.poser(nom);             // lvalue → copiée une fois
+    capteur.poser(std::move(nom));  // déplacée
+    ```
+
+    Le « sink parameter » par valeur coûte au pire **un déplacement de plus** que la version optimale — négligeable pour un `string` ou un `vector` — et il évite l'explosion combinatoire des surcharges.
+
+    Attention à ne pas généraliser : pour un paramètre seulement **lu**, `const&` reste la bonne réponse. Le critère est : *est-ce que je stocke une copie ?*
+
+    Et n'oublie jamais le `std::move` à l'intérieur, sinon tu paies deux copies.
+- id: cpp05.12
+  type: predict
+  level: 3
+  concepts:
+  - move
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    #include <vector>
+    #include <string>
+    int main() {
+        std::vector<std::string> v;
+        std::string s = "mesure";
+        v.push_back(s);
+        std::cout << "[" << s << "]";
+        v.push_back(std::move(s));
+        std::cout << "[" << s << "]" << v.size() << v[0] << "\n";
+    }
+  answer: '[mesure][]2mesure'
+  e: |-
+    Le premier `push_back` **copie** : `s` est intact.
+
+    Le second **déplace** : `s` est laissé dans un état « valide mais non spécifié ». libstdc++ laisse une chaîne vide, d'où `[]`.
+
+    ⚠️ Cet état vide n'est **pas garanti par le standard**. La seule chose légale sur un objet déplacé est de le réaffecter ou de le détruire. Ne lis jamais sa valeur en supposant qu'elle est vide.
+
+    `v[0]` vaut toujours `"mesure"` : c'est la copie faite au premier appel.
+
+    Pour construire directement dans le vecteur, sans aucun temporaire : `v.emplace_back("mesure");`
+
+    clang-tidy signale l'usage après déplacement avec `bugprone-use-after-move`.
+- id: cpp05.13
+  type: qcm
+  level: 3
+  concepts:
+  - copie-cpp
+  q: Qu’est-ce que l’idiome « copy-and-swap » et que résout-il ?
+  choices:
+  - t: 'Implémenter l’affectation via une copie temporaire puis un `swap` : sûr aux exceptions et à l’auto-affectation, en une seule fonction'
+    ok: true
+    why: Si la copie lève, l’objet cible est intact — c’est la forte garantie.
+  - t: Échanger deux objets sans temporaire
+    ok: false
+    why: C’est `std::swap` tout court.
+  - t: Copier puis trier
+    ok: false
+    why: Aucun rapport.
+  - t: Une optimisation de la copie
+    ok: false
+    why: 'Il coûte parfois un peu plus cher : son intérêt est la sûreté.'
+  e: |-
+    ```cpp
+    class Tampon {
+        std::vector<int> d_;
+    public:
+        friend void swap(Tampon& a, Tampon& b) noexcept { std::swap(a.d_, b.d_); }
+
+        Tampon& operator=(Tampon autre) noexcept {   // par VALEUR : la copie est faite là
+            swap(*this, autre);
+            return *this;
+        }                                             // le paramètre est détruit ici et emporte l'ancien état
+    };
+    ```
+
+    Trois propriétés gratuites :
+    1. **Forte garantie** : si la copie du paramètre lève, on n'est même pas entré dans la fonction ; `*this` est intact.
+    2. **Auto-affectation sûre** sans test.
+    3. **Une seule fonction** pour la copie et le déplacement (le paramètre par valeur est construit par copie ou par déplacement selon l'argument).
+
+    Le prix : parfois une allocation de plus qu'une affectation optimisée à la main. En règle générale, la sûreté vaut ce coût — et la règle de 0 reste préférable quand elle s'applique.
+- id: cpp05.14
+  type: flash
+  level: 2
+  concepts:
+  - move
+  - value-semantics
+  q: Quand `std::move` est-il utile, et quand est-il inutile ou nuisible ?
+  back: |-
+    **Utile :**
+    - passer une variable locale dont tu n'as plus besoin : `v.push_back(std::move(s));`
+    - transférer un membre dans une liste d'initialisation : `nom_(std::move(nom))`
+    - déplacer un `unique_ptr` : `autre = std::move(p);`
+
+    **Inutile ou nuisible :**
+    - `return std::move(x);` sur une locale → **empêche** l'élision (NRVO). Écris `return x;`
+    - sur un objet `const` → le déplacement est silencieusement remplacé par une copie
+    - sur un type trivial (`int`, `double`, pointeur) → aucun effet
+    - avant d'utiliser encore la variable → bug
+  e: |-
+    `std::move` ne déplace rien : c'est un `static_cast<T&&>`. Il **autorise** le déplacement, c'est le constructeur ou l'affectation qui le réalise.
+
+    Le piège du `const` est vicieux : `const std::string s; v.push_back(std::move(s));` compile et **copie**, parce que `const std::string&&` ne peut pas se lier au constructeur de déplacement. Aucun avertissement par défaut.
+
+    Les linters modernes (clang-tidy `performance-move-const-arg`, `performance-no-automatic-move`) attrapent ces deux cas.
+- id: cpp05.15
+  type: parsons
+  level: 3
+  concepts:
+  - rule-of-five
+  - move
+  q: Reconstitue une classe qui possède un tableau brut, avec les cinq fonctions spéciales correctes.
+  lang: cpp
+  lines:
+  - class Tampon {
+  - '    int* d_ = nullptr;'
+  - '    std::size_t n_ = 0;'
+  - 'public:'
+  - '    explicit Tampon(std::size_t n) : d_(new int[n]{}), n_(n) {}'
+  - '    ~Tampon() { delete[] d_; }'
+  - ''
+  - '    Tampon(const Tampon& o) : d_(new int[o.n_]), n_(o.n_) {'
+  - '        std::copy(o.d_, o.d_ + n_, d_);'
+  - '    }'
+  - ''
+  - '    Tampon(Tampon&& o) noexcept'
+  - '        : d_(std::exchange(o.d_, nullptr)), n_(std::exchange(o.n_, 0)) {}'
+  - ''
+  - '    Tampon& operator=(Tampon o) noexcept { swap(*this, o); return *this; }'
+  - ''
+  - '    friend void swap(Tampon& a, Tampon& b) noexcept {'
+  - '        std::swap(a.d_, b.d_);'
+  - '        std::swap(a.n_, b.n_);'
+  - '    }'
+  - '};'
+  extra:
+  - '    Tampon(const Tampon& o) : d_(o.d_), n_(o.n_) {}'
+  - '        delete d_;'
+  e: |-
+    Les cinq fonctions, réduites à quatre grâce au copy-and-swap : `operator=` par **valeur** couvre à la fois l'affectation par copie et par déplacement.
+
+    Détails qui comptent :
+    - `new int[n]{}` — les accolades initialisent à zéro. `new int[n]` laisse des ordures.
+    - `delete[]` et non `delete` (premier intrus) : mélanger les deux formes est un UB.
+    - La copie **profonde** (`std::copy`) et non la copie du pointeur (second intrus).
+    - `std::exchange` neutralise la source en une expression.
+    - `swap` en fonction `friend` libre : c'est ce que trouve la recherche par ADL, donc ce qu'utiliseront `std::sort` et les conteneurs.
+
+    Cela dit : dans du vrai code, tout ça se remplace par un `std::vector<int>` membre et **zéro** fonction spéciale.
+- id: cpp05.16
+  type: predict
+  level: 3
+  concepts:
+  - value-semantics
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    #include <vector>
+    struct P {
+        int x;
+        P(int x) : x(x) {}
+        P(const P& o) : x(o.x) { std::cout << "C"; }
+        P(P&& o) noexcept : x(o.x) { std::cout << "M"; }
+    };
+    int main() {
+        std::vector<P> v;
+        v.reserve(4);
+        v.push_back(P{1});
+        v.emplace_back(2);
+        std::cout << "|" << v.size() << "\n";
+    }
+  answer: M|2
+  e: |-
+    `v.push_back(P{1})` : un temporaire est construit (silencieux, le constructeur `P(int)` n'affiche rien), puis **déplacé** dans le vecteur → `M`.
+
+    `v.emplace_back(2)` : les arguments sont transmis au constructeur qui construit **directement dans le vecteur**. Aucun temporaire, aucune copie, aucun déplacement → rien n'est affiché.
+
+    Le `reserve(4)` évite toute réallocation : sans lui, le second ajout déplacerait aussi le premier élément (un `M` de plus).
+
+    Trois règles à retenir :
+    - `emplace_back(args...)` construit sur place ; `push_back(obj)` copie ou déplace un objet existant.
+    - `reserve(n)` avant une boucle d'ajouts supprime les réallocations — le gain le plus simple sur une acquisition.
+    - `emplace_back` utilise l'initialisation par **parenthèses** : `v.emplace_back(3, 7)` sur un `vector<vector<int>>` crée `{7,7,7}`, pas `{3,7}`.

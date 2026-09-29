@@ -1,0 +1,662 @@
+id: cpp03
+track: cpp
+title: Pointeurs & mémoire
+goal: Lire un schéma pile/tas et repérer un pointeur pendouillant à l’œil.
+level: avance
+requires:
+- cpp02
+concepts:
+- pointeurs
+- pile-tas
+- tableaux
+- decay
+- nullptr
+lesson:
+  minutes: 18
+  intro: |
+    Python cache la mémoire ; C++ te la montre. C'est ce qui le rend rapide et indispensable en embarqué (un registre matériel est une adresse), et c'est aussi la source des bugs les plus sournois : un programme qui lit une mémoire déjà rendue peut « marcher » cent fois puis planter en démonstration. Ce module te donne le schéma mental (adresses, pile, tas, durée de vie) et les outils pour repérer ces bugs avant qu'ils ne te trouvent.
+  steps:
+    - level: 1
+      title: Une rue de boîtes aux lettres
+      body: |
+        La mémoire est une très longue rue de boîtes aux lettres numérotées, une par octet. Le numéro d'une boîte, c'est son **adresse**. Un **pointeur**, c'est un papier sur lequel on a noté un numéro de boîte : il ne contient pas la donnée, il dit **où** elle est.
+
+        Trois quartiers dans cette rue :
+        - la **pile** (*stack*), l'établi à côté de toi : rapide, petit, et **débarrassé automatiquement** quand la fonction se termine. Les variables locales y vivent ;
+        - le **tas** (*heap*), l'entrepôt : grand, mais il faut demander une place (`new`) et la rendre (`delete`). Aujourd'hui, on laisse un gestionnaire (`std::vector`, `std::unique_ptr`) s'en occuper ;
+        - la zone **statique** : des étagères fixes pour toute la durée du programme (variables globales et `static`).
+
+        Le bug classique : garder un papier avec le numéro d'une boîte qui a été vidée et réattribuée. On y trouve n'importe quoi.
+    - level: 2
+      title: Adresses, durées de vie, comportement indéfini
+      body: |
+        - `&x` donne l'adresse de `x` ; `int* p = &x;` la range dans un pointeur ; `*p` **déréférence** (accède à la donnée pointée) ; `p->membre` équivaut à `(*p).membre`. Un pointeur qui ne désigne rien vaut `nullptr`.
+        - **Arithmétique** : `p + 1` avance d'**un élément** (de `sizeof(T)` octets), pas d'un octet. `p[i]` équivaut à `*(p + i)`. On peut former l'adresse « un après la fin » d'un tableau pour s'arrêter, mais pas la déréférencer.
+        - Un tableau C passé à une fonction **se dégrade** en pointeur vers son premier élément : sa taille est perdue. D'où `std::array`, `std::vector` et `std::span`.
+        - **Durée de vie** : une variable locale meurt à la fin de son bloc `{ }` ; un objet créé par `new` vit jusqu'au `delete` correspondant ; une variable statique vit tout le programme. Un pointeur ou une référence qui survit à son objet est **pendouillant** (*dangling*).
+        - **Comportement indéfini** (*undefined behavior*, UB) : déréférencer `nullptr`, sortir d'un tableau, lire après `delete`, libérer deux fois. La norme ne dit **rien** de ce qui se passe : ça peut marcher, planter, ou corrompre en silence une autre donnée. Le compilateur optimise même en supposant que l'UB n'arrive jamais.
+      check:
+        q: Laquelle de ces fonctions a un comportement indéfini dès qu'on utilise son résultat ?
+        choices:
+          - t: "`int* f() { int x = 42; return &x; }`"
+            ok: true
+            why: "`x` vit sur la pile de `f` et meurt au `return` : l'adresse renvoyée désigne une boîte déjà rendue."
+          - t: "`int* f() { return new int(42); }`"
+            why: Correct (l'objet vit sur le tas jusqu'au `delete`), mais l'appelant devra penser à le libérer. Un `std::unique_ptr` serait mieux.
+          - t: "`int* f(int* p) { return p; }`"
+            why: Elle renvoie l'adresse qu'on lui a donnée, sans rien créer ni détruire.
+    - level: 3
+      title: Pointeurs en pratique
+      code: |
+        #include <cstdint>
+        #include <cstdio>
+        #include <iostream>
+
+        struct Mesure {
+            std::uint16_t canal;
+            float valeur;
+        };
+
+        int main() {
+            int x = 42;
+            int* p = &x;                  // p contient l'adresse de x
+            *p = 43;                      // écrire à travers le pointeur
+            std::cout << x << " " << (p == &x) << '\n';
+
+            int tab[4] = {10, 20, 30, 40};
+            int* q = tab;                 // le tableau se dégrade en pointeur vers tab[0]
+            std::cout << *(q + 2) << " " << q[3] << " " << (&tab[3] - &tab[0]) << '\n';
+
+            Mesure m{3, 21.5f};
+            Mesure* pm = &m;
+            pm->valeur += 1.0f;           // équivaut à (*pm).valeur
+            std::cout << pm->canal << " " << m.valeur << '\n';
+            std::cout << sizeof(Mesure) << " octets (2 + 2 de remplissage + 4)\n";
+
+            const std::uint8_t trame[] = {0xAA, 0x01, 0x10, 0x27};
+            const std::uint8_t* fin = trame + sizeof trame;    // « un après la fin »
+            int somme = 0;
+            for (const std::uint8_t* it = trame; it != fin; ++it) somme += *it;
+            std::printf("somme = %d (0x%02X)\n", somme, somme % 256);
+
+            int* rien = nullptr;
+            if (rien == nullptr) std::cout << "pointeur nul : on ne le déréférence pas\n";
+        }
+      out: |
+        43 1
+        30 40 3
+        3 22.5
+        8 octets (2 + 2 de remplissage + 4)
+        somme = 226 (0xE2)
+        pointeur nul : on ne le déréférence pas
+      after: |
+        `sizeof(Mesure)` vaut 8 et non 6 : le compilateur insère 2 octets de **remplissage** (*padding*) pour que le `float` commence à une adresse multiple de 4. À garder en tête avant d'envoyer une `struct` telle quelle sur un port série.
+    - level: 4
+      title: Tas, pointeurs qui survivent, et le détecteur
+      body: |
+        Sur le tas, chaque `new` doit avoir **exactement un** `delete`, sur tous les chemins d'exécution, exceptions comprises. C'est précisément ce que les humains ratent, et ce que `std::vector` et `std::unique_ptr` font pour toi (module suivant).
+
+        Deuxième source de pointeurs pendouillants : un `std::vector` qui grandit au-delà de sa **capacité** déménage ses éléments dans un bloc plus grand. Tout pointeur, référence ou itérateur vers l'ancien bloc devient invalide.
+
+        Le **détecteur** : compile avec `-fsanitize=address` (GCC et Clang, y compris sur Mac). Sur `int* p = new int(42); delete p; return *p;`, le programme s'arrête net avec un rapport qui donne le type d'erreur et les **trois** lignes utiles :
+
+        ```text
+        ==9275==ERROR: AddressSanitizer: heap-use-after-free on address 0x502000000010
+        READ of size 4 at 0x502000000010 thread T0
+            #0 0x5635c868928c in main uaf.cpp:4
+        freed by thread T0 here:
+            #1 0x5635c8689255 in main uaf.cpp:3
+        previously allocated by thread T0 here:
+            #1 0x5635c86891fe in main uaf.cpp:2
+        SUMMARY: AddressSanitizer: heap-use-after-free uaf.cpp:4 in main
+        ```
+      code: |
+        #include <iostream>
+        #include <vector>
+
+        const int* chercher(const std::vector<int>& v, int cible) {
+            for (const int& x : v)
+                if (x == cible) return &x;       // adresse d'un élément (qui vit chez l'appelant)
+            return nullptr;                       // « pas trouvé »
+        }
+
+        int* creer_compteur() {
+            return new int(0);                    // tas : survit à la fonction
+        }
+
+        int main() {
+            std::vector<int> v{4, 8, 15, 16};
+            if (const int* p = chercher(v, 15)) std::cout << "trouvé à l'index " << (p - v.data()) << '\n';
+            if (chercher(v, 42) == nullptr) std::cout << "42 absent\n";
+
+            int* c = creer_compteur();
+            *c += 5;
+            std::cout << *c << '\n';
+            delete c;                             // rendre la mémoire, une seule fois
+            c = nullptr;                          // ne plus garder l'ancienne adresse
+
+            std::vector<int> w{1, 2, 3};
+            std::cout << "capacité " << w.capacity();
+            w.push_back(4);                       // dépasse la capacité : nouveau bloc
+            std::cout << " puis " << w.capacity() << " : les anciens pointeurs sont invalides\n";
+        }
+      out: |
+        trouvé à l'index 2
+        42 absent
+        5
+        capacité 3 puis 6 : les anciens pointeurs sont invalides
+    - level: 5
+      title: Sur le terrain
+      body: |
+        - En C++ moderne, `new` et `delete` n'apparaissent presque jamais dans le code : `std::vector`, `std::string`, `std::array`, `std::unique_ptr` gèrent la mémoire pour toi.
+        - Un pointeur brut restant sert à **observer** sans posséder, avec possibilité de « rien » (`nullptr`). Si la cible existe toujours, préfère une référence.
+        - Pour passer un tableau à une fonction : `std::span<const std::uint8_t> trame` (C++20) transporte l'adresse **et** la taille.
+        - En phase de mise au point, compile avec `-g -fsanitize=address,undefined` : les erreurs mémoire sont détectées au moment où elles se produisent, avec la ligne fautive.
+        - En embarqué, les pointeurs sont partout : registres matériels à adresse fixe, tampons de réception, DMA. Les règles de durée de vie y sont les mêmes, avec en plus `volatile` pour le matériel (module Embarqué).
+        - Initialise toujours un pointeur (`= nullptr` s'il n'a pas encore de cible) et ne renvoie jamais l'adresse d'une variable locale.
+  recap:
+    - "`&x` adresse, `*p` donnée pointée, `p->m` membre, `nullptr` pour « rien »."
+    - "`p + 1` avance d'un élément ; un tableau passé en paramètre perd sa taille (`std::span`)."
+    - "Pile : automatique et courte ; tas : `new`/`delete` (ou mieux, un gestionnaire) ; statique : tout le programme."
+    - "Pointeur pendouillant : l'objet est mort (fin de bloc, `delete`, vector réalloué)."
+    - "UB : tout peut arriver ; `-fsanitize=address,undefined` le débusque."
+  pieges: [cpp-pointeur-pendouillant, cpp-pointeur-nul, cpp-tableau-decay, cpp-vector-invalidation, cpp-double-delete]
+exercises:
+- id: cpp03.1
+  type: qcm
+  level: 2
+  concepts:
+  - pile-tas
+  q: Quelle affirmation est **fausse** ?
+  choices:
+  - t: Une variable locale de 4 Mo sur la pile est sans risque
+    ok: true
+    why: 'La pile d’un thread fait typiquement 1 à 8 Mo (souvent 4 ko sur MCU) : débordement garanti.'
+  - t: Un objet sur la pile est détruit à la sortie du bloc
+    ok: false
+    why: Vrai, automatiquement et dans l’ordre inverse de construction.
+  - t: L’allocation sur la pile est un simple décalage de pointeur
+    ok: false
+    why: 'Vrai : quasi gratuite.'
+  - t: Le tas nécessite une libération explicite (directe ou via RAII)
+    ok: false
+    why: 'Vrai : sans destructeur ni `delete`, la mémoire reste réservée jusqu’à la fin du programme.'
+  e: |-
+    | | Pile | Tas |
+    | --- | --- | --- |
+    | Allocation | décalage de pointeur | recherche de bloc libre |
+    | Taille | limitée (1–8 Mo ; ~4 ko sur MCU) | limitée par la RAM |
+    | Libération | automatique en fin de portée | manuelle ou RAII |
+    | Fragmentation | impossible | possible |
+
+    Pour un gros tableau : `std::vector` (données sur le tas, gestion automatique). En embarqué sans allocation dynamique : `std::array` **statique** ou un buffer global — dimensionné à la compilation.
+- id: cpp03.2
+  type: bug
+  level: 3
+  concepts:
+  - dangling
+  q: Clique sur la ligne qui provoque un comportement indéfini.
+  lang: cpp
+  code: |-
+    #include <string>
+    const std::string& nom_capteur(int id) {
+        std::string s = "capteur_" + std::to_string(id);
+        return s;
+    }
+
+    int main() {
+        const std::string& n = nom_capteur(3);
+        return n.size();
+    }
+  bad: 4
+  fix: '    return s;   // renvoyer PAR VALEUR : std::string nom_capteur(int id)'
+  e: |-
+    `s` est une variable locale, détruite à la fin de la fonction. On renvoie une référence vers de la mémoire morte.
+
+    Le piège : **ça marche souvent**. La pile n’est pas encore écrasée, les tests passent, et ça casse en production sous optimisation ou sous charge.
+
+    Corrige en renvoyant **par valeur** : `std::string nom_capteur(int id)`. Ce n’est pas coûteux — l’élision de copie (garantie depuis C++17) construit directement l’objet chez l’appelant.
+
+    Détecte-le avec `-fsanitize=address` : ASan te pointe la ligne exacte.
+- id: cpp03.3
+  type: predict
+  level: 3
+  concepts:
+  - decay
+  - tableaux
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <cstdio>
+    void f(int t[10]) { printf("%zu ", sizeof(t)); }
+    int main() {
+        int t[10];
+        printf("%zu ", sizeof(t));
+        f(t);
+        return 0;
+    }
+  answer: 40 8
+  e: |-
+    Dans `main`, `sizeof(t)` = 10 × 4 = 40 octets.
+
+    Dans `f`, le paramètre `int t[10]` est **silencieusement réécrit** en `int* t` par le langage : `sizeof` donne la taille d’un pointeur (8 sur 64 bits). Le `10` est purement décoratif — le compilateur l’ignore.
+
+    C’est la **décroissance en pointeur** (array-to-pointer decay) : un tableau passé à une fonction perd sa taille. D’où le fameux `f(int* t, size_t n)` du C.
+
+    En C++ moderne : `std::span<int>` (C++20) transporte pointeur **et** taille, sans copie ; ou `std::array<int,10>&` si la taille est fixe et connue.
+- id: cpp03.4
+  type: cloze
+  level: 2
+  concepts:
+  - pointeurs
+  q: 'Complète : parcours d’un buffer brut avec pointeur et arithmétique.'
+  lang: cpp
+  tpl: |-
+    void inverser(uint8_t* buf, std::size_t n) {
+        uint8_t* debut = buf;
+        uint8_t* fin = buf + n - ⟦0⟧;
+        while (debut < fin) {
+            std::⟦1⟧(*debut, *fin);
+            ++debut;
+            --fin;
+        }
+    }
+  blanks:
+  - - '1'
+  - - swap
+  e: |-
+    `buf + n` pointe **un cran après** le dernier élément (le « past-the-end »). C’est une adresse légale à calculer et à comparer, mais **illégale à déréférencer** — d’où le `- 1`.
+
+    `std::swap` (dans `<utility>`) est spécialisé pour les types triviaux : il compile en trois instructions.
+
+    En C++ moderne, préfère `std::reverse(buf, buf + n)` : une ligne, sans arithmétique de pointeurs à relire.
+
+    Sur `n == 0`, attention : `buf + 0 - 1` est déjà un pointeur invalide. Un garde `if (n == 0) return;` s’impose.
+- id: cpp03.5
+  type: qcm
+  level: 2
+  concepts:
+  - nullptr
+  q: Pourquoi `nullptr` plutôt que `NULL` ou `0` ?
+  choices:
+  - t: '`nullptr` a son propre type `std::nullptr_t` : pas d’ambiguïté de surcharge'
+    ok: true
+    why: Avec `f(int)` et `f(char*)`, `f(NULL)` appelle `f(int)`. `f(nullptr)` appelle la bonne.
+  - t: '`nullptr` est plus rapide'
+    ok: false
+    why: Aucune différence à l’exécution.
+  - t: '`NULL` n’existe plus en C++'
+    ok: false
+    why: Il existe toujours, pour compatibilité.
+  - t: '`nullptr` occupe moins de mémoire'
+    ok: false
+    why: Même taille.
+  e: |-
+    `NULL` est souvent `#define NULL 0` : c’est un **entier**, avec toutes les ambiguïtés que ça implique.
+
+    `nullptr` est un mot-clé de type `std::nullptr_t`, convertible vers n’importe quel pointeur mais **pas** vers un entier.
+
+    Bonus : ça se lit. `if (p != nullptr)` dit « pointeur », `if (p != 0)` laisse un doute.
+
+    Et en C++ moderne, la vraie question est plutôt : ce pointeur doit-il exister ? Une référence (`T&`) ne peut pas être nulle — utilise-la quand l’absence n’a pas de sens.
+- id: cpp03.6
+  type: parsons
+  level: 3
+  concepts:
+  - pointeurs
+  - tableaux
+  q: Reconstitue une fonction qui cherche un motif d’octets dans un buffer et renvoie l’index, ou `-1`.
+  lang: cpp
+  lines:
+  - int chercher(const uint8_t* buf, std::size_t n,
+  - '             const uint8_t* motif, std::size_t m) {'
+  - '    if (m == 0 || m > n) return -1;'
+  - '    for (std::size_t i = 0; i + m <= n; ++i) {'
+  - '        std::size_t k = 0;'
+  - '        while (k < m && buf[i + k] == motif[k]) ++k;'
+  - '        if (k == m) return static_cast<int>(i);'
+  - '    }'
+  - '    return -1;'
+  - '}'
+  extra:
+  - '    for (std::size_t i = 0; i < n; ++i) {'
+  - '        if (buf[i] == motif[0]) return i;'
+  e: |-
+    Deux invariants à ne pas rater :
+    - `i + m <= n` comme condition de boucle (et non `i < n`) : sinon on lit hors du buffer sur les derniers indices. Écrit ainsi, il n’y a **aucune soustraction** sur des entiers non signés — pas de risque de `n - m` qui déborde quand `m > n`.
+    - Le garde `m == 0 || m > n` en tête.
+
+    C’est exactement le motif dont tu as besoin pour retrouver un entête de trame (`0xAA 0x55`) dans un flux série.
+
+    La version standard : `std::search(buf, buf+n, motif, motif+m)`.
+- id: cpp03.7
+  type: predict
+  level: 2
+  concepts:
+  - pointeurs
+  - pile-tas
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <cstdio>
+    int main() {
+        int t[5] = {10, 20, 30, 40, 50};
+        int* p = t;
+        printf("%d %d %d\n", *p, *(p + 2), p[2]);
+        printf("%td %d\n", (t + 4) - t, *(t + 4));
+    }
+  answer: |-
+    10 30 30
+    4 50
+  e: |-
+    `p[i]` est **strictement équivalent** à `*(p + i)` — c'est la définition de l'opérateur d'indexation. (Conséquence amusante et à ne jamais écrire : `2[t]` compile et vaut `t[2]`.)
+
+    L'arithmétique de pointeurs se fait en **éléments**, pas en octets : `p + 2` avance de `2 * sizeof(int)` = 8 octets.
+
+    La différence de deux pointeurs donne un `std::ptrdiff_t` (signé), affiché avec `%td`.
+
+    Rappel de sécurité : `t + 5` (juste après le dernier) est une adresse **légale à calculer et à comparer**, mais **illégale à déréférencer**. C'est ce qui rend valide la boucle `for (int* q = t; q != t + 5; ++q)`.
+- id: cpp03.8
+  type: qcm
+  level: 2
+  concepts:
+  - pile-tas
+  q: 'Où vivent ces quatre objets : `int a;` global, `int b;` local, `new int`, et le contenu d’un `std::vector` ?'
+  choices:
+  - t: 'a : segment de données · b : pile · new : tas · vector : tas'
+    ok: true
+    why: Le vector lui-même est où tu le déclares, mais ses éléments sont toujours sur le tas.
+  - t: Tous sur le tas
+    ok: false
+    why: Les globales et les locales n’y sont jamais.
+  - t: Tous sur la pile
+    ok: false
+    why: '`new` alloue par définition sur le tas.'
+  - t: a et b sur la pile, le reste sur le tas
+    ok: false
+    why: 'Une globale n’est pas sur la pile : elle existe avant `main`.'
+  e: |-
+    | Zone | Contenu | Durée de vie |
+    | --- | --- | --- |
+    | **texte** | le code, les littéraux `const` | tout le programme |
+    | **données/BSS** | globales et `static` | tout le programme (BSS = initialisées à 0) |
+    | **pile** | locales, paramètres, adresses de retour | la portée |
+    | **tas** | `new`, `malloc`, contenu des conteneurs | jusqu'au `delete` / destructeur |
+
+    Point important : un `std::vector<int> v;` **local** occupe ~24 octets sur la pile (trois pointeurs) ; ses éléments sont sur le tas. C'est pour ça qu'un vector de 10 millions d'éléments ne fait pas déborder la pile, contrairement à `int t[10'000'000];`.
+
+    En embarqué, la pile fait souvent 1 à 4 ko : une seule variable locale un peu grosse suffit à la faire déborder, et le symptôme est un plantage aléatoire, loin de la cause.
+- id: cpp03.9
+  type: cloze
+  level: 3
+  concepts:
+  - tableaux
+  - decay
+  q: Écris une fonction qui reçoit un tableau **sans perdre sa taille**, dans les trois styles.
+  lang: cpp
+  tpl: |-
+    #include <array>
+    #include <span>
+    #include <cstddef>
+
+    // style C : pointeur + taille explicite
+    double moyenne(const double* t, std::⟦0⟧ n);
+
+    // style template : la taille est dans le type
+    template <std::size_t N>
+    double moyenne(const std::⟦1⟧<double, N>& t);
+
+    // style C++20 : une vue qui porte pointeur ET taille
+    double moyenne(std::⟦2⟧<const double> t);
+  blanks:
+  - - size_t
+  - - array
+  - - span
+  e: |-
+    `std::span<const double>` est le meilleur des trois : une seule signature accepte un `vector`, un `array`, un tableau C, ou une sous-plage — sans copie ni template.
+
+    ```cpp
+    std::vector<double> v{1, 2, 3};
+    std::array<double, 3> a{1, 2, 3};
+    double t[3] = {1, 2, 3};
+    moyenne(v); moyenne(a); moyenne(t);          // tous acceptés
+    moyenne(std::span(v).subspan(1, 2));         // sous-plage, sans copie
+    ```
+
+    Avant C++20 : `gsl::span`, ou un template sur les itérateurs (`template <class It> double moyenne(It debut, It fin)`).
+
+    ⚠️ Une `span` ne **possède** rien : ne la stocke jamais dans un membre, ne la renvoie jamais vers un local.
+- id: cpp03.10
+  type: bug
+  level: 3
+  concepts:
+  - dangling
+  - pointeurs
+  q: Clique sur la ligne qui provoque un comportement indéfini.
+  lang: cpp
+  code: |-
+    #include <vector>
+    int* premier(std::vector<int>& v) {
+        return &v[0];
+    }
+    int main() {
+        std::vector<int> v{1, 2, 3};
+        int* p = premier(v);
+        v.push_back(4);
+        return *p;
+    }
+  bad: 9
+  fix: |2-
+        v.reserve(4);          // AVANT de prendre le pointeur
+        int* p = premier(v);
+  e: |-
+    `push_back` peut **réallouer** : quand la capacité est atteinte, le vector alloue un bloc plus grand, y déplace les éléments et libère l'ancien. `p` pointe alors sur de la mémoire libérée.
+
+    La ligne 9 est le déréférencement fautif, mais la **cause** est la ligne 8. C'est typique : l'UB se manifeste loin de sa cause.
+
+    Ce qui invalide les pointeurs, références et itérateurs :
+
+    | Conteneur | Invalidation |
+    | --- | --- |
+    | `vector` | toute réallocation ; `erase` à partir du point supprimé |
+    | `deque` | insertion au milieu ; les **références** survivent aux ajouts aux extrémités |
+    | `list`, `map`, `set` | uniquement l'élément effacé |
+    | `unordered_map` | les itérateurs au rehash, pas les références |
+
+    Détection : `-fsanitize=address` te donne la ligne exacte et l'endroit de la libération.
+- id: cpp03.11
+  type: predict
+  level: 2
+  concepts:
+  - nullptr
+  - pointeurs
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <iostream>
+    void f(int)    { std::cout << "int "; }
+    void f(char*)  { std::cout << "ptr "; }
+    int main() {
+        f(0);
+        f(nullptr);
+        int* p = nullptr;
+        std::cout << (p == nullptr) << (p ? 1 : 0) << "\n";
+    }
+  answer: int ptr 10
+  e: |-
+    `f(0)` appelle `f(int)` : `0` est un entier. C'était le piège de `NULL`, souvent défini comme `0`.
+
+    `f(nullptr)` appelle `f(char*)` : `nullptr` a son propre type, `std::nullptr_t`, convertible vers tout pointeur mais **pas** vers un entier.
+
+    `p == nullptr` vaut `true` (affiché `1`), et `p ? 1 : 0` vaut `0` : un pointeur nul est faux en contexte booléen.
+
+    Écris `nullptr`, jamais `NULL` ni `0` — et interroge-toi : si l'absence n'a pas de sens, une **référence** (`T&`) est meilleure, puisqu'elle ne peut pas être nulle.
+- id: cpp03.12
+  type: qcm
+  level: 3
+  concepts:
+  - pile-tas
+  - pointeurs
+  q: Quel est le vrai coût de `new int(42)` par rapport à `int x = 42;` sur la pile ?
+  choices:
+  - t: Une recherche de bloc libre, ~30 à 100 fois plus lent, plus 8 à 32 octets de métadonnées
+    ok: true
+    why: Sans compter la fragmentation et le défaut de cache lors de l’accès.
+  - t: Aucune différence
+    ok: false
+    why: L’allocateur doit gérer une structure de données globale.
+  - t: Le tas est plus rapide
+    ok: false
+    why: 'Jamais : la pile est un simple décalage de pointeur.'
+  - t: Seulement la place de l’entier
+    ok: false
+    why: L’allocateur stocke aussi la taille du bloc et des chaînages.
+  e: |-
+    Allocation sur la pile : **une instruction** (décrémenter le pointeur de pile). Allocation sur le tas : parcours d'une structure de listes libres, éventuel appel système, verrouillage si multithread.
+
+    Conséquences pratiques :
+    - Un `new` par élément dans une boucle chaude est un anti-motif. `std::vector` fait **une** allocation pour n éléments.
+    - `std::list<int>` alloue un nœud par élément : ~4× plus de mémoire qu'un `vector<int>` et une localité catastrophique. C'est pourquoi `vector` bat `list` même sur des insertions au milieu, jusqu'à des tailles surprenantes.
+    - En embarqué temps réel, l'allocation dynamique est **interdite** dans la boucle de contrôle : son temps n'est pas borné.
+
+    Règle : préfère la valeur, puis le conteneur, et n'utilise `new` (via `make_unique`) que pour le polymorphisme ou une durée de vie qui dépasse la portée.
+- id: cpp03.13
+  type: code
+  level: 3
+  concepts:
+  - pointeurs
+  - tableaux
+  q: 'Écris `std::size_t compacter(int* t, std::size_t n, int a_retirer)` : supprime toutes les occurrences de `a_retirer` en préservant l’ordre, et renvoie la nouvelle taille. Ne pas allouer.'
+  lang: cpp
+  start: |-
+    #include <cstddef>
+
+    std::size_t compacter(int* t, std::size_t n, int a_retirer) {
+        // ton code
+    }
+  sol: |-
+    #include <cstddef>
+
+    std::size_t compacter(int* t, std::size_t n, int a_retirer) {
+        std::size_t ecriture = 0;
+        for (std::size_t lecture = 0; lecture < n; ++lecture) {
+            if (t[lecture] != a_retirer) {
+                t[ecriture++] = t[lecture];
+            }
+        }
+        return ecriture;
+    }
+  tests: |-
+    #include <cassert>
+    #include <iostream>
+    int main() {
+        int a[6] = {1, 0, 2, 0, 3, 0};
+        assert(compacter(a, 6, 0) == 3);
+        assert(a[0] == 1 && a[1] == 2 && a[2] == 3);
+
+        int b[3] = {5, 5, 5};
+        assert(compacter(b, 3, 5) == 0);
+
+        int c[3] = {1, 2, 3};
+        assert(compacter(c, 3, 9) == 3 && c[2] == 3);
+
+        assert(compacter(nullptr, 0, 1) == 0);
+        std::cout << "OK\n";
+    }
+  e: |-
+    C'est l'algorithme des **deux index** (lecture / écriture), la base de `std::remove`. Il travaille en place, en une passe, sans allocation : exactement ce qu'il faut en embarqué.
+
+    Points à noter :
+    - `ecriture` n'avance que quand on garde un élément : les deux index se croisent sans jamais que l'écriture dépasse la lecture, donc aucun écrasement prématuré.
+    - Les éléments au-delà de la nouvelle taille sont **inchangés** (pas effacés) — c'est aussi le comportement de `std::remove`, et c'est pourquoi il faut l'associer à `erase` sur un conteneur.
+    - `n == 0` avec `t == nullptr` fonctionne : la boucle ne s'exécute pas. Attention, c'est le seul cas où un pointeur nul est acceptable ici.
+
+    Version standard : `auto fin = std::remove(t, t + n, a_retirer); return fin - t;`
+- id: cpp03.14
+  type: predict
+  level: 3
+  concepts:
+  - decay
+  q: Sortie ?
+  lang: cpp
+  code: |-
+    #include <cstdio>
+    #include <cstring>
+    int main() {
+        const char* s = "bonjour";
+        char t[] = "bonjour";
+        printf("%zu %zu %zu\n", sizeof(s), sizeof(t), strlen(t));
+    }
+  answer: 8 8 7
+  e: |-
+    Trois valeurs, trois raisons différentes :
+    - `sizeof(s)` = 8 → taille d'un **pointeur** sur 64 bits.
+    - `sizeof(t)` = 8 → taille du **tableau** : 7 caractères + le `\0` final.
+    - `strlen(t)` = 7 → longueur logique, sans le terminateur.
+
+    La coïncidence des deux 8 est un piège de l'exercice : ils mesurent des choses sans rapport.
+
+    Corollaire : `sizeof(tableau) / sizeof(tableau[0])` donne le nombre d'éléments — mais **seulement là où le tableau n'a pas dégénéré en pointeur**, c'est-à-dire jamais à l'intérieur d'une fonction qui le reçoit en paramètre. C'est un des bugs les plus courants du C.
+
+    En C++ : `std::size(t)` (C++17) refuse de compiler sur un pointeur, donc l'erreur est impossible.
+- id: cpp03.15
+  type: flash
+  level: 2
+  concepts:
+  - pointeurs
+  q: Comment lire une déclaration C++ compliquée comme `const int* const* p;` ?
+  back: |-
+    **Règle de la spirale / droite-à-gauche**, en partant du nom :
+
+    ```
+    const int* const* p;
+                      ^ p
+                     ^  est un pointeur
+              ^^^^^^    vers un pointeur constant
+    ^^^^^^^^^          vers un int constant
+    ```
+
+    Autres exemples :
+    - `int* p[10]` → tableau de 10 pointeurs vers int
+    - `int (*p)[10]` → pointeur vers un tableau de 10 int
+    - `int (*f)(double)` → pointeur vers fonction (double) → int
+
+    En cas de doute : **cdecl.org**, ou une alias : `using Callback = int(*)(double);`
+  e: |-
+    En C++ moderne, tu croises rarement ces monstres : `std::function`, `auto`, les alias de types et les lambdas les remplacent.
+
+    Mais tu les rencontreras dans les **API C** que tu dois piloter — pilotes d'instruments, bibliothèques matérielles, callbacks d'interruption. Savoir les lire fait partie du métier.
+
+    Astuce : une lambda **sans capture** se convertit en pointeur de fonction C, ce qui permet de la passer à une API C sans écrire de fonction libre.
+- id: cpp03.16
+  type: parsons
+  level: 3
+  concepts:
+  - pointeurs
+  - dangling
+  q: Reconstitue une fonction qui recherche une valeur et renvoie un pointeur, ou `nullptr`.
+  lang: cpp
+  lines:
+  - '#include <cstddef>'
+  - ''
+  - const int* chercher(const int* t, std::size_t n, int cible) noexcept {
+  - '    if (t == nullptr) return nullptr;'
+  - '    for (std::size_t i = 0; i < n; ++i) {'
+  - '        if (t[i] == cible) {'
+  - '            return &t[i];'
+  - '        }'
+  - '    }'
+  - '    return nullptr;'
+  - '}'
+  extra:
+  - '    return -1;'
+  - '        if (t[i] = cible) {'
+  e: |-
+    Trois éléments de rigueur :
+    - Le garde `t == nullptr` : déréférencer un pointeur nul est un UB, même pour `n == 0` si la boucle s'exécutait.
+    - Le retour `nullptr` en cas d'échec, pas `-1` : la fonction renvoie un pointeur, mélanger les conventions est une source de bugs (premier intrus).
+    - `if (t[i] = cible)` (second intrus) est l'erreur classique **affectation au lieu de comparaison** : ça compile, ça écrase le tableau, et c'est toujours vrai sauf si `cible` vaut 0. `-Wall` t'avertit (`-Wparentheses`).
+
+    Le retour `const int*` propage la constance de l'entrée : on ne peut pas modifier à travers le résultat.
+
+    Version standard : `auto it = std::find(t, t + n, cible); return it == t + n ? nullptr : &*it;`

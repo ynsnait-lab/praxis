@@ -1,0 +1,287 @@
+domain: capteurs
+exercises:
+- id: ig.cap01
+  type: qcm
+  level: 1
+  q: 'Un capteur qui donne toujours des valeurs très groupées mais décalées de 2 °C par rapport à la vraie valeur est :'
+  choices:
+  - t: Juste et fidèle
+    ok: false
+  - t: Ni juste ni fidèle
+    ok: false
+  - t: Fidèle mais peu juste
+    ok: true
+  - t: Juste mais peu fidèle
+    ok: false
+  e: 'Fidélité = faible dispersion (répétabilité) ; justesse = absence d''erreur systématique. Ici la dispersion est faible mais le biais est de 2 °C : fidèle, pas juste. Bonne nouvelle, un biais systématique s''étalonne, alors qu''une mauvaise fidélité est irrécupérable.'
+  src: calibre
+- id: ig.cap02
+  type: qcm
+  level: 2
+  q: 'Un afficheur indique la température au centième de degré. Cela garantit :'
+  choices:
+  - t: Une bonne linéarité
+    ok: false
+  - t: Un étalonnage valide
+    ok: false
+  - t: Une précision au centième de degré
+    ok: false
+  - t: Seulement une résolution au centième de degré, sans rien dire de la précision
+    ok: true
+  e: 'Résolution et précision sont indépendantes : un capteur peut afficher 0,01 °C tout en se trompant de 2 °C. C''est même un piège commercial classique sur les instruments bas de gamme. Seul un certificat d''étalonnage raccordé à une référence nationale renseigne sur la précision.'
+  src: calibre
+- id: ig.cap03
+  type: qcm
+  level: 2
+  q: 'Tu mesures une puissance P = U·I avec 1 % d''incertitude relative sur U et 2 % sur I, sources indépendantes. Incertitude relative sur P :'
+  choices:
+  - t: 1 %
+    ok: false
+  - t: 1,5 %
+    ok: false
+  - t: 3 %
+    ok: false
+  - t: 2,2 %
+    ok: true
+  e: 'Pour un produit, les incertitudes RELATIVES se composent quadratiquement : √(1² + 2²) ≈ 2,24 %. L''addition arithmétique (3 %) correspond au calcul au pire des cas, trop pessimiste pour des sources indépendantes. À noter : la plus grande source domine vite — d''où l''inutilité de raffiner la petite.'
+  src: calibre
+- id: ig.cap04
+  type: qcm
+  level: 2
+  q: 'Tu mesures 16 fois une longueur : moyenne 50,00 mm, écart-type 0,08 mm. Incertitude-type sur la moyenne :'
+  choices:
+  - t: 0,02 mm
+    ok: true
+  - t: 0,08 mm
+    ok: false
+  - t: 0,32 mm
+    ok: false
+  - t: 0,005 mm
+    ok: false
+  e: 'u = σ/√n = 0,08/4 = 0,02 mm. La moyenne est toujours mieux connue qu''une mesure isolée, mais le gain n''est qu''en √n : passer de 16 à 64 mesures ne divise l''incertitude que par 2 de plus. Et cela ne réduit que la part ALÉATOIRE — un biais systématique reste intact quel que soit le nombre de mesures.'
+  src: calibre
+- id: ig.cap05
+  type: qcm
+  level: 2
+  q: 'Un thermocouple de type K délivre une tension d''environ :'
+  choices:
+  - t: 40 mV par °C
+    ok: false
+  - t: 40 µV par °C
+    ok: true
+  - t: 1 mA par °C
+    ok: false
+  - t: 4 V par °C
+    ok: false
+  e: '≈ 41 µV/°C : un signal minuscule, qui impose un amplificateur soigné et un câblage blindé. Il exige aussi une compensation de soudure froide, car le thermocouple mesure un ÉCART de température entre jonctions, pas une température absolue. En échange : plage énorme (jusqu''à 1200 °C) et robustesse.'
+  src: calibre
+- id: ig.cap06
+  type: qcm
+  level: 2
+  q: Pourquoi câbler une sonde Pt100 en 4 fils plutôt qu'en 2 fils ?
+  choices:
+  - t: Pour éliminer l'influence de la résistance des câbles de liaison
+    ok: true
+  - t: Pour la protéger des surtensions
+    ok: false
+  - t: Pour alimenter la sonde
+    ok: false
+  - t: Pour doubler la sensibilité
+    ok: false
+  e: 'Une Pt100 vaut 100 Ω à 0 °C et varie de seulement 0,385 Ω/°C : quelques ohms de câble introduisent déjà plusieurs degrés d''erreur. En 4 fils, deux fils injectent le courant et deux autres mesurent la tension directement aux bornes du capteur, sans chute parasite. Le montage 3 fils est un compromis intermédiaire.'
+  src: calibre
+- id: ig.cap07
+  type: qcm
+  level: 2
+  q: 'Le signal de sortie d''un pont de jauges d''extensométrie est typiquement de l''ordre de :'
+  choices:
+  - t: Quelques ampères
+    ok: false
+  - t: Quelques dizaines de volts
+    ok: false
+  - t: Quelques mV par volt d'alimentation
+    ok: true
+  - t: Quelques volts
+    ok: false
+  e: 'Typiquement 1 à 3 mV/V à pleine charge : sous 10 V d''excitation, on récupère une vingtaine de millivolts au maximum. D''où la nécessité d''un amplificateur d''instrumentation à fort taux de rejet de mode commun, et d''une attention extrême au bruit, aux thermocouples parasites et à la stabilité de l''alimentation d''excitation.'
+  src: calibre
+- id: ig.cap08
+  type: qcm
+  level: 3
+  q: Pourquoi utilise-t-on un pont complet (4 jauges actives) plutôt qu'une seule jauge ?
+  choices:
+  - t: Pour mesurer plus vite
+    ok: false
+  - t: Pour simplifier le câblage
+    ok: false
+  - t: Pour réduire le coût
+    ok: false
+  - t: Pour multiplier la sensibilité par 4 et compenser automatiquement les effets de la température
+    ok: true
+  e: 'Deux bénéfices en un : la sensibilité est multipliée par 4, et la dilatation thermique, qui affecte toutes les jauges de la même façon, se compense dans les branches opposées du pont. Un montage en quart de pont exige à l''inverse une jauge de compensation dédiée, ou une correction logicielle fragile.'
+  src: calibre
+- id: ig.cap09
+  type: qcm
+  level: 2
+  q: 'Différence essentielle entre un codeur incrémental et un codeur absolu :'
+  choices:
+  - t: Le codeur incrémental est plus précis
+    ok: false
+  - t: Le codeur absolu n'a pas besoin d'alimentation
+    ok: false
+  - t: Le codeur absolu connaît sa position dès la mise sous tension, sans prise d'origine
+    ok: true
+  - t: Le codeur incrémental fonctionne sans électronique
+    ok: false
+  e: 'L''incrémental ne fournit que des impulsions : il faut une prise d''origine (POM) à chaque démarrage et la position est perdue en cas de coupure. L''absolu code directement la position, plus coûteux mais indispensable dès qu''une prise d''origine est impossible ou dangereuse — un axe vertical chargé, par exemple.'
+  src: calibre
+- id: ig.cap10
+  type: qcm
+  level: 2
+  q: 'Codeur incrémental de 1024 impulsions par tour, exploité en quadrature. Nombre d''incréments par tour :'
+  choices:
+  - t: '256'
+    ok: false
+  - t: '2048'
+    ok: false
+  - t: '4096'
+    ok: true
+  - t: '1024'
+    ok: false
+  e: 'Le décodage en quadrature exploite les quatre fronts des voies A et B : ×4, donc 4096 incréments. Cela donne aussi le sens de rotation, information absente d''une voie unique. Attention, cette résolution accrue n''améliore pas la PRÉCISION angulaire du disque lui-même.'
+  src: calibre
+- id: ig.cap11
+  type: qcm
+  level: 2
+  q: 'Un détecteur de proximité inductif détecte :'
+  choices:
+  - t: Uniquement les liquides
+    ok: false
+  - t: Tous les matériaux
+    ok: false
+  - t: Uniquement les métaux
+    ok: true
+  - t: Uniquement les matériaux transparents
+    ok: false
+  e: 'Il fonctionne par courants de Foucault : seuls les métaux sont vus, avec une portée réduite pour les métaux non ferreux. Le capacitif détecte tout matériau, y compris plastique et liquide, mais est sensible à l''humidité. L''optique porte beaucoup plus loin mais craint poussière et surfaces sombres ou brillantes.'
+  src: calibre
+- id: ig.cap12
+  type: qcm
+  level: 3
+  q: Pourquoi la boucle de courant 4-20 mA est-elle préférée à une transmission 0-10 V en milieu industriel ?
+  choices:
+  - t: Elle est insensible à la chute de tension dans les câbles, et le 4 mA de repos permet de détecter une rupture de ligne
+    ok: true
+  - t: Elle transmet plus d'informations
+    ok: false
+  - t: Elle est plus rapide
+    ok: false
+  - t: Elle consomme moins
+    ok: false
+  e: 'Un courant est conservé tout au long de la boucle : la longueur du câble n''introduit aucune erreur, contrairement à une tension. Et le zéro décalé à 4 mA distingue « mesure nulle » de « câble coupé » — un 0 mA signale sans ambiguïté un défaut. C''est ce qui en fait le standard des installations étendues.'
+  src: calibre
+- id: ig.cap13
+  type: qcm
+  level: 2
+  q: 'Étalonner un instrument consiste à :'
+  choices:
+  - t: Vérifier qu'il fonctionne
+    ok: false
+  - t: Établir la relation entre ses indications et les valeurs d'une référence raccordée aux étalons nationaux
+    ok: true
+  - t: Le nettoyer et le contrôler visuellement
+    ok: false
+  - t: Le régler pour qu'il affiche la bonne valeur
+    ok: false
+  e: L'étalonnage établit et documente les écarts avec une incertitude associée — il constate, il ne corrige pas forcément. L'ajustage est l'action de régler l'instrument, la vérification le fait de conclure à la conformité par rapport à une tolérance. Trois notions distinctes, souvent confondues, et la distinction est exigée par l'ISO 9001.
+  src: calibre
+- id: ig.cap14
+  type: qcm
+  level: 2
+  q: 'Tu veux mesurer un choc dont la durée est de 1 ms. La bande passante minimale du capteur et de sa chaîne doit être d''environ :'
+  choices:
+  - t: 100 Hz
+    ok: false
+  - t: 1 Hz
+    ok: false
+  - t: 1 MHz
+    ok: false
+  - t: au moins quelques kHz
+    ok: true
+  e: 'Un événement de 1 ms contient de l''énergie jusqu''à plusieurs kHz (ordre de grandeur : 1/durée, soit 1 kHz, et il faut plusieurs fois cela pour restituer la forme). Une chaîne limitée à 100 Hz écrêterait et allongerait le pic, sous-estimant gravement l''amplitude. Régler la bande passante sur la dynamique du phénomène, pas sur la fréquence de répétition.'
+  src: calibre
+- id: ig.cap15
+  type: qcm
+  level: 3
+  q: 'La spécification « linéarité : ±0,5 % PE » d''un capteur signifie que l''erreur peut atteindre 0,5 % :'
+  choices:
+  - t: De la résolution
+    ok: false
+  - t: De la valeur lue
+    ok: false
+  - t: De la valeur lue uniquement en fin d'échelle
+    ok: false
+  - t: De la pleine échelle, donc une erreur absolue constante sur toute la plage
+    ok: true
+  e: 'Rapportée à la PLEINE ÉCHELLE : sur un capteur 0-1000 bar, cela fait ±5 bar partout — soit 50 % d''erreur relative si l''on mesure 10 bar. Conséquence pratique majeure : ne jamais choisir un capteur très surdimensionné par rapport à la grandeur à mesurer. Les spécifications « % de la lecture » sont bien plus favorables en bas d''échelle.'
+  src: calibre
+- id: ig.cap16
+  type: qcm
+  level: 2
+  q: 'Différence entre un accéléromètre MEMS capacitif et un accéléromètre piézoélectrique :'
+  choices:
+  - t: Le MEMS mesure aussi les accélérations statiques (dont la gravité), le piézo non
+    ok: true
+  - t: Le piézo est toujours plus précis
+    ok: false
+  - t: Ils sont équivalents
+    ok: false
+  - t: Le MEMS ne mesure que les chocs
+    ok: false
+  e: 'Le piézo génère une charge lors d''une VARIATION de contrainte : sa réponse ne descend pas au continu, donc il ne peut pas mesurer une inclinaison. Le MEMS capacitif répond dès 0 Hz, ce qui en fait un inclinomètre. En revanche le piézo domine largement en haute fréquence et en amplitude de choc.'
+  src: calibre
+- id: ig.cap17
+  type: qcm
+  level: 2
+  q: 'Un LVDT mesure :'
+  choices:
+  - t: Un couple
+    ok: false
+  - t: Une température
+    ok: false
+  - t: Une pression absolue
+    ok: false
+  - t: Un déplacement linéaire, par couplage inductif variable
+    ok: true
+  e: 'Un noyau ferromagnétique se déplace dans un primaire et deux secondaires : le déséquilibre induit donne la position. Pas de contact électrique sur la partie mobile, donc usure nulle, excellente résolution et robustesse — d''où son emploi en environnement sévère, sous rayonnement ou sous vide, là où un capteur optique ne tiendrait pas.'
+  src: calibre
+- id: ig.cap18
+  type: qcm
+  level: 3
+  q: 'Ta chaîne de mesure associe un capteur à ±1 % et un convertisseur 24 bits. L''incertitude globale est :'
+  choices:
+  - t: Nulle
+    ok: false
+  - t: Dominée par le capteur, soit environ 1 %
+    ok: true
+  - t: Égale à la résolution du convertisseur
+    ok: false
+  - t: Améliorée par la résolution du convertisseur
+    ok: false
+  e: 'L''incertitude totale est gouvernée par le maillon le plus faible : numériser finement une mesure fausse ne la rend pas plus vraie. C''est l''erreur de conception la plus fréquente en instrumentation — investir dans le convertisseur plutôt que dans le capteur, son conditionnement et son étalonnage.'
+  src: calibre
+- id: ig.cap19
+  type: qcm
+  level: 2
+  q: 'Un thermocouple monté dans un doigt de gant (gaine) par rapport au même thermocouple nu :'
+  choices:
+  - t: Répond plus lentement, à cause de l'inertie thermique de la gaine
+    ok: true
+  - t: A la même dynamique
+    ok: false
+  - t: Est plus précis en régime transitoire
+    ok: false
+  - t: Répond plus vite
+    ok: false
+  e: 'La gaine ajoute masse et résistance thermique de contact : la constante de temps passe de quelques centaines de millisecondes à plusieurs dizaines de secondes. Elle protège mécaniquement et chimiquement, et permet le remplacement à chaud, mais tue la dynamique. Arbitrage classique de conception d''instrumentation de procédé.'
+  src: calibre

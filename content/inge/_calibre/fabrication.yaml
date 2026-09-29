@@ -1,0 +1,287 @@
+domain: fabrication
+exercises:
+- id: ig.fab01
+  type: qcm
+  level: 1
+  q: 'Dans un ajustement ISO noté Ø25 H7/g6, la lettre majuscule désigne :'
+  choices:
+  - t: L'arbre (pièce contenue)
+    ok: false
+  - t: La tolérance générale
+    ok: false
+  - t: L'alésage (pièce contenante)
+    ok: true
+  - t: L'état de surface
+    ok: false
+  e: 'Convention universelle : MAJUSCULE = alésage, minuscule = arbre. Le chiffre qui suit est la qualité (classe IT). Connaître cette règle permet de lire n''importe quel ajustement sans documentation.'
+  src: calibre
+- id: ig.fab02
+  type: qcm
+  level: 2
+  q: Parmi ces ajustements, lequel est un ajustement serré ?
+  choices:
+  - t: H7/f7
+    ok: false
+  - t: H7/p6
+    ok: true
+  - t: H7/g6
+    ok: false
+  - t: H7/h6
+    ok: false
+  e: 'À partir de p, l''arbre est systématiquement plus gros que l''alésage : serrage garanti (p6, r6, s6 pour un frettage). g et f donnent du jeu (glissant, tournant), h6 donne un ajustement juste, à jeu nul ou très faible. Repère mnémotechnique : a→h = jeu, j→n = incertain, p→z = serré.'
+  src: calibre
+- id: ig.fab03
+  type: qcm
+  level: 2
+  q: 'Une cote Ø30 h6 sur un plan signifie que la pièce réelle mesure :'
+  choices:
+  - t: Entre 29,994 et 30,006 mm de façon symétrique
+    ok: false
+  - t: Toujours un peu moins de 30 mm
+    ok: true
+  - t: Toujours un peu plus de 30 mm
+    ok: false
+  - t: 30 mm ± 6 µm
+    ok: false
+  e: 'Pour un arbre, la position h a un écart supérieur nul : la cote va de 30 − IT6 à 30 exactement. L''arbre h6 ne dépasse donc jamais sa cote nominale. Symétriquement, un alésage H7 ne descend jamais sous sa nominale — ce qui garantit le jeu de l''ajustement H7/h6.'
+  src: calibre
+- id: ig.fab04
+  type: qcm
+  level: 2
+  q: Entre les qualités IT6 et IT9, laquelle correspond à la tolérance la plus large ?
+  choices:
+  - t: Cela dépend du diamètre nominal
+    ok: false
+  - t: IT9
+    ok: true
+  - t: IT6
+    ok: false
+  - t: Elles sont identiques
+    ok: false
+  e: 'Plus l''indice IT est grand, plus l''intervalle est large : IT9 est donc bien plus permissif qu''IT6. Ordres de grandeur autour de Ø30 : IT6 ≈ 13 µm, IT7 ≈ 21 µm, IT9 ≈ 52 µm, IT12 ≈ 250 µm. La valeur absolue croît aussi avec le diamètre, mais le classement, lui, ne change jamais.'
+  src: calibre
+- id: ig.fab05
+  type: qcm
+  level: 2
+  q: Quel procédé permet d'atteindre couramment une rugosité Ra de 0,2 à 0,4 µm ?
+  choices:
+  - t: Oxycoupage
+    ok: false
+  - t: Perçage
+    ok: false
+  - t: Tournage classique
+    ok: false
+  - t: Rectification
+    ok: true
+  e: 'Rectification : Ra 0,2-0,8 µm. Un tournage ou fraisage soigné plafonne vers 0,8-3,2 µm, un perçage vers 3,2-6,3, et l''oxycoupage est un procédé de débit sans prétention d''état de surface. Pour descendre sous 0,1 µm il faut roder, polir ou superfinir.'
+  src: calibre
+- id: ig.fab06
+  type: qcm
+  level: 2
+  q: 'Dans un cadre de tolérancement géométrique, le symbole Ø placé devant la valeur indique :'
+  choices:
+  - t: Que la tolérance s'applique à un diamètre
+    ok: false
+  - t: Que la pièce est cylindrique
+    ok: false
+  - t: Qu'il s'agit d'une cote de référence
+    ok: false
+  - t: Que la zone de tolérance est cylindrique et non plane
+    ok: true
+  e: Ø0,05 signifie que l'axe réel doit rester dans un CYLINDRE de 0,05 mm de diamètre — zone de tolérance en 3D. Sans le Ø, la zone est comprise entre deux plans parallèles, dans une seule direction. Oublier ce symbole revient à diviser ou multiplier artificiellement la liberté de l'axe.
+  src: calibre
+- id: ig.fab07
+  type: qcm
+  level: 3
+  q: 'Le modificateur Ⓜ (exigence du maximum de matière) dans un tolérancement de position permet :'
+  choices:
+  - t: De supprimer la référence spécifiée
+    ok: false
+  - t: De réduire la tolérance quand la pièce s'éloigne du maximum de matière
+    ok: false
+  - t: D'imposer un état de surface
+    ok: false
+  - t: D'augmenter la tolérance de position à mesure que la pièce s'écarte du maximum de matière
+    ok: true
+  e: 'L''idée est fonctionnelle : ce qui compte pour un assemblage est que le montage soit possible. Si un perçage est plus gros que son minimum, il reste du jeu, donc on peut tolérer un défaut de position d''autant plus grand. Cela élargit l''acceptation en fabrication sans compromettre la fonction — et autorise le contrôle par calibre fonctionnel.'
+  src: calibre
+- id: ig.fab08
+  type: qcm
+  level: 2
+  q: 'Dans une chaîne de cotes calculée au pire des cas, les tolérances des maillons :'
+  choices:
+  - t: S'additionnent quadratiquement
+    ok: false
+  - t: Sont sans effet sur la cote condition
+    ok: false
+  - t: S'additionnent arithmétiquement
+    ok: true
+  - t: Se compensent mutuellement
+    ok: false
+  e: 'Au pire des cas, IT_condition = Σ IT_maillons : les défauts s''ajoutent tous dans le même sens. C''est sévère mais sûr. L''approche statistique (quadratique, √ΣIT²) est bien moins pénalisante et suffit en grande série, où la probabilité que tous les maillons soient simultanément à l''extrême est infime.'
+  src: calibre
+- id: ig.fab09
+  type: qcm
+  level: 2
+  q: Quel procédé retenir pour obtenir un alésage en qualité H7 ?
+  choices:
+  - t: Alésage à l'alésoir ou rectification
+    ok: true
+  - t: Poinçonnage
+    ok: false
+  - t: Perçage au foret seul
+    ok: false
+  - t: Découpe laser
+    ok: false
+  e: 'Un perçage brut au foret donne au mieux du H12-H13 et une mauvaise cylindricité. Pour un H7 il faut une opération de finition : alésoir, alésage à l''outil ou rectification. Prévoir H7 directement au foret sur un plan est l''erreur de débutant qui fait exploser les rebuts.'
+  src: calibre
+- id: ig.fab10
+  type: qcm
+  level: 2
+  q: 'Fraise de Ø20 mm tournant à 1000 tr/min. Vitesse de coupe :'
+  choices:
+  - t: ≈ 628 m/min
+    ok: false
+  - t: ≈ 200 m/min
+    ok: false
+  - t: ≈ 63 m/min
+    ok: true
+  - t: ≈ 20 m/min
+    ok: false
+  e: 'Vc = π·D·N/1000 = π × 20 × 1000/1000 ≈ 63 m/min. Cette formule est la base du choix des conditions de coupe : pour un carbure sur acier on cherche Vc ≈ 150-250 m/min, ce qui imposerait plutôt 2500-4000 tr/min avec cette fraise.'
+  src: calibre
+- id: ig.fab11
+  type: qcm
+  level: 2
+  q: 'Fraise à 4 dents, 2000 tr/min, avance par dent 0,1 mm. Vitesse d''avance de la table :'
+  choices:
+  - t: 2000 mm/min
+    ok: false
+  - t: 400 mm/min
+    ok: false
+  - t: 800 mm/min
+    ok: true
+  - t: 200 mm/min
+    ok: false
+  e: Vf = fz × z × N = 0,1 × 4 × 2000 = 800 mm/min. L'avance PAR DENT est le paramètre physique qui détermine l'épaisseur du copeau et donc l'effort sur l'arête ; l'avance table n'en est que la conséquence. Confondre les deux est la cause classique de casse d'outil.
+  src: calibre
+- id: ig.fab12
+  type: qcm
+  level: 3
+  q: 'En fraisage, le travail « en avalant » (concordance) par rapport au travail « en opposition » :'
+  choices:
+  - t: Donne un meilleur état de surface mais exige une machine rigide et sans jeu
+    ok: true
+  - t: Est impossible en commande numérique
+    ok: false
+  - t: Réduit l'usure de l'outil sur machine à jeu important
+    ok: false
+  - t: Donne un moins bon état de surface
+    ok: false
+  e: 'En concordance, la dent attaque à épaisseur de copeau maximale : moins d''écrouissage, meilleure finition, moins d''usure. Mais l''effort tend à tirer la pièce dans le sens de l''avance, donc le moindre jeu de vis-mère provoque un broutement violent. Sur une fraiseuse conventionnelle usée, on travaille en opposition ; sur une CN à vis à billes préchargées, en concordance.'
+  src: calibre
+- id: ig.fab13
+  type: qcm
+  level: 2
+  q: Pourquoi prévoir une dépouille (angle de démoulage) sur une pièce moulée ou injectée ?
+  choices:
+  - t: Pour renforcer mécaniquement la pièce
+    ok: false
+  - t: Pour réduire la masse
+    ok: false
+  - t: Pour améliorer l'esthétique
+    ok: false
+  - t: Pour permettre l'extraction de la pièce hors du moule
+    ok: true
+  e: 'Sans dépouille, la pièce frotte sur toute la hauteur de la paroi pendant l''éjection : rayures, blocage, marques d''éjecteurs. On prévoit typiquement 1 à 3° par face. Même logique en fonderie et en thermoformage — et c''est l''une des premières choses qu''un mouliste reproche à un plan.'
+  src: calibre
+- id: ig.fab14
+  type: qcm
+  level: 2
+  q: 'En injection plastique, le retrait au refroidissement :'
+  choices:
+  - t: Doit être compensé dans les cotes du moule, typiquement de 0,5 à 2 %
+    ok: true
+  - t: Rend la pièce plus grande que le moule
+    ok: false
+  - t: Ne concerne que les pièces métalliques
+    ok: false
+  - t: Est négligeable
+    ok: false
+  e: 'Le polymère se contracte en refroidissant : le moule doit donc être usiné plus GRAND que la pièce voulue. Le taux dépend de la matière (≈ 0,5 % pour l''ABS, jusqu''à 2 % pour le PP semi-cristallin) et n''est pas isotrope. C''est la première source d''écart dimensionnel sur une pièce injectée.'
+  src: calibre
+- id: ig.fab15
+  type: qcm
+  level: 3
+  q: Sur un assemblage soudé, quelle zone est généralement la plus critique mécaniquement ?
+  choices:
+  - t: Le cordon lui-même
+    ok: false
+  - t: La surface peinte
+    ok: false
+  - t: Le métal de base loin du cordon
+    ok: false
+  - t: La zone affectée thermiquement (ZAT), en bordure du cordon
+    ok: true
+  e: 'La ZAT a subi un cycle thermique non contrôlé : grossissement du grain, trempe locale possible, contraintes résiduelles et parfois fragilisation. Le cordon, lui, est souvent sur-dimensionné et d''un métal d''apport adapté. C''est pourquoi les ruptures apparaissent au PIED du cordon, et pourquoi on parachève par meulage ou traitement de détensionnement.'
+  src: calibre
+- id: ig.fab16
+  type: qcm
+  level: 2
+  q: À quoi sert la norme ISO 2768 sur un plan ?
+  choices:
+  - t: À définir les tolérances générales applicables aux cotes non tolérancées individuellement
+    ok: true
+  - t: À normaliser les formats de papier
+    ok: false
+  - t: À imposer un matériau
+    ok: false
+  - t: À définir les états de surface
+    ok: false
+  e: 'Une mention du type « ISO 2768-mK » fixe les tolérances par défaut (dimensionnelles et géométriques) pour toutes les cotes du plan sans tolérance explicite. Sans cette mention, un plan est techniquement incontrôlable : on ne sait pas ce qui est acceptable. C''est l''oubli le plus fréquent sur un plan d''étudiant.'
+  src: calibre
+- id: ig.fab17
+  type: qcm
+  level: 2
+  q: 'Diamètre de perçage avant taraudage d''un M8 à pas gros (1,25 mm) :'
+  choices:
+  - t: 6,8 mm
+    ok: true
+  - t: 5,5 mm
+    ok: false
+  - t: 7,5 mm
+    ok: false
+  - t: 8 mm
+    ok: false
+  e: 'Règle pratique : Ø ≈ D − pas = 8 − 1,25 = 6,75, donc foret normalisé à 6,8 mm. Cette règle marche pour tous les pas gros ISO : M6 → 5 mm, M10 → 8,5 mm, M12 → 10,2 mm. Percer trop grand donne un filet incomplet, trop petit casse le taraud.'
+  src: calibre
+- id: ig.fab18
+  type: qcm
+  level: 3
+  q: 'Une pièce imprimée en FDM est mécaniquement la plus faible :'
+  choices:
+  - t: Dans le plan des couches
+    ok: false
+  - t: En traction selon l'axe Z, perpendiculairement aux couches
+    ok: true
+  - t: Sur les surfaces extérieures
+    ok: false
+  - t: Au centre de la pièce
+    ok: false
+  e: 'L''adhésion entre couches repose sur une refusion partielle et reste très inférieure à la cohésion du filament : la résistance en Z tombe souvent à 30-60 % de celle mesurée dans le plan XY. Conséquence de conception : orienter la pièce pour que les efforts de traction suivent les couches, jamais les traversent.'
+  src: calibre
+- id: ig.fab19
+  type: qcm
+  level: 2
+  q: Dans un tolérancement géométrique, à quoi servent les références spécifiées A, B, C ?
+  choices:
+  - t: À désigner les matériaux
+    ok: false
+  - t: À numéroter les vues du dessin
+    ok: false
+  - t: À indiquer l'ordre des opérations d'usinage
+    ok: false
+  - t: À définir le système de référence dans lequel la tolérance est évaluée
+    ok: true
+  e: 'Elles construisent le repère de mesure : A bloque généralement 3 ddl (plan primaire), B 2, C 1 — exactement la logique 3-2-1. Leur ORDRE compte : A|B|C ne donne pas le même résultat de contrôle que B|A|C. Une tolérance de position sans référence n''a aucun sens métrologique.'
+  src: calibre

@@ -1,0 +1,287 @@
+domain: automatique
+exercises:
+- id: ig.aut01
+  type: qcm
+  level: 1
+  q: 'Ce qui caractérise une commande en boucle fermée par rapport à une commande en boucle ouverte :'
+  choices:
+  - t: Elle mesure la grandeur réglée et corrige l'écart avec la consigne
+    ok: true
+  - t: Elle consomme moins d'énergie
+    ok: false
+  - t: Elle est plus rapide
+    ok: false
+  - t: Elle ne nécessite pas de capteur
+    ok: false
+  e: 'La mesure est le cœur du sujet : sans retour, le système ne peut pas savoir qu''il s''écarte. La boucle fermée apporte la rejection des perturbations et l''insensibilité aux dérives du procédé, au prix d''un capteur et d''un risque d''instabilité — qui n''existe pas en boucle ouverte.'
+  src: calibre
+- id: ig.aut02
+  type: qcm
+  level: 2
+  q: 'Système du premier ordre de constante de temps τ soumis à un échelon. Temps de réponse à 5 % :'
+  choices:
+  - t: ≈ 3τ
+    ok: true
+  - t: ≈ τ
+    ok: false
+  - t: ≈ 10τ
+    ok: false
+  - t: ≈ 5τ
+    ok: false
+  e: On atteint 95 % de la valeur finale au bout de 3τ (63 % à 1τ, 86 % à 2τ, 99 % à 5τ). Le temps de réponse à 5 % est le critère conventionnel de rapidité — et pour un premier ordre il ne dépend que de τ, pas du gain.
+  src: calibre
+- id: ig.aut03
+  type: qcm
+  level: 2
+  q: 'Le gain statique d''une fonction de transfert H(p) s''obtient en calculant :'
+  choices:
+  - t: H(p) pour p → ∞
+    ok: false
+  - t: Le module de H à la pulsation de coupure
+    ok: false
+  - t: H(p) pour p → 0
+    ok: true
+  - t: La dérivée de H
+    ok: false
+  e: 'Le gain statique est H(0) : c''est le rapport sortie/entrée en régime permanent. Pour p → ∞ on obtient le comportement haute fréquence. Un système comportant un intégrateur a un gain statique infini — d''où son erreur statique nulle en boucle fermée.'
+  src: calibre
+- id: ig.aut04
+  type: qcm
+  level: 2
+  q: 'Un asservissement à correcteur uniquement proportionnel, sur un procédé sans intégrateur naturel, présente :'
+  choices:
+  - t: Une instabilité systématique
+    ok: false
+  - t: Une erreur statique non nulle, d'autant plus faible que le gain est grand
+    ok: true
+  - t: Un dépassement nul
+    ok: false
+  - t: Une erreur statique nulle
+    ok: false
+  e: 'L''erreur vaut 1/(1+K·Ks) : elle diminue avec le gain mais ne s''annule jamais. Or augmenter K indéfiniment finit par déstabiliser. La seule façon propre d''annuler l''erreur statique est d''ajouter une action intégrale, qui apporte le gain infini en continu.'
+  src: calibre
+- id: ig.aut05
+  type: qcm
+  level: 2
+  q: 'L''ajout d''une action intégrale dans un correcteur a pour effet :'
+  choices:
+  - t: D'annuler l'erreur statique et d'améliorer la stabilité
+    ok: false
+  - t: D'accélérer le système sans contrepartie
+    ok: false
+  - t: De supprimer le dépassement
+    ok: false
+  - t: D'annuler l'erreur statique et de réduire la marge de phase
+    ok: true
+  e: 'L''intégrateur apporte un gain infini en continu (d''où l''erreur statique nulle) mais ajoute −90° de phase, ce qui rapproche du point critique. C''est le compromis central du PID : la précision se paie en marge de stabilité, et c''est le rôle de l''action dérivée de compenser partiellement cette perte.'
+  src: calibre
+- id: ig.aut06
+  type: qcm
+  level: 2
+  q: 'Principal inconvénient de l''action dérivée dans un régulateur PID :'
+  choices:
+  - t: Elle crée une erreur statique
+    ok: false
+  - t: Elle rend le système plus lent à démarrer
+    ok: false
+  - t: Elle ralentit le système
+    ok: false
+  - t: Elle amplifie fortement le bruit de mesure haute fréquence
+    ok: true
+  e: 'La dérivation multiplie le gain par la fréquence : un bruit de mesure minuscule mais rapide devient un signal de commande considérable, faisant vibrer l''actionneur. On la filtre donc systématiquement (dérivée filtrée, gain limité à N) et on l''applique souvent sur la mesure seule, pas sur l''écart, pour éviter le coup de fouet aux changements de consigne.'
+  src: calibre
+- id: ig.aut07
+  type: qcm
+  level: 2
+  q: 'Un système linéaire est stable si et seulement si :'
+  choices:
+  - t: Il ne possède aucun zéro
+    ok: false
+  - t: Son gain statique est inférieur à 1
+    ok: false
+  - t: Sa phase reste supérieure à −90°
+    ok: false
+  - t: Tous les pôles de sa fonction de transfert ont une partie réelle strictement négative
+    ok: true
+  e: Le critère est sur les PÔLES, dans le demi-plan gauche. Un pôle à partie réelle positive donne une exponentielle divergente ; un pôle sur l'axe imaginaire donne une oscillation entretenue (limite de stabilité). Les zéros n'affectent pas la stabilité, seulement la forme de la réponse — mais un zéro à droite (système à réponse inverse) rend l'asservissement bien plus difficile.
+  src: calibre
+- id: ig.aut08
+  type: qcm
+  level: 2
+  q: 'Marge de phase généralement visée pour un asservissement industriel robuste :'
+  choices:
+  - t: 90 à 120°
+    ok: false
+  - t: 45 à 60°
+    ok: true
+  - t: 180°
+    ok: false
+  - t: 5 à 10°
+    ok: false
+  e: '45 à 60° : en dessous, le système devient oscillatoire et fragile aux variations du procédé ; au-dessus, il est très amorti mais lent. On l''accompagne d''une marge de gain de 6 à 12 dB. Ces deux marges sont la mesure pratique de la robustesse, bien plus utile qu''un simple « c''est stable ».'
+  src: calibre
+- id: ig.aut09
+  type: qcm
+  level: 2
+  q: 'Coefficient d''amortissement offrant le meilleur compromis rapidité/dépassement pour un second ordre :'
+  choices:
+  - t: '2'
+    ok: false
+  - t: 0,1
+    ok: false
+  - t: '1'
+    ok: false
+  - t: 0,7
+    ok: true
+  e: 'ζ ≈ 0,7 (souvent 0,707) : dépassement d''environ 5 %, temps de réponse quasi minimal. ζ = 1 est le régime critique, sans dépassement mais plus lent. En dessous de 0,4 le système oscille franchement, au-dessus de 1,5 il devient mou.'
+  src: calibre
+- id: ig.aut10
+  type: qcm
+  level: 3
+  q: 'Dépassement d''un système du second ordre soumis à un échelon, pour ζ = 0,5 :'
+  choices:
+  - t: ≈ 5 %
+    ok: false
+  - t: ≈ 30 %
+    ok: false
+  - t: ≈ 50 %
+    ok: false
+  - t: ≈ 16 %
+    ok: true
+  e: 'D = exp(−πζ/√(1−ζ²)) ≈ 16 %. Repères pratiques : ζ = 0,7 → 5 %, ζ = 0,5 → 16 %, ζ = 0,3 → 37 %, ζ = 0,1 → 73 %. Le dépassement ne dépend QUE de ζ, jamais de la pulsation propre — laquelle ne fixe que la vitesse.'
+  src: calibre
+- id: ig.aut11
+  type: qcm
+  level: 2
+  q: 'Un retard pur dans une boucle d''asservissement :'
+  choices:
+  - t: N'a aucun effet sur la stabilité
+    ok: false
+  - t: Améliore la précision
+    ok: false
+  - t: Introduit un déphasage croissant avec la fréquence et dégrade la stabilité
+    ok: true
+  - t: Réduit le dépassement
+    ok: false
+  e: 'Un retard T produit un déphasage −ωT, sans rien atténuer : il mange la marge de phase d''autant plus qu''on va vite. C''est la contrainte dure d''un asservissement en réseau ou avec un capteur lent — et elle plafonne la bande passante atteignable quel que soit le correcteur. Aucun réglage de PID ne rattrape un retard trop grand.'
+  src: calibre
+- id: ig.aut12
+  type: qcm
+  level: 3
+  q: 'Sur un diagramme de Bode en boucle ouverte, la marge de gain se lit :'
+  choices:
+  - t: À la pulsation de coupure du procédé
+    ok: false
+  - t: À la pulsation où la phase vaut −180°
+    ok: true
+  - t: À la pulsation où le gain vaut 0 dB
+    ok: false
+  - t: À l'origine
+    ok: false
+  e: 'Marge de gain : écart entre le gain et 0 dB à la pulsation où la phase atteint −180°. Marge de phase : écart entre la phase et −180° à la pulsation où le gain croise 0 dB. Les deux se lisent à des pulsations DIFFÉRENTES — une confusion fréquente en examen.'
+  src: calibre
+- id: ig.aut13
+  type: qcm
+  level: 2
+  q: 'Un asservissement de position comportant un seul intégrateur dans sa boucle suit :'
+  choices:
+  - t: Ni l'un ni l'autre sans erreur
+    ok: false
+  - t: Un échelon sans erreur, mais une rampe avec une erreur constante
+    ok: true
+  - t: Toute consigne sans erreur
+    ok: false
+  - t: Une rampe sans erreur
+    ok: false
+  e: 'Le nombre d''intégrateurs fixe la classe : un intégrateur annule l''erreur en échelon mais laisse une erreur de traînage constante en rampe ; il en faut deux pour suivre une rampe sans erreur. C''est un point clé en commande d''axe, où la consigne est justement souvent une rampe de vitesse.'
+  src: calibre
+- id: ig.aut14
+  type: qcm
+  level: 2
+  q: À quoi sert un dispositif d'anti-saturation (anti-windup) sur l'intégrateur d'un PID ?
+  choices:
+  - t: À supprimer l'action dérivée
+    ok: false
+  - t: À filtrer le bruit
+    ok: false
+  - t: À empêcher l'intégrale de s'emballer quand l'actionneur est saturé
+    ok: true
+  - t: À augmenter le gain intégral
+    ok: false
+  e: 'Quand l''actionneur bute, l''écart persiste et l''intégrale continue d''accumuler une commande qui ne sera jamais appliquée : au retour dans la plage utile, elle met un temps considérable à se vider, d''où un dépassement massif. L''anti-windup gèle ou recalcule l''intégrale pendant la saturation. C''est indispensable sur tout système réel, tous les actionneurs étant bornés.'
+  src: calibre
+- id: ig.aut15
+  type: qcm
+  level: 3
+  q: 'La méthode de Ziegler-Nichols permet :'
+  choices:
+  - t: De linéariser un système non linéaire
+    ok: false
+  - t: De calculer la fonction de transfert exacte
+    ok: false
+  - t: De démontrer la stabilité d'un système
+    ok: false
+  - t: De prérégler un PID à partir d'un essai simple sur le procédé
+    ok: true
+  e: À partir d'une réponse indicielle (ou du point de pompage en gain critique), elle fournit des valeurs de départ pour Kp, Ti, Td. Son réglage est délibérément agressif — dépassement typique de 25 % — et sert de point de départ à affiner, pas de réglage final. Les méthodes plus modernes (IMC, lambda-tuning) donnent des résultats plus robustes.
+  src: calibre
+- id: ig.aut16
+  type: qcm
+  level: 2
+  q: 'Pour une boucle d''asservissement numérique, la fréquence d''échantillonnage doit valoir au moins :'
+  choices:
+  - t: La fréquence du réseau
+    ok: false
+  - t: 2 fois la bande passante visée
+    ok: false
+  - t: 100 fois la bande passante visée
+    ok: false
+  - t: 10 à 20 fois la bande passante visée
+    ok: true
+  e: 'Le critère de Shannon (×2) suffit à reconstruire un signal, pas à ASSERVIR : l''échantillonnage introduit un retard d''environ Te/2 qui consomme de la marge de phase. La règle pratique est donc fe ≈ 10 à 20 fois la bande passante visée. Un asservissement de courant à 1 kHz de bande demande typiquement 10 à 20 kHz.'
+  src: calibre
+- id: ig.aut17
+  type: qcm
+  level: 3
+  q: Sur la réponse indicielle d'un procédé industriel, quels paramètres identifie-t-on généralement pour un modèle simple ?
+  choices:
+  - t: Le gain statique, la constante de temps et le retard
+    ok: true
+  - t: Le nombre de pôles et de zéros exacts
+    ok: false
+  - t: Les marges de gain et de phase
+    ok: false
+  - t: La masse et la raideur
+    ok: false
+  e: 'Le modèle du premier ordre avec retard — K, τ, T — décrit correctement une grande majorité de procédés thermiques, hydrauliques et de débit, et alimente directement les méthodes de réglage de PID. On l''obtient graphiquement : K par le rapport des amplitudes finales, T par le délai avant réaction, τ par la tangente au point d''inflexion.'
+  src: calibre
+- id: ig.aut18
+  type: qcm
+  level: 2
+  q: 'Dans une commande d''axe à boucles imbriquées (courant, vitesse, position), l''ordre correct du plus rapide au plus lent est :'
+  choices:
+  - t: Courant, vitesse, position
+    ok: true
+  - t: Position, vitesse, courant
+    ok: false
+  - t: Vitesse, courant, position
+    ok: false
+  - t: Toutes ont la même dynamique
+    ok: false
+  e: La boucle de courant est la plus interne et la plus rapide (quelques kHz), puis la vitesse (quelques centaines de Hz), puis la position (quelques dizaines de Hz). Chaque boucle externe doit être nettement plus lente que l'interne, sinon elles interagissent et le système devient instable — typiquement un facteur 5 à 10 entre deux étages.
+  src: calibre
+- id: ig.aut19
+  type: qcm
+  level: 3
+  q: 'Un correcteur à avance de phase (lead) est utilisé pour :'
+  choices:
+  - t: Introduire un retard volontaire
+    ok: false
+  - t: Remonter la marge de phase et donc élargir la bande passante
+    ok: true
+  - t: Filtrer les hautes fréquences
+    ok: false
+  - t: Annuler l'erreur statique
+    ok: false
+  e: 'Il ajoute de la phase positive autour de la pulsation de coupure, ce qui permet d''augmenter le gain sans perdre la stabilité — donc d''aller plus vite. Son coût est une amplification des hautes fréquences, donc du bruit. Le correcteur à retard de phase (lag) fait l''inverse : il améliore la précision en basse fréquence au détriment de la rapidité.'
+  src: calibre

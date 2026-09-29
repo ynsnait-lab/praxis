@@ -1,0 +1,671 @@
+id: py11
+track: python
+title: Modules, packages, environnements
+goal: Structurer un projet installable, sans import cassé.
+level: avance
+requires:
+- py07
+concepts:
+- imports
+- package
+- venv
+- pyproject
+lesson:
+  minutes: 17
+  intro: |
+    Tant que tout tient dans un fichier, les imports ne posent pas de question. Dès que le projet grandit (un module de protocole, un module d'analyse, des tests, des dépendances comme NumPy ou pyserial), surgissent les `ModuleNotFoundError` mystérieux et les « chez moi ça marche ». Ce module explique ce que fait vraiment `import`, comment structurer un projet installable, et pourquoi chaque projet a son propre environnement.
+  steps:
+    - level: 1
+      title: Tiroirs, armoires et caisses à outils
+      body: |
+        - Un **module**, c'est un tiroir d'outils : un fichier `.py` dont on emprunte le contenu avec `import`.
+        - Un **paquet** (*package*), c'est une armoire de tiroirs : un dossier qui regroupe plusieurs modules.
+        - **pip** est le fournisseur : il va chercher des paquets publiés (NumPy, pyserial) et les installe.
+        - Un **environnement virtuel** (*venv*), c'est une caisse à outils dédiée à un projet. Le projet A peut garder NumPy 1.26 pendant que le projet B passe à NumPy 2, sans que l'un casse l'autre.
+    - level: 2
+      title: Ce que fait import
+      body: |
+        - `import capteurs` cherche un fichier `capteurs.py` (ou un dossier `capteurs/`) dans les dossiers de la liste `sys.path`, **dans l'ordre**. Le premier dossier est celui du script lancé : un fichier local nommé `serial.py` ou `numpy.py` masque la vraie bibliothèque.
+        - La première fois, Python **exécute tout le fichier** et range le module obtenu dans le dictionnaire `sys.modules`. Les imports suivants réutilisent ce module sans rien réexécuter.
+        - Chaque module a une variable `__name__` : son nom quand il est importé, mais `"__main__"` quand il est lancé directement (`python capteurs.py`). D'où le motif `if __name__ == "__main__": main()`, qui permet d'importer le fichier sans déclencher le programme.
+        - Dans un paquet, `from .protocole import decoder` importe depuis un module voisin (import **relatif**).
+        - `python -m pip install …` garantit que pip installe pour **ce** Python-là ; un venv activé fait pointer `python` et `pip` vers la caisse à outils du projet.
+      check:
+        q: "`bloc.py` contient `print(__name__)`. Qu'affichent `python bloc.py`, puis `import bloc` depuis un autre script ?"
+        choices:
+          - t: "`__main__`, puis `bloc`"
+            ok: true
+            why: Lancé directement, un module s'appelle `__main__` ; importé, il porte son nom de fichier.
+          - t: "`bloc`, puis `bloc`"
+            why: Le nom `__main__` est réservé au module lancé directement.
+          - t: "`__main__`, puis `__main__`"
+            why: Un module importé porte son propre nom.
+    - level: 3
+      title: Vérifier par l'expérience
+      body: |
+        Ce code écrit deux petits modules sur le disque, puis les importe. Observe **quand** leur code s'exécute.
+      code: |
+        import importlib
+        import runpy
+        import sys
+        from pathlib import Path
+
+        Path("capteurs.py").write_text('''
+        print("chargement de capteurs.py, __name__ =", __name__)
+        UNITE = "K"
+
+        def c_vers_k(t):
+            return t + 273.15
+        ''')
+        Path("outil.py").write_text('''
+        def principal():
+            print("outil : traitement lancé")
+
+        print("outil.py chargé avec __name__ =", __name__)
+        if __name__ == "__main__":
+            principal()
+        ''')
+        for nom in ("capteurs", "outil"):
+            sys.modules.pop(nom, None)         # repartir de zéro si on relance
+        importlib.invalidate_caches()
+        sys.path.insert(0, ".")
+
+        import capteurs                        # exécute le fichier
+        import capteurs                        # déjà dans sys.modules : rien ne se passe
+        print(capteurs.c_vers_k(20), capteurs.UNITE, "capteurs" in sys.modules)
+        from capteurs import c_vers_k
+        print(c_vers_k is capteurs.c_vers_k)
+
+        import outil                                        # comme « import outil »
+        runpy.run_path("outil.py", run_name="__main__")     # comme « python outil.py »
+      run: true
+      out: |
+        chargement de capteurs.py, __name__ = capteurs
+        293.15 K True
+        True
+        outil.py chargé avec __name__ = outil
+        outil.py chargé avec __name__ = __main__
+        outil : traitement lancé
+      after: |
+        `from capteurs import c_vers_k` ne recharge rien : il colle simplement une nouvelle étiquette sur la fonction du module déjà chargé. Et le `if __name__ == "__main__"` ne déclenche `principal()` que dans le second cas.
+    - level: 4
+      title: Un projet installable
+      body: |
+        La structure recommandée, dite *src layout* :
+
+        ```text
+        banc-cryo/
+        ├── pyproject.toml
+        ├── src/
+        │   └── banc_cryo/
+        │       ├── __init__.py
+        │       ├── protocole.py
+        │       └── cli.py
+        └── tests/
+            └── test_protocole.py
+        ```
+
+        Le fichier `pyproject.toml` décrit le projet, ses dépendances et ses commandes :
+
+        ```toml
+        [project]
+        name = "banc-cryo"
+        version = "0.1.0"
+        requires-python = ">=3.11"
+        dependencies = ["pyserial>=3.5", "numpy>=1.26"]
+
+        [project.optional-dependencies]
+        dev = ["pytest", "ruff", "mypy"]
+
+        [project.scripts]
+        banc = "banc_cryo.cli:main"
+
+        [build-system]
+        requires = ["hatchling"]
+        build-backend = "hatchling.build"
+        ```
+
+        Et la routine, dans un terminal, à la racine du projet :
+
+        ```shell
+        python3 -m venv .venv                  # une fois par projet
+        source .venv/bin/activate              # dans chaque nouveau terminal (macOS, Linux)
+        python -m pip install -e ".[dev]"      # le projet en mode éditable, plus les outils
+        python -c "import sys; print(sys.prefix)"   # doit se terminer par .venv
+        banc --help                            # la commande déclarée dans [project.scripts]
+        ```
+
+        Pourquoi `src/` ? Sans lui, lancer les tests depuis la racine importe le dossier local **au lieu du paquet installé**, et un oubli dans la configuration passe inaperçu. `-e` (éditable) rend tes modifications visibles immédiatement, sans réinstaller.
+
+        Un **import circulaire** (`a` importe `b` qui importe `a`) donne un module à moitié initialisé et une `ImportError` ou `AttributeError` déroutante : déplace le code commun dans un troisième module.
+    - level: 5
+      title: Sur le terrain
+      body: |
+        - Un venv par projet, toujours. Jamais `sudo pip install`. Sur macOS, n'installe rien dans le Python du système.
+        - **uv** est un outil récent, très rapide, qui fait venv et pip en une commande (`uv venv`, `uv pip install -e .`, `uv run pytest`). Les labs de Praxis l'acceptent.
+        - Dans VS Code et Jupyter, choisis explicitement l'interpréteur du venv (`.venv/bin/python`) : la moitié des « pourtant je l'ai installé » viennent de là.
+        - Un import doit être **rapide et sans effet** : pas d'ouverture de port série, pas de calcul lourd, pas d'écriture de fichier au niveau du module. Tout ça va dans des fonctions.
+        - Ne nomme jamais un de tes fichiers comme une bibliothèque (`serial.py`, `numpy.py`, `test.py`, `random.py`).
+        - Pour qu'une analyse soit reproductible dans six mois, fige les versions : `pip freeze > requirements.txt` ou un fichier de verrouillage (`uv lock`).
+  recap:
+    - "`import` cherche dans `sys.path`, exécute le fichier une seule fois, range le module dans `sys.modules`."
+    - "`__name__ == \"__main__\"` seulement quand le fichier est lancé directement."
+    - "Projet : `src/paquet/`, `tests/`, `pyproject.toml`, installé avec `pip install -e .`."
+    - "Un venv par projet ; `python -m pip` pour installer dans le bon Python."
+    - "Import sans effet de bord ; aucun fichier nommé comme une bibliothèque."
+  pieges: [py-module-homonyme, py-mauvais-environnement, py-import-etoile]
+exercises:
+- id: py11.1
+  type: qcm
+  level: 2
+  concepts:
+  - imports
+  q: '`python mon_script.py` échoue avec `ModuleNotFoundError: No module named "monpkg"` alors que le dossier `monpkg/` est juste à côté. Pourquoi ?'
+  choices:
+  - t: '`sys.path[0]` est le dossier du **script**, pas le dossier courant'
+    ok: true
+    why: Si le script est dans `outils/`, la racine du projet n’est pas dans le chemin.
+  - t: Il manque un `__init__.py`
+    ok: false
+    why: Depuis 3.3, les packages implicites existent. Rarement la cause.
+  - t: Python ne cherche jamais dans le dossier courant
+    ok: false
+    why: Avec `python -m`, le dossier courant est bien ajouté.
+  - t: Il faut renommer le dossier
+    ok: false
+    why: 'Le nom n’est pas en cause : c’est l’emplacement du script qui décide du chemin de recherche.'
+  e: |-
+    Deux comportements différents :
+    - `python chemin/vers/script.py` → `sys.path[0]` = `chemin/vers/`
+    - `python -m monpkg.script` → `sys.path[0]` = **dossier courant**
+
+    D’où la règle : **lance toujours tes modules avec `-m`** depuis la racine du projet, et installe le paquet en mode développement :
+
+    ```bash
+    pip install -e .
+    ```
+
+    Bricoler `sys.path.append(...)` en haut d’un fichier est le symptôme d’un projet mal structuré.
+- id: py11.2
+  type: predict
+  level: 2
+  concepts:
+  - package
+  q: '`bloc.py` contient ceci. Qu’affiche `python bloc.py` puis `import bloc` ?'
+  code: |-
+    print("chargé:", __name__)
+
+    if __name__ == "__main__":
+        print("exécuté directement")
+  answer: |-
+    chargé: __main__
+    exécuté directement
+  e: |-
+    Question piège : la sortie demandée est celle de `python bloc.py`. À l’import, on aurait `chargé: bloc` **sans** la deuxième ligne.
+
+    `__name__` vaut `"__main__"` seulement pour le module lancé. C’est le garde qui permet à un fichier d’être **à la fois** importable et exécutable.
+
+    Corollaire : tout ce qui n’est pas sous le garde s’exécute à l’import. Ne mets **jamais** d’ouverture de port, de connexion ou de calcul lourd au niveau module.
+- id: py11.3
+  type: cloze
+  level: 2
+  concepts:
+  - venv
+  - pyproject
+  q: Les commandes de base d’un projet propre.
+  tpl: |-
+    python -m ⟦0⟧ .venv          # créer l'environnement isolé
+    source .venv/bin/activate     # (Windows : .venv\Scripts\activate)
+    pip install -e ".[dev]"       # installer le projet en mode éditable
+    pip ⟦1⟧ > requirements.txt    # figer les versions exactes
+  blanks:
+  - - venv
+  - - freeze
+  e: |-
+    Un venv par projet, toujours. Il évite le conflit classique « numpy 1.26 ici, 2.1 là ».
+
+    `pip install -e .` installe **un lien** vers ton code : tes modifications sont prises en compte sans réinstaller.
+
+    `pyproject.toml` minimal :
+    ```toml
+    [project]
+    name = "monpkg"
+    version = "0.1.0"
+    dependencies = ["pyserial>=3.5", "numpy"]
+
+    [project.optional-dependencies]
+    dev = ["pytest", "mypy", "ruff"]
+
+    [project.scripts]
+    acquisition = "monpkg.cli:main"
+    ```
+    La section `scripts` crée une vraie commande shell. `uv` remplace avantageusement pip/venv si tu veux du rapide.
+  lang: shell
+- id: py11.4
+  type: qcm
+  level: 3
+  concepts:
+  - imports
+  q: Un import circulaire (`a` importe `b` qui importe `a`) provoque…
+  choices:
+  - t: un `ImportError` ou un module partiellement initialisé, selon l’ordre
+    ok: true
+    why: Le second import trouve un module en cours de construction, donc incomplet.
+  - t: toujours une boucle infinie
+    ok: false
+    why: 'Non : Python met le module en cache dès le début du chargement.'
+  - t: rien, Python gère
+    ok: false
+    why: Il ne plante pas toujours — c’est justement ce qui rend le bug pénible.
+  - t: une erreur uniquement en Python 2
+    ok: false
+    why: Le comportement est le même.
+  e: |-
+    Le vrai remède est structurel : le cycle révèle que tes modules ont des responsabilités mal découpées.
+
+    Par ordre de préférence :
+    1. **Extraire** ce qui est commun dans un troisième module (`types.py`, `protocole.py`).
+    2. **Inverser la dépendance** (le module bas niveau ne doit pas connaître le haut niveau).
+    3. Importer **dans la fonction** — solution de dépannage, à commenter.
+    4. `if TYPE_CHECKING:` + annotation en chaîne, quand le cycle n’existe que pour le typage.
+- id: py11.5
+  type: qcm
+  level: 2
+  concepts:
+  - imports
+  q: Quelle forme d’import faut-il éviter dans un module de bibliothèque ?
+  choices:
+  - t: '`from mon_module import *`'
+    ok: true
+    why: On ne sait plus d’où vient chaque nom, et un ajout en amont peut écraser un nom local sans prévenir.
+  - t: '`from pathlib import Path`'
+    ok: false
+    why: 'Import ciblé : lisible et courant.'
+  - t: '`import numpy as np`'
+    ok: false
+    why: Alias conventionnel, parfaitement lisible.
+  - t: '`from . import protocole`'
+    ok: false
+    why: 'Import relatif explicite : recommandé à l’intérieur d’un package.'
+  e: |-
+    `import *` pose trois problèmes :
+    1. **Origine invisible** : `sqrt(x)` — de `math` ? de `numpy` ? Le comportement diffère sur un tableau.
+    2. **Collisions silencieuses** : si deux modules exportent `open`, le dernier gagne.
+    3. **Les linters deviennent aveugles** : ruff ne peut plus dire si un nom est défini (règle F403).
+
+    Le seul usage acceptable est la console interactive.
+
+    Ordre canonique des imports (ruff règle `I` le fait tout seul) :
+    ```python
+    from __future__ import annotations   # 1
+    import os, sys                        # 2 stdlib
+    import numpy as np                    # 3 tiers
+    from .protocole import decoder        # 4 local
+    ```
+- id: py11.6
+  type: cloze
+  level: 2
+  concepts:
+  - package
+  q: Structure d’un projet installable, avec les commandes qui vont avec.
+  tpl: |-
+    # projet/
+    #   src/monpkg/__init__.py
+    #   src/monpkg/⟦0⟧.py        ← rend "python -m monpkg" exécutable
+    #   tests/test_protocole.py
+    #   pyproject.toml
+
+    pip install -⟦1⟧ ".[dev]"     # installation éditable
+    python -⟦2⟧ monpkg            # lance le paquet
+  blanks:
+  - - __main__
+  - - e
+  - - m
+  e: |-
+    La disposition **src-layout** (`src/monpkg/`) est celle recommandée : elle empêche d'importer accidentellement le paquet depuis le dossier courant sans l'avoir installé. Tes tests testent alors ce que l'utilisateur installera vraiment.
+
+    `__main__.py` rend le paquet exécutable : `python -m monpkg`.
+
+    `pip install -e .` (éditable) installe un lien : tes modifications sont prises en compte sans réinstallation.
+
+    Le vrai point d'entrée d'un outil se déclare dans `pyproject.toml` :
+    ```toml
+    [project.scripts]
+    acquisition = "monpkg.cli:main"
+    ```
+    Après installation, `acquisition --help` fonctionne comme n'importe quelle commande.
+  lang: shell
+- id: py11.7
+  type: qcm
+  level: 2
+  concepts:
+  - venv
+  q: Pourquoi un environnement virtuel par projet ?
+  choices:
+  - t: 'Isoler les versions de dépendances : deux projets peuvent exiger numpy 1.26 et 2.1'
+    ok: true
+    why: Sans venv, l’installation du second casse le premier.
+  - t: Accélérer les imports
+    ok: false
+    why: Aucun effet sur la vitesse.
+  - t: Chiffrer le code
+    ok: false
+    why: Aucun rapport.
+  - t: Permettre plusieurs versions de Python
+    ok: false
+    why: Un venv fige **une** version ; c’est pyenv ou uv qui gèrent plusieurs interpréteurs.
+  e: |-
+    ```bash
+    python -m venv .venv
+    source .venv/bin/activate        # Windows : .venv\Scripts\activate
+    pip install -e ".[dev]"
+    deactivate
+    ```
+
+    Vérifie toujours où tu es : `which python` doit pointer dans `.venv`.
+
+    `uv` (Rust) remplace pip + venv et va 10 à 100× plus vite :
+    ```bash
+    uv venv && uv pip install -e ".[dev]"
+    uv run pytest
+    ```
+
+    Ajoute `.venv/` au `.gitignore`. Ce qui se versionne, c'est `pyproject.toml` (les contraintes) et éventuellement un fichier de verrouillage (les versions exactes).
+- id: py11.8
+  type: bug
+  level: 3
+  concepts:
+  - imports
+  q: Ce module met 3 secondes à s’importer et ouvre un port dès l’import. Clique sur la ligne fautive.
+  code: |-
+    import serial
+    from .config import charger
+
+    CONFIG = charger("config.toml")
+    PORT = serial.Serial(CONFIG.port, 115200)
+
+    def lire():
+        return PORT.read(8)
+  bad: 5
+  fix: |-
+    PORT = None
+
+    def ouvrir():
+        global PORT
+        PORT = serial.Serial(CONFIG.port, 115200)
+  e: |-
+    Tout ce qui est au **niveau module** s'exécute à l'import. Conséquences :
+    - Importer le module ouvre le port — même depuis un test, un script de doc, ou l'autocomplétion de ton éditeur.
+    - Si le port est absent, l'import **lève** : impossible même de lire la documentation du module.
+    - Deux imports concurrents se disputent le matériel.
+
+    Règle : **un import ne doit avoir aucun effet de bord.** Il définit des noms, point.
+
+    Ce qui est acceptable au niveau module : constantes, définitions de classes/fonctions, `logging.getLogger(__name__)`.
+    Ce qui ne l'est pas : ouvrir un fichier ou un port, lire une config, se connecter au réseau, calculer longtemps.
+
+    La ligne 4 est limite elle aussi — charger une config à l'import est un effet de bord d'E/S. Mets-la dans une fonction.
+- id: py11.9
+  type: predict
+  level: 3
+  concepts:
+  - package
+  - imports
+  q: '`monpkg/__init__.py` contient `from .protocole import decoder`. Que valent ces expressions après `import monpkg` ?'
+  code: |-
+    # monpkg/__init__.py :  from .protocole import decoder
+    import monpkg
+    print(hasattr(monpkg, "decoder"))
+    print(hasattr(monpkg, "protocole"))
+    print(monpkg.__name__)
+  answer: |-
+    True
+    True
+    monpkg
+  norun: true
+  e: |-
+    Deux effets d'un import relatif dans `__init__.py` :
+    1. `decoder` devient accessible comme `monpkg.decoder` — c'est ainsi qu'on définit l'**API publique** d'un paquet.
+    2. Le sous-module `protocole` est aussi importé et attaché au paquet : `monpkg.protocole` existe.
+
+    Le rôle d'`__init__.py` est de dire **ce que l'utilisateur doit voir**. Déclare-le explicitement :
+
+    ```python
+    from .protocole import decoder, encoder
+    from .instrument import Instrument
+
+    __all__ = ["decoder", "encoder", "Instrument"]
+    __version__ = "0.1.0"
+    ```
+
+    Garde-le **léger** : chaque import qu'il fait ralentit le démarrage de tout programme qui utilise le paquet, même pour une seule fonction.
+- id: py11.10
+  type: flash
+  level: 2
+  concepts:
+  - pyproject
+  q: À quoi servent les trois sections principales d’un `pyproject.toml` ?
+  back: |-
+    ```toml
+    [build-system]                        # comment construire le paquet
+    requires = ["hatchling"]
+    build-backend = "hatchling.build"
+
+    [project]                             # métadonnées + dépendances
+    name = "monpkg"
+    version = "0.1.0"
+    requires-python = ">=3.11"
+    dependencies = ["pyserial>=3.5", "numpy>=1.26"]
+
+    [project.optional-dependencies]
+    dev = ["pytest", "mypy", "ruff"]
+
+    [project.scripts]                     # commandes installées
+    acquisition = "monpkg.cli:main"
+
+    [tool.ruff]                           # config des outils
+    line-length = 100
+    ```
+  e: |-
+    `pyproject.toml` (PEP 621) remplace `setup.py`, `setup.cfg`, `requirements.txt` et les fichiers de config de chaque outil.
+
+    Distingue bien :
+    - **dépendances** (`dependencies`) : des **contraintes** larges (`>=3.5`), parce que ton paquet sera installé à côté d'autres.
+    - **verrouillage** (`uv.lock`, `requirements.txt` figé) : les **versions exactes**, pour reproduire un environnement d'application.
+
+    Une bibliothèque publie des contraintes, une application verrouille.
+- id: py11.11
+  type: cloze
+  level: 3
+  concepts:
+  - imports
+  q: Casse un import circulaire qui n’existe que pour le typage.
+  tpl: |-
+    from __future__ import annotations
+    from typing import ⟦0⟧
+
+    if ⟦0⟧:
+        from .instrument import Instrument   # jamais importé à l'exécution
+
+    def calibrer(inst: ⟦1⟧) -> None:
+        ...
+  blanks:
+  - - TYPE_CHECKING
+  - - Instrument
+    - '"Instrument"'
+  e: |-
+    `typing.TYPE_CHECKING` vaut `False` à l'exécution et `True` pour mypy. L'import n'a donc lieu **que** pendant l'analyse statique : le cycle est cassé, l'annotation reste vérifiée.
+
+    `from __future__ import annotations` est indispensable ici : sans lui, l'annotation `Instrument` serait évaluée à l'exécution et lèverait `NameError`. (Sinon, mets l'annotation entre guillemets.)
+
+    ⚠️ Ce n'est qu'un **pansement**. Si tu en as besoin plus d'une ou deux fois, le vrai problème est le découpage des modules : extrais les types partagés dans un module `types.py` qui ne dépend de rien.
+- id: py11.12
+  type: qcm
+  level: 3
+  concepts:
+  - package
+  q: Ton paquet doit lire un fichier de calibration livré avec le code. Comment le trouver de façon fiable ?
+  choices:
+  - t: '`importlib.resources.files("monpkg") / "data/cal.csv"`'
+    ok: true
+    why: Marche même si le paquet est installé dans un zip ou un wheel, et sur toutes les plateformes.
+  - t: '`open("data/cal.csv")`'
+    ok: false
+    why: Relatif au dossier courant, qui n’a aucun rapport avec l’emplacement du paquet.
+  - t: '`Path(__file__).parent / "data/cal.csv"`'
+    ok: false
+    why: Fonctionne le plus souvent, mais casse dans un paquet zippé ou gelé (PyInstaller).
+  - t: Chemin absolu codé en dur
+    ok: false
+    why: Casse chez tout le monde sauf toi.
+  e: |-
+    ```python
+    from importlib.resources import files
+
+    def charger_calibration() -> str:
+        return (files("monpkg") / "data" / "cal.csv").read_text(encoding="utf-8")
+    ```
+
+    Il faut aussi déclarer le fichier comme donnée du paquet :
+    ```toml
+    [tool.hatch.build]
+    include = ["src/monpkg/data/*.csv"]
+    ```
+
+    Le piège du `__file__` : il n'existe pas toujours (code exécuté depuis un zip, un `exec`, ou gelé par PyInstaller). `importlib.resources` est l'API prévue pour ça depuis Python 3.9.
+
+    Pour les **données utilisateur** (config, résultats), rien de tout ça : utilise `platformdirs` ou un chemin passé en argument.
+- id: py11.13
+  type: predict
+  level: 2
+  concepts:
+  - imports
+  q: Sortie ? (le module `lourd` affiche « chargé » à l’import)
+  code: |-
+    # lourd.py contient : print("chargé")
+    import lourd
+    import lourd
+    from lourd import quelquechose
+    print("fin")
+  answer: |-
+    chargé
+    fin
+  norun: true
+  e: |-
+    Python **met en cache** les modules dans `sys.modules`. Le premier import exécute le fichier ; les suivants récupèrent l'objet déjà construit. Un module n'est jamais exécuté deux fois.
+
+    Conséquences pratiques :
+    - Réimporter ne coûte rien : ne t'embête pas à « optimiser » tes imports.
+    - L'**état de module** (une variable globale, un cache) est partagé par tout le programme — c'est le mécanisme du singleton en Python.
+    - Modifier un fichier n'a aucun effet sur un programme déjà lancé. En console, `importlib.reload(mod)` recharge, mais c'est fragile : les objets déjà créés gardent l'ancienne classe.
+
+    C'est aussi ce qui rend les imports circulaires réparables : le module partiellement construit est déjà dans `sys.modules`, donc il n'y a pas de boucle infinie — juste un module incomplet.
+- id: py11.14
+  type: parsons
+  level: 3
+  concepts:
+  - package
+  - pyproject
+  q: Reconstitue un point d’entrée de CLI testable et installable.
+  lang: python
+  lines:
+  - '# src/monpkg/cli.py'
+  - import argparse, sys
+  - ''
+  - 'def main(argv: list[str] | None = None) -> int:'
+  - '    p = argparse.ArgumentParser(prog="acquisition")'
+  - '    p.add_argument("port")'
+  - '    args = p.parse_args(argv)'
+  - '    try:'
+  - '        acquerir(args.port)'
+  - '    except OSError as exc:'
+  - '        print(f"erreur : {exc}", file=sys.stderr)'
+  - '        return 1'
+  - '    return 0'
+  - ''
+  - 'if __name__ == "__main__":'
+  - '    raise SystemExit(main())'
+  extra:
+  - '    args = p.parse_args()'
+  - '        exit(1)'
+  e: |-
+    Les quatre propriétés d'une CLI professionnelle :
+    1. `main(argv=None)` + `parse_args(argv)` → **testable** : `assert main(["/dev/null"]) == 1`, sans sous-processus.
+    2. **Code de retour entier** : 0 = succès, non nul = échec. Indispensable pour `&&` en shell et pour la CI.
+    3. Les **erreurs sur `stderr`**, pas `stdout` — pour que `monoutil > resultats.csv` ne pollue pas le fichier.
+    4. `raise SystemExit(main())` propage le code. `exit()` (le builtin du module `site`) n'existe pas toujours — utilise `sys.exit` ou `SystemExit`.
+
+    Les intrus : `parse_args()` sans argument lit `sys.argv` en dur (donc intestable) et `exit(1)` perd le retour de fonction.
+- id: py11.15
+  type: qcm
+  level: 2
+  concepts:
+  - venv
+  - pyproject
+  q: Tu clones un projet et `pip install -e .` échoue avec « No module named build ». Que fais-tu ?
+  choices:
+  - t: Vérifier que le venv est activé et que pip est à jour, puis relire `[build-system]`
+    ok: true
+    why: Un backend de construction manquant ou un pip trop ancien sont les deux causes les plus fréquentes.
+  - t: Installer les paquets un par un avec `pip install`
+    ok: false
+    why: Contourne le problème, ne le règle pas, et tu perds la déclaration du projet.
+  - t: Copier les fichiers dans site-packages
+    ok: false
+    why: 'À ne jamais faire : ingérable et invisible pour pip.'
+  - t: Passer en Python 2
+    ok: false
+    why: Python 2 est en fin de vie depuis 2020 et ne connaît ni pyproject.toml ni les installations éditables.
+  e: |-
+    Réflexes de diagnostic, dans l'ordre :
+    ```bash
+    which python && python -V        # suis-je dans le bon venv ?
+    python -m pip -V                 # pip récent ? (>= 23 pour PEP 660)
+    python -m pip install -U pip
+    python -m pip install -e . -v    # -v montre l'étape qui casse
+    ```
+
+    Note `python -m pip` plutôt que `pip` : ça garantit que tu utilises le pip **de l'interpréteur courant**. Un `pip` nu peut appartenir à un autre environnement — c'est la cause n°1 des « pourtant je l'ai installé ».
+
+    Si `[build-system]` est absent du `pyproject.toml`, pip suppose setuptools ; ajoute-le explicitement.
+- id: py11.16
+  type: code
+  level: 3
+  concepts:
+  - imports
+  q: 'Écris `charger_optionnel(nom)` : renvoie le module s’il est importable, sinon `None` — sans jamais lever.'
+  lang: python
+  start: |-
+    import importlib
+
+    def charger_optionnel(nom):
+        ...
+  sol: |-
+    import importlib
+
+    def charger_optionnel(nom):
+        try:
+            return importlib.import_module(nom)
+        except (ImportError, ValueError):
+            return None
+  tests: |-
+    m = charger_optionnel("json")
+    assert m is not None and hasattr(m, "loads")
+    assert charger_optionnel("module_qui_nexiste_pas_12345") is None
+    assert charger_optionnel("os.path") is not None
+    assert charger_optionnel("") is None
+    print("OK")
+  e: |
+    Le motif de la **dépendance optionnelle** : ton module d'acquisition marche sans `matplotlib`, mais trace des graphes si elle est là.
+
+    ```python
+    plt = charger_optionnel("matplotlib.pyplot")
+    if plt is None:
+        log.info("matplotlib absent : pas de graphe")
+    ```
+
+    Deux détails :
+    - On attrape `ImportError` et non `ModuleNotFoundError` seul : une dépendance présente mais **cassée** lève `ImportError`.
+    - Le nom vide lève `ValueError: Empty module name`, pas `ImportError` — d'où le tuple `(ImportError, ValueError)`. C'est le genre de détail que seul un test révèle : la première version « évidente » de cette fonction échoue sur `charger_optionnel("")`.
+
+    Ne va pas plus loin : attraper `Exception` masquerait une erreur de syntaxe dans le module importé, et tu chercherais longtemps.
