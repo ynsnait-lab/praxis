@@ -454,7 +454,7 @@ def cmd_app(args: argparse.Namespace) -> int:
         print(avert("Node.js est nécessaire pour construire l'app en local (brew install node)."))
         print("En attendant, la version en ligne : https://ynsnait-lab.github.io/praxis/")
         return 1
-    if not (RACINE / "node_modules").exists():
+    if not (RACINE / "node_modules" / "esbuild").exists():
         code, out = lancer(["npm", "ci"], RACINE, args.verbose)
         if code != 0:
             print(ko(out[-1500:]))
