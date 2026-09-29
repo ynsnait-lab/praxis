@@ -1,6 +1,6 @@
 # Le lanceur macOS
 
-`./praxis launcher` construit **Praxis.app** et l'installe dans `~/Applications`. Praxis s'ouvre alors comme une vraie app : depuis le Launchpad, Spotlight ou le Dock, dans sa propre fenêtre.
+`./praxis launcher` construit **Praxis.app** et l'installe dans le dossier *Applications* du Mac. Praxis s'ouvre alors comme une vraie app : depuis le Launchpad, Spotlight ou le Dock, dans sa propre fenêtre.
 
 Il faut les outils en ligne de commande de Xcode (`xcode-select --install`), Node.js pour construire l'app web (`brew install node`) et l'environnement Python du projet (`./praxis setup`).
 
@@ -19,7 +19,7 @@ L'app retient le dossier du projet au moment où elle est construite. S'il est d
 
 ## En cas de souci
 
-Le journal du lanceur est dans `~/Library/Logs/Praxis/lanceur.log`, lisible aussi dans l'app Console. Pour désinstaller Praxis.app, mets-la à la corbeille depuis `~/Applications`.
+Le journal du lanceur est dans `~/Library/Logs/Praxis/lanceur.log`, lisible aussi dans l'app Console. Pour désinstaller Praxis.app, mets-la à la corbeille depuis le dossier *Applications*.
 
 ## Le logo
 

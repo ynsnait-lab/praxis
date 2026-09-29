@@ -1,12 +1,13 @@
 #!/bin/bash
-# Construit Praxis.app (le lanceur macOS) et l'installe dans ~/Applications.
+# Construit Praxis.app (le lanceur macOS) et l'installe dans le dossier Applications.
 # Usage : ./praxis launcher      (ou : bash launcher/macos/build.sh [dossier_de_destination])
 # Demande les outils en ligne de commande de Xcode (xcode-select --install) : swiftc, sips, iconutil, codesign.
 set -euo pipefail
 
 ICI="$(cd "$(dirname "$0")" && pwd)"
 RACINE="$(cd "$ICI/../.." && pwd)"
-DEST="${1:-$HOME/Applications}"
+# Le dossier Applications du Mac (celui de la barre latérale du Finder), sinon celui du compte.
+if [ -n "${1:-}" ]; then DEST="$1"; elif [ -w /Applications ]; then DEST=/Applications; else DEST="$HOME/Applications"; fi
 ID="io.github.ynsnait-lab.praxis"
 VERSION="$(/usr/bin/python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["version"])' "$RACINE/package.json" 2>/dev/null || echo 2.0.0)"
 
@@ -36,16 +37,18 @@ codesign --force --sign - "$APP" >/dev/null 2>&1       # signature locale (ad ho
 
 mkdir -p "$DEST"
 if [ -d "$DEST/Praxis.app" ]; then
-  # une version précédente tourne peut-être : on la quitte avant de la remplacer
+  # une version précédente tourne peut-être : on la quitte (elle enregistre ta progression) avant la mise à jour
   osascript -e "if application id \"$ID\" is running then tell application id \"$ID\" to quit" >/dev/null 2>&1 || true
   sleep 1
-  rm -rf "$DEST/Praxis.app"
 fi
-ditto "$APP" "$DEST/Praxis.app"
+ditto "$APP" "$DEST/Praxis.app"             # mise à jour sur place : mêmes fichiers, remplacés
 LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 if [ -x "$LSREGISTER" ]; then "$LSREGISTER" -f "$DEST/Praxis.app" >/dev/null 2>&1 || true; fi
 touch "$DEST/Praxis.app"
 
 echo "✓ Praxis.app installée dans ${DEST/#$HOME/~}"
+if [ "$DEST" != "$HOME/Applications" ] && [ -d "$HOME/Applications/Praxis.app" ]; then
+  echo "  (une ancienne copie reste dans ~/Applications : mets-la à la corbeille pour n'en garder qu'une)"
+fi
 echo "  Lance-la depuis le Launchpad, ou Spotlight : Cmd+Espace puis « Praxis »."
 echo "  Pour la garder dans le Dock : pendant qu'elle tourne, clic droit sur son icône → Options → Garder dans le Dock."
