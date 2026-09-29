@@ -110,7 +110,7 @@ lesson:
         Sur ton Mac (avec le Python de Homebrew, qui refuse d'ailleurs les `pip install` globaux) :
 
         ```shell
-        cd ~/chemin/du/projet
+        cd ~/Documents/mesures           # le dossier de ton projet (ici « mesures »)
         python3 -m venv .venv            # crée l'environnement (une fois)
         source .venv/bin/activate        # l'active (à chaque nouveau terminal)
         python -m pip install pyserial numpy pytest

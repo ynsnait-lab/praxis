@@ -81,9 +81,17 @@ function renderLesson(body, m) {
   const tail = h("div.stack.g20");
   wrap.append(tail);
 
+  // Place de la bonne réponse de chaque mini-question : A, B et C reviennent autant les unes que
+  // les autres dans un cours, dans un ordre qui ne se devine pas.
+  const cibles = new Map();
+  const nChecks = L.steps.filter((s) => s.check && s.check.choices).length;
+  const places = [];
+  for (let bloc = 0; places.length < nChecks; bloc++) places.push(...ordreStable(3, `${m.id}#${bloc}`));
+  L.steps.forEach((s, i) => { if (s.check && s.check.choices) cibles.set(i, places[cibles.size]); });
+
   function draw() {
     clear(stepsBox);
-    L.steps.slice(0, shown).forEach((s, i) => stepsBox.append(stepEl(s, i, m)));
+    L.steps.slice(0, shown).forEach((s, i) => stepsBox.append(stepEl(s, i, m, cibles.get(i))));
     clear(tail);
     if (shown < L.steps.length) {
       const nextLv = L.steps[shown].level;
@@ -135,7 +143,7 @@ function nextInOrder(m) {
   return i >= 0 && i + 1 < order.length ? order[i + 1] : null;
 }
 
-function stepEl(s, i, m) {
+function stepEl(s, i, m, cible) {
   const lang = s.lang || (m.track === "cpp" ? "cpp" : "python");
   const bodyEl = h("div.body", {},
     lvChip(s.level, levelLabel(s.level, m.track)),
@@ -143,7 +151,7 @@ function stepEl(s, i, m) {
     s.body ? h("div.prose", { html: md(s.body) }) : null);
   if (s.code) bodyEl.append(codeRunner(s, lang));
   if (s.after) bodyEl.append(h("div.prose", { html: md(s.after) }));
-  if (s.check) bodyEl.append(miniCheck(s.check));
+  if (s.check) bodyEl.append(miniCheck(s.check, cible));
   return h(`div.step.l${s.level}`, {}, h("div.nb", {}, String(i + 1)), bodyEl);
 }
 
@@ -196,17 +204,46 @@ function codeRunner(s, lang) {
   return box;
 }
 
-function miniCheck(chk) {
+// Mélange pseudo-aléatoire mais stable (même graine, même ordre) : l'ordre des réponses ne bouge pas
+// si la page se redessine.
+function ordreStable(n, graine) {
+  let a = 2166136261;
+  for (let i = 0; i < graine.length; i++) a = Math.imul(a ^ graine.charCodeAt(i), 16777619);
+  const alea = () => {
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const idx = [...Array(n).keys()];
+  for (let i = n - 1; i > 0; i--) {
+    const j = Math.floor(alea() * (i + 1));
+    [idx[i], idx[j]] = [idx[j], idx[i]];
+  }
+  return idx;
+}
+
+function miniCheck(chk, cible) {
   const box = h("div.check", {}, h("span.eyebrow", {}, "Vérifie que tu suis"), h("div.prose", { html: md(chk.q) }));
   const list = h("div.choices");
   let done = false;
-  chk.choices.forEach((c, k) => {
+  const n = chk.choices.length;
+  const graine = chk.q + chk.choices.map((c) => c.t).join("|");
+  const bonnes = chk.choices.flatMap((c, i) => (c.ok ? [i] : []));
+  let ordre = ordreStable(n, graine);
+  if (bonnes.length === 1 && cible != null) {
+    const autres = ordre.filter((i) => i !== bonnes[0]);
+    const p = cible % n;
+    ordre = [...autres.slice(0, p), bonnes[0], ...autres.slice(p)];
+  }
+  ordre.forEach((ci, k) => {
+    const c = chk.choices[ci];
     const b = h("button.choice", { type: "button" }, h("span.key", {}, LETTERS[k]), h("span.body", {}, h("span", { html: inline(c.t) })));
     b.addEventListener("click", () => {
       if (done) return;
       done = true;
       [...list.children].forEach((bb, kk) => {
-        const cc = chk.choices[kk];
+        const cc = chk.choices[ordre[kk]];
         bb.disabled = true;
         if (cc.ok) bb.classList.add("good");
         else if (bb === b) bb.classList.add("bad");

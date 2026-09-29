@@ -176,7 +176,7 @@ exercises:
     why: 'Le nom n’est pas en cause : c’est l’emplacement du script qui décide du chemin de recherche.'
   e: |-
     Deux comportements différents :
-    - `python chemin/vers/script.py` → `sys.path[0]` = `chemin/vers/`
+    - `python outils/script.py` → `sys.path[0]` = `outils/` (le dossier du script)
     - `python -m monpkg.script` → `sys.path[0]` = **dossier courant**
 
     D’où la règle : **lance toujours tes modules avec `-m`** depuis la racine du projet, et installe le paquet en mode développement :

@@ -136,7 +136,13 @@ lesson:
         | `TypeError` | opération impossible entre ces types, par exemple texte + nombre |
         | `ValueError` | le type est bon mais la valeur non, par exemple `int("abc")` |
 
-        **Sur ton Mac** : ouvre le Terminal, va dans le dossier (`cd chemin/du/dossier`), puis `python3 mon_script.py`. Dans VS Code, le bouton ▶ en haut à droite fait la même chose. Et dans les labs de Praxis, `./praxis check` lance les tests pour toi.
+        **Sur ton Mac** : un script est un simple fichier texte qui finit par `.py`, par exemple `bonjour.py` rangé dans ton dossier *Documents*. Pour le lancer :
+
+        1. ouvre le Terminal (Cmd+Espace, puis tape « Terminal ») ;
+        2. va dans le dossier du script avec `cd`, ici `cd ~/Documents` (`~` veut dire ton dossier personnel). Astuce : tape `cd` suivi d'un espace, puis glisse le dossier depuis le Finder dans la fenêtre du Terminal : son chemin s'écrit tout seul ;
+        3. lance le script : `python3 bonjour.py`.
+
+        Dans VS Code, le bouton ▶ en haut à droite fait la même chose. Et dans les labs de Praxis, `./praxis check` lance les tests pour toi.
   recap:
     - Python lit et exécute un fichier **de haut en bas**, une ligne après l'autre ; une erreur arrête tout.
     - "`print(a, b)` affiche ses arguments séparés par un espace ; le texte va entre guillemets, les nombres s'écrivent avec un point."
