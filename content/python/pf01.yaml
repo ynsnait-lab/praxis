@@ -234,6 +234,8 @@ exercises:
     out: "Pression : 1.013 bar"
     e: |
       `print` affiche ses arguments séparés par des espaces. On passe le **nom** de la variable (sans guillemets) pour afficher sa **valeur**. Avec des guillemets, `"pression"`, on afficherait le mot « pression ».
+
+      Et `print` s'écrit tout en minuscules : Python distingue majuscules et minuscules, `Print` est un autre nom, qui n'existe pas (`NameError`).
   - id: pf01.6
     type: bug
     level: 1

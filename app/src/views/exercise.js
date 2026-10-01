@@ -10,7 +10,35 @@ const LETTERS = "ABCDEFGH";
 const normExact = (s) =>
   String(s ?? "").replace(/\r/g, "").replace(/[‘’]/g, "'").replace(/[“”«»]/g, '"').split("\n").map((l) => l.trimEnd())
     .join("\n").replace(/^\n+|\n+$/g, "");
-const normLoose = (s) => normExact(s).replace(/\s+/g, "").toLowerCase();
+const normSpaces = (s) => normExact(s).replace(/\s+/g, "");
+const normLoose = (s) => normSpaces(s).toLowerCase();
+const LANG_NOM = { python: "Python", cpp: "C++" };
+const sansGuillemets = (s) => String(s).replace(/["']/g, "");
+
+// Pourquoi une réponse courte (un trou, une sortie) diffère de l'attendue, quand on peut le dire
+// précisément : majuscules, guillemets. Renvoie du texte au format inline, ou null.
+function diagnostic(donne, attendu, lang) {
+  const d = String(donne).trim().replace(/\s+/g, " ").replace(/`/g, "ˋ");
+  const a = String(attendu).trim().replace(/\s+/g, " ");
+  if (!d || d === a) return null;
+  if (d.toLowerCase() === a.toLowerCase()) {
+    const qui = LANG_NOM[lang] ? `${LANG_NOM[lang]} distingue` : "ici, on distingue";
+    return `seules les majuscules diffèrent, et ${qui} majuscules et minuscules : \`${d}\` et \`${a}\` ne sont pas le même nom.`;
+  }
+  if (sansGuillemets(d) === sansGuillemets(a)) {
+    const qd = /["']/.test(d), qa = /["']/.test(a);
+    if (qd && !qa) return "sans guillemets : avec, c'est un texte ; sans, c'est le nom d'une variable, et le programme utilise sa valeur.";
+    if (!qd && qa) return "il faut des guillemets : ici on veut un texte, pas le nom d'une variable.";
+    if (lang === "cpp") return "en C++, les guillemets simples entourent un caractère (`'A'`, un `char`) et les doubles une chaîne (`\"A\"`) : ils ne sont pas interchangeables.";
+  }
+  return null;
+}
+
+// En Python, 'texte' et "texte" sont la même chaîne : un trou qui attend l'un accepte l'autre.
+function litteralPython(s) {
+  const m = /^(['"])(.*)\1$/.exec(String(s).trim());
+  return m ? m[2] : null;
+}
 
 function mdEl(src, cls = "prose") {
   return h(`div.${cls}`, { html: md(src) });
@@ -73,25 +101,27 @@ export function renderExercise(e, { onDone, index, total } = {}) {
   }
 
   // termine l'exercice : affiche la correction et le bouton « suivant »
-  function finish(correct, { extra = null, fellMsg = null, selfGraded = false, attempts = 0, forceGrade = null, immediate = false } = {}) {
+  function finish(correct, { extra = null, fellMsg = null, selfGraded = false, attempts = 0, forceGrade = null, immediate = false, horsPiege = false } = {}) {
     if (done) return;
     done = true;
     const ms = Date.now() - t0;
-    const fell = !!e.piege && !correct;
+    // horsPiege : la seule faute est de forme (des majuscules), pas le piège que l'exercice entraîne
+    const piege = horsPiege ? null : e.piege || null;
+    const fell = !!piege && !correct;
     const grade = forceGrade ?? (correct ? (hintUsed || attempts > 0 ? 2 : 3) : 1);
     if (immediate) {
-      onDone && onDone({ correct, grade, hint: hintUsed, trap: e.piege || null, ms });
+      onDone && onDone({ correct, grade, hint: hintUsed, trap: piege, ms });
       return;
     }
     clear(actions);
     const fb = h(`div.feedback.${correct ? "ok" : "ko"}`, { role: "status" },
       h("div.verdict", {}, correct ? (grade === 2 ? "Juste (avec de l'aide)" : "Juste") : "Pas tout à fait"),
       extra,
-      e.piege ? trapBanner(e, fell, fell ? fellMsg : null) : null,
+      piege ? trapBanner(e, fell, fell ? fellMsg : null) : null,
       e.e ? mdEl(e.e) : null);
     clear(feedback).append(fb);
     const next = h("button.btn.primary", {
-      onclick: () => onDone && onDone({ correct, grade: easy ? 4 : grade, hint: hintUsed, trap: e.piege || null, ms }),
+      onclick: () => onDone && onDone({ correct, grade: easy ? 4 : grade, hint: hintUsed, trap: piege, ms }),
     }, "Suivant ", h("span.kbd", {}, "↵"));
     const easyBtn = correct && !selfGraded && grade === 3
       ? h("button.btn.ghost.sm", {
@@ -184,19 +214,21 @@ const RENDERERS = {
       const answers = [e.answer, ...(e.accept || [])];
       let correct = answers.some((a) => normExact(a) === normExact(given));
       let note = null;
-      if (!correct && answers.some((a) => normLoose(a) === normLoose(given))) {
+      if (!correct && answers.some((a) => normSpaces(a) === normSpaces(given))) {
         correct = true;
         note = "Accepté aux espaces près — la sortie exacte est :";
       }
+      const casse = !correct && answers.some((a) => normLoose(a) === normLoose(given));
       let fellMsg = null;
       if (!correct && e.trap_answers && e.trap_answers.some((a) => normLoose(a) === normLoose(given))) {
         fellMsg = "Ta réponse est exactement celle que donne l'intuition piégée.";
       }
       ta.readOnly = true;
       const extra = h("div.stack.g6", {},
+        casse ? h("p.small", { html: inline("**Presque** : seules les majuscules diffèrent. Une sortie se recopie exactement : `True` et `true`, ce n'est pas la même chose.") }) : null,
         h("span.eyebrow", {}, note || (correct ? "Sortie" : "Sortie réelle")),
         consoleBox(e.answer, correct ? "pass" : ""));
-      finish(correct, { extra, fellMsg });
+      finish(correct, { extra, fellMsg, horsPiege: casse });
     }
   },
 
@@ -213,7 +245,7 @@ const RENDERERS = {
         const k = +parts[i];
         const ans = e.blanks[k] || [""];
         const w = Math.max(4, ...ans.map((a) => String(a).length)) + 1;
-        const inp = h("input.blank", { type: "text", size: w, spellcheck: "false", autocapitalize: "off", autocomplete: "off", "aria-label": `trou ${k + 1}` });
+        const inp = h("input.blank", { type: "text", size: w, spellcheck: "false", autocapitalize: "off", autocorrect: "off", autocomplete: "off", "aria-label": `trou ${inputs.length + 1}` });
         inp.dataset.k = k;
         inputs.push(inp);
         pre.append(inp);
@@ -229,15 +261,31 @@ const RENDERERS = {
     function check() {
       let all = true;
       const n = (s) => String(s).trim().replace(/\s+/g, " ");
-      inputs.forEach((inp) => {
-        const ok = (e.blanks[+inp.dataset.k] || []).some((a) => n(a) === n(inp.value));
+      const fautes = [];
+      let formeSeule = true;
+      inputs.forEach((inp, i) => {
+        const attendus = e.blanks[+inp.dataset.k] || [""];
+        const lit = lang === "python" ? litteralPython(inp.value) : null;
+        const ok = attendus.some((a) => n(a) === n(inp.value) || (lit !== null && lit === litteralPython(a)));
         inp.classList.add(ok ? "good" : "bad");
         inp.readOnly = true;
-        if (!ok) { all = false; inp.title = `Attendu : ${e.blanks[+inp.dataset.k][0]}`; }
+        if (ok) return;
+        all = false;
+        inp.title = `Attendu : ${attendus[0]}`;
+        const pourquoi = attendus.map((a) => diagnostic(inp.value, a, lang)).find(Boolean);
+        if (!attendus.some((a) => n(a).toLowerCase() === n(inp.value).toLowerCase())) formeSeule = false;
+        const ecrit = n(inp.value) ? `tu as écrit \`${n(inp.value).replace(/`/g, "ˋ")}\`` : "laissé vide";
+        fautes.push(`**Trou ${i + 1}** : ${ecrit}, il fallait \`${attendus[0]}\`${pourquoi ? ` — ${pourquoi}` : "."}`);
       });
       const filled = String(e.tpl).replace(/⟦(\d+)⟧/g, (_, k) => e.blanks[+k][0]);
-      const extra = all ? null : h("div.stack.g6", {}, h("span.eyebrow", {}, "Version complète"), codeEl(filled, lang));
-      finish(all, { extra });
+      const justes = inputs.length - fautes.length;
+      const extra = all ? null : h("div.stack.g10", {},
+        h("div.stack.g6", {},
+          h("span.eyebrow", {}, fautes.length > 1 ? "Les trous à revoir" : "Le trou à revoir"),
+          h("ul.prose.small", { style: { margin: 0, paddingLeft: "1.2em" } }, fautes.map((f) => h("li", { html: inline(f) }))),
+          justes ? h("p.small.muted", { style: { margin: 0 } }, justes > 1 ? "Les autres trous sont justes." : "L'autre trou est juste.") : null),
+        h("div.stack.g6", {}, h("span.eyebrow", {}, "Version complète"), codeEl(filled, lang)));
+      finish(all, { extra, horsPiege: !all && formeSeule });
     }
   },
 
@@ -462,7 +510,10 @@ function root_keys(body, btns, validateFn) {
 }
 
 function highlightInline(text, lang) {
-  return codeHTML(text, lang, { gutter: false, tag: "" }).replace(/^<pre class="code-block plain">/, "").replace(/<\/pre>$/, "");
+  // codeHTML retire les retours à la ligne de fin : on les remet, sinon un trou en début de ligne
+  // se retrouve collé à la ligne précédente.
+  const fin = String(text).match(/\n*$/)[0];
+  return codeHTML(text, lang, { gutter: false, tag: "" }).replace(/^<pre class="code-block plain">/, "").replace(/<\/pre>$/, "") + fin;
 }
 
 function shuffle(a) {
