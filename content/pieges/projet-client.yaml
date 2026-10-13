@@ -1,0 +1,82 @@
+- id: pcl-solution-demandee
+  title: Réaliser la solution demandée au lieu du besoin
+  en: Building the requested solution instead of the need
+  why_short: Le client décrit sa solution, pas son problème ; la livrer telle quelle, c'est risquer un objet conforme et inutile.
+  symptom: Le client a demandé « un vérin plus rapide ». Tu l'as livré, conforme à la demande. Le cycle n'a gagné que 5 % et le client est déçu.
+  why: |
+    Le client formule son besoin avec la solution qu'il imagine. Il a souvent raison sur le problème et tort sur le remède. Dans l'exemple, le vérin pesait 10 % du cycle : deux fois plus rapide, il fait gagner au mieux 5 %. Personne n'a demandé « à quoi sert-il ? », et la conformité à la demande n'a rien garanti.
+  fix: |
+    Note la solution demandée comme une piste. Remonte au problème : « Qu'est-ce que ça vous permettrait ? », les 5 pourquoi, l'observation du poste. Écris l'exigence sur le résultat attendu (cadence, précision, durée), pas sur l'organe. Vérifie ensuite si la piste du client est la meilleure, et dis-le-lui avec des chiffres.
+  bad: |
+    Exigence : remplacer le vérin V2 par un vérin deux fois plus rapide.
+  good: |
+    Exigence : le poste doit traiter au moins 1 200 pièces par poste de 8 h, toutes références confondues.
+    Piste du client à étudier : un vérin V2 plus rapide (mesurer d'abord sa part dans le cycle).
+  modules: [pcl-besoin-cache, pcl-entretien, pcl-roles, pcl-cdc, pcl-proposition]
+
+- id: pcl-adjectifs
+  title: Un cahier des charges plein d'adjectifs
+  en: A specification full of adjectives
+  why_short: « Rapide », « stable », « facile » ne se mesurent pas ; à la recette, chacun les interprète à son avantage.
+  symptom: À la recette, le client trouve le système « pas assez stable ». Toi, tu le trouves stable. Le cahier des charges dit seulement « le système doit être stable ». Personne ne peut trancher.
+  why: |
+    Un adjectif n'a ni valeur, ni tolérance, ni condition de mesure. Chacun y met sa propre référence : pour un automaticien, stable veut dire sans oscillation ; pour un physicien, une dérive de moins de 0,1 °C par heure. Une exigence qu'aucun essai ne peut trancher se négocie au pire moment, la réception, quand le budget est dépensé.
+  fix: |
+    Devant chaque adjectif, demande « comment le mesurerait-on ? ». Écris la grandeur, la valeur, la tolérance, la condition et la méthode de vérification. Si le client ne sait pas chiffrer, propose une valeur et fais-la valider par écrit.
+  bad: |
+    Le porte-échantillon doit chauffer rapidement et être stable en température.
+  good: |
+    EX-04 Le porte-échantillon doit amener l'échantillon de 20 °C à 280 °C en moins de 15 min.
+    EX-05 À 280 °C, la température mesurée sur l'échantillon doit rester dans ± 2 °C pendant au moins 30 min.
+    Vérification de EX-04 et EX-05 : essai, enregistrement de la température à 1 Hz.
+  modules: [pcl-exigences, pcl-cdc, pcl-recette]
+
+- id: pcl-accord-oral
+  title: L'accord oral jamais écrit
+  en: The verbal agreement nobody wrote down
+  why_short: Trois semaines plus tard, chacun se souvient d'un accord différent, et personne ne peut prouver le sien.
+  symptom: En réunion, le client a accepté de repousser la livraison contre une option en moins. Un mois plus tard, son responsable réclame l'option et la date d'origine. Tu n'as aucune trace.
+  why: |
+    La mémoire reconstruit : chacun retient, de bonne foi, la version qui l'arrange. Les interlocuteurs changent, et le décideur absent de la réunion n'a rien entendu. Sans écrit, un accord n'existe que tant que tout le monde s'en souvient de la même façon.
+  fix: |
+    Après chaque décision orale (réunion, couloir, téléphone), envoie dans la journée un mail court : ce qui a été décidé, ce que cela change, et un délai de remarque (« sauf remarque de votre part d'ici le 17, je considère ce point validé »). Classe-le avec le cahier des charges.
+  bad: |
+    Comme on s'est dit au téléphone, on part là-dessus.
+  good: |
+    Objet : Banc de mesure, décision du 14 mars, report de livraison
+    Bonjour,
+    Suite à notre échange de ce matin : la livraison passe du 2 au 16 mai ; en contrepartie, l'option de pilotage à distance sort du périmètre.
+    Sauf remarque de votre part d'ici le 17 mars, je mets à jour le cahier des charges (version 1.3) sur cette base.
+  modules: [pcl-ecrit, pcl-cr, pcl-entretien, pcl-proposition, pcl-changements]
+
+- id: pcl-cr-sans-actions
+  title: Le compte rendu sans actions datées
+  en: Minutes with no owners and no due dates
+  why_short: Un compte rendu qui raconte la réunion sans dire qui fait quoi pour quand ne déclenche aucune action.
+  symptom: Le compte rendu fait deux pages de « il a été discuté de… ». À la réunion suivante, rien n'a avancé, et chacun pensait qu'un autre s'en occupait.
+  why: |
+    Une action sans responsable appartient à tout le monde, donc à personne. Une action sans échéance n'est jamais en retard, donc jamais prioritaire. Et le récit chronologique noie les décisions au milieu des échanges : celui qui n'était pas là ne sait pas ce qui a été tranché.
+  fix: |
+    Écris un relevé de décisions et d'actions. Chaque action a un numéro, un verbe, un seul responsable nommé et une date. Ouvre la réunion suivante par la revue de ce tableau, action par action.
+  bad: |
+    Il a été discuté du problème de vibrations. Il faudrait regarder la fixation du capteur et éventuellement contacter le fournisseur.
+  good: |
+    D-05 Décision : le capteur reste à son emplacement actuel jusqu'aux mesures.
+    A-12 Mesurer les vibrations au point de fixation du capteur. Responsable : technicien du banc. Échéance : 21 mars.
+    A-13 Demander au fournisseur la plage de fréquences admissible. Responsable : chef de projet. Échéance : 18 mars.
+  modules: [pcl-cr, pcl-reunion]
+
+- id: pcl-oui-a-tout
+  title: Dire oui à tout pendant le projet
+  en: Saying yes to every request
+  why_short: Chaque petit ajout semble gratuit ; cumulés, ils font dériver le délai et le budget, et c'est toi qui portes le retard.
+  symptom: « Tant que tu y es, tu peux ajouter un voyant ? » Oui. « Et un export des données ? » Oui. Trois mois plus tard, le projet a six semaines de retard et le client demande pourquoi.
+  why: |
+    Chaque demande isolée paraît petite, et refuser semble peu serviable. Mais un ajout coûte en conception, en essais, en documentation, et il décale tout le reste. Personne n'a arbitré : le client n'a jamais vu le prix de ses demandes, donc il ne les relie pas au retard.
+  fix: |
+    Réponds « oui, et voilà ce que ça coûte ». Note la demande, chiffre son impact sur la qualité, le coût et le délai, et laisse le décideur arbitrer par écrit. Change la version du cahier des charges à chaque modification acceptée.
+  bad: |
+    Pas de souci, je te rajoute ça.
+  good: |
+    Bonne idée. Je l'ajoute aux demandes de modification ; je te donne d'ici jeudi son impact en coût et en délai, et ton responsable décide si on l'intègre maintenant ou dans une version suivante.
+  modules: [pcl-changements, pcl-roles, pcl-cdc, pcl-recette]

@@ -1,0 +1,218 @@
+- id: ppi-fiche-cadrage
+  title: Note de cadrage type
+  lang: inge
+  summary: Le modèle d'une note de cadrage de deux pages, de l'objectif mesurable à la validation, prêt à copier.
+  body: |
+    Une note de cadrage tient sur une à deux pages. Remplis-la avec le commanditaire, relis-la avec l'équipe, fais-la valider **avant** de lancer les achats. Remplace chaque [crochet]. Les exemples viennent d'un porte-échantillon chauffant fictif.
+
+    ## 1. Identité
+
+    | Rubrique | À remplir | Exemple |
+    |---|---|---|
+    | Projet | [nom court] | Porte-échantillon chauffant |
+    | Commanditaire (finance, arbitre) | [fonction] | Direction du laboratoire |
+    | Client et utilisateur | [qui signe, qui s'en sert] | Responsable du laboratoire ; technicien de la ligne |
+    | Chef de projet | [nom] | |
+    | Version et date | [v1, jj/mm/aaaa] | v1 |
+
+    ## 2. Contexte et besoin
+
+    Trois à cinq phrases : la situation, le problème à résoudre, ce qui se passe si on ne fait rien.
+
+    ## 3. Objectif mesurable
+
+    Une seule phrase, avec une performance chiffrée, une date et un coût.
+
+    > Exemple : chauffer un échantillon de 20 à 300 °C en moins de 15 minutes sous vide, avec une stabilité de ±0,5 °C, livré avant le 30 juin, pour 25 k€ d'achats et de sous-traitance.
+
+    | Dimension | Mesure | Cible | Comment on la vérifie |
+    |---|---|---|---|
+    | Performance | [grandeur et unité] | [valeur] | [essai, moyen de mesure] |
+    | Délai | [jalon] | [date] | [livraison, recette] |
+    | Coût | [enveloppe] | [montant] | [suivi du budget] |
+
+    ## 4. Périmètre
+
+    | Inclus | Exclus (écrit noir sur blanc) |
+    |---|---|
+    | [livrables et prestations] | [ce qui n'est pas fait, et qui s'en charge] |
+
+    ## 5. Livrables
+
+    - [équipement, documentation, formation, dossier de transfert]
+
+    ## 6. Contraintes
+
+    Délai, budget, normes et sécurité, interfaces, site d'installation, disponibilité des personnes et des moyens.
+
+    ## 7. Hypothèses à vérifier
+
+    Une hypothèse est un risque déguisé : elle a un responsable et une date de vérification.
+
+    | Hypothèse | Qui vérifie | Avant le | Si c'est faux |
+    |---|---|---|---|
+    | [exemple : l'atelier est libre en mars] | [nom] | [date] | [exemple : sous-traitance en repli] |
+
+    ## 8. Parties prenantes et rôles
+
+    Liste des parties prenantes avec leur pouvoir et leur intérêt, et renvoi vers la matrice RACI : [lien].
+
+    ## 9. Jalons
+
+    | Jalon | Date | Critère de passage |
+    |---|---|---|
+    | Cadrage validé | [S0] | note signée |
+    | Revue de conception | [S12] | plans figés, achats longs lancés |
+    | Livraison | [date] | recette signée |
+
+    ## 10. Budget
+
+    | Poste | Montant |
+    |---|---|
+    | Heures (heures × taux horaire) | [ ] |
+    | Achats | [ ] |
+    | Sous-traitance | [ ] |
+    | Essais | [ ] |
+    | Provision pour aléas | [ ] |
+    | **Total** | [ ] |
+
+    ## 11. Risques majeurs au départ
+
+    Les trois à cinq premiers risques, écrits en cause, événement, conséquence, avec renvoi au registre : [lien].
+
+    ## 12. Critères de recette
+
+    Comment le client constatera que c'est fini : essais, seuils à atteindre, documents remis.
+
+    ## 13. Gouvernance
+
+    Points d'équipe, comité de pilotage, circuit de décision et de changement.
+
+    ## 14. Validation
+
+    | Rôle | Nom | Date | Signature |
+    |---|---|---|---|
+    | Commanditaire | | | |
+    | Client | | | |
+    | Chef de projet | | | |
+- id: ppi-fiche-risques
+  title: Registre des risques type
+  lang: inge
+  summary: Un registre de risques prêt à copier, avec échelles de cotation, six exemples remplis et les règles de revue.
+  body: |
+    Un registre de 10 à 30 lignes suffit pour un projet de quelques mois. Chaque ligne a **un propriétaire nommé**, une **action datée** et un **signe avant-coureur**. Les exemples viennent d'un porte-échantillon chauffant fictif.
+
+    ## Échelles (à écrire avant de coter)
+
+    | Note | Probabilité | Impact délai | Impact coût |
+    |---|---|---|---|
+    | 1 | moins de 10 % | moins d'une semaine | moins de 1 k€ |
+    | 2 | 10 à 30 % | 1 à 2 semaines | 1 à 5 k€ |
+    | 3 | 30 à 60 % | 2 à 4 semaines | 5 à 15 k€ |
+    | 4 | plus de 60 % | plus de 4 semaines | plus de 15 k€ |
+
+    Criticité C = P × I. Rouge à partir de 9 (action obligatoire), orange de 4 à 8 (action ou surveillance), vert à 3 et moins (on accepte et on surveille). Une exigence de sécurité ne se cote pas pour être acceptée : elle se traite par la conception.
+
+    ## Registre
+
+    | ID | Risque (cause, événement, conséquence) | P | I | C | Réponse | Action et échéance | Propriétaire | Signe avant-coureur | Statut |
+    |---|---|---|---|---|---|---|---|---|---|
+    | R1 | Un seul usineur sait faire le corps en cuivre ; il peut livrer en retard ; l'intégration glisse de 4 semaines | 3 | 3 | 9 | Réduire | Consulter un second usineur avant la semaine 10 | Acheteur | Pas d'accusé de réception sous 3 jours | Ouvert |
+    | R2 | Le passage étanche est un composant neuf ; il peut fuir sous vide ; on le change et on refait l'essai | 2 | 4 | 8 | Réduire | Test d'étanchéité du sous-ensemble avant l'intégration | Responsable mécanique | Pièce d'essai non reçue en semaine 12 | Ouvert |
+    | R3 | La cartouche choisie peut ne pas tenir la rampe ; la montée en 15 minutes n'est pas atteinte ; on change de cartouche | 2 | 4 | 8 | Réduire | Essai d'une cartouche seule sur banc avant la commande de série | Responsable technique | Rampe mesurée sous 19 °C/min | Ouvert |
+    | R4 | Une seule personne sait écrire le programme de régulation ; elle peut s'absenter ; le logiciel glisse de 2 semaines | 2 | 3 | 6 | Réduire | Revue de code et documentation à chaque jalon | Responsable logiciel | Pas de version livrée à un jalon | Ouvert |
+    | R5 | La clôture budgétaire de décembre peut bloquer une commande ; la pièce arrive en janvier | 3 | 2 | 6 | Éviter | Passer la commande avant le 15 décembre | Chef de projet | Bon de commande non validé au 1er décembre | Ouvert |
+    | R6 | L'atelier interne est supposé libre en mars ; une urgence peut le mobiliser ; l'assemblage glisse de 2 semaines | 2 | 2 | 4 | Accepter | Vérifier en janvier ; sous-traitance en repli | Chef de projet | Planning de l'atelier saturé en janvier | Ouvert |
+
+    ## Réponses possibles à une menace
+
+    - **Éviter** : changer le plan pour supprimer la cause.
+    - **Réduire** : baisser la probabilité ou l'impact.
+    - **Transférer** : faire porter l'impact par un tiers (contrat, assurance).
+    - **Accepter** : garder une provision et un plan de repli.
+    - **Remonter** : signaler au niveau supérieur un risque qui dépasse le projet.
+
+    ## Règles de vie du registre
+
+    - Écris chaque risque en trois temps : cause, événement, conséquence.
+    - Un propriétaire est une personne, jamais « l'équipe ».
+    - Les hypothèses du cadrage deviennent des lignes à vérifier.
+    - Revois les cinq risques les plus critiques à chaque point d'équipe, tout le registre une fois par mois et à chaque jalon.
+    - Un risque qui se produit passe au plan d'action (statut « Survenu »). Un risque dont la fenêtre est passée est fermé.
+    - Au retour d'expérience, relis le registre : les risques survenus et ceux qui dormaient retournent dans le registre type.
+- id: ppi-fiche-tableau-de-bord
+  title: Tableau de bord hebdomadaire
+  lang: inge
+  summary: Un tableau de bord d'une page avec météo projet, jalons, budget, achats longs, risques et décisions demandées.
+  body: |
+    Une page, remplie le même jour chaque semaine et envoyée avant le point d'équipe. Les seuils se fixent avec le commanditaire **avant** le premier tableau. Les chiffres de l'exemple viennent d'un porte-échantillon chauffant fictif, à la semaine 20 sur 40.
+
+    ## En-tête
+
+    | Projet | Semaine | Rédacteur | Prochaine revue |
+    |---|---|---|---|
+    | [nom] | [S20] | [nom] | [date] |
+
+    ## Météo
+
+    | Voyant | Météo | Vert | Orange | Rouge | Commentaire en une ligne |
+    |---|---|---|---|---|---|
+    | Global | [couleur] | tous les voyants verts | un voyant orange | un voyant rouge | [phrase] |
+    | Délai | [couleur] | marge critique de plus de 2 semaines | de 0 à 2 semaines | négative : un jalon est menacé | |
+    | Coût | [couleur] | atterrissage à moins de 5 % au-dessus du budget | de 5 à 10 % | plus de 10 %, ou au-delà de la provision | |
+    | Technique | [couleur] | exigences tenues | écart connu, solution identifiée | exigence non tenue, pas de solution | |
+    | Risques | [couleur] | aucun risque rouge ouvert | un risque rouge avec action en cours | risque rouge sans action, ou survenu | |
+    | Ressources | [couleur] | disponibilités confirmées | une personne clé sous la disponibilité prévue | compétence ou personne manquante | |
+
+    ## Jalons
+
+    | Jalon | Date engagée | Date prévisionnelle | Écart | Commentaire |
+    |---|---|---|---|---|
+    | Revue de conception | S12 | S12 | 0 | |
+    | Corps usiné reçu | S23 | S24 | +1 semaine | retard annoncé par le sous-traitant |
+    | Livraison | [S40] | [S4x] | [écart] | |
+
+    ## Avancement et reste à faire
+
+    | Lot | Fait (livrable terminé) | Reste à faire (h) | Fin prévue | Blocage |
+    |---|---|---|---|---|
+    | Programme de régulation | rampes validées sur banc | 60 | S26 | aucun |
+    | Armoire de commande | plan signé, matériel commandé | 90 | S30 | régulateur attendu |
+
+    ## Budget (en euros)
+
+    | Budget | Dépensé | Engagé non facturé | Reste à engager | Atterrissage | Écart |
+    |---|---|---|---|---|---|
+    | 84 000 | 39 200 | [ ] | [ ] | 98 000 | −14 000 |
+
+    Atterrissage = dépensé + engagé non facturé + reste à engager. Vérifie-le avec la tendance BAC / CPI.
+
+    | PV | EV | AC | SPI | CPI |
+    |---|---|---|---|---|
+    | 42 000 | 33 600 | 39 200 | 0,80 | 0,86 |
+
+    ## Achats longs
+
+    | Pièce | Fournisseur | Commande passée | Date promise | Date prévue | Statut |
+    |---|---|---|---|---|---|
+    | Corps en cuivre | [sous-traitant] | S14 | S23 | S24 | en usinage |
+
+    ## Les trois risques les plus critiques
+
+    | Risque | Criticité | Propriétaire | Action et échéance |
+    |---|---|---|---|
+    | [R1] | [9] | [nom] | [action, date] |
+
+    ## Décisions demandées
+
+    | Décision | Options | Recommandation | Qui décide | Pour le |
+    |---|---|---|---|---|
+    | [14 000 € de dépassement prévu] | [réduire le périmètre, décaler la date, ajouter des moyens] | [option] | [commanditaire] | [date] |
+
+    ## Règles
+
+    - Les seuils sont écrits avant le premier tableau et ne changent pas pour faire plaisir à une couleur.
+    - Pas de météo globale verte avec un voyant rouge dedans.
+    - Une alerte part dès que le seuil est franchi, sans attendre le comité de pilotage.
+    - Chaque alerte vient avec des options chiffrées et une recommandation.
+    - Une page. Si le tableau en demande deux, il contient trop de détails.

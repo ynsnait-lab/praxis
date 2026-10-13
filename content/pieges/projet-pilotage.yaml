@@ -1,0 +1,62 @@
+- id: ppi-charge-duree
+  title: Confondre charge et durée
+  en: Mixing up effort and duration
+  why_short: 40 heures de travail ne font pas une semaine si la personne n'est sur ton projet qu'à mi-temps et attend une livraison.
+  symptom: On annonce « c'est 40 heures, donc une semaine », et la tâche en prend trois. Le planning glisse sans que personne ait mal travaillé.
+  why: |
+    La charge (en heures-personnes) mesure le travail ; la durée (en semaines calendaires) mesure le temps qui passe. Entre les deux, il y a la disponibilité réelle de la personne, souvent la moitié de son temps ou moins sur un projet donné, les attentes (livraison, séchage, validation) et les jours non travaillés. Une charge de 40 h confiée à quelqu'un disponible à 50 % sur des semaines de 35 h dure 40 / 17,5 ≈ 2,3 semaines, plus les attentes.
+  fix: |
+    Écris toujours l'unité : « 40 h de charge » ou « 3 semaines de durée ». Convertis explicitement : durée = charge / (heures par semaine × disponibilité × nombre de personnes) + attentes. Demande à chacun sa disponibilité réelle sur ton projet, pas sa disponibilité théorique.
+  bad: |
+    Câblage de l'armoire : 90 h. Une semaine fait 35 h, donc 2,6 semaines.
+  good: |
+    Câblage : 90 h, technicien disponible à 50 %, soit 90 / 17,5 = 5,1 semaines, plus 1 semaine de contrôle par un électricien habilité : 6,1 semaines.
+  modules: [ppi-estimer, ppi-planning]
+- id: ppi-planning-sans-marge
+  title: Le planning sans marge ni délais d'appro
+  en: A schedule with no buffer and no lead times
+  why_short: Un planning tendu bout à bout, sans délais fournisseurs ni provision, est faux dès la première commande en retard.
+  symptom: Le Gantt est beau, les tâches s'enchaînent sans un jour de battement. Puis la commande du corps usiné part après la revue de conception, et la pièce arrive trois semaines après le début prévu de l'assemblage.
+  why: |
+    Le débutant planifie le travail de son équipe et oublie ce qui ne dépend pas d'elle : les délais fournisseurs (souvent plusieurs semaines pour une pièce usinée sur plan, parfois des mois pour un composant spécifique), le circuit interne de commande, le contrôle à réception, les congés et les fermetures. Chaque tâche est estimée à sa valeur la plus probable, sans provision ; or les retards s'additionnent et les avances se perdent. Sur le chemin critique, le moindre retard décale la fin du projet.
+  fix: |
+    Mets chaque délai d'approvisionnement dans le planning comme une tâche, avec sa date de commande au plus tard. Identifie les achats longs dès la conception préliminaire et demande les délais par écrit. Estime les tâches incertaines à trois points et garde une provision visible en fin de chemin critique. Ajoute les congés et les fermetures fournisseurs au calendrier.
+  bad: |
+    Revue de conception détaillée en semaine 17, commande du corps en semaine 17, assemblage en semaine 22. Délai d'usinage : 8 semaines.
+  good: |
+    Plans du corps figés à part et demande d'achat en semaine 12. Circuit interne 2 semaines, usinage 8 semaines, contrôle 1 semaine : pièce prête en semaine 23, assemblage prévu en semaine 24, soit une semaine de marge.
+  modules: [ppi-cycle, ppi-estimer, ppi-planning, ppi-agile, ppi-achats]
+- id: ppi-90-pourcent
+  title: Le « 90 % » qui dure des semaines
+  en: The task stuck at 90 percent
+  why_short: Un avancement donné au jugé plafonne vers 90 % ; la fin du travail (reprises, finitions, documents) n'a jamais été estimée.
+  symptom: Semaine après semaine, le lot « logiciel de régulation » est à 80 %, 85 %, 90 %, 90 %, 90 %. Le jalon approche et personne ne sait quand il sera fini.
+  why: |
+    Un pourcentage déclaré mesure une impression, souvent le temps passé rapporté à l'estimation initiale. Les dernières étapes (mise au point, corrections, essais, documentation) sont les moins visibles et les plus sous-estimées. Plus un lot est gros et flou, plus le pourcentage est arbitraire. Et la valeur acquise calculée sur ces pourcentages est fausse elle aussi.
+  fix: |
+    Découpe le travail en lots d'une à deux semaines, chacun terminé par un livrable vérifiable. Mesure l'avancement en tout ou rien, ou par étapes pondérées (plan signé, essai passé). Remplace « à combien de pour cent es-tu ? » par « qu'est-ce qui reste à faire, en heures, et pour quand ? ». Définis à l'avance ce que « fini » veut dire.
+  modules: [ppi-wbs, ppi-suivi, ppi-agile]
+- id: ppi-risque-dort
+  title: Le risque connu qui dort dans le registre
+  en: The known risk nobody acted on
+  why_short: Un risque identifié sans propriétaire ni action datée n'est pas géré, il est seulement documenté, jusqu'au jour où il arrive.
+  symptom: Le registre a été rempli au lancement, avec de bonnes idées. Trois mois plus tard, la fuite du passage étanche se produit à l'intégration ; le test d'étanchéité prévu n'a jamais été fait.
+  why: |
+    Identifier un risque donne une impression de maîtrise. Sans propriétaire unique, sans action datée et sans revue régulière, l'action passe toujours après l'urgence du jour. Les hypothèses du cadrage (« l'atelier sera disponible », « le fournisseur tiendra son délai ») sont des risques déguisés qu'on ne vérifie jamais. Et si personne ne relit le registre à la clôture, le projet suivant refait la même erreur.
+  fix: |
+    Chaque risque a un propriétaire nommé (une personne, pas « l'équipe »), une action, une échéance et un signe avant-coureur. Revois les cinq risques les plus critiques à chaque point d'équipe, et tout le registre une fois par mois et à chaque jalon. Transforme les hypothèses du cadrage en points à vérifier, et relis le registre au retour d'expérience.
+  modules: [ppi-cadrage, ppi-risques, ppi-acteurs, ppi-cloture]
+- id: ppi-avancement-temps-passe
+  title: Mesurer l'avancement au temps passé
+  en: Measuring progress by time spent
+  why_short: Avoir consommé 60 % des heures ne veut pas dire avoir fait 60 % du travail ; on mesure la dépense, pas le résultat.
+  symptom: « On a passé 600 heures sur 1 000, on est à 60 %. » Le rapport reste vert jusqu'au jour où le budget est épuisé et qu'il reste un tiers du travail.
+  why: |
+    Le temps passé, ou l'argent dépensé, est le coût réel (AC en valeur acquise). L'avancement, c'est la valeur budgétée du travail réellement fait (EV). Les confondre revient à supposer que tout se passe exactement comme prévu : on ne voit jamais de dérive de coût, et le retard n'apparaît qu'à la fin. Exemple : 50 k€ dépensés pour 42 k€ de travail fait, c'est un indice de performance des coûts de 0,84 et un atterrissage à 100 k€ pour un budget de 84 k€.
+  fix: |
+    Mesure l'avancement sur des faits (livrables terminés, jalons franchis), calcule la valeur acquise, puis compare-la au coût réel. Présente toujours ensemble le consommé, l'avancement physique et le reste à faire réestimé.
+  bad: |
+    600 h passées sur 1 000 h prévues : avancement 60 %, tout va bien.
+  good: |
+    600 h passées ; les lots terminés valent 480 h au budget : avancement 48 %, CPI = 480 / 600 = 0,8, atterrissage ≈ 1 000 / 0,8 = 1 250 h.
+  modules: [ppi-budget, ppi-suivi]

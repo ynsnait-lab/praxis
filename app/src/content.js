@@ -9,9 +9,15 @@ function readData() {
 
 export const C = readData();
 
-export const TRACKS = ["python", "cpp", "inge"];
-export const TRACK_LABEL = { python: "Python", cpp: "C++", inge: "Ingé" };
-export const TRACK_LONG = { python: "Python", cpp: "C++", inge: "Culture ingé" };
+// La piste perso (dossier prive/, hors du dépôt public) n'existe que si elle a été construite avec l'app.
+const PERSO = C.tracks.perso || null;
+export const HAS_PERSO = !!PERSO;
+export const TRACKS = ["python", "cpp", "inge", ...(PERSO ? ["perso"] : [])];
+export const PARCOURS_TRACKS = ["python", "cpp", "inge"];          // la piste perso a son propre onglet
+export const GROUPED = new Set(["inge", "perso"]);                  // pistes organisées en domaines de notions
+export const TRACK_LABEL = { python: "Python", cpp: "C++", inge: "Ingé", perso: (PERSO && PERSO.short) || "Perso" };
+export const TRACK_LONG = { python: "Python", cpp: "C++", inge: "Culture ingé", perso: (PERSO && PERSO.title) || "Ma piste" };
+export const trackHome = (track) => (track === "perso" ? "#/perso" : `#/parcours/${track}`);
 
 export const LEVELS = {
   1: { short: "Image", long: "L'image" },
@@ -21,7 +27,7 @@ export const LEVELS = {
   5: { short: "Terrain", long: "Sur le terrain" },
 };
 export function levelLabel(lv, track) {
-  if (lv === 3 && track === "inge") return "La formule";
+  if (lv === 3 && GROUPED.has(track)) return "La formule";
   return LEVELS[lv]?.long || "";
 }
 export const EX_LEVEL = { 1: "Bases", 2: "Solide", 3: "Pointu" };
@@ -45,7 +51,11 @@ export function exLang(e) {
   const m = C.modules[e.mod];
   return m && m.track === "cpp" ? "cpp" : "python";
 }
-export const trackOfEx = (e) => (C.modules[e.mod] ? C.modules[e.mod].track : "inge");
+export function trackOfEx(e) {
+  if (C.modules[e.mod]) return C.modules[e.mod].track;
+  const dom = String(e.mod || "").startsWith("quiz:") ? C.domains[e.mod.slice(5)] : null;
+  return (dom && dom.track) || "inge";
+}
 
 export function lessonRead(id) {
   const l = getState().lessons[id];

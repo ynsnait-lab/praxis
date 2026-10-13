@@ -26,7 +26,7 @@ cpp:
 inge:
   title: Culture ingé
   desc: Les notions qu'un ingénieur mécatronicien est censé savoir, expliquées depuis zéro jusqu'à la formule et son origine, avec le vocabulaire anglais.
-  domains: [maths, statique, rdm, materiaux, fabrication, dynamique, motorisation, fluides, thermique, electrotech, analogique, numerique, embarque, capteurs, automatique, automatismes, signal, info, methodes, anglais]
+  domains: [maths, statique, rdm, materiaux, fabrication, dynamique, motorisation, fluides, thermique, electrotech, analogique, numerique, embarque, capteurs, automatique, automatismes, signal, info, methodes, projet-client, projet-pilotage, anglais]
   families:
     - title: Le socle
       domains: [maths]
@@ -36,5 +36,7 @@ inge:
       domains: [electrotech, analogique, numerique, embarque, capteurs]
     - title: Commande et signal
       domains: [automatique, automatismes, signal]
+    - title: Mener un projet
+      domains: [projet-client, projet-pilotage]
     - title: Outils de l'ingénieur
       domains: [info, methodes, anglais]

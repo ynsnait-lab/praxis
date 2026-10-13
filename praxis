@@ -457,7 +457,7 @@ def cmd_setup(args: argparse.Namespace) -> int:
 
 # ------------------------------------------------------------------ app locale
 
-SOURCES_APP = ("content", "app", "labs")
+SOURCES_APP = ("content", "app", "labs", "prive")
 FICHIERS_APP = ("tools/build.mjs", "tools/content.py", "package.json", "package-lock.json")
 
 
@@ -472,6 +472,8 @@ def app_a_jour() -> bool:
         if chemin.exists() and chemin.stat().st_mtime > t:
             return False
     for d in SOURCES_APP:
+        if not (RACINE / d).is_dir():
+            continue
         for chemin in (RACINE / d).rglob("*"):
             if chemin.name.startswith(".") or "__pycache__" in chemin.parts:
                 continue                            # .DS_Store du Finder, caches : rien à reconstruire

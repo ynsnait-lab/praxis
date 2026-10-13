@@ -43,6 +43,8 @@
   --cpp-soft: #ECE4F6;
   --inge: #A9521D;
   --inge-soft: #F6E6DB;
+  --perso: #A8325E;
+  --perso-soft: #F7E1EA;
 
   --lv1: #9CC9C2;
   --lv2: #5FA89E;
@@ -116,6 +118,8 @@
     --cpp-soft: #251C35;
     --inge: #E8955E;
     --inge-soft: #34231A;
+    --perso: #EE8AB2;
+    --perso-soft: #36202A;
     --lv1: #2C5853;
     --lv2: #3B7E75;
     --lv3: #4FA398;
@@ -170,6 +174,8 @@
   --cpp-soft: #251C35;
   --inge: #E8955E;
   --inge-soft: #34231A;
+  --perso: #EE8AB2;
+  --perso-soft: #36202A;
   --lv1: #2C5853;
   --lv2: #3B7E75;
   --lv3: #4FA398;
@@ -338,10 +344,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .pill.python { background: var(--py-soft); border-color: transparent; color: var(--py); }
 .pill.cpp { background: var(--cpp-soft); border-color: transparent; color: var(--cpp); }
 .pill.inge { background: var(--inge-soft); border-color: transparent; color: var(--inge); }
+.pill.perso { background: var(--perso-soft); border-color: transparent; color: var(--perso); }
 .pill.trap { background: var(--surface); border: 0; color: var(--ink); padding-left: 16px; position: relative; overflow: hidden; }
 .pill.trap::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 9px; background: var(--hazard); }
 .dotlang { width: 8px; height: 8px; border-radius: 2px; display: inline-block; flex: none; }
-.dotlang.python { background: var(--py); } .dotlang.cpp { background: var(--cpp); } .dotlang.inge { background: var(--inge); }
+.dotlang.python { background: var(--py); } .dotlang.cpp { background: var(--cpp); } .dotlang.inge { background: var(--inge); } .dotlang.perso { background: var(--perso); }
 
 /* ---------- jauge crescendo ---------- */
 .cresc { display: inline-flex; align-items: flex-end; gap: 3px; height: 18px; }
@@ -580,6 +587,7 @@ mfrac > :nth-child(2), msqrt, mover > :first-child { math-shift: compact; }
   font-family: var(--mono); font-size: var(--t-sm); white-space: pre; text-align: left; background: var(--surface);
   border: 1px solid var(--line); border-radius: var(--r-sm); padding: 5px 8px; cursor: pointer; overflow-x: auto;
 }
+.parsons .pline.txt { font-family: var(--sans); white-space: normal; line-height: 1.4; }
 .parsons .pline:hover:not([disabled]) { border-color: var(--accent); }
 .parsons .pline.good { border-color: var(--ok); background: var(--ok-soft); }
 .parsons .pline.bad { border-color: var(--bad); background: var(--bad-soft); }
@@ -677,6 +685,8 @@ input[type="range"] { accent-color: var(--accent); width: 180px; max-width: 100%
 .lab-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
 .lab-row .t { font-weight: 600; }
 .lab-row code.inline { font-size: var(--t-xs); }
+.sources { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; font-size: var(--t-sm); }
+.sources a { overflow-wrap: anywhere; }
 .lab-details { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 14px; min-width: 0; }
 .lab-details .prose table { font-size: var(--t-xs); }
 .check-row { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }

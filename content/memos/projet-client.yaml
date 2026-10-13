@@ -1,0 +1,451 @@
+- id: pcl-fiche-entretien
+  title: Trame d'entretien client
+  lang: inge
+  summary: "La trame à emporter pour recueillir un besoin : préparer l'entretien, poser les questions par thème, faire émerger le besoin caché, puis confirmer par écrit."
+  body: |
+    Prévois 1 h à 1 h 30. Va du large vers le précis. Un seul objectif : repartir avec le problème, les critères de réussite et les contraintes, pas avec une solution.
+
+    ## Avant : préparer l'entretien
+
+    | À préparer | Contenu |
+    | --- | --- |
+    | Objectif | Une phrase écrite : « À la fin, je sais quel problème le client veut résoudre, pour qui, à quoi il reconnaîtra la réussite, et ce qui borne le projet (budget, délai, site, sécurité). » |
+    | Documents | La demande initiale, les plans et photos du poste, les procédures et normes du site, l'historique (essais, pannes, solutions déjà tentées), la liste des personnes concernées |
+    | Questions | Une liste par thème (voir plus bas), avec les cinq questions indispensables repérées : celles sans lesquelles tu ne repars pas |
+    | Visite | Demande à voir le poste ou l'installation : un quart d'heure sur place vaut souvent mieux qu'une heure de description |
+    | Invités | Le décideur, un utilisateur du quotidien et, selon le sujet, la maintenance, la sécurité ou l'informatique |
+    | Matériel | Carnet, appareil photo (avec autorisation), mètre ou télémètre, enregistreur audio seulement avec l'accord de chacun |
+
+    ## Pendant : les questions par thème
+
+    Questions ouvertes d'abord, questions fermées en fin de thème pour fixer les chiffres. Les onze thèmes couvrent les sept questions du QQOQCCP (qui, quoi, où, quand, comment, combien, pourquoi). Barre ceux qui ne concernent pas ton projet, et reformule en une phrase à la fin de chaque thème.
+
+    > [!astuce] Quand le client propose une solution
+    > Note-la dans la marge sans la discuter, puis demande : « Qu'est-ce que cela devrait vous permettre de faire ou d'éviter ? » Tu remontes ainsi au problème.
+
+    ### 1. Contexte
+
+    - « Pouvez-vous me présenter votre activité et la place de ce projet dans votre organisation ? »
+    - « Qu'est-ce qui a déclenché cette demande, et pourquoi maintenant ? »
+    - « Qu'avez-vous déjà essayé, et qu'est-ce qui n'a pas fonctionné ? »
+
+    **À obtenir** : le déclencheur, l'historique et l'enjeu pour le client.
+
+    ### 2. Problème
+
+    - « Quel problème voulez-vous résoudre ? Racontez-moi la dernière fois qu'il s'est produit. »
+    - « Que vous coûte-t-il aujourd'hui : du temps, des rebuts, des arrêts, de la qualité, un risque ? »
+    - « Depuis quand, et à quelle fréquence ? »
+
+    **À obtenir** : le problème en une phrase, sans solution dedans, et son ampleur chiffrée.
+
+    ### 3. Usage actuel
+
+    - « Comment faites-vous aujourd'hui ? Pouvez-vous me montrer ? »
+    - « Qui le fait, à quelle fréquence, avec quels outils, en combien de temps ? »
+    - « Qu'est-ce qui marche bien et qu'il ne faudrait surtout pas perdre ? »
+    - « Quelles astuces ou quels contournements utilisez-vous ? »
+
+    **À obtenir** : le processus réel (pas le processus officiel), ses points forts et ses contournements.
+
+    ### 4. Critères de réussite
+
+    - « Dans un an, à quoi verrez-vous que c'est réussi ? »
+    - « Quelle valeur, quelle tolérance, quelle cadence visez-vous ? Comment les mesurez-vous aujourd'hui ? »
+    - « Qu'est-ce qui serait inacceptable ? »
+    - « Comment prononcerez-vous la réception, et qui la fera ? »
+
+    **À obtenir** : trois à cinq critères mesurables (une valeur et une unité, ou au moins la façon de les mesurer).
+
+    ### 5. Contraintes techniques
+
+    - « Avec quels équipements, logiciels et réseaux cela doit-il fonctionner ? »
+    - « Y a-t-il des marques, des références ou des normes imposées ? Pour quelle raison ? »
+    - « Quelles dimensions, quelles masses, quelles énergies (électricité, air comprimé) sont disponibles ? »
+    - « Qui assurera la maintenance, et avec quelles pièces de rechange ? »
+
+    **À obtenir** : les interfaces, les éléments imposés avec leur raison, les limites d'encombrement et d'énergie.
+
+    ### 6. Sécurité
+
+    - « Quelles règles de sécurité s'appliquent à ce poste (machine, électricité, produits, accès) ? »
+    - « Y a-t-il déjà eu un incident ou un presque-accident ici ? »
+    - « Qui valide la sécurité chez vous, à quel moment, et sur quels documents (analyse de risques, notice, déclaration de conformité) ? »
+
+    **À obtenir** : le référentiel applicable, la personne qui valide et les documents exigés.
+
+    ### 7. Site
+
+    - « Où le système sera-t-il installé ? Puis-je voir l'endroit ? »
+    - « Quelles conditions y règnent : température, humidité, poussière, vibrations, produits chimiques ? »
+    - « Comment y accède-t-on (horaires, habilitations, manutention), et quelles énergies et quels réseaux sont disponibles sur place ? »
+
+    **À obtenir** : l'environnement réel, l'espace disponible, les conditions d'accès et d'installation.
+
+    ### 8. Budget
+
+    - « Avez-vous une enveloppe en tête, ou faut-il la construire ensemble ? »
+    - « Que doit-elle couvrir : étude, fabrication, installation, formation, maintenance ? »
+    - « Comment un achat se décide-t-il chez vous (seuils de signature, mise en concurrence) ? »
+
+    **À obtenir** : un ordre de grandeur, ce qu'il couvre et le circuit de décision. S'il refuse de donner un chiffre, demande une fourchette ou un plafond.
+
+    ### 9. Délai
+
+    - « Pour quand en avez-vous besoin, et qu'est-ce qui fixe cette date ? »
+    - « Que se passe-t-il si c'est livré deux semaines plus tard ? »
+    - « Quand pourrai-je accéder au site, aux équipements et aux personnes ? Y a-t-il des arrêts programmés ? »
+
+    **À obtenir** : la date visée, sa nature (contrainte dure ou souhait) et les jalons intermédiaires.
+
+    ### 10. Décideurs
+
+    - « Qui décide, et qui valide chaque étape ? »
+    - « Qui utilisera le système au quotidien, qui l'entretiendra, qui paiera ? »
+    - « Qui d'autre doit être d'accord pour que ce projet soit un succès ? »
+    - « Qui pourrait s'y opposer, et pourquoi ? »
+
+    **À obtenir** : la carte des acteurs (qui décide, qui paie, qui utilise, qui prescrit) et un interlocuteur unique.
+
+    ### 11. Suite
+
+    Termine par un résumé oral : ce que tu as compris, les points ouverts. Puis :
+
+    - « Qu'est-ce que nous décidons à la fin de cet entretien ? »
+    - « Qui dois-je rencontrer ensuite, et quels documents puis-je récupérer ? »
+    - « Je vous envoie ma compréhension par écrit dans la journée : sous quel délai pouvez-vous me répondre ? »
+
+    **À obtenir** : des prochaines étapes datées (qui, quoi, quand) et l'accord du client pour la reformulation écrite.
+
+    ## Faire émerger le besoin caché
+
+    Le besoin exprimé est souvent une solution. Ces questions font remonter au problème et révèlent ce qui va sans dire.
+
+    | Question | Ce qu'elle fait émerger |
+    | --- | --- |
+    | « Comment faites-vous aujourd'hui ? » | Le processus réel, les contournements, les gestes que la demande ne mentionne pas |
+    | « Pouvez-vous me montrer ? » | Ce que le client ne sait pas dire : l'observation vaut mieux que la description |
+    | « Que se passe-t-il si… ? » (panne, absence, pièce hors tolérance, retard) | Les conséquences, donc les priorités et les cas limites |
+    | « Qui d'autre est concerné ? » | Les utilisateurs, la maintenance, la sécurité, la qualité, l'informatique : les parties prenantes oubliées |
+    | « Pourquoi ? », jusqu'à cinq fois | La cause racine derrière la solution demandée |
+    | « Qu'est-ce qui serait inacceptable ? » | Les besoins de base que personne ne formule |
+    | « Quel est le cas le plus difficile que vous ayez rencontré ? » | Les cas limites et les exceptions |
+    | « Y a-t-il une question que je ne vous ai pas posée ? » | Le non-dit, à garder pour la fin |
+
+    ### Techniques pendant l'entretien
+
+    - Laisse des silences : compte jusqu'à cinq avant de relancer.
+    - Demande un exemple concret (« la dernière fois que… ») plutôt qu'une généralité.
+    - Reformule souvent (« Si je comprends bien… ») : le client corrigera ce que tu as mal compris.
+    - Note les chiffres avec leur unité et les mots exacts du client.
+    - Pas de solution, pas de prix, pas de promesse pendant l'entretien.
+
+    ## Après : confirmer par écrit
+
+    Dans l'heure qui suit, relis et complète tes notes tant qu'elles sont fraîches. Le jour même, et sous 24 h au plus tard, envoie ta reformulation : elle sert à faire corriger ta compréhension, pas à proposer une solution ni un prix.
+
+    - Classe chaque information : confirmée, hypothèse ou à confirmer.
+    - Joins les photos et croquis utiles, et range le tout dans le dossier du projet.
+    - Termine par des prochaines étapes datées et un délai de réponse.
+    - Sans réponse dans le délai, relance une fois, puis avance en précisant que tu pars de cette compréhension.
+
+    ```mail label="Reformulation à envoyer au client"
+    Objet : [Projet] - Compréhension de votre besoin (entretien du [date])
+
+    Bonjour [Prénom],
+
+    Merci pour le temps que vous m'avez consacré. Voici ce que j'ai retenu de notre échange. Merci de corriger tout ce qui est inexact ou incomplet.
+
+    1. Contexte et problème
+    [Deux ou trois phrases : la situation actuelle, le problème, ce qu'il coûte.]
+
+    2. Réussite attendue
+    [Trois à cinq critères, chiffrés quand c'est possible.]
+
+    3. Contraintes
+    - Techniques : [interfaces, éléments imposés et leur raison]
+    - Sécurité : [règles applicables, documents exigés]
+    - Site : [lieu, environnement, accès]
+    - Budget : [ordre de grandeur, ou « non communiqué »]
+    - Délai : [date visée et ce qui la fixe]
+
+    4. Personnes concernées
+    [Décideur, utilisateurs, autres parties prenantes.]
+
+    5. Points à confirmer
+    - [Question restée ouverte] : réponse attendue de [qui] avant le [date]
+    - [Document à me transmettre] : avant le [date]
+
+    6. Prochaines étapes
+    - [Action] : [responsable], pour le [date]
+
+    Sans retour de votre part avant le [date], je considérerai cette compréhension comme validée et je m'appuierai dessus pour la suite.
+
+    Cordialement,
+    [Prénom Nom]
+    ```
+- id: pcl-fiche-cdc
+  title: Squelette de cahier des charges fonctionnel
+  lang: inge
+  summary: "Onze sections numérotées pour structurer un cahier des charges fonctionnel, un exemple d'exigence réussie et ratée, et un tableau d'exigences prêt à remplir."
+  body: |
+    Un cahier des charges fonctionnel (CdCF) décrit ce que le produit doit faire, jamais comment il le fait. Copie le squelette, remplis chaque section avec des faits issus de l'entretien et supprime ce qui ne s'applique pas. Le document est versionné, daté et validé par écrit par le client.
+
+    ## Page de garde
+
+    | Rubrique | À renseigner |
+    | --- | --- |
+    | Projet | Nom et référence |
+    | Version | Numéro (V0.1 brouillon, V1.0 validée) et date |
+    | Auteur | Nom et rôle |
+    | Validé par | Nom, rôle et date de la validation écrite (signature ou courriel) |
+    | Historique | Une ligne par version : date, auteur, ce qui a changé |
+
+    ## Les onze sections
+
+    ### 1. Contexte
+
+    Pourquoi le projet existe : la situation actuelle, le problème, l'enjeu pour le client, les personnes concernées et les documents d'origine (demande, compte rendu d'entretien). Une demi-page, sans solution.
+
+    ### 2. Objectifs
+
+    Trois à cinq objectifs mesurables, formulés en résultat pour le client, par exemple « contrôler 100 % des pièces au lieu de 5 % sans ralentir la ligne ». Chaque objectif est couvert par au moins une exigence.
+
+    ### 3. Périmètre et hors périmètre
+
+    - Inclus : ce que le projet comprend (étude, fabrication, installation, formation, documentation).
+    - Exclu : ce qu'il ne comprend pas, écrit noir sur blanc (travaux du bâtiment, raccordements, maintenance après garantie).
+    - Hypothèses : ce que le client fournit, et pour quand (accès, énergies, plans, personnel disponible).
+
+    Le hors-périmètre écrit est ta meilleure protection contre les ajouts en cours de route.
+
+    ### 4. Fonctions et contraintes
+
+    - Une fonction dit ce que le produit fait pour l'utilisateur, avec un verbe à l'infinitif : « Mesurer la force d'insertion », « Protéger l'opérateur ».
+    - Une contrainte est une limite imposée : encombrement, norme, énergie, température.
+    - Numérote-les (FP1, FP2… pour les fonctions principales, FC1, FC2… pour les contraintes).
+    - Décline chacune en exigences, avec un critère, un niveau, une flexibilité et une vérification (voir le tableau plus bas).
+
+    ### 5. Niveaux et flexibilité
+
+    Le niveau est la valeur visée du critère, avec son unité et sa tolérance. La flexibilité dit jusqu'où le client accepte de s'en écarter, de F0 à F3 :
+
+    | Classe | Sens | Exemple |
+    | --- | --- | --- |
+    | F0 | Impératif : aucun écart accepté | Arrêt du mouvement à l'ouverture du carter |
+    | F1 | Peu négociable : écart minime, à justifier et à faire valider | Erreur de mesure de ± 0,5 N |
+    | F2 | Négociable : écart possible après discussion | Cycle de 30 s au plus |
+    | F3 | Très négociable : souhait, arbitré selon le coût et le délai | Export des mesures au format CSV |
+
+    Si tout est F0, plus rien ne se négocie et le projet risque de devenir irréalisable : sois honnête sur les F2 et les F3. La priorité (MoSCoW : Must, Should, Could, Won't) répond à une autre question, ce qu'on fait en premier si le budget ou le délai se resserre ; ajoute une colonne si le client veut arbitrer.
+
+    ### 6. Interfaces
+
+    Tout ce par quoi le produit touche le monde extérieur. Pour chaque interface, nomme ce qui est de l'autre côté et qui en est responsable.
+
+    - Mécanique : fixations, pièces à saisir, encombrement, accès.
+    - Énergie : tension, courant, air comprimé, puissance disponible.
+    - Signaux et communication : entrées et sorties, protocole, débit, format des données.
+    - Logicielle : systèmes du client avec lesquels échanger.
+    - Humaine : opérateur, commandes, affichages, langue, niveau de formation.
+
+    ### 7. Exigences de sécurité
+
+    - Références applicables : réglementation, normes, règles du site, avec leur version.
+    - Risques identifiés et exigences associées, écrites comme les autres et donc vérifiables (« arrêt en 0,5 s au plus à l'ouverture du carter »).
+    - Documents attendus (analyse de risques, notice, déclaration de conformité), et qui les valide, à quel moment.
+
+    ### 8. Livrables
+
+    La liste de ce qui sera remis : équipement ou logiciel, dossier de définition (plans, nomenclature, schémas), sources du logiciel, notice d'utilisation et de maintenance, rapport d'essais, formation, pièces de rechange. Pour chacun : le format, le destinataire et la date.
+
+    ### 9. Critères d'acceptation
+
+    Dis dès le départ comment on prononcera « conforme ».
+
+    - Les essais de recette, reliés aux identifiants des exigences.
+    - Leurs conditions : lieu, moyens de mesure, échantillons, nombre de répétitions.
+    - Qui y assiste et qui signe le procès-verbal.
+    - La règle de décision, par exemple : toutes les exigences F0 vérifiées, les autres écarts consignés en réserves et levés dans un délai convenu.
+
+    ### 10. Planning souhaité
+
+    Les jalons voulus par le client (revue de conception, livraison, installation, recette), avec leur date, la nature de chaque date (contrainte dure ou souhait) et ce qui la fixe. Ajoute les délais de réponse que tu attends du client. Le planning détaillé viendra avec la proposition.
+
+    ### 11. Annexes
+
+    Glossaire, comptes rendus d'entretien, plans et photos du site, normes et consignes applicables, fiches techniques des éléments imposés avec la raison pour laquelle ils le sont.
+
+    ## Écrire une exigence
+
+    Une exigence tient en une idée, un « doit », une valeur avec tolérance et unité, une condition et une méthode de vérification.
+
+    ```text
+    Le [système] doit [verbe] [objet] [valeur ± tolérance, unité], [condition].
+    Vérification : [méthode], [moyen de mesure], [critère de réussite].
+    ```
+
+    > [!piege] Mal écrite
+    > « Le banc doit être précis, rapide et facile à utiliser. »
+    >
+    > - Trois idées dans une seule phrase : si une seule est tenue, est-ce conforme ?
+    > - Des adjectifs (précis, rapide, facile) : chacun y met un niveau différent.
+    > - Ni valeur, ni unité, ni condition : précis à quelle température, sur quelles pièces ?
+    > - Aucune façon de vérifier : le désaccord est assuré à la recette.
+
+    > [!astuce] Bien écrite
+    > **FP1.2** : « Le banc doit mesurer la force d'insertion avec une erreur maximale de ± 0,5 N, sur toute l'étendue de 0 à 100 N et pour une température ambiante de 15 à 30 °C. »
+    >
+    > - Une seule idée : l'exactitude de la mesure de force.
+    > - Un « doit » et une valeur avec tolérance et unité : ± 0,5 N.
+    > - Des conditions : étendue de 0 à 100 N, température de 15 à 30 °C.
+    > - Une vérification : étalonnage à cinq points avec des masses étalons d'incertitude 0,1 N au plus, soit cinq fois mieux que la tolérance, trois répétitions par point.
+
+    Pose-toi la question « Comment le mesurerait-on ? » : sans réponse, l'exigence n'est pas encore écrite.
+
+    ## Tableau type d'exigences
+
+    Une ligne par exigence. L'identifiant ne change jamais et n'est jamais réutilisé, même si l'exigence disparaît. Le niveau reprend la valeur de la phrase : c'est voulu, cela permet de trier, de comparer et de vérifier.
+
+    | Identifiant | Exigence | Critère | Niveau | Flexibilité | Méthode de vérification |
+    | --- | --- | --- | --- | --- | --- |
+    | FP1.1 | Le banc doit mesurer la force d'insertion d'un connecteur de 0 à 100 N. | Étendue de mesure | 0 à 100 N | F0 | Essai : masses étalons |
+    | FP1.2 | Le banc doit mesurer cette force avec une erreur maximale de ± 0,5 N, de 15 à 30 °C. | Erreur maximale | ± 0,5 N | F1 | Essai : étalonnage à cinq points, trois répétitions |
+    | FP2.1 | Le banc doit réaliser un cycle de mesure en 30 s au plus, chargement inclus. | Durée d'un cycle | 30 s au plus | F2 | Essai : chronométrage de dix cycles consécutifs |
+    | FC1.1 | Le banc doit arrêter tout mouvement en 0,5 s au plus à l'ouverture du carter. | Temps d'arrêt | 0,5 s au plus | F0 | Essai : ouverture du carter en mouvement, mesure du temps d'arrêt |
+    | FC2.1 | Le banc doit tenir dans un volume de 800 × 600 × 700 mm au plus. | Encombrement (L × l × h) | 800 × 600 × 700 mm au plus | F1 | Inspection : mesure au mètre |
+    | FC3.1 | Le banc doit exporter chaque mesure dans un fichier CSV, une ligne par mesure. | Format d'export | CSV, une ligne par mesure | F3 | Démonstration : import d'un fichier exporté |
+
+    - **Critère** : la grandeur qui permet de juger l'exigence, ce que l'on mesure.
+    - **Niveau** : la valeur visée, avec son unité et sa tolérance.
+    - **Flexibilité** : de F0 (impératif) à F3 (très négociable), voir la section 5.
+    - **Méthode de vérification** : Inspection (on regarde ou on mesure une dimension), Analyse (calcul ou simulation), Démonstration (on fait fonctionner et on constate), Essai (mesure instrumentée dans des conditions définies).
+
+    ## Relecture avant envoi
+
+    - Chaque exigence a un identifiant, un critère, un niveau avec unité et tolérance, une flexibilité et une vérification.
+    - Aucun adjectif non mesurable ne subsiste (rapide, robuste, simple, précis, fiable).
+    - Aucune solution n'est imposée sans que la raison soit écrite (marque, technologie, composant).
+    - Le hors-périmètre est écrit, et chaque objectif est couvert par au moins une exigence.
+    - Le document porte un numéro de version et une date, et le client l'a validé par écrit.
+
+    Norme de référence : NF EN 16271 (2013), qui a remplacé NF X50-151.
+- id: pcl-fiche-cr
+  title: Modèle de compte rendu
+  lang: inge
+  summary: "Un modèle de compte rendu de réunion à copier, un exemple rempli (réunion d'avancement sur un banc de mesure) et les trois règles d'or pour qu'il serve vraiment."
+  body: |
+    Un compte rendu utile est un relevé de décisions et d'actions, pas un récit. Les décisions et les actions viennent en haut, le résumé des échanges ensuite.
+
+    ## Le modèle
+
+    ### En-tête
+
+    | Rubrique | À renseigner |
+    | --- | --- |
+    | Projet | [Nom et référence du projet] |
+    | Objet | [Type de réunion et numéro, par exemple « Réunion d'avancement n° 3 »] |
+    | Date et heure | [Jour, date, début et fin] |
+    | Lieu | [Salle et adresse, ou lien de visioconférence] |
+    | Participants | [Prénom, nom, rôle, structure] |
+    | Excusés | [Prénom, nom, rôle] |
+    | Rédacteur | [Prénom, nom] |
+    | Diffusion | [Participants, excusés, personnes à informer en copie] |
+    | Envoi | [Date et heure, sous 24 h] |
+    | Remarques avant le | [Date et heure] |
+
+    ### Décisions
+
+    - **D1** : [Ce qui est décidé, avec la raison en une demi-phrase]
+    - **D2** : [Autre décision]
+
+    ### Actions
+
+    | N° | Action | Responsable | Échéance | Statut |
+    | --- | --- | --- | --- | --- |
+    | A01 | [Verbe à l'infinitif et livrable attendu] | [Une seule personne] | [Date] | Nouvelle |
+
+    Statuts : Nouvelle, En cours, Fait, En retard, Annulée. Le tableau est unique et cumulatif : les numéros se conservent d'un compte rendu à l'autre, on le relit au début de chaque réunion, et une action ne se ferme que lorsque son livrable existe.
+
+    ### Points ouverts
+
+    - **P1** : [Question non tranchée] : à trancher par [qui] avant le [date]
+
+    ### Résumé des échanges (facultatif)
+
+    Par sujet, deux à quatre lignes : ce qui a été présenté, les positions, les chiffres. Ne répète ni les décisions ni les actions.
+
+    ### Prochaine réunion
+
+    Date, heure, lieu et ordre du jour provisoire (trois à cinq points).
+
+    ## Exemple rempli
+
+    Réunion d'avancement sur un banc de mesure de force d'insertion de connecteurs. Les personnes sont désignées par leur rôle ; dans un vrai compte rendu, écris leurs prénoms et noms.
+
+    ### En-tête
+
+    | Rubrique | Contenu |
+    | --- | --- |
+    | Projet | Banc de mesure de force d'insertion de connecteurs (BMF-01) |
+    | Objet | Réunion d'avancement n° 3 |
+    | Date et heure | Jeudi 12 mars 2026, de 14 h 00 à 15 h 15 |
+    | Lieu | Site du client, salle B |
+    | Participants | Chef de projet (client), responsable essais (client), ingénieur mécatronique (équipe projet, rédacteur), technicien d'intégration (équipe projet) |
+    | Excusé | Responsable sécurité (client) |
+    | Diffusion | Participants et excusé ; en copie, le responsable de service (client) |
+    | Envoi | Vendredi 13 mars 2026, 9 h 30 |
+    | Remarques avant le | Mardi 17 mars 2026, 12 h 00 |
+
+    ### Décisions
+
+    - **D1** : La commande du capteur de force 0 à 100 N est confirmée, avec une livraison annoncée pour le 2 avril. Le capteur de 200 N disponible en stock est écarté : son erreur garantie (± 0,8 N) dépasserait la limite de ± 0,5 N (exigence FP1.2).
+    - **D2** : Le carter de protection est équipé d'un contacteur de sécurité qui coupe le mouvement à l'ouverture (exigence FC1.1). Décision soumise à la validation du responsable sécurité, absent (action A12).
+    - **D3** : La recette passe du jeudi 9 au jeudi 16 avril 2026, en raison du délai de livraison du capteur.
+
+    ### Actions
+
+    | N° | Action | Responsable | Échéance | Statut |
+    | --- | --- | --- | --- | --- |
+    | A07 | Livrer le plan d'ensemble du carter, indice B | Ingénieur | jeu. 12/03 | Fait |
+    | A09 | Transmettre la liste des connecteurs à tester, avec références et dimensions | Resp. essais | ven. 13/03 (reportée du 06/03) | En retard |
+    | A10 | Rédiger la procédure d'étalonnage du banc | Ingénieur | jeu. 02/04 | En cours |
+    | A11 | Commander le capteur de force 0 à 100 N | Technicien | ven. 13/03 | Nouvelle |
+    | A12 | Confirmer par écrit le contacteur de sécurité du carter (D2) | Resp. sécurité | ven. 20/03 | Nouvelle |
+    | A13 | Envoyer le planning mis à jour avec la recette au 16/04 | Ingénieur | mar. 17/03 | Nouvelle |
+    | A14 | Réserver la salle d'essais du 7 au 10/04 pour l'étalonnage | Chef de projet | ven. 27/03 | Nouvelle |
+
+    ### Points ouverts
+
+    - **P1** : Mode de transfert des mesures vers le système de traçabilité du client (fichier CSV sur un partage réseau, ou envoi direct vers la base). En attente de l'avis du service informatique du client ; à trancher par le chef de projet avant le jeudi 26 mars.
+    - **P2** : Nombre d'opérateurs à former (deux ou quatre) ; à confirmer par le responsable essais avant le jeudi 26 mars.
+
+    ### Résumé des échanges (facultatif)
+
+    - Plan d'ensemble : l'indice B du carter a été présenté ; ses dimensions respectent l'encombrement prévu (FC2.1).
+    - Capteur : le fournisseur confirme trois semaines de délai ; l'alternative en stock a été comparée au besoin avant d'être écartée (voir D1).
+
+    ### Prochaine réunion
+
+    Jeudi 26 mars 2026, 14 h 00, salle B. Ordre du jour provisoire :
+
+    1. Revue des actions
+    2. Transfert des données vers le système du client (P1)
+    3. Validation du contacteur de sécurité (A12)
+    4. Préparation de l'étalonnage et de la recette
+
+    Sans remarque avant le mardi 17 mars 2026 à 12 h 00, ce compte rendu est considéré comme validé.
+
+    ## Trois règles d'or
+
+    ### 1. Envoie sous 24 h
+
+    Prépare l'en-tête et l'ordre du jour avant la réunion, note les décisions et les actions pendant, puis relis et envoie dans les heures qui suivent. Après 24 h, chacun a sa version des faits : le compte rendu cesse d'être une trace pour devenir une négociation.
+
+    ### 2. Une action, un verbe, un responsable, une date
+
+    Pas de « l'équipe », pas de « dès que possible », pas de deux responsables. Si la réunion s'est achevée sur « on regarde ça », propose toi-même une action précise, avec un responsable et une date, et fais-la confirmer à l'envoi.
+
+    ### 3. Annonce un délai de remarques
+
+    Écris : « Sans remarque avant le [date et heure], ce compte rendu est considéré comme validé. » Prévois deux à cinq jours ouvrés selon l'enjeu. Les remarques arrivent par écrit ; si l'une change le sens d'une décision, publie une nouvelle version numérotée plutôt que de corriger en silence.

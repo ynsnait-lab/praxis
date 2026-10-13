@@ -362,20 +362,25 @@ const RENDERERS = {
     const all = [...e.lines.map((t, i) => ({ t, k: i, extra: false })), ...(e.extra || []).map((t, i) => ({ t, k: 100 + i, extra: true }))];
     const pool = shuffle(all.slice());
     const chosen = [];
-    const zPool = h("div.zone", { "aria-label": "Lignes disponibles" });
-    const zSol = h("div.zone.sol", { "aria-label": "Ton programme" });
-    body.append(h("p.small.muted", {}, "Clique les lignes dans l'ordre pour reconstruire le programme. Attention : certaines lignes sont des intrus. Clique une ligne de ton programme pour la retirer."),
-      h("div.parsons", {}, h("div.stack.g6", {}, h("span.eyebrow", {}, "Lignes"), zPool), h("div.stack.g6", {}, h("span.eyebrow", {}, "Ton programme"), zSol)));
+    // lang « text » : des étapes à ordonner (une démarche, un document), pas du code
+    const etapes = lang === "text";
+    const W = etapes
+      ? { pool: "Étapes", sol: "Ton ordre", aide: "Clique les étapes dans l'ordre. Attention : certaines sont des intrus. Clique une étape de ta liste pour la retirer." }
+      : { pool: "Lignes", sol: "Ton programme", aide: "Clique les lignes dans l'ordre pour reconstruire le programme. Attention : certaines lignes sont des intrus. Clique une ligne de ton programme pour la retirer." };
+    const zPool = h("div.zone", { "aria-label": `${W.pool} disponibles` });
+    const zSol = h("div.zone.sol", { "aria-label": W.sol });
+    body.append(h("p.small.muted", {}, W.aide),
+      h("div.parsons", {}, h("div.stack.g6", {}, h("span.eyebrow", {}, W.pool), zPool), h("div.stack.g6", {}, h("span.eyebrow", {}, W.sol), zSol)));
     let locked = false;
     function draw() {
       clear(zPool);
       clear(zSol);
       pool.forEach((it) => {
         if (chosen.includes(it)) return;
-        zPool.append(h("button.pline", { type: "button", onclick: () => { if (!locked) { chosen.push(it); draw(); } }, html: highlightInline(it.t, lang) || " " }));
+        zPool.append(h(`button.pline${etapes ? ".txt" : ""}`, { type: "button", onclick: () => { if (!locked) { chosen.push(it); draw(); } }, html: (etapes ? inline(it.t) : highlightInline(it.t, lang)) || " " }));
       });
       chosen.forEach((it, i) => {
-        zSol.append(h("button.pline", { type: "button", "data-i": i, onclick: () => { if (!locked) { chosen.splice(i, 1); draw(); } }, html: highlightInline(it.t, lang) || " " }));
+        zSol.append(h(`button.pline${etapes ? ".txt" : ""}`, { type: "button", "data-i": i, onclick: () => { if (!locked) { chosen.splice(i, 1); draw(); } }, html: (etapes ? inline(it.t) : highlightInline(it.t, lang)) || " " }));
       });
       btn.disabled = chosen.length === 0;
     }
@@ -393,7 +398,8 @@ const RENDERERS = {
         if (it.extra) b.classList.add("extra");
       });
       [...zPool.children].forEach((b) => { b.disabled = true; });
-      const extra = correct ? null : h("div.stack.g6", {}, h("span.eyebrow", {}, "Ordre correct"), codeEl(e.lines.join("\n"), lang));
+      const extra = correct ? null : h("div.stack.g6", {}, h("span.eyebrow", {}, "Ordre correct"),
+        etapes ? h("ol.prose.small", { style: { margin: 0, paddingLeft: "1.4em" } }, e.lines.map((l) => h("li", { html: inline(l) }))) : codeEl(e.lines.join("\n"), lang));
       finish(correct, { extra });
     }
   },

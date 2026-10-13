@@ -1,7 +1,7 @@
 // Carnet de pièges : catalogue, statut (tombé / en progrès / déjoué), fiche détaillée.
 import { h } from "../dom.js";
 import { md, codeHTML, inline } from "../md.js";
-import { C, TRACKS, TRACK_LONG } from "../content.js";
+import { C, TRACKS, TRACK_LONG, GROUPED } from "../content.js";
 import { getState, trapStatus } from "../store.js";
 import { trapCard } from "./module.js";
 import { trackPill, go } from "../ui.js";
@@ -51,9 +51,9 @@ export function piegeView(parts) {
   const sec = (title, src) => (src ? h("div.stack.g8", {}, h("span.eyebrow", {}, title), h("div.prose", { html: md(src) })) : null);
   page.append(h("div.stack.g20", {},
     sec("Le symptôme", p.symptom),
-    p.bad ? h("div.stack.g8", {}, h("span.eyebrow", {}, p.track === "inge" ? "Le calcul piégé" : "Le code piégé"), h("div", { html: codeHTML(p.bad, lang) })) : null,
+    p.bad ? h("div.stack.g8", {}, h("span.eyebrow", {}, GROUPED.has(p.track) ? "Le calcul piégé" : "Le code piégé"), h("div", { html: codeHTML(p.bad, lang) })) : null,
     sec("Pourquoi ça arrive", p.why),
-    p.good ? h("div.stack.g8", {}, h("span.eyebrow", {}, p.track === "inge" ? "Le bon raisonnement" : "La bonne version"), h("div", { html: codeHTML(p.good, lang) })) : null,
+    p.good ? h("div.stack.g8", {}, h("span.eyebrow", {}, GROUPED.has(p.track) ? "Le bon raisonnement" : "La bonne version"), h("div", { html: codeHTML(p.good, lang) })) : null,
     sec("Le réflexe à prendre", p.fix),
     mods.length ? h("div.stack.g8", {}, h("span.eyebrow", {}, "Expliqué dans"), h("div.row", {}, mods.map((m) => h("a.btn.sm", { href: `#/m/${m}` }, C.modules[m].title)))) : null,
     h("div.actions", {},

@@ -1,0 +1,2041 @@
+id: projet-client
+title: Le client et le besoin
+en: The client and the need
+desc: Faire émerger le vrai besoin, l'écrire, le faire valider, animer les réunions et livrer ce qui était attendu.
+intro: |
+  Un projet technique échoue rarement parce qu'un calcul était faux. Il échoue parce qu'on a construit autre chose que ce dont le client avait besoin, parce qu'un accord est resté oral, ou parce que personne ne savait qui décidait. Le client peut être un scientifique du bâtiment d'à côté, un service utilisateur ou un industriel : dans tous les cas, c'est toi qui fais le pont entre ce qu'il dit et ce qu'on fabrique.
+
+  Ce domaine suit le fil d'une affaire réelle. On identifie d'abord **qui** est le client, puis on mène l'**entretien** et on creuse jusqu'au **vrai besoin**. On l'écrit dans un **cahier des charges** fait d'**exigences vérifiables**, on **propose** une solution et on la fait valider. Pendant le projet, on anime les **réunions**, on écrit les **comptes rendus** et les **mails** qui gardent la trace des décisions, on gère les **changements** sans tout accepter, et on termine par la **recette**, qui prouve que le besoin est couvert.
+
+  Chaque notion se termine par des phrases toutes faites, en français et en anglais, à réutiliser dès lundi. Le planning, le budget, les risques et l'organisation interne du projet sont traités dans le domaine voisin consacré au pilotage.
+notions:
+  - id: pcl-roles
+    title: Qui est le client ?
+    en: Who is the client?
+    goal: Identifier, pour un projet donné, le demandeur, les utilisateurs, le payeur, les parties prenantes et la personne qui décide vraiment.
+    minutes: 10
+    lesson:
+      steps:
+        - level: 1
+          title: Quatre personnes derrière « le client »
+          body: |
+            Un laboratoire te demande un banc de mesure. La demande arrive par le mail d'une chercheuse. Mais le banc sera utilisé tous les jours par un technicien, payé sur le budget du chef de groupe, et il devra passer la revue du service sécurité.
+
+            Si tu ne parles qu'à la chercheuse, tu livreras un banc qui lui plaît, que le technicien trouve pénible, que le chef de groupe n'avait pas prévu de payer et que la sécurité refuse de mettre en service.
+
+            « Le client » n'est presque jamais une seule personne. C'est un petit groupe, dont les intérêts ne coïncident pas toujours. Ton premier travail est de savoir qui est qui.
+        - level: 2
+          title: Les rôles et les mots exacts
+          body: |
+            Derrière une demande, cherche toujours ces rôles. Une même personne peut en tenir plusieurs.
+
+            - **Demandeur** : celui qui exprime la demande. C'est souvent ton premier contact, pas forcément celui qui décide.
+            - **Utilisateur final** : celui qui se servira de l'objet au quotidien. Il connaît les vraies contraintes (gants, accès, cadence, travail de nuit). Il est souvent absent des réunions.
+            - **Décideur** : celui qui valide le cahier des charges, arbitre entre coût, délai et performance, et prononce la réception.
+            - **Payeur** : celui qui porte le budget. Parfois le décideur, parfois un autre service.
+            - **Parties prenantes** : sécurité, maintenance, informatique, achats, qualité. Elles ne demandent rien, mais elles peuvent tout bloquer.
+
+            Deux mots viennent du bâtiment et servent partout. Le **maître d'ouvrage** (MOA) est celui pour qui on réalise : il exprime le besoin, porte le budget et réceptionne. Le **maître d'œuvre** (MOE) conçoit et réalise, ou fait réaliser, et répond de la technique. Dans un projet interne, le service demandeur est maître d'ouvrage et ton équipe maître d'œuvre. Quand le maître d'ouvrage manque de compétences pour exprimer son besoin, il se fait aider : c'est l'**assistance à maîtrise d'ouvrage** (AMO).
+
+            Le **client interne** (un autre service de ton organisation) est accessible mais flou : pas de commande, des demandes dans le couloir, un budget pas toujours identifié. Le **client externe** (un industriel, une PME) est plus formel : un contrat, une commande, parfois des pénalités. Tout écart s'y négocie par écrit.
+          check:
+            q: Un technicien t'arrête dans le couloir et demande un deuxième capteur sur le banc. Il est utilisateur, pas décideur. Que fais-tu ?
+            choices:
+              - t: Tu notes la demande et tu la portes au décideur, avec son coût et son délai, pour qu'il tranche.
+                ok: true
+              - t: Tu l'ajoutes, puisque c'est lui qui utilisera le banc tous les jours.
+                why: Son avis compte, mais il n'engage ni le budget ni le planning ; le décideur découvrira le surcoût trop tard.
+              - t: Tu refuses, puisque seul le cahier des charges signé compte.
+                why: La demande est peut-être justifiée ; la refuser sans la remonter, c'est perdre une information utile.
+        - level: 3
+          title: La carte des acteurs
+          body: |
+            Avant d'écrire une ligne de cahier des charges, remplis ce tableau. Exemple : un porte-échantillon chauffant pour une ligne expérimentale.
+
+            | Rôle | Question à poser | Dans l'exemple |
+            |---|---|---|
+            | Demandeur | Qui a exprimé la demande, et pourquoi maintenant ? | Le responsable de la ligne |
+            | Utilisateurs | Qui s'en sert, combien de fois, dans quelles conditions ? | Les scientifiques invités, de jour comme de nuit |
+            | Décideur | Qui valide le cahier des charges et prononce la réception ? | Le chef de groupe |
+            | Payeur | Sur quel budget, engagé par qui ? | Le budget d'équipement du groupe |
+            | Bloqueurs possibles | Qui peut dire non ? | Le service sécurité (température, câblage) |
+            | Exploitant | Qui entretiendra et dépannera ? | L'équipe technique de la ligne |
+
+            Classe ensuite chacun selon son **influence** (peut-il décider ou bloquer ?) et son **intérêt** (est-il concerné au quotidien ?) :
+
+            | | Intérêt faible | Intérêt fort |
+            |---|---|---|
+            | **Influence forte** | Tenir informé, faire valider aux jalons | Associer étroitement |
+            | **Influence faible** | Informer | Consulter, écouter |
+
+            Le décideur est en haut à droite, les utilisateurs souvent en bas à droite, la sécurité en haut à gauche. Chaque case dit combien de temps tu consacres à la personne.
+
+            > [!astuce] La question qui débloque tout
+            > « Qui d'autre doit être d'accord pour que ce projet soit un succès ? » Pose-la dès le premier rendez-vous, avec « Qui prononcera la réception ? ».
+
+            La répartition des responsabilités au sein de l'équipe projet (le tableau RACI) est traitée dans le domaine voisin consacré au pilotage.
+        - level: 4
+          title: Le décideur sur le papier et le décideur réel
+          body: |
+            L'organigramme dit qui signe. Il ne dit pas qui décide. Souvent, le chef de groupe signe mais suit l'avis d'une chercheuse senior. Observe les réunions : vers qui les regards se tournent, qui parle en dernier, qui envoie le mail final. Fais valider par le signataire, mais convaincs d'abord celui qu'il écoute.
+
+            Le client interne a ses pièges propres :
+            - **La demande « gratuite »**. Sans budget identifié, ton temps semble ne rien coûter. Demande qui arbitre les priorités entre les demandes : en général ton propre responsable.
+            - **L'interlocuteur qui change**. Un doctorant ou un post-doctorant part au bout de deux ou trois ans ; son successeur n'a pas le même besoin. Tout ce qui n'est pas écrit part avec lui.
+            - **Le conflit entre utilisateurs et décideur**. Les utilisateurs veulent du confort, le décideur veut tenir le budget. Ce n'est pas à toi de trancher : rends le conflit visible, chiffre les options, fais arbitrer.
+
+            Chez un client externe, ton interlocuteur technique n'est pas l'acheteur, et l'acheteur n'est pas le juriste. Le contrat dit qui peut modifier la commande : lis-le.
+
+            Enfin, n'oublie pas ton propre rôle. Tu représentes la maîtrise d'œuvre. Tu n'es ni l'employé du client ni son adversaire : tu es celui qui l'aide à obtenir ce dont il a besoin, dans le budget et le délai convenus.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            Phrases qui marchent :
+            - « Qui d'autre devrait être dans la boucle ? » / *"Who else should be in the loop?"*
+            - « Qui validera le cahier des charges ? » / *"Who will sign off on the specification?"*
+            - « Qui va s'en servir au quotidien ? Est-ce que je peux le rencontrer ? » / *"Who will use it day to day? Could I meet them?"*
+            - « Sur quel budget ce projet est-il financé ? » / *"Which budget is this funded from?"*
+
+            Bonnes et mauvaises formulations :
+
+            | À éviter | À dire |
+            |---|---|
+            | « C'est vous le chef ? » | « Qui aura le dernier mot sur ce point ? » |
+            | *"Are you the boss?"* | *"Who has the final say on this?"* |
+            | « Je mets tout le monde en copie. » | « Je vous mets en copie pour validation, et l'équipe pour information. » |
+
+            Erreurs fréquentes des jeunes ingénieurs :
+            - prendre le premier contact pour le client, et lui seul ;
+            - oublier l'utilisateur de nuit, la maintenance ou la sécurité ;
+            - faire valider le cahier des charges par quelqu'un qui n'engage rien ;
+            - accepter une demande du couloir sans la remonter au décideur.
+      recap:
+        - "Le client est un groupe : demandeur, utilisateurs, décideur, payeur, et ceux qui peuvent bloquer."
+        - "Le maître d'ouvrage exprime le besoin, porte le budget et réceptionne ; le maître d'œuvre conçoit et réalise."
+        - "Dès le premier échange, demande qui validera le cahier des charges et qui prononcera la réception."
+        - "Rencontre au moins un utilisateur réel : le demandeur n'est pas toujours celui qui s'en sert."
+        - "Un conflit entre utilisateurs et décideur se rend visible et se fait arbitrer ; il ne se tranche pas seul."
+      pieges: [pcl-solution-demandee, pcl-oui-a-tout]
+    vocab:
+      - partie prenante = stakeholder
+      - utilisateur final = end user
+      - décideur = decision-maker
+      - commanditaire = sponsor
+      - maître d'ouvrage = project owner (client side)
+      - maître d'œuvre = prime contractor (delivery side)
+    exercises:
+      - id: pcl-roles.1
+        type: qcm
+        level: 1
+        q: Au premier rendez-vous, une chercheuse te présente avec enthousiasme son projet de banc de mesure. Avant de partir, quelle question est la plus utile ?
+        choices:
+          - t: « Qui validera le cahier des charges et prononcera la réception ? »
+            ok: true
+          - t: « Quel modèle de capteur préférez-vous utiliser ? »
+            why: Trop tôt et trop technique ; tu choisis une solution avant de connaître le besoin et ceux qui décident.
+          - t: « Pour quand vous le faut-il au plus tard ? »
+            why: Utile, mais sans savoir qui décide, tu risques de tenir un délai fixé par quelqu'un qui n'engage rien.
+          - t: « Vous avez un schéma de ce que vous voulez ? »
+            why: Un croquis aide, mais il montre une solution ; la question des rôles conditionne tout le reste.
+        e: Savoir qui décide et qui réceptionne te dit à qui faire valider chaque étape. Le délai et les croquis viendront ensuite, mais une validation par la mauvaise personne ne vaut rien.
+      - id: pcl-roles.2
+        type: qcm
+        level: 2
+        q: Le chef de groupe a validé le cahier des charges. À la livraison, les techniciens refusent le banc, car il faut démonter un capot pour chaque échantillon. Quelle était l'erreur ?
+        choices:
+          - t: Ne pas avoir fait valider le déroulé d'utilisation par les techniciens.
+            ok: true
+          - t: Avoir laissé le chef de groupe valider seul un sujet trop technique.
+            why: Le décideur doit valider ; l'erreur est qu'il l'a fait sans l'avis de ceux qui utilisent le banc.
+          - t: Ne pas avoir mis les techniciens en copie de tous les mails.
+            why: Une copie ne garantit ni la lecture ni la bonne question ; il fallait leur montrer le geste à faire.
+          - t: Avoir livré trop tôt, avant d'avoir recueilli leurs remarques.
+            why: Le défaut vient de la conception, pas de la date ; attendre n'aurait rien changé au capot.
+        e: Le décideur arbitre, mais l'utilisateur connaît le geste quotidien. Montre-lui une maquette ou un croquis du déroulé et demande-lui de mimer son geste. Dix minutes de plus en conception évitent une reprise complète.
+        piege: pcl-solution-demandee
+      - id: pcl-roles.3
+        type: qcm
+        level: 2
+        q: "Un industriel t'a commandé l'automatisation d'un contrôle. L'acheteur t'appelle : « On a vu avec l'atelier, ajoutez un deuxième poste de lecture. » Que fais-tu ?"
+        choices:
+          - t: Tu demandes une modification écrite de la commande, avec ton chiffrage du coût et du délai, avant de lancer quoi que ce soit.
+            ok: true
+          - t: Tu lances l'étude tout de suite, puisque l'acheteur engage le budget et que l'atelier est d'accord.
+            why: Un appel n'est pas une commande ; sans écrit, le surcoût risque de ne jamais être payé.
+          - t: Tu refuses, car seul le responsable technique de l'atelier peut demander une évolution.
+            why: L'acheteur est légitime pour modifier la commande ; le bon réflexe est de formaliser, pas de refuser.
+          - t: Tu attends la réunion du mois prochain pour en parler avec toutes les parties prenantes.
+            why: Attendre bloque le projet ; une demande écrite et chiffrée se traite en quelques jours.
+        e: Chez un client externe, c'est le contrat qui dit qui peut le modifier. Une demande orale, même légitime, devient une commande modificative ou un avenant, écrit, chiffré et signé, avant tout travail.
+        piege: pcl-oui-a-tout
+      - id: pcl-roles.4
+        type: flash
+        level: 1
+        q: Maître d'ouvrage et maître d'œuvre, qui fait quoi ?
+        back: |
+          Le maître d'ouvrage (MOA) est celui pour qui on réalise : il exprime le besoin, porte le budget et réceptionne.
+          Le maître d'œuvre (MOE) conçoit et réalise, ou fait réaliser, et répond de la technique.
+        e: L'ouvrage est l'objet qu'on commande et qu'on possède ; l'œuvre est le travail pour le faire. Le maître d'œuvre « met en œuvre ».
+      - id: pcl-roles.5
+        type: qcm
+        level: 3
+        q: Pour un porte-échantillon chauffant, le service sécurité n'a rien demandé et ne viendra pas aux réunions. Quand faut-il le consulter ?
+        choices:
+          - t: Dès la rédaction du cahier des charges, pour transformer ses contraintes en exigences.
+            ok: true
+          - t: À la recette, quand l'objet est terminé et qu'on peut le lui montrer.
+            why: S'il découvre un problème à ce stade, tu reprends la conception ; c'est le cas le plus cher.
+          - t: Jamais, puisqu'il n'est ni demandeur, ni utilisateur, ni payeur.
+            why: Il ne demande rien, mais il peut interdire la mise en service ; c'est une partie prenante qui bloque.
+          - t: Seulement si un incident survient pendant les premiers essais.
+            why: Attendre l'incident, c'est découvrir les contraintes au pire moment et dans de mauvaises conditions.
+        e: Les parties prenantes silencieuses (sécurité, maintenance, informatique) ont souvent un droit de veto. Leurs contraintes (température de surface, coupure d'urgence, câblage) doivent entrer dans le cahier des charges, pas arriver comme une surprise à la livraison.
+
+  - id: pcl-entretien
+    title: L'entretien de recueil du besoin
+    en: The requirements elicitation interview
+    goal: Préparer et mener un entretien de recueil du besoin, puis le conclure par une reformulation validée et des prochaines étapes datées.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Le diagnostic avant le traitement
+          body: |
+            Un bon médecin ne prescrit rien dans les trente premières secondes. Il te laisse raconter, il pose des questions de plus en plus précises, il t'examine, puis il résume : « Si je comprends bien, depuis trois jours… ». Ce n'est qu'après qu'il propose un traitement.
+
+            L'entretien de recueil du besoin suit le même chemin. Le client arrive souvent avec une ordonnance déjà écrite : « il me faut un moteur pas à pas ». Ton rôle est de faire le diagnostic avant de parler du traitement.
+        - level: 2
+          title: Avant, pendant, après
+          body: |
+            **Avant : préparer.** Relis la demande. Renseigne-toi sur le contexte (l'expérience, la ligne de production). Liste tes questions par thème. Prévois 45 à 60 min et demande à voir le lieu ou l'objet. Si possible, viens à deux : l'un pose les questions, l'autre note.
+
+            **Pendant : l'entonnoir.** Commence large, finis précis.
+            - Les **questions ouvertes** appellent un récit : « Racontez-moi comment se passe une mesure aujourd'hui. » Le client déroule, et dit des choses que tu n'aurais pas pensé à demander.
+            - Les **questions fermées** appellent un oui, un non ou un chiffre : « La température maximale, c'est bien 200 °C ? » Elles servent à fixer les valeurs, en fin d'entonnoir.
+            - Les **questions orientées** suggèrent la réponse : « Vous voulez sûrement un écran tactile ? » À éviter : le client dit oui par politesse.
+
+            Entre les questions, pratique l'**écoute active** : te taire, laisser des silences, relancer (« C'est-à-dire ? », « Par exemple ? »), noter les mots exacts du client. Puis **reformule** : « Si je résume, vous voulez… Est-ce bien ça ? » La reformulation vérifie ta compréhension et montre au client qu'il est entendu.
+
+            **Après : conclure.** Résume en trois points, cite ce qui reste ouvert, fixe les **prochaines étapes** (qui envoie quoi, pour quand) et envoie un résumé écrit le jour même.
+          check:
+            q: Laquelle de ces questions est une bonne question ouverte pour démarrer un entretien ?
+            choices:
+              - t: « Racontez-moi comment vous préparez un échantillon aujourd'hui. »
+                ok: true
+              - t: « Vous préférez une commande par écran tactile ou par boutons ? »
+                why: C'est une question fermée, et elle impose déjà une solution.
+              - t: « Une précision de 0,1 mm vous conviendrait-elle ? »
+                why: Question fermée et orientée ; elle propose un chiffre que le client risque d'accepter sans réfléchir.
+        - level: 3
+          title: La grille QQOQCCP et le déroulé type
+          body: |
+            La grille **QQOQCCP** (Qui, Quoi, Où, Quand, Comment, Combien, Pourquoi) vérifie que tu n'as oublié aucun thème. Exemple : un industriel veut automatiser le contrôle de pièces usinées.
+
+            | Question | Ce qu'on cherche | Dans l'exemple |
+            |---|---|---|
+            | Qui ? | Utilisateurs, décideur, personnes concernées | Opérateurs en trois équipes, régleur, responsable qualité |
+            | Quoi ? | Ce qu'il faut faire, sur quel objet | Mesurer deux diamètres, détecter une bavure |
+            | Où ? | Lieu, environnement, place disponible | En bout de ligne, brouillard d'huile, 1 m² au sol |
+            | Quand ? | Cadence, fréquence, échéance | 1 200 pièces par poste, mise en service au printemps |
+            | Comment ? | Comment c'est fait aujourd'hui | Pied à coulisse, une pièce sur cinquante |
+            | Combien ? | Valeurs, tolérances, budget | Tolérance de ± 0,05 mm, ordre de grandeur du budget |
+            | Pourquoi ? | L'enjeu | Deux réclamations clients le trimestre dernier |
+
+            Déroulé type d'un entretien d'une heure :
+
+            | Durée | Phase |
+            |---|---|
+            | 5 min | Objectif de l'entretien, durée, qui prend les notes |
+            | 15 min | Questions ouvertes : contexte, situation actuelle, problème |
+            | 20 min | Approfondissement avec la grille : chiffres, contraintes, critères de réussite |
+            | 10 min | Visite du poste ou démonstration, si possible |
+            | 10 min | Reformulation, points ouverts, prochaines étapes |
+
+            Pour les notes : une page par thème, les mots exacts entre guillemets, un « ? » à côté de chaque chiffre incertain, et la distinction entre **fait** (« on fait 1 200 pièces »), **opinion** (« c'est trop lent ») et **souhait** (« ce serait bien d'avoir un écran »).
+        - level: 4
+          title: Ce que l'entretien ne dit pas tout seul
+          body: |
+            Le client ne sait pas tout ce qu'il sait. Le geste qu'il fait sans y penser ne sort pas en salle de réunion ; il sort devant le poste. D'où l'intérêt de la visite, traité dans la notion suivante.
+
+            Quelques biais à connaître :
+            - **Le oui de politesse.** Un « oui » en entretien n'est pas une validation. Seul l'écrit relu engage.
+            - **La question qui oriente.** Le client répond à ce qu'on lui demande. Si tu parles de vérin, il parlera de vérin.
+            - **La hiérarchie.** Un technicien ne dit pas tout devant son chef. Quand c'est possible, fais des entretiens séparés.
+
+            Deux réflexes de débutant à perdre :
+            - **Combler les silences.** Compte jusqu'à cinq dans ta tête. L'information la plus utile arrive souvent juste après un silence.
+            - **Proposer une solution en direct.** Dès que tu dis « on pourrait mettre un vérin », la conversation tourne autour du vérin et le besoin disparaît. Note l'idée dans la marge et garde-la.
+
+            Repère utile : le client doit parler l'essentiel du temps. Si tu parles plus que lui, tu es en train de vendre, pas de recueillir. Et si tu veux enregistrer l'entretien, demande l'accord explicite avant.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            Phrases qui marchent :
+            - « Mon objectif aujourd'hui, c'est de comprendre votre besoin ; on parlera solutions plus tard. » / *"Today I just want to understand your need; we'll talk about solutions later."*
+            - « Pouvez-vous me donner un exemple ? » / *"Could you give me an example?"*
+            - « Si je reformule : … Est-ce bien ça ? » / *"Let me play that back to you: … Did I get that right?"*
+            - « Je vous envoie un résumé ce soir ; corrigez-moi si j'ai mal compris. » / *"I'll send you a summary tonight; please correct anything I got wrong."*
+
+            | À éviter | À dire |
+            |---|---|
+            | « Vous voulez bien un écran tactile ? » | « Comment l'opérateur commande-t-il la machine aujourd'hui ? » |
+            | « C'est facile, on fait ça en deux semaines. » | « Je regarde et je reviens vers vous avec une proposition. » |
+            | *"So you need a stepper motor, right?"* | *"What should the stage do during a measurement?"* |
+
+            Erreurs fréquentes des jeunes ingénieurs :
+            - arriver sans questions préparées ;
+            - noter des chiffres sans unité ni condition ;
+            - promettre un délai pendant l'entretien ;
+            - repartir sans prochaines étapes, et sans résumé écrit le soir même.
+      recap:
+        - "Prépare : relis la demande, liste tes questions par thème, demande à voir le poste."
+        - "Entonnoir : questions ouvertes d'abord, questions fermées ensuite pour fixer les chiffres."
+        - "Écoute active : laisse des silences, relance, note les mots exacts du client."
+        - "Reformule souvent ; le client corrigera ce que tu as mal compris."
+        - "Pas de solution pendant l'entretien : note l'idée et garde-la pour la proposition."
+        - "Conclus par un résumé, les points ouverts et des prochaines étapes datées, puis un écrit le jour même."
+      pieges: [pcl-solution-demandee, pcl-accord-oral]
+    vocab:
+      - recueil du besoin = requirements elicitation
+      - entretien = interview
+      - question ouverte = open-ended question
+      - écoute active = active listening
+      - reformuler = to paraphrase, to play back
+      - prochaines étapes = next steps
+    exercises:
+      - id: pcl-entretien.1
+        type: qcm
+        level: 1
+        q: "Au bout de cinq minutes d'entretien, le client dit : « En fait, il me faudrait juste un moteur pas à pas sur la platine. » Que réponds-tu ?"
+        choices:
+          - t: « D'accord, je le note. Racontez-moi ce que la platine doit faire pendant une mesure. »
+            ok: true
+          - t: « Très bien. Quel couple et quelle vitesse vous faut-il exactement ? »
+            why: Tu dimensionnes une solution sans savoir à quoi elle sert ; le besoin n'est pas encore connu.
+          - t: « Un pas à pas ? Un servomoteur serait plus précis pour ça. »
+            why: Tu débats d'une solution au lieu de comprendre le besoin ; le choix technique vient après.
+          - t: « Parfait, je vous envoie un devis pour ce moteur cette semaine. »
+            why: Tu chiffres la solution demandée, pas le besoin ; c'est le meilleur moyen de livrer à côté.
+        e: Le client exprime souvent son besoin sous forme de solution. Note-la sans la discuter, puis reviens à l'usage par une question ouverte. Le choix du moteur viendra quand tu sauras ce que la platine doit faire.
+        piege: pcl-solution-demandee
+      - id: pcl-entretien.2
+        type: qcm
+        level: 2
+        q: Tu viens de poser une question et le client réfléchit. Trois secondes de silence passent. Que fais-tu ?
+        choices:
+          - t: Tu attends sans rien dire, il est en train de chercher sa réponse.
+            ok: true
+          - t: Tu reformules ta question autrement pour l'aider à répondre.
+            why: Tu coupes sa réflexion ; la nouvelle question efface souvent la réponse qui arrivait.
+          - t: Tu lui proposes deux réponses possibles pour le mettre sur la voie.
+            why: Tu orientes sa réponse ; il choisira l'une des deux même si la vraie est ailleurs.
+          - t: Tu passes à la question suivante pour tenir le temps prévu.
+            why: Tu perds peut-être l'information la plus utile de tout l'entretien.
+        e: Le silence gêne surtout celui qui interroge. Compte jusqu'à cinq dans ta tête. Les détails importants (« ah, et la nuit, c'est différent… ») sortent souvent juste après un silence.
+      - id: pcl-entretien.3
+        type: flash
+        level: 1
+        q: Que veut dire QQOQCCP, et à quoi sert cette grille dans un entretien ?
+        back: |
+          Qui, Quoi, Où, Quand, Comment, Combien, Pourquoi.
+          Elle vérifie qu'aucun thème n'est oublié : utilisateurs, fonction, environnement, cadence et échéance, façon de faire actuelle, chiffres et budget, enjeu.
+        e: Recopie les sept lettres en marge de ton carnet et coche-les au fil de l'entretien.
+      - id: pcl-entretien.4
+        type: parsons
+        level: 2
+        lang: text
+        q: Remets dans l'ordre le déroulé d'un entretien de recueil du besoin.
+        lines:
+          - "Rappeler l'objectif, la durée et qui prend les notes"
+          - "Faire raconter la situation actuelle par des questions ouvertes"
+          - "Préciser les chiffres et les contraintes par des questions fermées"
+          - "Reformuler l'ensemble et lister les points ouverts"
+          - "Fixer les prochaines étapes avec un responsable et une date"
+        extra:
+          - "Présenter la solution technique envisagée"
+        e: L'entonnoir va du large au précis, puis on vérifie (reformulation) et on engage la suite (prochaines étapes). La solution n'a pas sa place ici ; elle viendra dans une proposition, une fois le besoin écrit et validé.
+      - id: pcl-entretien.5
+        type: qcm
+        level: 3
+        q: "L'entretien se termine. Le client dit : « C'est bon, vous avez tout compris, on se rappelle. » Comment conclus-tu ?"
+        choices:
+          - t: Tu résumes en trois points, tu cites les points ouverts, tu fixes qui fait quoi et quand, puis tu l'écris le soir même.
+            ok: true
+          - t: Tu le remercies et tu attends son appel, puisqu'il dit lui-même que tout est clair.
+            why: « On se rappelle » sans date ni responsable, c'est une relance dans trois semaines et des souvenirs divergents.
+          - t: Tu lui promets une solution chiffrée pour la fin de la semaine, pour montrer ta réactivité.
+            why: Tu t'engages sur une date sans avoir analysé le besoin ; la promesse risque d'être intenable.
+          - t: Tu lui demandes de signer tes notes manuscrites avant de partir, pour avoir une trace.
+            why: L'intention est bonne mais le geste est lourd ; un résumé envoyé le soir même joue ce rôle sans formalisme.
+        e: Un entretien sans conclusion ne laisse que des souvenirs, et chacun garde les siens. Le résumé oral, puis le mail du soir, transforment une conversation en base de travail que le client peut corriger.
+        piege: pcl-accord-oral
+
+  - id: pcl-besoin-cache
+    title: "Tirer les vers du nez : le vrai besoin"
+    en: Uncovering the real need
+    goal: Remonter d'une solution demandée au problème réel, et faire dire au client ses non-dits (budget, délai, critères de réussite, décideur, contraintes de site).
+    minutes: 13
+    lesson:
+      steps:
+        - level: 1
+          title: Personne n'a besoin d'une perceuse
+          body: |
+            Personne n'a besoin d'une perceuse. On a besoin d'un trou dans le mur, et plus exactement d'un cadre accroché.
+
+            Un service te demande « un vérin plus rapide » sur une machine. En creusant, tu découvres que le vrai problème est un cycle trop long, et que le vérin n'en représente que 10 %. Un vérin deux fois plus rapide ne changerait presque rien.
+
+            Le client ne ment pas. Il te donne sa meilleure hypothèse de solution. Ton travail est de remonter au problème, puis de vérifier si sa solution est la bonne.
+        - level: 2
+          title: Exprimé, réel, implicite, non-dit
+          body: |
+            Un besoin a plusieurs couches :
+            - **Besoin exprimé** : ce que le client dit (« un vérin plus rapide »).
+            - **Besoin réel** : le problème à résoudre (« sortir 20 % de pièces en plus par poste »).
+            - **Besoin implicite** : ce qui va de soi pour lui et qu'il ne dira jamais (« la machine doit encore passer les anciennes références », « l'opérateur porte des gants », « tout doit tenir dans l'armoire existante »).
+
+            S'y ajoutent les **non-dits** : ce que le client sait mais n'aborde pas spontanément. Le **budget** (par prudence, ou parce qu'il ne le connaît pas), le **délai réel** et ce qui le fixe (une campagne de mesures, un audit, un salon), le **critère de réussite** (à quoi verra-t-il que c'est réussi ?), **qui décide**, et les **contraintes de site et de sécurité** (accès, alimentation, zone à risque, salle propre).
+
+            Quatre outils pour creuser :
+            - **Les 5 pourquoi** : redemander « pourquoi ? » jusqu'à atteindre l'enjeu, en général trois à cinq fois.
+            - **« Montrez-moi comment vous faites aujourd'hui »** : observer le geste réel fait apparaître ce que personne ne pense à dire.
+            - **Croquis et maquettes** : un dessin à main levée, un carton, une pièce imprimée en 3D. On réagit mieux à un objet qu'à une description (« ah non, la poignée doit être de l'autre côté »).
+            - **Les questions « et si… »** : « Et si l'échantillon est deux fois plus gros ? », « Et si le courant coupe en pleine chauffe ? ». Elles font sortir les cas limites et les exigences de sécurité.
+          check:
+            q: Un opérateur demande « un écran plus grand » sur son poste de contrôle. Quel besoin réel faut-il vérifier en priorité ?
+            choices:
+              - t: Lire une information qu'il voit mal aujourd'hui (taille, distance, reflet, mise en page).
+                ok: true
+              - t: Passer d'un écran de 22 pouces à un écran de 27 pouces.
+                why: C'est encore une solution ; si le problème vient d'un reflet ou d'une police trop petite, un grand écran ne le règle pas.
+              - t: Moderniser le poste de contrôle de manière générale.
+                why: C'est vague et invérifiable ; tu n'as pas identifié le problème précis.
+        - level: 3
+          title: Les 5 pourquoi et la grille des non-dits
+          body: |
+            Exemple dans un laboratoire. Demande : « Il nous faut un porte-échantillon qui monte à 300 °C. »
+
+            1. Pourquoi 300 °C ? L'ancien montait à 250 °C et ce n'était pas assez.
+            2. Pourquoi n'était-ce pas assez ? La réaction étudiée démarre vers 270 °C.
+            3. Pourquoi l'ancien ne suffisait-il pas ? Réglé à 250 °C, il ne donnait que 235 °C sur l'échantillon, à cause des pertes.
+            4. Pourquoi viser au-delà du démarrage ? Pour suivre la réaction jusqu'au bout, soit une vingtaine de minutes vers 280 °C.
+
+            Besoin réel : maintenir **l'échantillon** à 280 °C ± 2 °C pendant au moins 30 min. Le « 300 °C » était une marge prise au hasard sur la consigne du four. L'exigence devient mesurable, et l'endroit de la mesure, sur l'échantillon, devient lui-même une exigence.
+
+            Pour les non-dits, garde ces questions sous la main :
+
+            | Non-dit | Question qui le fait sortir |
+            |---|---|
+            | Budget | « Plutôt 5 k€, 50 k€ ou 500 k€ ? » |
+            | Délai réel | « Qu'est-ce qui fixe cette date ? Que se passe-t-il si on la rate ? » |
+            | Critère de réussite | « Dans six mois, à quoi verrez-vous que c'est réussi ? » |
+            | Décideur | « Qui d'autre doit valider avant qu'on lance ? » |
+            | Site et sécurité | « Où sera-t-il installé ? Quelles règles s'appliquent dans cette zone ? » |
+            | Existant | « Qu'avez-vous déjà essayé ? Pourquoi ça n'a pas suffi ? » |
+
+            La question des trois fourchettes marche remarquablement : beaucoup de clients refusent de donner un chiffre mais choisissent sans hésiter entre trois ordres de grandeur.
+        - level: 4
+          title: Creuser sans braquer
+          body: |
+            Pourquoi le client arrive-t-il avec une solution ? Parce qu'il a déjà réfléchi, qu'il veut être précis et qu'il parle ta langue pour être pris au sérieux. Rejeter sa solution, c'est le vexer. Traite-la comme une piste : « Je la garde ; aidez-moi à comprendre le problème pour vérifier que c'est la meilleure. »
+
+            Les 5 pourquoi ont leurs limites :
+            - répétés tels quels, ils sonnent comme un interrogatoire. Varie : « Qu'est-ce que ça vous permettrait ? », « Qu'est-ce qui vous en empêche aujourd'hui ? » ;
+            - il y a souvent plusieurs causes : tu obtiens un arbre, pas une chaîne ;
+            - arrête-toi à l'enjeu concret. Remonter jusqu'à « pour faire de la bonne science » ne t'apprend rien.
+
+            Le besoin implicite n'est pas dit parce qu'il est évident pour le client. Le **modèle de Kano** l'explique : les besoins **de base** sont attendus sans être formulés, et seule leur absence se remarque ; les besoins **de performance** suivent la règle « plus, c'est mieux » ; les besoins **d'enchantement** surprennent agréablement. En entretien, on n'entend presque que la deuxième catégorie. La question « Qu'est-ce qui serait inacceptable ? » fait sortir la première.
+
+            Enfin, évite l'excès inverse. Parfois, la solution demandée est la bonne. Le but n'est pas de refaire le projet du client, mais de vérifier qu'il résout le bon problème.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            Phrases qui marchent :
+            - « Qu'est-ce que ça vous permettrait de faire que vous ne pouvez pas faire aujourd'hui ? » / *"What would this let you do that you can't do today?"*
+            - « Montrez-moi comment vous faites aujourd'hui. » / *"Could you walk me through how you do it today?"*
+            - « Qu'est-ce qui serait inacceptable ? » / *"What would be a deal-breaker?"*
+            - « Quel ordre de grandeur de budget avez-vous en tête ? » / *"What budget ballpark do you have in mind?"*
+
+            | À éviter | À dire |
+            |---|---|
+            | « Pourquoi vous voulez ça ? » | « Qu'est-ce que ça va vous apporter ? » |
+            | « Ce que vous demandez n'a pas de sens. » | « C'est une piste ; aidez-moi à comprendre le problème. » |
+            | *"Why do you want that?"* | *"What problem are we solving here?"* |
+
+            Erreurs fréquentes des jeunes ingénieurs :
+            - chiffrer directement la solution demandée ;
+            - ne pas oser demander le budget ;
+            - ne pas demander ce qui fixe la date ;
+            - croire que ce qui n'est pas dit n'est pas exigé.
+      recap:
+        - "Le besoin exprimé est souvent une solution ; remonte au problème avant de concevoir."
+        - "Besoin réel = le problème à résoudre ; besoin implicite = ce qui va de soi pour le client et qu'il ne dira pas."
+        - "Les 5 pourquoi, l'observation du geste réel et les maquettes font sortir ce que l'entretien ne dit pas."
+        - "Fais dire les non-dits : budget, ce qui fixe le délai, critère de réussite, décideur, contraintes de site et de sécurité."
+        - "« Qu'est-ce qui serait inacceptable ? » révèle les besoins de base que personne ne formule."
+      pieges: [pcl-solution-demandee]
+    vocab:
+      - besoin exprimé = stated need
+      - besoin implicite = implicit need, unspoken requirement
+      - cause racine = root cause
+      - maquette = mock-up
+      - critère de réussite = success criterion
+      - cas limite = edge case
+    exercises:
+      - id: pcl-besoin-cache.1
+        type: qcm
+        level: 1
+        q: "Un chef d'atelier te demande : « Mettez-moi une caméra sur la ligne. » Quelle est ta meilleure réponse ?"
+        choices:
+          - t: « D'accord. Qu'est-ce que la caméra devrait vous permettre de voir ou d'éviter ? »
+            ok: true
+          - t: « Plutôt une caméra industrielle ou une simple webcam, d'après vous ? »
+            why: Tu affines une solution sans connaître le problème ; un simple capteur de présence suffirait peut-être.
+          - t: « Quelle résolution et quelle cadence d'images voulez-vous ? »
+            why: Questions fermées sur une solution ; elles mènent à des chiffres que personne ne sait justifier.
+          - t: « Une caméra, c'est cher et compliqué ; vous êtes sûr ? »
+            why: Tu juges la demande au lieu de la comprendre ; le client se braque et ne dira pas le vrai problème.
+        e: Remonte d'un cran, vers l'usage. Si la réponse est « détecter les pièces mal orientées », la caméra devient une option parmi d'autres, et l'exigence porte sur la détection, pas sur la caméra.
+        piege: pcl-solution-demandee
+      - id: pcl-besoin-cache.2
+        type: parsons
+        level: 2
+        lang: text
+        q: Remets dans l'ordre cette chaîne de « pourquoi », de la demande initiale jusqu'au besoin réel.
+        lines:
+          - "« Il nous faut un vérin plus rapide. »"
+          - "Pourquoi ? Le cycle de la machine est trop long."
+          - "Pourquoi est-ce gênant ? La ligne ne sort pas les 1 200 pièces prévues par poste."
+          - "Pourquoi 1 200 pièces ? Un nouveau client a doublé ses commandes."
+          - "Besoin réel, augmenter la production par poste, quel que soit l'organe à accélérer"
+        extra:
+          - "Besoin réel, un vérin deux fois plus rapide"
+        e: Chaque « pourquoi » remonte d'un niveau, de la solution vers l'enjeu. Le besoin réel ouvre le champ des solutions ; une mesure du cycle peut montrer que le vérin n'en pèse que 10 %.
+        piege: pcl-solution-demandee
+      - id: pcl-besoin-cache.3
+        type: flash
+        level: 1
+        q: Cite cinq non-dits à faire dire au client avant d'écrire le cahier des charges.
+        back: |
+          Le budget (au moins un ordre de grandeur), ce qui fixe le délai, le critère de réussite, qui décide, les contraintes de site et de sécurité.
+          On ajoute souvent ce qui a déjà été essayé.
+        e: « Combien, quand, comment juger, qui, où » ; cinq questions, cinq surprises évitées.
+      - id: pcl-besoin-cache.4
+        type: qcm
+        level: 2
+        q: "Tu demandes le budget. Le client répond : « Je ne sais pas, faites-moi une proposition. » Que fais-tu ?"
+        choices:
+          - t: Tu proposes trois fourchettes, « plutôt 5 k€, 50 k€ ou 500 k€ ? », et tu notes celle qu'il choisit.
+            ok: true
+          - t: Tu conçois la meilleure solution possible, et il verra bien le prix à la fin.
+            why: Sans ordre de grandeur, tu risques de passer des semaines sur une solution dix fois trop chère.
+          - t: Tu proposes la solution la moins chère possible, pour être sûr qu'elle passe.
+            why: Tu risques de rater le besoin réel pour une économie que personne n'a demandée.
+          - t: Tu n'insistes pas, car parler d'argent avec un client interne est mal vu.
+            why: Même en interne, le temps de ton équipe a un coût ; ne pas en parler, c'est découvrir le désaccord à la fin.
+        e: Beaucoup de clients ne donnent pas de chiffre mais choisissent volontiers entre trois ordres de grandeur. Cela suffit pour orienter la solution et évite de chiffrer dans le vide.
+      - id: pcl-besoin-cache.5
+        type: qcm
+        level: 3
+        q: Le cahier des charges d'un banc est validé. En visite, tu vois que l'opérateur porte des gants épais et travaille debout dans une zone sombre. Rien de cela n'est écrit. Que fais-tu ?
+        choices:
+          - t: Tu proposes de l'ajouter au cahier des charges comme exigences (commandes utilisables avec gants, éclairage, hauteur) et tu le fais valider.
+            ok: true
+          - t: Rien, puisque ce n'est pas dans le cahier des charges validé et donc pas exigé.
+            why: Sur le papier peut-être, mais le banc sera pénible ou inutilisable ; tu le découvriras à la recette.
+          - t: Tu adaptes discrètement la conception, sans en parler, pour faire plaisir à l'opérateur.
+            why: Tes choix ne sont ni tracés ni validés ; si le coût augmente, personne ne saura pourquoi.
+          - t: Tu attends la recette, car si c'est gênant, l'opérateur le dira à ce moment-là.
+            why: Corriger à la recette coûte bien plus cher que d'ajouter trois lignes au cahier des charges maintenant.
+        e: Le besoin implicite ne se dit pas, il se voit. Dès que tu l'as repéré, écris-le noir sur blanc et fais-le valider ; il devient une exigence comme les autres, avec son coût s'il en a un.
+
+  - id: pcl-cdc
+    title: Le cahier des charges fonctionnel
+    en: The functional specification
+    goal: Structurer un cahier des charges fonctionnel qui décrit le besoin sans imposer la solution, et le distinguer d'une spécification technique.
+    minutes: 13
+    lesson:
+      steps:
+        - level: 1
+          title: Commander un gâteau, pas une recette
+          body: |
+            Tu commandes un gâteau d'anniversaire : douze parts, sans gluten, livré samedi à 16 h, 60 € au plus. Tu ne dis pas au pâtissier quelle farine acheter ni à quelle température cuire. Si tu lui imposes ta recette et que le gâteau est raté, c'est ta faute. S'il choisit sa recette, c'est la sienne.
+
+            Le cahier des charges fonctionnel, c'est cette commande. Il dit ce que l'objet doit faire, dans quelles conditions et à quel niveau, et laisse au concepteur le choix du comment. C'est aussi le document qu'on ressortira à la livraison pour dire « c'est conforme » ou « ça ne l'est pas ».
+        - level: 2
+          title: Fonctions, critères, niveaux, flexibilité
+          body: |
+            Le **cahier des charges fonctionnel** (CdCF) exprime le besoin en **fonctions de service** : ce que le produit doit faire pour son utilisateur (« maintenir l'échantillon à la température de consigne »). On y ajoute les **contraintes** : ce qu'il doit respecter (place disponible, sécurité, normes, matériel imposé). Il est écrit par le maître d'ouvrage, ou pour lui.
+
+            Chaque fonction se formule avec un **verbe à l'infinitif** et un complément, jamais avec un composant. Puis on la rend mesurable :
+            - le **critère d'appréciation** : ce qu'on mesure (la température sur l'échantillon) ;
+            - le **niveau** : la valeur visée, avec sa tolérance (280 °C ± 2 °C) ;
+            - la **flexibilité** : à quel point ce niveau se négocie. Classes usuelles : **F0** impératif, **F1** peu négociable, **F2** négociable, **F3** très négociable.
+
+            La **spécification technique** est l'autre document : elle décrit la solution retenue (architecture, composants, dimensions, interfaces). Elle est écrite par le maître d'œuvre, en réponse au CdCF.
+
+            Pour trouver les fonctions, deux outils d'analyse fonctionnelle que tu as peut-être vus en cours : la **bête à cornes** (à qui le produit rend-il service, sur quoi agit-il, dans quel but ?) et le **diagramme pieuvre** (le produit au centre, son environnement autour ; chaque lien devient une fonction ou une contrainte).
+
+            En France, la norme de référence est **NF EN 16271** (février 2013), « Management par la valeur — Expression fonctionnelle du besoin et cahier des charges fonctionnel ». Elle a remplacé la norme française NF X50-151.
+          check:
+            q: Laquelle de ces lignes a sa place dans un cahier des charges fonctionnel ?
+            choices:
+              - t: « Permettre à l'opérateur de changer l'échantillon en moins de 2 min, avec des gants. »
+                ok: true
+              - t: « Utiliser un moteur pas à pas sur l'axe vertical de la platine. »
+                why: C'est un choix de solution ; il va dans la spécification technique, sauf contrainte imposée et justifiée.
+              - t: « Le système doit être simple et ergonomique pour tous. »
+                why: C'est un souhait sans critère ni niveau ; impossible à vérifier à la recette.
+        - level: 3
+          title: La structure type
+          body: |
+            Exemple : un porte-échantillon chauffant pour une ligne expérimentale.
+
+            | Section | Contenu | Dans l'exemple |
+            |---|---|---|
+            | 1. Contexte | Qui demande, pourquoi, situation actuelle | Le four actuel plafonne à 235 °C sur l'échantillon |
+            | 2. Objectifs | Ce qui doit changer, mesurablement | Suivre une réaction jusqu'à 280 °C |
+            | 3. Périmètre | Ce qui est inclus | Porte-échantillon, régulation, câblage jusqu'à l'armoire |
+            | | Ce qui est **hors périmètre** | Logiciel d'acquisition de la ligne, table support |
+            | 4. Fonctions et contraintes | Liste numérotée avec critère, niveau, flexibilité | Voir ci-dessous |
+            | 5. Livrables | Ce qui sera remis | Matériel, plans, notice, rapport d'essais |
+            | 6. Critères d'acceptation | Comment on prononcera « conforme » | Essais listés, réalisés sur site |
+            | 7. Délais et budget | Échéance, enveloppe | Livraison avant la prochaine campagne |
+
+            Le cœur du document, la section 4 :
+
+            | Repère | Fonction ou contrainte | Critère | Niveau | Flex. |
+            |---|---|---|---|---|
+            | FP1 | Maintenir l'échantillon à la consigne | Écart mesuré sur l'échantillon | ± 2 °C, de 50 à 280 °C | F0 |
+            | FP2 | Monter en température | Durée de 20 à 280 °C | < 15 min | F2 |
+            | FC1 | Protéger l'utilisateur des brûlures | Température des parois accessibles | < 50 °C | F0 |
+            | FC2 | S'intégrer sur la table existante | Encombrement | 200 × 150 × 120 mm | F1 |
+            | FC3 | Permettre le changement d'échantillon avec des gants | Durée, sans outil | < 2 min | F1 |
+
+            FP désigne une fonction principale, FC une fonction contrainte. Chaque ligne deviendra au moins un essai de recette.
+        - level: 4
+          title: Pourquoi le besoin et pas la solution
+          body: |
+            Écrire le besoin plutôt que la solution n'est pas une coquetterie. C'est une question de **responsabilité**. Si le client impose « moteur X » et que la platine n'est pas assez précise, le concepteur répond : « j'ai fait ce que vous avez demandé ». Si le client a écrit « positionner à ± 5 µm » et laissé le choix, le concepteur s'engage sur le résultat. Exprimer le besoin laisse aussi la place à une solution meilleure ou moins chère.
+
+            Une solution imposée reste légitime quand elle est **justifiée** : « utiliser les automates déjà présents dans l'atelier, pour la maintenance et les pièces de rechange ». Écris-la alors comme une contrainte, avec sa raison.
+
+            Trois points que les débutants négligent :
+            - **Le hors-périmètre.** C'est la section la plus utile pendant le projet. Tout ce que le client pourrait demander « tant que tu y es » et qui n'est pas prévu doit y figurer noir sur blanc.
+            - **La version.** Une fois validé, le CdCF ne se modifie plus en douce : numéro de version, date, historique, et chaque évolution passe par une demande de modification.
+            - **La longueur.** Trois à cinq pages suffisent pour un petit projet interne. Un document court et réellement validé vaut mieux qu'un pavé que personne n'a lu.
+
+            Qui l'écrit ? En théorie le maître d'ouvrage. En pratique, c'est souvent toi, après les entretiens, et le client relit et valide. C'est très bien, à condition de garder une formulation centrée sur le besoin, même si tu as déjà une solution en tête.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            Phrases qui marchent :
+            - « Je vous propose de formaliser ce qu'on s'est dit en trois pages ; vous relisez et on le valide ensemble. » / *"I'll write up what we discussed in a three-page spec; you review it and we sign it off together."*
+            - « Ce point est-il impératif ou négociable ? » / *"Is this a hard requirement, or is there some flexibility?"*
+            - « Je l'ajoute au hors-périmètre, pour qu'on soit clairs. » / *"I'll list it as out of scope, so we're all clear."*
+            - « À la livraison, qu'est-ce qui vous fera dire que c'est réussi ? » / *"At delivery, what will tell you it's a success?"*
+
+            | À éviter | À dire |
+            |---|---|
+            | « Le système sera performant. » | « Le système doit contrôler 1 200 pièces par poste de 8 h. » |
+            | « On verra les détails plus tard. » | « Ces trois points restent ouverts ; je les liste avec une date de décision. » |
+            | *"It should be user-friendly."* | *"An operator must change a sample in under 2 minutes, wearing gloves."* |
+
+            Erreurs fréquentes des jeunes ingénieurs :
+            - recopier un ancien cahier des charges sans l'adapter ;
+            - décrire la solution qu'on a déjà en tête ;
+            - oublier le hors-périmètre et les critères d'acceptation ;
+            - ne pas numéroter les versions, et faire valider oralement.
+      recap:
+        - "Le cahier des charges fonctionnel décrit ce que le produit doit faire, pas comment il le fait."
+        - "Chaque fonction : un verbe à l'infinitif, un critère, un niveau, une flexibilité de F0 (impératif) à F3 (très négociable)."
+        - "Le hors-périmètre écrit est ta meilleure protection contre les ajouts en cours de route."
+        - "Les critères d'acceptation disent dès le départ comment on prononcera « conforme »."
+        - "Le CdCF est versionné et validé par écrit ; la spécification technique décrit ensuite la solution."
+        - "Norme de référence : NF EN 16271 (2013), qui a remplacé NF X50-151."
+      pieges: [pcl-adjectifs, pcl-solution-demandee, pcl-oui-a-tout]
+      sources:
+        - t: NF EN 16271, fiche de la norme (AFNOR)
+          url: https://www.boutique.afnor.org/fr-fr/norme/nf-en-16271/management-par-la-valeur-expression-fonctionnelle-du-besoin-et-cahier-des-charges-fonctionnel-e/fa164075/1322
+          note: titre officiel, publication en février 2013, remplace NF X50-151 (2007)
+    vocab:
+      - cahier des charges fonctionnel = functional performance specification
+      - spécification technique = technical specification
+      - périmètre = scope
+      - hors périmètre = out of scope
+      - livrable = deliverable
+      - critère d'acceptation = acceptance criterion
+    exercises:
+      - id: pcl-cdc.1
+        type: qcm
+        level: 1
+        q: "Un industriel t'envoie son « cahier des charges » : un bras robot six axes d'une marque donnée, une caméra de 5 mégapixels, un automate imposé. Que manque-t-il pour pouvoir s'engager ?"
+        choices:
+          - t: Le besoin, c'est-à-dire ce que le système doit faire, à quelle cadence, et comment on jugera la réussite.
+            ok: true
+          - t: Les références exactes des câbles, des connecteurs et des protections électriques.
+            why: C'est encore du détail de solution ; on ne sait toujours pas à quoi sert le système.
+          - t: Un planning détaillé de la fabrication et de la mise en service.
+            why: Le planning vient après ; sans besoin connu, on planifierait la mauvaise chose.
+          - t: Rien, la liste est précise et suffit pour chiffrer et commander.
+            why: Une liste de matériel n'est pas un besoin ; si le système ne résout pas le problème, tu ne pourras ni le prouver ni le défendre.
+        e: Une liste de composants est une spécification de solution. Si tu la réalises et que le résultat ne convient pas, qui est responsable ? Demande le besoin, et garde les composants imposés comme des contraintes, avec leur justification.
+        piege: pcl-solution-demandee
+      - id: pcl-cdc.2
+        type: parsons
+        level: 1
+        lang: text
+        q: Remets dans l'ordre les sections d'un cahier des charges fonctionnel.
+        lines:
+          - "Contexte et situation actuelle"
+          - "Objectifs du projet"
+          - "Périmètre et hors périmètre"
+          - "Fonctions et contraintes, avec critères, niveaux et flexibilité"
+          - "Livrables"
+          - "Critères d'acceptation"
+        extra:
+          - "Choix des composants et nomenclature"
+        e: On va du pourquoi (contexte, objectifs) au quoi (périmètre, fonctions), puis à ce qui sera remis et à la façon de le juger. Le choix des composants appartient à la spécification technique, pas au CdCF.
+      - id: pcl-cdc.3
+        type: flash
+        level: 1
+        q: Quelle est la différence entre un cahier des charges fonctionnel et une spécification technique ?
+        back: |
+          Le CdCF exprime le besoin (fonctions, contraintes, critères, niveaux, flexibilité). Il est écrit par ou pour le maître d'ouvrage.
+          La spécification technique décrit la solution retenue (architecture, composants, dimensions). Elle est écrite par le maître d'œuvre, en réponse.
+        e: Le CdCF répond à « quoi et pourquoi », la spécification à « comment ».
+      - id: pcl-cdc.4
+        type: qcm
+        level: 2
+        q: Le cahier des charges impose un encombrement de 200 × 150 × 120 mm au plus, sans flexibilité indiquée. Ta meilleure solution mesure 210 mm de long. Que fais-tu ?
+        choices:
+          - t: Tu demandes au client si 210 mm est acceptable, en expliquant ce que cette solution apporte.
+            ok: true
+          - t: Tu la retiens, puisque 10 mm sur 200 ne représentent que 5 %.
+            why: Pour toi peut-être ; si la table n'a que 200 mm de place, l'objet n'entre pas. Seul le client le sait.
+          - t: Tu l'abandonnes sans en parler, puisque le niveau écrit est forcément impératif.
+            why: Pas forcément ; un niveau sans flexibilité précisée se discute, et tu perds peut-être la meilleure option.
+          - t: Tu la retiens et tu signaleras l'écart au moment de la recette.
+            why: Signaler un écart à la recette, c'est mettre le client devant le fait accompli.
+        e: La flexibilité (F0 à F3) dit si un niveau se négocie. Quand elle manque, la question au client coûte un mail ; la mauvaise supposition coûte une reprise ou une dispute.
+      - id: pcl-cdc.5
+        type: qcm
+        level: 3
+        q: "Le client te dit : « Mettez juste les grandes lignes, on ajustera en cours de route. » Que proposes-tu ?"
+        choices:
+          - t: Un document court mais complet sur l'essentiel, avec objectifs chiffrés, hors-périmètre, critères d'acceptation et points ouverts datés.
+            ok: true
+          - t: Tu acceptes, puisqu'un client interne n'a pas besoin de tout ce formalisme.
+            why: Sans référence écrite, chaque ajustement devient une négociation, et la recette n'a aucun critère.
+          - t: Tu rédiges seul un cahier des charges de trente pages pour tout prévoir.
+            why: Personne ne le lira ; un document non lu ne protège rien et fige des points encore incertains.
+          - t: Tu attends que le client ait tout décidé avant d'écrire quoi que ce soit.
+            why: Le projet n'avance pas ; mieux vaut écrire ce qui est sûr et lister ce qui ne l'est pas.
+        e: Un bon cahier des charges n'est pas long ; il est complet sur ce qui compte et honnête sur ce qui reste ouvert. « On ajustera en cours de route » sans référence écrite, c'est la porte ouverte aux ajouts gratuits.
+        piege: pcl-oui-a-tout
+
+  - id: pcl-exigences
+    title: Écrire des exigences vérifiables
+    en: Writing verifiable requirements
+    goal: Réécrire une exigence floue en exigence vérifiable (valeur, tolérance, condition, méthode), la prioriser avec MoSCoW et la relier à un essai.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Un café pas trop chaud
+          body: |
+            Tu commandes « un café pas trop chaud ». Le serveur, la machine et toi n'avez pas la même idée de « pas trop chaud ». Tu le renvoies, il te le ramène, et personne n'a tort.
+
+            « Un café à 65 °C » ne laisse aucune place au doute, et un thermomètre tranche en dix secondes.
+
+            Une exigence, c'est une phrase qu'un essai peut trancher. À la fin, on doit pouvoir répondre oui ou non, sans discussion et sans se fier à l'humeur de chacun.
+        - level: 2
+          title: Les qualités d'une bonne exigence
+          body: |
+            - **Une seule idée.** Pas de « et » qui en cache deux : si l'une passe et l'autre non, le verdict est impossible.
+            - **Le bon verbe.** « Doit » pour l'obligatoire, « devrait » pour le souhaitable, « peut » pour le permis. En anglais : *shall*, *should*, *may*. Mélanger les trois sans règle crée des disputes.
+            - **Une valeur, une tolérance, une unité** : « 280 °C ± 2 °C », pas « environ 280 °C ».
+            - **Une condition** : dans quelles conditions la valeur doit être tenue (température ambiante, charge, type de pièce).
+            - **Une méthode de vérification** : on sait dès l'écriture par quel essai, quelle inspection ou quel calcul on la vérifiera.
+            - **Un identifiant stable** (EX-12) qui ne change jamais, pour la **traçabilité** : pouvoir suivre chaque exigence jusqu'à l'essai qui la vérifie.
+
+            Les mots à bannir, sauf s'ils sont suivis d'un chiffre : rapide, stable, facile, robuste, précis, ergonomique, compatible, environ, si possible, optimisé, etc.
+          check:
+            q: Laquelle de ces exigences est vérifiable ?
+            choices:
+              - t: « Le banc doit mesurer des forces de 0 à 500 N avec une incertitude de ± 1 N, à 20 °C ± 3 °C. »
+                ok: true
+              - t: « Le banc doit mesurer la force avec une grande précision. »
+                why: « Grande précision » n'a pas de valeur ; chacun la comparera à sa propre référence.
+              - t: « Le banc doit être précis et facile à utiliser. »
+                why: Deux idées, deux adjectifs, aucune valeur ; ni l'une ni l'autre ne peut être tranchée par un essai.
+        - level: 3
+          title: Le gabarit, la conversion et le calcul
+          body: |
+            Le gabarit à suivre :
+
+            > [!note] Gabarit d'exigence
+            > **[Identifiant]** Le [système] **doit** [verbe + objet] [valeur ± tolérance, unité] [condition]. Vérification : [méthode].
+
+            Exemple : « EX-07 Le poste doit mesurer le diamètre des pièces avec une incertitude de ± 0,01 mm, pièces à 20 °C ± 5 °C. Vérification : essai sur 30 pièces étalonnées. »
+
+            Pour chaque mot flou, une question le transforme en chiffre :
+
+            | Mot flou | Question à poser | Exigence chiffrée |
+            |---|---|---|
+            | Rapide | Combien de pièces, en combien de temps ? | Temps de cycle ≤ 20 s par pièce |
+            | Stable | Quel écart, sur quelle durée ? | Dérive ≤ 0,5 °C sur 8 h |
+            | Facile | Qui, pour faire quoi, en combien de temps ? | Changement de référence en moins de 5 min par un opérateur formé |
+            | Robuste | Contre quoi, combien de fois ? | Aucune défaillance sur 10 000 cycles d'ouverture |
+
+            « Rapide » se calcule souvent à partir de la production attendue. Un industriel veut contrôler 1 200 pièces par poste de 8 h ; la machine n'est disponible que 85 % du temps (pauses, changements de série) :
+
+            $$t_{\text{cycle}} \le \frac{T_{\text{poste}} \times D}{N} = \frac{8 \times 3\,600 \times 0{,}85}{1\,200} = 20{,}4\ \text{s}$$
+
+            L'exigence devient « temps de cycle ≤ 20 s par pièce » ; arrondir vers le bas donne une petite marge.
+
+            Reste à **prioriser**, avec la méthode **MoSCoW** :
+            - **Must** : sans elle, le projet est un échec ;
+            - **Should** : importante, mais un contournement existe ;
+            - **Could** : appréciable si le temps et le budget le permettent ;
+            - **Won't** : écartée explicitement de cette version.
+
+            Si tout est Must, rien n'est prioritaire. Repère courant : pas plus de 60 % de l'effort sur les Must, pour garder une marge.
+        - level: 4
+          title: Vérifiable ne veut pas dire facile à vérifier
+          body: |
+            « Durée de vie ≥ 10 ans » est chiffré, mais aucune recette ne dure dix ans. On choisit alors une autre méthode : l'**analyse** (calcul de fiabilité, données du fabricant) plutôt que l'essai. Chaque exigence doit avoir une méthode **réaliste**. Les quatre méthodes (inspection, analyse, démonstration, essai) sont détaillées dans la notion sur la recette.
+
+            Trois subtilités :
+            - **Les exigences négatives.** « Le système ne doit pas surchauffer » est difficile à prouver : on ne démontre pas une absence. Préfère une formulation positive et mesurable : « la température des parois accessibles doit rester inférieure à 50 °C ».
+            - **L'incertitude de mesure.** Si l'exigence est ± 0,01 mm et que ton instrument a lui-même une incertitude de ± 0,01 mm, l'essai ne tranche rien. Repère de métrologie : un moyen de mesure 4 à 10 fois plus précis que la tolérance à vérifier.
+            - **La sur-spécification.** Une tolérance trop serrée coûte cher, parfois beaucoup plus que le gain qu'elle apporte. Demande : « Que se passe-t-il si c'est ± 0,05 mm au lieu de ± 0,01 mm ? » Si la réponse est « rien », desserre.
+
+            Pour vérifier qu'il ne manque rien, passe les familles en revue : fonction, performance, interfaces (mécaniques, électriques, logicielles), environnement (température, poussière, perturbations électromagnétiques), sécurité, maintenance, documentation.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            Phrases qui marchent :
+            - « Le jour de la recette, comment saurons-nous que c'est atteint ? » / *"On acceptance day, how will we know we've met it?"*
+            - « Quand vous dites rapide, c'est combien de pièces par heure ? » / *"When you say fast, how many parts per hour do you mean?"*
+            - « Est-ce un Must, ou peut-on s'en passer dans la première version ? » / *"Is this a must-have, or could we live without it in the first release?"*
+            - « Je vous propose 20 s par pièce ; dites-moi si c'est trop serré. » / *"I suggest 20 seconds per part; tell me if that's too tight."*
+
+            | À éviter | À dire |
+            |---|---|
+            | « Le système doit être rapide et fiable. » | « EX-03 Le système doit traiter une pièce en 20 s au plus. » |
+            | « La précision doit être la meilleure possible. » | « Incertitude ≤ ± 0,01 mm, pièces à 20 °C ± 5 °C. » |
+            | *"The system shall be robust."* | *"The system shall run for 8 hours without operator intervention."* |
+
+            Erreurs fréquentes des jeunes ingénieurs :
+            - un « et » qui cache deux exigences ;
+            - une valeur sans tolérance, ou sans condition (à quelle température ?) ;
+            - tout classer en Must ;
+            - une numérotation qui change à chaque version, et qui casse la traçabilité.
+      recap:
+        - "Une exigence = une idée, un « doit », une valeur avec tolérance et unité, une condition, une méthode de vérification."
+        - "Bannis rapide, stable, facile, robuste, précis : demande « comment le mesurerait-on ? »."
+        - "Temps de cycle maximal = durée du poste × taux de disponibilité ÷ nombre de pièces."
+        - "MoSCoW : Must, Should, Could, Won't ; si tout est Must, rien n'est prioritaire."
+        - "Le moyen de mesure doit être 4 à 10 fois plus précis que la tolérance à vérifier."
+        - "Chaque exigence a un identifiant stable et une vérification prévue dans le plan de recette."
+      pieges: [pcl-adjectifs]
+    vocab:
+      - exigence = requirement
+      - doit = shall
+      - vérifiable = verifiable, testable
+      - tolérance = tolerance
+      - traçabilité = traceability
+      - priorisation = prioritisation
+    exercises:
+      - id: pcl-exigences.1
+        type: qcm
+        level: 1
+        q: "Le client dit : « Il faut que le chauffage soit rapide. » Quelle est ta meilleure réponse ?"
+        choices:
+          - t: « Rapide, c'est passer de quelle température à quelle autre, en combien de minutes au plus ? »
+            ok: true
+          - t: « D'accord, je prévois une résistance chauffante plus puissante que l'actuelle. »
+            why: Tu choisis une solution sans savoir quel temps viser ; tu ne pourras pas prouver que c'est assez rapide.
+          - t: « D'accord, j'écris que le chauffage doit être rapide dans le cahier des charges. »
+            why: Tu recopies l'adjectif ; à la recette, personne ne pourra trancher.
+          - t: « Le plus rapide possible, alors, dans la limite du raisonnable ? »
+            why: « Le plus possible » n'est pas un niveau ; c'est la porte ouverte à un coût sans limite et à une recette sans critère.
+        e: Transforme chaque adjectif en question chiffrée : de quoi à quoi, en combien de temps, dans quelles conditions. Si le client ne sait pas, propose une valeur et fais-la valider par écrit.
+        piege: pcl-adjectifs
+      - id: pcl-exigences.2
+        type: numeric
+        level: 2
+        q: "Un client veut un poste de contrôle « rapide ». Il doit contrôler 900 pièces par poste de 7 h, et la machine n'est disponible que 80 % du temps. Quel temps de cycle maximal, en secondes, faut-il écrire dans l'exigence ?"
+        answer: 22.4
+        tol: 0.02
+        unit: "s"
+        calc: 7 * 3600 * 0.8 / 900
+        trap_values:
+          - v: 28
+            why: Tu as oublié la disponibilité de 80 % ; la machine ne produit pas pendant les pauses et les changements de série.
+          - v: 35
+            why: Tu as divisé par 0,8 au lieu de multiplier ; la disponibilité réduit le temps utile, elle ne l'augmente pas.
+        e: Temps utile = 7 × 3 600 × 0,8 = 20 160 s. Divisé par 900 pièces, cela donne 22,4 s. On écrira « temps de cycle ≤ 22 s par pièce », l'arrondi vers le bas laissant une petite marge.
+        piege: pcl-adjectifs
+      - id: pcl-exigences.3
+        type: flash
+        level: 1
+        q: Que signifient les quatre lettres de MoSCoW ?
+        back: |
+          Must : indispensable, sinon le projet échoue.
+          Should : important, mais un contournement existe.
+          Could : appréciable si le temps et le budget le permettent.
+          Won't : écarté explicitement de cette version.
+        e: Les « o » ne servent qu'à la prononciation. Le W est le plus utile, car il écrit ce qu'on ne fera pas.
+      - id: pcl-exigences.4
+        type: qcm
+        level: 2
+        q: "Une exigence dit : « Le banc doit mesurer la force avec une incertitude de ± 0,5 N et afficher la courbe en temps réel. » Quel est son principal défaut ?"
+        choices:
+          - t: Elle contient deux exigences ; si l'une passe et l'autre non, on ne peut pas conclure.
+            ok: true
+          - t: L'incertitude devrait être exprimée en pourcentage de la pleine échelle.
+            why: Une valeur absolue en newtons est parfaitement vérifiable ; le pourcentage n'est qu'une autre écriture.
+          - t: Il manque le mot « environ » devant la valeur de l'incertitude.
+            why: « Environ » rendrait au contraire l'exigence invérifiable ; la tolérance est déjà là.
+          - t: Elle impose une solution technique au lieu d'exprimer un besoin.
+            why: Mesurer et afficher sont des fonctions, pas des choix de composants ; le défaut est ailleurs.
+        e: Une idée par exigence. Sépare en EX-08 (incertitude) et EX-09 (affichage, avec son propre critère, par exemple un retard maximal de 0,5 s). Remarque qu'il manque aussi la plage de mesure et la condition d'essai.
+      - id: pcl-exigences.5
+        type: qcm
+        level: 3
+        q: L'exigence impose une incertitude de ± 0,01 mm sur le diamètre. Pour la recette, tu disposes d'un instrument dont l'incertitude est aussi de ± 0,01 mm. Que fais-tu ?
+        choices:
+          - t: Tu prévois un moyen de mesure nettement plus précis, de l'ordre de 4 à 10 fois, sinon l'essai ne tranchera rien.
+            ok: true
+          - t: Tu fais l'essai avec cet instrument, puisqu'il a exactement la précision demandée.
+            why: L'incertitude de l'instrument s'ajoute à celle du système ; tu ne sauras pas lequel des deux se trompe.
+          - t: Tu élargis discrètement l'exigence à ± 0,02 mm pour que l'essai puisse passer.
+            why: Modifier une exigence validée sans accord écrit, c'est rompre le contrat sur le besoin.
+          - t: Tu remplaces l'essai par une analyse des données fournies par le fabricant.
+            why: Possible pour une durée de vie, pas pour une performance qu'on peut mesurer ; ici, l'essai est la bonne méthode.
+        e: Une exigence vérifiable suppose un moyen de vérification adapté. Le repère courant en métrologie est un instrument au moins 4 fois, idéalement 10 fois plus précis que la tolérance. Prévois-le dès la rédaction, pas la veille de la recette.
+
+  - id: pcl-proposition
+    title: Proposer une solution et la faire valider
+    en: Proposing a solution and getting sign-off
+    goal: Présenter deux ou trois options chiffrées avec leurs compromis, en recommander une avec des arguments liés aux critères du client, et obtenir une validation écrite.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Le garagiste qui donne le choix
+          body: |
+            Ton garagiste t'appelle : « Trois possibilités. Réparer la pièce : 300 €, deux jours, mais elle peut lâcher dans un an. Une pièce d'occasion : 500 €, une semaine. Une neuve : 900 €, garantie deux ans. À votre place, vu le kilométrage, je prendrais l'occasion. »
+
+            Tu comprends les options. Tu vois ce que chacune sacrifie. Tu sais ce qu'il conseille, et pourquoi. Et c'est toi qui décides. C'est exactement ce qu'on attend d'une proposition technique.
+        - level: 2
+          title: Options, compromis, recommandation
+          body: |
+            Une fois le cahier des charges validé, tu mènes un **avant-projet** : une étude courte qui explore les solutions possibles, jusqu'au niveau de détail qui permet de les chiffrer et de les comparer. Elle débouche sur une **proposition**.
+
+            - **Deux ou trois options**, pas une seule : avec une seule, le client ne peut que dire oui ou non. Pas dix non plus : il serait noyé. Souvent : une option économique, une option au juste besoin, une option ambitieuse.
+            - **Le triangle qualité-coût-délai** : on ne peut pas tout maximiser à la fois. Chaque option se place dans ce triangle ; dis clairement ce qu'elle sacrifie.
+            - **Une recommandation argumentée** : tu es l'expert, le client attend ton avis. « Je recommande B parce que… », avec des raisons tirées de **ses** critères, pas de tes goûts techniques.
+            - **Les hypothèses** : ce sur quoi reposent tes chiffres (« local accessible deux semaines en juin », « alimentation 400 V disponible »). Si une hypothèse tombe, le chiffrage change.
+            - **Les points ouverts** : ce qui n'est pas encore tranché, avec une date de décision.
+            - **La validation écrite** : le décideur choisit, par écrit (signature, ou mail explicite). On ne lance rien sur un « ça me va » oral.
+          check:
+            q: Pourquoi présenter deux ou trois options plutôt qu'une seule ?
+            choices:
+              - t: Pour montrer les compromis qualité-coût-délai et laisser le décideur choisir en connaissance de cause.
+                ok: true
+              - t: Pour paraître plus sérieux qu'un concurrent qui n'en propose qu'une seule.
+                why: L'effet d'image est secondaire ; le vrai intérêt est de rendre l'arbitrage possible.
+              - t: Parce que le client finit presque toujours par choisir la moins chère des trois.
+                why: Pas forcément ; quand il voit ce qu'il perd, il choisit souvent l'option au juste besoin.
+        - level: 3
+          title: La proposition en six blocs et la matrice de décision
+          body: |
+            Structure d'une proposition : une page de synthèse, le détail en annexe.
+            1. **Rappel du besoin** en trois lignes, avec la version du cahier des charges.
+            2. **Options étudiées** : principe, schéma, coût, délai, avantages, limites.
+            3. **Comparaison**, souvent par une matrice de décision.
+            4. **Recommandation** et justification.
+            5. **Hypothèses, risques principaux, points ouverts.**
+            6. **Décision attendue** : quoi, de qui, pour quand.
+
+            La **matrice de décision pondérée** : le client donne un poids $p_i$ à chaque critère ; tu notes chaque option de 1 à 5 sur chaque critère ($n_i$). Le score d'une option est
+
+            $$S = \sum_i p_i \times n_i$$
+
+            Exemple : automatiser le contrôle visuel de pièces, avec trois options.
+
+            | Critère | Poids | A : capteurs simples | B : caméra et logiciel standard | C : vision sur mesure |
+            |---|---|---|---|---|
+            | Couverture des défauts | 5 | 2 | 4 | 5 |
+            | Coût | 3 | 5 | 3 | 1 |
+            | Délai | 2 | 5 | 4 | 2 |
+            | Maintenance | 2 | 4 | 4 | 2 |
+            | **Score (sur 60)** | | **43** | **45** | **36** |
+
+            Calcul pour B : $5 \times 4 + 3 \times 3 + 2 \times 4 + 2 \times 4 = 20 + 9 + 8 + 8 = 45$.
+
+            Deux points d'écart entre A et B ne départagent rien. Mais si le cahier des charges impose de détecter les rayures (flexibilité F0) et que A ne les voit pas, A est **éliminée avant le calcul**. Les critères impératifs filtrent d'abord ; la matrice départage ensuite.
+        - level: 4
+          title: Les biais d'une proposition
+          body: |
+            **Les poids décident de tout.** Fais-les fixer par le client **avant** qu'il voie les notes, sinon chacun ajuste les poids pour obtenir le résultat qu'il préfère. Si un petit changement de poids inverse le classement, dis-le : la décision porte en réalité sur ce critère-là.
+
+            **Le biais du concepteur.** Tu préfères l'option la plus intéressante techniquement, souvent la C, sur mesure. Demande-toi : la recommanderais-tu si ce n'était pas toi qui la réalisais ?
+
+            **L'option leurre.** Ne présente pas une option volontairement mauvaise pour faire briller ta favorite. Les clients le voient, et tu perds ta crédibilité pour la suite.
+
+            **La solution demandée.** Si le client avait réclamé une solution précise, mets-la parmi les options et compare-la honnêtement aux autres. S'il la choisit en connaissant ses limites, c'est son droit ; mais il aura choisi en connaissance de cause.
+
+            **La fausse précision.** À ce stade, donne des fourchettes (« 15 à 20 k€ ») plutôt qu'un montant au centime : un chiffre trop précis laisse croire à une certitude que tu n'as pas. Les méthodes d'estimation détaillées sont traitées dans le domaine voisin consacré au pilotage.
+
+            **Ce que couvre la validation.** Le décideur valide l'option, mais aussi le budget, le délai, les hypothèses et la version du cahier des charges. Si une hypothèse tombe, ce document te permet de rouvrir le chiffrage sans dispute.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            Phrases qui marchent :
+            - « Nous avons étudié trois options ; je vous recommande la B, pour trois raisons. » / *"We looked at three options; I recommend option B, for three reasons."*
+            - « Cette option tient le budget, mais au prix de deux semaines de plus. » / *"This option stays within budget, but it costs two extra weeks."*
+            - « Ce chiffrage repose sur deux hypothèses ; si l'une tombe, je reviens vers vous. » / *"This estimate rests on two assumptions; if either changes, I'll come back to you."*
+            - « Pouvez-vous me confirmer votre choix par mail d'ici vendredi ? » / *"Could you confirm your choice by email by Friday?"*
+
+            | À éviter | À dire |
+            |---|---|
+            | « On va faire comme ça, c'est le mieux. » | « Je recommande B : elle détecte les cinq défauts, pour 15 à 20 k€. » |
+            | « C'est vous qui voyez. » | « Voici comment les options se comparent sur vos critères. » |
+            | *"Trust me, it's the best option."* | *"Here's how the options compare against your criteria."* |
+
+            Erreurs fréquentes des jeunes ingénieurs :
+            - ne présenter qu'une option, ou en présenter dix ;
+            - ne pas recommander, par peur d'influencer ;
+            - cacher les limites de l'option recommandée ;
+            - lancer les commandes sur un accord oral.
+      recap:
+        - "Une proposition : rappel du besoin, deux ou trois options chiffrées, comparaison, recommandation, hypothèses, décision attendue."
+        - "Chaque option se place dans le triangle qualité-coût-délai ; dis ce qu'elle sacrifie."
+        - "Matrice pondérée : score = somme des poids × notes ; les poids sont fixés par le client avant de voir les notes."
+        - "Les critères impératifs éliminent d'abord ; la matrice départage ensuite."
+        - "Pas de lancement sans validation écrite de l'option, du budget, du délai et des hypothèses."
+      pieges: [pcl-solution-demandee, pcl-accord-oral]
+    vocab:
+      - avant-projet = preliminary design
+      - compromis = trade-off
+      - recommandation = recommendation
+      - hypothèse = assumption
+      - matrice de décision = decision matrix
+      - validation = sign-off, approval
+    exercises:
+      - id: pcl-proposition.1
+        type: qcm
+        level: 1
+        q: "Tu présentes trois options. Le client te demande : « Et vous, vous feriez quoi ? » Que réponds-tu ?"
+        choices:
+          - t: « Je recommande B, qui couvre vos critères principaux pour un coût raisonnable ; voici ce qu'elle sacrifie. »
+            ok: true
+          - t: « C'est à vous de choisir, je préfère ne pas influencer votre décision. »
+            why: Le client attend ton expertise ; refuser de recommander, c'est le laisser seul face à un choix technique.
+          - t: « La C, sans hésiter, c'est de loin la plus performante techniquement. »
+            why: La plus performante n'est pas forcément la meilleure pour lui ; ta recommandation doit suivre ses critères.
+          - t: « La moins chère, évidemment, puisque le budget est toujours serré. »
+            why: Le prix n'est qu'un critère ; l'option la moins chère peut rater une exigence impérative.
+        e: Recommander fait partie du métier. Une bonne recommandation s'appuie sur les critères du client, annonce ce que l'option sacrifie, et laisse la décision au décideur.
+      - id: pcl-proposition.2
+        type: numeric
+        level: 2
+        q: "Trois critères pondérés : performance (poids 4), coût (poids 3), délai (poids 2). L'option B obtient, sur 5, les notes 4 en performance, 3 en coût et 5 en délai. Quel est son score, calculé comme la somme des poids × notes ?"
+        answer: 35
+        tol: 0.01
+        unit: "points"
+        calc: 4*4 + 3*3 + 2*5
+        trap_values:
+          - v: 12
+            why: Tu as additionné les notes sans les pondérer ; tous les critères pèseraient alors autant, ce que le client n'a pas voulu.
+          - v: 4
+            why: C'est la moyenne simple des notes ; elle ignore les poids que le client a donnés.
+        e: Score = 4 × 4 + 3 × 3 + 2 × 5 = 16 + 9 + 10 = 35 points, sur 45 possibles. Compare-le aux autres options, mais un écart de deux ou trois points ne départage rien ; il ouvre la discussion.
+      - id: pcl-proposition.3
+        type: flash
+        level: 1
+        q: Que doit couvrir la validation écrite d'une proposition ?
+        back: |
+          L'option retenue, le budget et le délai associés, les hypothèses sur lesquelles reposent ces chiffres, et la version du cahier des charges à laquelle elle répond.
+          Le tout confirmé par le décideur, pas par un intermédiaire.
+        e: Si une hypothèse tombe plus tard, ce document te permet de rouvrir le chiffrage sans dispute.
+      - id: pcl-proposition.4
+        type: qcm
+        level: 2
+        q: "En réunion, le décideur dit : « L'option B me va, lancez. » Il part en congés le lendemain pour deux semaines. Que fais-tu ?"
+        choices:
+          - t: Tu lui envoies le jour même un mail qui récapitule option, coût, délai et hypothèses, et tu demandes une confirmation écrite.
+            ok: true
+          - t: Tu lances les commandes tout de suite, pour ne pas perdre les deux semaines.
+            why: Si quelqu'un conteste pendant son absence, tu n'as rien pour justifier les dépenses engagées.
+          - t: Tu attends son retour pour lui faire signer le document complet de proposition.
+            why: Tu perds deux semaines ; un mail de confirmation suffit, et il peut y répondre même en congés.
+          - t: Tu fais valider par son adjoint, qui était présent à la réunion.
+            why: L'adjoint n'est peut-être pas habilité ; la décision appartient à celui qui l'a prise.
+        e: Un « lancez » oral vaut intention, pas engagement. Un mail court, écrit le jour même, transforme l'intention en décision traçable. Beaucoup de décideurs répondent « OK » à un mail même en congés.
+        piege: pcl-accord-oral
+      - id: pcl-proposition.5
+        type: qcm
+        level: 3
+        q: Ton chiffrage de l'option B suppose que le local sera libre deux semaines en juin pour l'installation. Où l'écris-tu ?
+        choices:
+          - t: Dans les hypothèses de la proposition, avec ce qui change si elle tombe (coût, délai).
+            ok: true
+          - t: Nulle part, c'est un détail d'organisation qui se réglera le moment venu.
+            why: Si le local n'est pas libre, ton délai saute, et rien ne montre que ton chiffrage en dépendait.
+          - t: Dans le compte rendu de la prochaine réunion d'avancement du projet.
+            why: Trop tard et mal rangé ; l'hypothèse doit accompagner le chiffrage qu'elle conditionne.
+          - t: Dans une note interne à ton équipe, pour ne pas inquiéter le client.
+            why: Le client est le seul à pouvoir garantir l'accès au local ; il doit le savoir et s'y engager.
+        e: Une hypothèse écrite est à la fois une protection et une demande. Si elle tombe, tu rouvres le chiffrage sur une base partagée ; non écrite, elle devient ton retard.
+
+  - id: pcl-reunion
+    title: Préparer et animer une réunion
+    en: Preparing and running a meeting
+    goal: Préparer une réunion utile (objectif, ordre du jour, participants), l'animer dans le temps prévu et en sortir avec des décisions explicites.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Le bus sans destination
+          body: |
+            Tu montes dans un bus sans panneau de destination. Le chauffeur roule une heure, s'arrête au hasard, et chacun descend en se demandant où il est. Beaucoup de réunions ressemblent à ce bus.
+
+            Or une réunion coûte cher : huit personnes pendant une heure, c'est une journée de travail entière. Elle doit donc produire ce qu'un mail n'aurait pas produit : une décision, un arbitrage, une solution trouvée ensemble. Sinon, envoie un mail.
+        - level: 2
+          title: Les ingrédients d'une réunion utile
+          body: |
+            - **L'objectif**, en une phrase, formulé comme un résultat : « choisir entre les options A et B », pas « faire le point ». Une réunion sert à **informer**, à **décider** ou à **produire** (résoudre un problème, trouver des idées). Si elle ne sert qu'à informer, un mail suffit souvent.
+            - **L'ordre du jour** : les points, chacun avec son type (information, discussion, décision), sa durée et son porteur. Envoie-le à l'avance, au moins la veille, idéalement deux ou trois jours avant, avec les documents à lire.
+            - **Les bons participants** : ceux qui décident, ceux qui savent, ceux qui feront. Chacun doit avoir une raison d'être là. Les autres liront le compte rendu.
+            - **Les rôles** : l'**animateur** tient l'objectif et le temps et distribue la parole ; le **secrétaire** note les décisions et les actions. Annonce-les au début.
+            - **Le timebox** : chaque point a une durée fixée. Quand elle est écoulée, on décide, on reporte, ou on prolonge, mais explicitement.
+            - **Le parking** : une liste visible où l'on gare les sujets hors ordre du jour. Ils ne sont pas perdus ; ils seront traités plus tard ou ailleurs.
+            - **Les décisions explicites** : l'animateur les formule à voix haute (« nous retenons donc l'option B ») et le secrétaire les écrit. Le silence n'est pas un accord.
+            - **Le tour de table final** : relire décisions et actions, demander à chacun un dernier point ou un désaccord, annoncer la date du compte rendu.
+          check:
+            q: Quel objectif de réunion est le mieux formulé ?
+            choices:
+              - t: « Choisir entre les options A et B pour la régulation du porte-échantillon. »
+                ok: true
+              - t: « Faire le point sur l'avancement général du porte-échantillon. »
+                why: On ne sait pas ce qu'on doit obtenir à la sortie ; la réunion risque de tourner sans conclusion.
+              - t: « Discuter des problèmes de chauffage rencontrés ces derniers temps. »
+                why: Discuter n'est pas un résultat ; il faut dire ce qu'on veut décider ou produire.
+        - level: 3
+          title: L'ordre du jour type et le coût d'une réunion
+          body: |
+            Un ordre du jour qui tient sur un écran :
+
+            > [!note] Ordre du jour
+            > **Objet** : porte-échantillon chauffant, choix de la régulation. **Objectif** : choisir l'option de régulation et valider le planning d'essais. **Durée** : 1 h.
+            > **Participants** : responsable de la ligne (décideur), technicien (utilisateur), automaticien, chef de projet (animation), un membre de l'équipe (secrétaire).
+            > **À lire avant** : note de comparaison des options, 4 pages.
+
+            | Heure | Point | Type | Porteur |
+            |---|---|---|---|
+            | 10 h 00 | Revue des actions de la réunion précédente | Information | Chef de projet |
+            | 10 h 10 | Options de régulation A et B | Décision | Automaticien |
+            | 10 h 35 | Planning des essais | Validation | Chef de projet |
+            | 10 h 50 | Parking, relecture des décisions et actions, tour de table | Clôture | Chef de projet |
+
+            Le **coût** d'une réunion se calcule simplement :
+
+            $$C = N \times D \times t_h$$
+
+            avec $N$ le nombre de participants, $D$ la durée en heures et $t_h$ le coût horaire chargé moyen (salaire, charges et frais de structure). Pour 8 personnes, 1 h 30 et 60 €/h :
+
+            $$C = 8 \times 1{,}5 \times 60 = 720\ \text{€}$$
+
+            La même réunion chaque semaine, 45 semaines par an, consomme 540 heures-personnes, soit environ un tiers d'un temps plein annuel (de l'ordre de 1 600 h). Passer de 1 h 30 à 1 h, ou de 8 à 5 participants, économise plus que bien des optimisations techniques.
+
+            > [!astuce] Attention aux durées
+            > 1 h 15 vaut 1,25 h, pas 1,15 h. L'erreur est fréquente dans les tableurs.
+        - level: 4
+          title: Tenir le cadre, même quand on est junior
+          body: |
+            **Pourquoi l'ordre du jour à l'avance ?** Il permet aux participants de préparer (lire la note, venir avec des chiffres) et aux absents d'envoyer leur avis. Une décision prise sur un point non annoncé sera contestée : « je n'étais pas prévenu ».
+
+            **Le décideur absent.** Sans lui, on ne décide pas. Vérifie sa présence la veille. S'il manque, transforme la réunion : le groupe prépare une recommandation, et il tranche ensuite par écrit.
+
+            **Les dérives classiques** et la parade :
+            - le monologue : « Merci ; j'aimerais entendre aussi le technicien sur ce point » ;
+            - la digression entre deux experts : parking, et ils se voient à part ;
+            - le débat sans fin : à la fin du timebox, l'animateur propose une décision, ou un report avec une action qui prépare la décision ;
+            - le « on en reparlera » : le transformer en action datée.
+
+            **La visio et l'hybride.** Distribue la parole nommément, partage l'ordre du jour à l'écran, écris les décisions en direct sous les yeux de tous, et fais plus court.
+
+            **Animer quand on est le plus jeune.** L'animateur n'est pas le plus gradé : c'est celui qui tient le cadre. Annonce-le au début (« on a une heure, l'objectif est de choisir entre A et B »), puis rappelle-le sans crainte (« je vous propose de revenir à l'objectif »). Les participants seniors sont en général soulagés qu'une réunion finisse à l'heure avec une décision.
+
+            Les rituels propres aux méthodes agiles (point quotidien, rétrospective) sont traités dans le domaine voisin consacré au pilotage.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            Phrases qui marchent :
+            - « L'objectif est de choisir entre A et B ; on a une heure. » / *"The goal is to choose between A and B; we have one hour."*
+            - « C'est un vrai sujet ; je le mets au parking et on le traite à part. » / *"That's a real issue; let's park it and take it offline."*
+            - « Il nous reste cinq minutes sur ce point : on décide ou on reporte ? » / *"Five minutes left on this item: do we decide or postpone?"*
+            - « Pour être sûr qu'on est d'accord : on retient l'option B ? » / *"Just to make sure we're aligned: we're going with option B?"*
+            - « Un dernier tour de table : un point, une inquiétude ? » / *"A last round: any final point or concern?"*
+
+            | À éviter | À dire |
+            |---|---|
+            | « Bon, on fait un point ? » | « Objectif : valider le planning d'essais, en 30 min. » |
+            | « On en reparle. » | « Action : le technicien prépare deux scénarios pour mardi. » |
+            | *"Let's touch base about the project."* | *"Let's decide on the test schedule; here's the agenda."* |
+
+            Erreurs fréquentes des jeunes ingénieurs :
+            - inviter tout le monde « au cas où » ;
+            - venir sans ordre du jour, ou l'envoyer une heure avant ;
+            - laisser déborder sans rien trancher ;
+            - animer et noter en même temps dans une grande réunion ;
+            - partir sans relire décisions et actions.
+      recap:
+        - "Un objectif en une phrase, formulé comme un résultat : décider, choisir, valider."
+        - "Ordre du jour envoyé à l'avance : points, type, durée, porteur, documents à lire."
+        - "Les bons participants : ceux qui décident, ceux qui savent, ceux qui feront."
+        - "Coût = participants × durée × coût horaire ; une réunion hebdomadaire se compte en centaines d'heures par an."
+        - "Timebox, parking, décisions dites à voix haute, relecture des actions et tour de table final."
+      pieges: [pcl-cr-sans-actions]
+    vocab:
+      - ordre du jour = agenda
+      - animateur = facilitator, chair
+      - tour de table = round-table
+      - parking = parking lot
+      - point d'avancement = progress meeting
+      - prendre une décision = to make a decision
+    exercises:
+      - id: pcl-reunion.1
+        type: qcm
+        level: 1
+        q: En pleine réunion de choix d'options, deux experts débattent du traitement de surface d'une pièce, sans rapport avec la décision du jour. Tu animes. Que fais-tu ?
+        choices:
+          - t: Tu proposes de mettre le sujet au parking pour qu'ils en parlent à part, puis tu reviens à l'objectif.
+            ok: true
+          - t: Tu les laisses finir, car le sujet est technique et sans doute important.
+            why: Il l'est peut-être, mais il mange le temps de la décision pour laquelle tout le monde est venu.
+          - t: Tu les coupes en disant que ce n'est pas le sujet, sans rien proposer d'autre.
+            why: Le sujet est réel ; sans parking ni action, il reviendra, et tu auras vexé deux experts.
+          - t: Tu prolonges la réunion d'une demi-heure pour pouvoir tout traiter.
+            why: Tu fais payer à tous les participants un débat qui ne concerne que deux personnes.
+        e: Le parking garde le sujet sans le perdre. Note-le de façon visible et, à la fin, transforme-le en action datée (« les deux experts se voient d'ici jeudi et rapportent leur conclusion »).
+      - id: pcl-reunion.2
+        type: numeric
+        level: 2
+        q: Une réunion d'avancement hebdomadaire dure 1 h 15 et réunit 6 personnes, 40 semaines par an. Combien d'heures-personnes consomme-t-elle par an ?
+        answer: 300
+        tol: 0.02
+        unit: "h"
+        calc: 6 * 1.25 * 40
+        trap_values:
+          - v: 276
+            why: Tu as converti 1 h 15 en 1,15 h ; quinze minutes valent 0,25 h.
+          - v: 240
+            why: Tu as compté 1 h au lieu de 1 h 15 ; ces quinze minutes pèsent 60 heures-personnes par an.
+          - v: 50
+            why: Tu as oublié de multiplier par le nombre de participants ; chacun passe ce temps en réunion.
+        e: 6 × 1,25 h × 40 = 300 heures-personnes, soit près de deux mois de travail d'une personne. Ramener la réunion à 45 min en économise 120.
+      - id: pcl-reunion.3
+        type: flash
+        level: 1
+        q: Que contient un bon ordre du jour ?
+        back: |
+          L'objet et l'objectif de la réunion ; la date, l'heure, la durée et le lieu ou le lien ; les participants et leur rôle ; la liste des points avec leur type (information, discussion, décision), leur durée et leur porteur ; les documents à lire avant.
+        e: Un point sans type ni durée finit presque toujours par déborder.
+      - id: pcl-reunion.4
+        type: parsons
+        level: 2
+        lang: text
+        q: Remets dans l'ordre le déroulé d'une réunion de décision.
+        lines:
+          - "Annoncer l'objectif, la durée et les rôles"
+          - "Revoir les actions de la réunion précédente"
+          - "Présenter les options et en débattre dans le temps prévu"
+          - "Formuler la décision à voix haute et la faire noter"
+          - "Relire décisions et actions, puis faire un tour de table"
+        extra:
+          - "Rédiger le compte rendu complet avant de commencer"
+        e: On pose le cadre, on solde le passé, on traite le point, on rend la décision explicite, puis on vérifie que tout le monde repart avec la même version. Le compte rendu s'écrit après, à partir des notes du secrétaire.
+        piege: pcl-cr-sans-actions
+      - id: pcl-reunion.5
+        type: qcm
+        level: 2
+        q: "La réunion de décision commence. Le décideur prévient par message qu'il ne viendra pas : « Décidez entre vous. » Que fais-tu ?"
+        choices:
+          - t: Le groupe construit une recommandation commune, que tu lui soumets par écrit pour décision.
+            ok: true
+          - t: Vous décidez entre vous, puisqu'il vous a délégué la décision par message.
+            why: Une délégation floue ne protège personne ; si la décision lui déplaît, elle sera défaite.
+          - t: Tu annules la réunion et tu renvoies tout le monde à son poste.
+            why: Tu perds le travail que le groupe peut faire sans lui : comparer, chiffrer, recommander.
+          - t: Tu reportes la réunion de deux semaines pour qu'il puisse y assister.
+            why: Le projet attend deux semaines, alors qu'un mail de décision sur une recommandation claire suffit souvent.
+        e: Une décision n'existe que prise par celui qui en a le pouvoir. Sans lui, la réunion produit une recommandation, puis il tranche par écrit. Si « décidez entre vous » est une vraie délégation, demande-lui de la confirmer par écrit, avec ses limites.
+
+  - id: pcl-cr
+    title: Le compte rendu
+    en: Meeting minutes
+    goal: Rédiger et envoyer sous 24 h un relevé de décisions et d'actions (qui, quoi, pour quand), puis suivre les actions jusqu'à leur clôture.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: Le score, pas le récit du match
+          body: |
+            Après un match, personne ne relit le récit minute par minute. On regarde le score, les buteurs et la date du prochain match.
+
+            Un compte rendu de réunion, c'est pareil. Celui qui le lit veut savoir ce qui a été décidé, qui doit faire quoi, et pour quand. Trois semaines plus tard, ce document sera la seule mémoire fiable de la réunion. S'il est flou, la réunion n'a servi à rien.
+        - level: 2
+          title: Décisions, actions, délais
+          body: |
+            Deux formes existent :
+            - le **procès-verbal**, récit détaillé, exigé dans certaines instances officielles et à la réception d'un ouvrage ;
+            - le **relevé de décisions et d'actions**, la forme utile en projet : ce qui est tranché, ce qui doit être fait, par qui, pour quand. Le reste tient en une ou deux phrases par point.
+
+            Une **décision** est ce qui est tranché et ne sera plus rediscuté sans fait nouveau. Elle s'écrit au présent : « L'option B est retenue. »
+
+            Une **action** a quatre éléments :
+            - un **numéro** unique (A-12), qui permet de la suivre d'une réunion à l'autre ;
+            - un **verbe** et son objet : « Envoyer au fournisseur le plan de la bride » ;
+            - un **responsable** unique : une personne nommée, pas un service ni « l'équipe » ;
+            - une **échéance** : une date, pas « rapidement ».
+
+            Les règles d'envoi :
+            - **sous 24 h**, tant que les souvenirs sont frais ; un compte rendu qui arrive une semaine après n'est plus lu ;
+            - avec un **délai de remarques** annoncé : « Merci de me faire part de vos remarques d'ici vendredi ; sans retour, ce compte rendu sera considéré comme validé. »
+
+            Enfin, le **suivi** : un tableau unique cumule les actions ouvertes de toutes les réunions, et on le revoit au début de chacune. Une action est close quand son livrable existe, pas quand quelqu'un « s'en occupe ».
+          check:
+            q: Laquelle de ces lignes est une action correctement rédigée ?
+            choices:
+              - t: « A-14 Envoyer au fournisseur le plan de la bride modifiée. Responsable, l'automaticien. Échéance, le 21 mars. »
+                ok: true
+              - t: « Il faudrait relancer le fournisseur au sujet de la bride modifiée. »
+                why: Ni responsable ni échéance ; chacun pensera qu'un autre s'en charge.
+              - t: « Bride modifiée, le bureau d'études s'en occupe rapidement. »
+                why: Un service n'est pas un responsable, et « rapidement » n'est pas une date.
+        - level: 3
+          title: La structure et un exemple
+          body: |
+            La structure, dans cet ordre :
+            1. **En-tête** : projet, objet, date, lieu, rédacteur, version.
+            2. **Participants** (présents, excusés) et **diffusion**.
+            3. **Rappel de l'objectif** de la réunion.
+            4. **Décisions** numérotées.
+            5. **Actions** : numéro, action, responsable, échéance, statut.
+            6. **Résumé des échanges**, court, point par point.
+            7. **Points ouverts** et parking.
+            8. **Prochaine réunion** : date et objet.
+
+            Décisions et actions viennent **en haut** : c'est ce qu'on lit. Le résumé suit, pour qui veut le contexte. Exemple, après une réunion sur un porte-échantillon :
+
+            | N° | Décision |
+            |---|---|
+            | D-07 | L'option B (contrôleur de température du commerce) est retenue. |
+            | D-08 | Les essais sur site commencent le 12 mai. |
+
+            | N° | Action | Responsable | Échéance | Statut |
+            |---|---|---|---|---|
+            | A-15 | Commander le contrôleur et la sonde | Chef de projet | 28/03 | Ouverte |
+            | A-16 | Vérifier l'alimentation disponible dans la baie | Technicien de la ligne | 25/03 | Ouverte |
+            | A-12 | Mesurer les vibrations au point de fixation | Technicien du banc | 21/03 | Close |
+
+            Ici, les responsables sont désignés par leur fonction ; dans un vrai compte rendu, on écrit le nom de la personne.
+
+            Le mail d'envoi porte l'essentiel dans son objet : « CR réunion porte-échantillon du 18/03 : 2 décisions, 5 actions ».
+        - level: 4
+          title: Le pouvoir de celui qui tient la plume
+          body: |
+            **Prendre les notes pour le compte rendu.** Note en direct dans le modèle (décisions, actions), pas mot à mot. En fin de réunion, relis les actions à voix haute : l'essentiel du compte rendu est alors validé en séance, et sa rédaction prend vingt minutes.
+
+            **La neutralité.** Le compte rendu rapporte des décisions, pas les opinions de son rédacteur. Pas de « après de longs échanges, M. X a fini par céder ». Un désaccord s'écrit sans juger : « Un désaccord subsiste sur la tolérance ; arbitrage par le responsable de la ligne d'ici le 25. »
+
+            **Le pouvoir du rédacteur.** Celui qui écrit le compte rendu fixe la version de référence. C'est une responsabilité (l'exactitude) et un levier (tu formules les décisions). Comme chef de projet, garde la plume quand tu peux ; mais dans une grande réunion, confie la prise de notes pour pouvoir animer.
+
+            **Le silence qui vaut accord.** Il ne vaut que parce que tu l'as annoncé, et pour des points courants. Pour une décision lourde, demande une validation explicite du décideur.
+
+            **Le suivi dans la durée.** Numérote en continu sur tout le projet (A-01, A-02…), sans repartir de zéro à chaque réunion. Garde les actions closes : elles sont l'historique. Signale les actions en retard au lieu de les effacer. Range tous les comptes rendus au même endroit, avec un nommage qui trie par date (par exemple `2026-03-18_CR_porte-echantillon.pdf`).
+        - level: 5
+          title: Sur le terrain
+          body: |
+            Phrases qui marchent :
+            - « Je relis les actions avant qu'on se quitte : A-15, commander le contrôleur, pour le 28. C'est bon pour tout le monde ? » / *"Let me read back the action items before we leave: A-15, order the controller, by the 28th. Everyone OK?"*
+            - « Vous trouverez ci-joint le compte rendu ; merci de me faire part de vos remarques d'ici vendredi. » / *"Please find attached the minutes; let me know of any corrections by Friday."*
+            - « Sans retour de votre part, je le considérerai comme validé. » / *"If I don't hear back, I'll consider them approved."*
+            - « L'action A-12 est en retard ; nouvelle échéance proposée, le 4 avril. » / *"Action A-12 is overdue; proposed new due date: April 4."*
+
+            | À éviter | À dire |
+            |---|---|
+            | « Il a été convenu qu'il faudrait voir avec le fournisseur. » | « A-13 Demander au fournisseur la plage admissible. Responsable : chef de projet. Échéance : 18/03. » |
+            | « Après de longs échanges, M. X a fini par accepter. » | « D-05 L'option B est retenue. » |
+            | *"We discussed the vibration issue."* | *"Action: measure vibrations at the sensor mount. Owner: test technician. Due: March 21."* |
+
+            Erreurs fréquentes des jeunes ingénieurs :
+            - envoyer le compte rendu une semaine après ;
+            - écrire un récit chronologique ;
+            - confier des actions à « l'équipe », « ASAP » ;
+            - ne jamais revoir les actions ouvertes.
+      recap:
+        - "Un compte rendu utile est un relevé de décisions et d'actions, pas un récit."
+        - "Une action : un numéro, un verbe, un responsable unique, une date."
+        - "Décisions et actions en haut ; le résumé des échanges ensuite."
+        - "Envoi sous 24 h, avec un délai de remarques annoncé."
+        - "Un tableau de suivi unique, revu au début de chaque réunion ; une action se clôt quand son livrable existe."
+      pieges: [pcl-cr-sans-actions, pcl-accord-oral]
+    vocab:
+      - compte rendu = minutes, meeting report
+      - relevé de décisions = record of decisions
+      - action = action item
+      - responsable d'une action = owner
+      - échéance = due date
+      - liste de diffusion = distribution list
+    exercises:
+      - id: pcl-cr.1
+        type: qcm
+        level: 1
+        q: La réunion s'est terminée sur « on regarde ça et on se tient au courant ». Tu rédiges le compte rendu. Qu'écris-tu sur ce point ?
+        choices:
+          - t: Une action précise, avec un responsable et une date, que tu proposes et fais confirmer à l'envoi.
+            ok: true
+          - t: « Les participants se tiendront mutuellement informés de l'avancement. »
+            why: C'est fidèle à la réunion, mais personne n'est engagé ; il ne se passera rien.
+          - t: Rien, puisqu'aucune décision claire n'a été prise en séance.
+            why: Le sujet disparaît du radar ; il reviendra plus tard, avec du retard en plus.
+          - t: « Le point sera traité rapidement par l'équipe projet. »
+            why: « L'équipe » n'est pas un responsable, et « rapidement » n'est pas une date.
+        e: Le rédacteur peut proposer ce que la réunion n'a pas formulé, par exemple « A-17 Le technicien mesure le jeu d'ici le 21 (à confirmer) ». Le délai de remarques permet de corriger. Mieux vaut une action à corriger qu'une absence d'action.
+        piege: pcl-cr-sans-actions
+      - id: pcl-cr.2
+        type: parsons
+        level: 1
+        lang: text
+        q: Remets dans l'ordre les blocs d'un compte rendu de réunion.
+        lines:
+          - "En-tête avec projet, objet, date et rédacteur"
+          - "Participants, excusés et diffusion"
+          - "Décisions numérotées"
+          - "Tableau des actions avec responsable et échéance"
+          - "Résumé court des échanges, point par point"
+          - "Date et objet de la prochaine réunion"
+        extra:
+          - "Avis du rédacteur sur les positions de chacun"
+        e: Ce qu'on lit en premier doit être ce qui engage, les décisions et les actions. Le résumé vient ensuite, pour le contexte. Un compte rendu rapporte ; il ne juge pas.
+      - id: pcl-cr.3
+        type: flash
+        level: 1
+        q: Quels sont les quatre éléments d'une action bien rédigée dans un compte rendu ?
+        back: |
+          Un numéro unique (A-12), un verbe d'action et son objet, un responsable unique (une personne nommée, pas un service), une échéance (une date, pas « rapidement »).
+        e: « Qui fait quoi pour quand », plus un numéro pour la suivre d'une réunion à l'autre.
+      - id: pcl-cr.4
+        type: qcm
+        level: 2
+        q: Tu as envoyé le compte rendu le lendemain, avec « remarques d'ici vendredi ». Jeudi, un participant conteste une décision qu'il avait acceptée en séance. Que fais-tu ?
+        choices:
+          - t: Tu vérifies tes notes et, si le désaccord est réel, tu le fais arbitrer par le décideur avant de diffuser une version corrigée.
+            ok: true
+          - t: Tu refuses sa remarque, car la décision a été prise en séance et elle est définitive.
+            why: Une remarque arrivée dans le délai annoncé est légitime ; la balayer rendrait ce délai inutile.
+          - t: Tu modifies le compte rendu dans son sens, pour éviter un conflit inutile.
+            why: Tu changes une décision collective sur l'avis d'une seule personne ; les autres le découvriront plus tard.
+          - t: Tu laisses son mail sans réponse jusqu'à la prochaine réunion d'avancement.
+            why: Le désaccord reste caché, et l'on travaille d'ici là sur une décision contestée.
+        e: Le délai de remarques sert précisément à cela. Une contestation n'annule pas une décision ; elle la renvoie au décideur, qui confirme ou modifie par écrit. La version 2 du compte rendu trace le résultat.
+        piege: pcl-accord-oral
+      - id: pcl-cr.5
+        type: qcm
+        level: 3
+        q: Ton tableau de suivi compte 40 actions ouvertes, dont 15 en retard, et chaque réunion commence par 30 minutes de revue. Que fais-tu ?
+        choices:
+          - t: Tu fais le tri avant la réunion avec chaque responsable, et en séance tu ne traites que les retards bloquants.
+            ok: true
+          - t: Tu supprimes les actions en retard du tableau pour l'alléger.
+            why: Tu perds la trace de ce qui n'a pas été fait ; le problème reviendra, sans historique.
+          - t: Tu supprimes la revue des actions en début de réunion, qui prend trop de temps.
+            why: Sans revue, les actions ne sont plus suivies et le tableau devient décoratif.
+          - t: Tu donnes à toutes les actions en retard une nouvelle échéance à une semaine.
+            why: Une date posée sans le responsable ne vaut rien ; elle sera de nouveau dépassée.
+        e: Le tableau se tient en continu, pas en séance. Fais le tri en amont (action close, replanifiée avec l'accord du responsable, ou abandonnée par décision écrite) et garde la réunion pour ce qui bloque ou demande un arbitrage.
+        piege: pcl-cr-sans-actions
+
+  - id: pcl-ecrit
+    title: Les mails et l'écrit professionnel
+    en: Professional emails and writing
+    goal: Écrire un mail qui obtient une réponse (objet explicite, l'essentiel d'abord, une demande datée), relancer, escalader sans conflit et garder la trace des accords oraux.
+    minutes: 11
+    lesson:
+      steps:
+        - level: 1
+          title: Un panneau routier, pas une lettre
+          body: |
+            Ton client reçoit une centaine de mails par jour. Il lit l'objet, puis les deux premières lignes, sur son téléphone, entre deux réunions. Si ta demande est au cinquième paragraphe, elle n'existe pas.
+
+            Un mail professionnel ressemble à un panneau routier : on doit comprendre en trois secondes ce qu'il dit et ce qu'il attend de nous. Le reste est là pour qui veut le détail.
+        - level: 2
+          title: Les règles qui font répondre
+          body: |
+            - **L'objet** dit le projet, le sujet et ce qu'on attend : « Banc de mesure : validation du plan de la bride avant le 21/03 », plutôt que « Question » ou « Suite ».
+            - **L'essentiel d'abord** : la première phrase dit ce que tu veux ou ce qui est décidé. Le contexte et les détails viennent après. C'est la **pyramide inversée** des journalistes.
+            - **Une demande, une échéance** : « Peux-tu valider le plan d'ici jeudi 12 h ? » Une demande sans date attend indéfiniment. Plusieurs demandes : une liste numérotée.
+            - **Un sujet par mail** : deux sujets, deux mails. Sinon l'un des deux est oublié, et l'archivage devient impossible.
+            - **À et Cc** : en **À**, ceux qui doivent agir ou répondre ; en **Cc**, ceux qu'on informe. Pas de copie cachée pour surveiller quelqu'un : cela finit par se savoir. « Répondre à tous » seulement si tous sont concernés.
+            - **La relance** : polie, factuelle, avec le mail initial en dessous et une nouvelle échéance.
+            - **L'escalade** : quand un blocage dépasse ton niveau, tu en informes le niveau supérieur, factuellement, après avoir prévenu ton interlocuteur. C'est un outil de pilotage, pas une dénonciation.
+            - **La trace des accords oraux** : après un appel ou un échange de couloir qui décide quelque chose, un mail de confirmation le jour même.
+          check:
+            q: Quel objet de mail est le plus utile ?
+            choices:
+              - t: « Banc de mesure, validation du plan de la bride avant le 21/03 »
+                ok: true
+              - t: « Petite question rapide sur le projet »
+                why: Rien n'indique le projet précis, le sujet ou l'échéance ; le mail sera ouvert plus tard, ou jamais.
+              - t: « Suite à notre échange de la semaine dernière »
+                why: Il faut ouvrir le mail pour savoir de quoi il s'agit, et personne ne le retrouvera dans un mois.
+        - level: 3
+          title: Le mail en cinq blocs et la relance graduée
+          body: |
+            La structure :
+            1. **Objet** : projet, sujet, action attendue, échéance.
+            2. **Première phrase** : la demande ou l'information principale.
+            3. **Contexte** : deux ou trois phrases, pas plus.
+            4. **Détails** : liste à puces, pièces jointes aux noms explicites.
+            5. **Prochaine étape** : ce qui se passera, et quand.
+
+            Exemple :
+
+            > [!note] Exemple de mail
+            > **Objet** : Porte-échantillon, choix du capteur de température, réponse souhaitée avant jeudi
+            > Bonjour,
+            > J'ai besoin de ton choix entre les deux capteurs ci-dessous **d'ici jeudi 12 h**, pour passer la commande la semaine prochaine.
+            > - Thermocouple : moins cher, compact, moins précis.
+            > - Sonde à résistance de platine : plus précise, plus encombrante.
+            > Je recommande la sonde à résistance, qui tient l'exigence de ± 2 °C avec de la marge.
+            > Sans réponse jeudi, je t'appelle vendredi matin ; au-delà, la commande glisse d'une semaine.
+
+            Quand la réponse ne vient pas, on monte d'un cran à chaque étape :
+
+            | Étape | Quand | Comment |
+            |---|---|---|
+            | 1. Demande | Jour J | Mail avec une échéance |
+            | 2. Relance écrite | Échéance dépassée | Mail court, avec l'impact du retard |
+            | 3. Relance orale | Deux ou trois jours après | Appel ou passage au bureau, puis mail de confirmation |
+            | 4. Escalade | Blocage persistant | Exposé factuel à ton responsable ou au décideur, après avoir prévenu l'interlocuteur |
+        - level: 4
+          title: Ce que l'écrit amplifie
+          body: |
+            **Le mail n'est pas fait pour débattre.** Au-delà de deux allers-retours sur un même désaccord, décroche ton téléphone ou passe voir la personne. Puis confirme par écrit ce qui a été convenu.
+
+            **Le ton.** L'écrit amplifie la sécheresse. « Comme indiqué dans mon précédent mail » se lit comme un reproche. Les majuscules et les points d'exclamation crient. Relis-toi en te mettant à la place d'un lecteur fatigué.
+
+            **La colère.** N'envoie jamais un mail écrit sous le coup de l'agacement. Écris-le, attends une heure ou le lendemain, relis, coupe.
+
+            **Le transfert.** Tout mail peut être transféré. N'écris rien que tu ne voudrais pas voir lu par la personne concernée ou par sa hiérarchie.
+
+            **L'escalade sans conflit.** Elle repose sur des faits, pas sur des jugements :
+            - pas « il ne fait rien », mais « le plan attendu le 14 n'est pas validé ; la fabrication est bloquée depuis le 18 » ;
+            - avec une proposition (« un point de 15 minutes cette semaine permettrait de débloquer ») ;
+            - en prévenant d'abord : « Je vais devoir en parler à mon responsable, pour qu'on trouve une solution ensemble. »
+
+            **Le bon canal.** La messagerie instantanée pour le rapide et l'informel. Une demande engageante, une décision ou une validation passe par un mail, qu'on peut archiver et retrouver.
+
+            **L'accusé de réception.** Quand tu ne peux pas répondre tout de suite : « Bien reçu, je te réponds d'ici mardi. » Ton interlocuteur sait que sa demande n'est pas perdue.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            Phrases qui marchent :
+            - « Je reviens vers toi au sujet de… » / *"Following up on…"*
+            - « Pourrais-tu me confirmer d'ici jeudi… ? » / *"Could you confirm by Thursday…?"*
+            - « Pour garder une trace de notre échange de ce matin : … » / *"To recap our call this morning: …"*
+            - « Sauf avis contraire de ta part d'ici vendredi, je considère que… » / *"Unless I hear otherwise by Friday, I'll assume…"*
+            - « Je mets mon responsable en copie, pour qu'on trouve une solution ensemble. » / *"I'm copying my manager so we can find a solution together."*
+
+            | À éviter | À dire |
+            |---|---|
+            | « Comme je te l'ai déjà dit deux fois… » | « Je reviens vers toi au sujet du plan ; sans validation mercredi, la fabrication glisse d'une semaine. » |
+            | « URGENT !!! » | « Réponse nécessaire avant jeudi 12 h, pour tenir la commande. » |
+            | *"As per my last email…"* | *"Just following up on the drawing below; could you confirm by Wednesday?"* |
+
+            Erreurs fréquentes des jeunes ingénieurs :
+            - un pavé sans demande claire, ou une demande enfouie au milieu ;
+            - un objet vague, qu'on ne retrouve jamais ;
+            - tout le monde en À, et « répondre à tous » systématique ;
+            - débattre par mail au lieu d'appeler ;
+            - une escalade surprise, sans prévenir l'interlocuteur.
+      recap:
+        - "Objet explicite : projet, sujet, action attendue, échéance."
+        - "L'essentiel d'abord : la première phrase dit ce que tu veux."
+        - "Une demande, une échéance ; en À ceux qui agissent, en Cc ceux qu'on informe."
+        - "Relance graduée : écrit, puis oral, puis escalade factuelle après avoir prévenu."
+        - "Toute décision orale se confirme par un mail le jour même."
+      pieges: [pcl-accord-oral]
+    vocab:
+      - objet d'un mail = subject line
+      - relance = follow-up, reminder
+      - escalade = escalation
+      - pièce jointe = attachment
+      - en copie = in copy (Cc)
+      - échéance = deadline
+    exercises:
+      - id: pcl-ecrit.1
+        type: qcm
+        level: 1
+        q: Tu dois obtenir la validation d'un plan par le client. Quelle première phrase de mail choisis-tu ?
+        choices:
+          - t: « Peux-tu valider le plan de la bride ci-joint d'ici jeudi 12 h ? Sans cela, la fabrication glisse d'une semaine. »
+            ok: true
+          - t: « Je me permets de revenir vers toi concernant le projet dont nous avions parlé il y a quelque temps. »
+            why: Trois secondes de lecture et toujours aucune demande ; le client ferme le mail.
+          - t: « Suite à de nombreuses itérations avec le bureau d'études, nous avons fini par converger vers une solution. »
+            why: C'est du contexte, pas une demande ; l'essentiel est noyé.
+          - t: « Voici le plan de la bride, dis-moi ce que tu en penses quand tu auras un moment. »
+            why: Ni échéance ni enjeu ; « quand tu auras un moment » veut souvent dire jamais.
+        e: La première phrase porte la demande et l'échéance, la deuxième l'enjeu. Le contexte vient ensuite, pour qui le veut.
+      - id: pcl-ecrit.2
+        type: parsons
+        level: 1
+        lang: text
+        q: Remets dans l'ordre les éléments d'un mail de demande efficace.
+        lines:
+          - "Objet avec le projet, le sujet et l'échéance"
+          - "Première phrase avec la demande et la date attendue"
+          - "Contexte en deux ou trois phrases"
+          - "Détails en liste et pièces jointes aux noms explicites"
+          - "Prochaine étape si la réponse n'arrive pas"
+        extra:
+          - "Historique complet du projet depuis son lancement"
+        e: On écrit pour un lecteur pressé ; ce qu'on attend de lui d'abord, le pourquoi ensuite, le détail pour qui le veut. L'historique complet n'a rien à faire dans un mail de demande.
+      - id: pcl-ecrit.3
+        type: flash
+        level: 1
+        q: À ou Cc, qui met-on où ?
+        back: |
+          En À, les personnes qui doivent agir ou répondre.
+          En Cc, celles qui doivent seulement être informées.
+          Pas de copie cachée pour surveiller quelqu'un.
+        e: Si tu mets cinq personnes en À, aucune ne se sent responsable de la réponse.
+      - id: pcl-ecrit.4
+        type: qcm
+        level: 2
+        q: Un collègue d'un autre service t'a promis un plan pour le 14. Le 18, toujours rien, malgré une relance écrite, et la fabrication est bloquée. Que fais-tu ?
+        choices:
+          - t: Tu l'appelles pour comprendre le blocage, tu le préviens que tu vas en parler à ton responsable, puis tu le fais par un mail factuel.
+            ok: true
+          - t: Tu écris directement à son chef pour signaler qu'il ne fait pas son travail.
+            why: Escalade surprise et jugement de personne ; tu auras peut-être le plan, mais tu perds un partenaire pour la suite.
+          - t: Tu attends encore une semaine pour ne pas froisser ton collègue.
+            why: Le projet paie ta discrétion ; la fabrication reste bloquée sans que personne ne le sache.
+          - t: Tu renvoies le même mail de relance, avec URGENT dans l'objet.
+            why: Une relance identique et criée ne lève pas le blocage ; elle crispe la relation.
+        e: Escalader n'est pas dénoncer. Comprends d'abord la cause (il attend peut-être une donnée de ta part), préviens, puis expose les faits, l'impact et une proposition. Les deux responsables pourront alors arbitrer les priorités.
+      - id: pcl-ecrit.5
+        type: qcm
+        level: 2
+        q: Au téléphone, le client accepte de remplacer l'écran tactile prévu par deux boutons-poussoirs, ce qui fait gagner deux semaines. Que fais-tu juste après l'appel ?
+        choices:
+          - t: Tu envoies un mail court qui confirme le changement, son effet sur le délai et la mise à jour du cahier des charges, avec un délai de remarques.
+            ok: true
+          - t: Rien de plus, puisqu'il l'a accepté lui-même et que c'est en sa faveur.
+            why: Dans trois mois, un utilisateur réclamera l'écran ; sans écrit, personne ne saura qui l'a retiré ni pourquoi.
+          - t: Tu modifies le cahier des charges sans le prévenir, puisqu'il a dit oui.
+            why: Le document de référence change sans trace d'accord ; à la recette, l'écart sera contesté.
+          - t: Tu attends la prochaine réunion pour l'inscrire dans le compte rendu.
+            why: D'ici là, les souvenirs divergent, et le travail avance déjà sur une base non confirmée.
+        e: Un accord oral se confirme par écrit le jour même ; ce qui change, pourquoi, avec quel effet sur le délai et le coût. Puis le cahier des charges passe à la version suivante.
+        piege: pcl-accord-oral
+
+  - id: pcl-changements
+    title: Gérer les changements et savoir dire non
+    en: Managing changes and saying no
+    goal: Traiter une demande de modification (écrit, analyse d'impact qualité-coût-délai, arbitrage par le décideur, nouvelle version du cahier des charges) et répondre « oui, et voilà ce que ça coûte ».
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: L'évier qu'on déplace en cours de chantier
+          body: |
+            Tu fais refaire ta cuisine. En plein chantier, tu demandes : « Tant que vous y êtes, on pourrait mettre l'évier près de la fenêtre ? » L'artisan peut dire oui. Mais il faut refaire la plomberie, décaler le plan de travail, recommander un meuble : trois jours et 800 € de plus.
+
+            S'il ne te le dit pas, tu découvres la facture et le retard à la fin, et tu lui en veux. S'il te le dit avant, tu choisis : déplacer l'évier, ou garder le plan.
+
+            Un projet technique vit la même scène chaque semaine. La différence entre un bon et un mauvais chef de projet, c'est le moment où le client apprend le prix.
+        - level: 2
+          title: Dérive, processus, version
+          body: |
+            La **dérive du périmètre** est l'accumulation de petits ajouts jamais arbitrés. Chacun semble anodin ; ensemble, ils font déraper le délai et le budget.
+
+            Un changement n'est pas une faute. Le besoin évolue (une nouvelle expérience, un nouveau client), le projet révèle une contrainte inconnue, le cahier des charges contenait une erreur. Ce qui pose problème, c'est le changement **non maîtrisé**.
+
+            Le processus de modification tient en quatre étapes :
+            1. **Une demande écrite** : qui demande, quoi, pourquoi, pour quand.
+            2. **Une analyse d'impact** sur la **qualité** (performances, effets sur les autres fonctions), le **coût** (études, achats, essais, documentation) et le **délai** (et ce qui sera décalé).
+            3. **Un arbitrage par le décideur**, pas par le demandeur : accepter, refuser, ou reporter à une version suivante.
+            4. **Une mise à jour** : nouvelle version du cahier des charges, du planning et du budget, et information de l'équipe.
+
+            Le cahier des charges est **versionné** : 1.0 à la validation, 1.1 après la première modification acceptée. Un tableau d'historique en tête du document donne pour chaque version la date, l'objet et qui l'a validée.
+
+            La posture qui résume tout : **« oui, et voilà ce que ça coûte »**. Ni oui gratuit, ni non sec : tu acceptes d'étudier, tu chiffres, le client choisit.
+          check:
+            q: Un utilisateur te demande d'ajouter un export des mesures au format tableur. Quelle est la bonne première réponse ?
+            choices:
+              - t: « Bonne idée, je l'ajoute aux demandes de modification ; je chiffre l'impact et le décideur tranche. »
+                ok: true
+              - t: « Pas de souci, je te fais ça dans la semaine, ce n'est pas long. »
+                why: Tu engages du temps prévu nulle part ; le retard accumulé te sera reproché.
+              - t: « Non, ce n'est pas dans le cahier des charges, désolé. »
+                why: La demande est peut-être utile ; un refus sans analyse ferme la discussion et braque l'utilisateur.
+        - level: 3
+          title: La fiche de modification et le calcul d'impact
+          body: |
+            Une fiche de demande de modification tient en une page :
+
+            | Champ | Exemple |
+            |---|---|
+            | Numéro, date | DM-04, 2 avril |
+            | Demandeur | Responsable de la ligne |
+            | Description | Ajouter un second capteur de température, côté opposé |
+            | Raison | Mesurer le gradient de température dans l'échantillon |
+            | Impact qualité | Câblage et logiciel modifiés ; exigences EX-04 et EX-05 inchangées |
+            | Impact coût | 1 610 € (calcul ci-dessous) |
+            | Impact délai | Une semaine de plus sur la livraison |
+            | Décision | Acceptée, refusée ou reportée ; par qui ; quand |
+            | Cahier des charges | Passe de la version 1.2 à la version 1.3 |
+
+            Le coût d'un changement se calcule en additionnant tout le travail qu'il entraîne, pas seulement la modification elle-même :
+
+            $$\Delta C = \left(\sum_k h_k\right) \times t_h + A$$
+
+            avec $h_k$ les heures par tâche (étude, plans, réalisation, essais, documentation), $t_h$ le coût horaire et $A$ les achats. Pour 6 h d'étude, 4 h de plans, 8 h de nouveaux essais à 70 €/h, et 350 € de matériel :
+
+            $$\Delta C = (6 + 4 + 8) \times 70 + 350 = 1\,260 + 350 = 1\,610\ \text{€}$$
+
+            L'effet sur la date dépend de la place de ces tâches dans le planning ; c'est l'affaire du domaine voisin consacré au pilotage.
+
+            Enfin, le **moment** compte. Une règle empirique souvent citée dit qu'un changement coûte environ dix fois plus cher à chaque phase franchie :
+
+            | Moment de la demande | Ce qu'il faut refaire | Coût relatif, ordre de grandeur |
+            |---|---|---|
+            | Rédaction du cahier des charges | Une ligne de texte | 1 |
+            | Conception | Plans, calculs | 10 |
+            | Fabrication | Pièces, câblage | 100 |
+            | Après livraison | Démontage, reprise sur site | 1 000 |
+
+            Le facteur exact varie selon les projets ; la tendance, jamais.
+        - level: 4
+          title: Pourquoi on dit oui, et comment dire non
+          body: |
+            On dit oui par envie de faire plaisir, par peur du conflit, parce que la demande vient d'un senior, ou parce que « c'est cinq minutes ». Le changement prend peut-être cinq minutes ; les nouveaux essais, la mise à jour des plans et de la notice, et le risque de casser autre chose prennent des heures.
+
+            **Fixer un seuil.** Convenez dès le lancement d'une règle : en dessous d'une demi-journée et sans effet sur les exigences, le chef de projet accepte et trace dans un registre ; au-delà, fiche de modification. Les petites demandes ne bloquent plus rien, et les grosses ne passent plus inaperçues.
+
+            **Dire non sans fermer.** Il existe presque toujours mieux qu'un refus :
+            - **pas maintenant** : dans une version 2, après la livraison ;
+            - **à la place de** : on retire une fonction de poids équivalent, que le client choisit ;
+            - **oui, avec ce coût et ce délai** : le client décide en connaissance de cause.
+
+            La bonne réponse est rarement « non » ; c'est presque toujours « pas gratuitement ».
+
+            **Les écarts qui viennent de toi.** Si une pièce ne respecte pas une exigence, ou si tu trouves une meilleure solution, même chemin : tu déclares, tu analyses, le client arbitre. Pour un écart accepté tel quel, il signe une **dérogation**. Un écart déclaré est une décision partagée ; un écart caché devient une faute.
+
+            **Le client externe.** Une modification acceptée devient un avenant ou une commande complémentaire, signé avant de commencer le travail. Les aspects contractuels et achats sont traités dans le domaine voisin consacré au pilotage.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            Phrases qui marchent :
+            - « Oui, c'est faisable ; voilà ce que ça change en coût et en délai. » / *"Yes, we can do it; here's what it means for cost and schedule."*
+            - « Je vous propose de l'intégrer dans une version 2, pour ne pas décaler la livraison. » / *"I suggest we include it in a version 2, so the delivery date doesn't slip."*
+            - « Si on l'ajoute, que retire-t-on pour tenir la date ? » / *"If we add this, what do we drop to keep the date?"*
+            - « Pouvez-vous me l'envoyer par écrit ? Je reviens vers vous jeudi avec l'impact. » / *"Could you send it to me in writing? I'll get back to you on Thursday with the impact."*
+
+            | À éviter | À dire |
+            |---|---|
+            | « Pas de souci, je te rajoute ça. » | « Je l'ajoute aux demandes de modification ; je te donne l'impact jeudi. » |
+            | « Impossible, ce n'est pas dans le cahier des charges. » | « Ce n'est pas prévu dans la version actuelle ; regardons ce que ça coûterait. » |
+            | *"Sure, no problem!"* | *"Sure, let me check the impact on cost and schedule first."* |
+
+            Erreurs fréquentes des jeunes ingénieurs :
+            - accepter dans le couloir ;
+            - chiffrer la modification en oubliant les essais et la documentation ;
+            - laisser le demandeur arbitrer à la place du décideur ;
+            - oublier de changer la version du cahier des charges ;
+            - refuser sèchement, sans proposer d'alternative.
+      recap:
+        - "Un changement n'est pas un problème ; un changement non arbitré en est un."
+        - "Demande écrite, analyse d'impact qualité-coût-délai, arbitrage par le décideur, nouvelle version du cahier des charges."
+        - "Coût d'un changement = heures (étude, plans, réalisation, essais, documentation) × coût horaire + achats."
+        - "Plus un changement arrive tard, plus il coûte ; ordre de grandeur souvent cité, un facteur dix par phase."
+        - "Ni oui gratuit ni non sec : « oui, et voilà ce que ça coûte », puis le client choisit."
+      pieges: [pcl-oui-a-tout, pcl-accord-oral]
+    vocab:
+      - dérive du périmètre = scope creep
+      - demande de modification = change request
+      - analyse d'impact = impact assessment
+      - avenant = contract amendment
+      - dérogation = waiver, deviation permit
+      - version de référence = baseline
+    exercises:
+      - id: pcl-changements.1
+        type: qcm
+        level: 1
+        q: "Le responsable de la ligne te dit en réunion : « Tant que vous y êtes, ajoutez une deuxième voie de mesure, ça ne doit pas être bien long. » Que réponds-tu ?"
+        choices:
+          - t: « C'est faisable ; je vous envoie l'impact en coût et en délai d'ici jeudi, et vous décidez. »
+            ok: true
+          - t: « Bien sûr, on s'en occupe, ce sera prêt pour la livraison. »
+            why: Tu promets sans chiffrer ; si la livraison glisse, le retard sera le tien.
+          - t: « Non, désolé, ce n'est pas prévu dans le cahier des charges. »
+            why: La demande est peut-être justifiée ; un refus sec braque le client et ferme une discussion utile.
+          - t: « Il faudra voir avec ma hiérarchie, je ne peux rien dire. »
+            why: Tu te défausses, alors que l'analyse d'impact est précisément ton travail.
+        e: « Oui, et voilà ce que ça coûte » ; tu acceptes d'étudier, tu chiffres qualité, coût et délai, et le décideur choisit en connaissance de cause. Personne ne pourra dire ensuite que le retard est tombé du ciel.
+        piege: pcl-oui-a-tout
+      - id: pcl-changements.2
+        type: numeric
+        level: 2
+        q: Une demande de modification demande 10 h d'étude, 6 h de mise à jour des plans, 5 h de câblage et 12 h de nouveaux essais, à 65 €/h, plus 420 € de matériel. Quel est son coût, en euros ?
+        answer: 2565
+        tol: 0.02
+        unit: "€"
+        calc: (10 + 6 + 5 + 12) * 65 + 420
+        trap_values:
+          - v: 2145
+            why: Tu as oublié le matériel ; un changement coûte aussi en achats.
+          - v: 1785
+            why: Tu as oublié les 12 h de nouveaux essais ; c'est l'oubli le plus fréquent, et souvent le plus lourd.
+          - v: 420
+            why: Tu n'as compté que le matériel ; le temps de l'équipe est le premier coût d'un changement.
+        e: 10 + 6 + 5 + 12 = 33 h ; 33 × 65 = 2 145 € ; plus 420 € de matériel, soit 2 565 €. Pour une demande « pas bien longue », le chiffre parle de lui-même, et il ne compte pas encore le décalage éventuel du planning.
+        piege: pcl-oui-a-tout
+      - id: pcl-changements.3
+        type: flash
+        level: 1
+        q: Quelles sont les quatre étapes du traitement d'une demande de modification ?
+        back: |
+          1. Une demande écrite (qui, quoi, pourquoi, pour quand).
+          2. Une analyse d'impact sur la qualité, le coût et le délai.
+          3. Un arbitrage par le décideur : accepter, refuser ou reporter.
+          4. La mise à jour : nouvelle version du cahier des charges, du planning et du budget.
+        e: Écrire, chiffrer, arbitrer, versionner.
+      - id: pcl-changements.4
+        type: qcm
+        level: 2
+        q: Le client accepte l'ajout d'une fonction, mais refuse de décaler la livraison et d'augmenter le budget. Que proposes-tu ?
+        choices:
+          - t: Un échange, c'est-à-dire retirer ou reporter en version 2 une fonction de poids équivalent, qu'il choisit.
+            ok: true
+          - t: Tu acceptes, et tu travailleras le soir pour tenir la date prévue.
+            why: Tu masques le coût réel ; la qualité baisse, et le client croira que l'ajout était gratuit.
+          - t: Tu acceptes, en réduisant discrètement le nombre d'essais prévus.
+            why: Tu dégrades la qualité sans le dire ; les défauts sortiront à la recette ou après.
+          - t: Tu refuses la modification, puisqu'il ne veut rien céder.
+            why: Il reste une variable à discuter, le contenu ; refuser sans la proposer, c'est fermer trop tôt.
+        e: Qualité, coût, délai ; si deux sont figés, c'est le contenu qui doit bouger. Proposer un échange met le client devant un vrai choix, et c'est lui qui arbitre.
+        piege: pcl-oui-a-tout
+      - id: pcl-changements.5
+        type: qcm
+        level: 3
+        q: En fabrication, tu découvres qu'une pièce ne respecte pas une tolérance du cahier des charges, sans effet visible sur la fonction. La refaire coûte trois semaines. Que fais-tu ?
+        choices:
+          - t: Tu déclares l'écart au client par écrit, avec ton analyse, et tu lui proposes une dérogation qu'il accepte ou refuse.
+            ok: true
+          - t: Tu montes la pièce sans rien dire, puisque la fonction n'est pas touchée.
+            why: Si un problème apparaît plus tard, l'écart caché devient une faute ; déclaré, c'était une décision partagée.
+          - t: Tu fais refaire la pièce sans prévenir, quitte à perdre trois semaines.
+            why: Le client aurait peut-être accepté l'écart ; tu lui imposes un retard qu'il n'a pas choisi.
+          - t: Tu modifies la tolérance dans le cahier des charges pour qu'elle colle à la pièce.
+            why: Changer la référence sans accord, c'est réécrire seul le contrat ; la recette perd son sens.
+        e: Un écart découvert en cours de route suit le même chemin qu'une demande du client ; écrit, analysé, arbitré. La dérogation écrite protège tout le monde ; le silence ne protège personne.
+        piege: pcl-accord-oral
+
+  - id: pcl-recette
+    title: La recette
+    en: Acceptance testing
+    goal: Construire un plan de validation relié aux exigences, conduire les essais en usine et sur site (FAT, SAT), et conclure par un procès-verbal avec réserves et levée des réserves.
+    minutes: 13
+    lesson:
+      steps:
+        - level: 1
+          title: Essayer la voiture avant de signer
+          body: |
+            Tu n'achètes pas une voiture d'occasion sur photo. Tu fais un tour avec, tu vérifies les phares et les freins, tu notes les rayures avec le vendeur. Puis tu signes un papier qui dit dans quel état tu l'as prise.
+
+            La recette, c'est ce moment pour un projet. On vérifie, ensemble et méthodiquement, que ce qui est livré fait ce qui était demandé. Puis on signe. Après la signature, l'objet est au client ; avant, il est encore à toi.
+        - level: 2
+          title: Recette, réception, FAT, SAT
+          body: |
+            La **recette** est l'ensemble des vérifications qui prouvent que le livrable satisfait les exigences. La **réception** est l'acte par lequel le client l'accepte. La recette prépare la réception.
+
+            Le **plan de validation** (ou plan de recette) liste, pour chaque exigence, la méthode de vérification, le mode opératoire, le critère d'acceptation et le lieu de l'essai. Il est écrit **avant** les essais et validé par le client. Quatre méthodes existent :
+            - l'**inspection** : regarder, mesurer une dimension, vérifier un marquage ;
+            - l'**analyse** : calcul, simulation, données du fabricant ;
+            - la **démonstration** : montrer que la fonction marche, sans mesure fine ;
+            - l'**essai** : mesurer une performance dans des conditions définies.
+
+            Les essais se font en deux temps :
+            - le **FAT** (*Factory Acceptance Test*, essais de réception en usine), chez le fabricant ou dans ton atelier, avant expédition, en présence du client. On y vérifie tout ce qui peut l'être hors site ; corriger y est facile ;
+            - le **SAT** (*Site Acceptance Test*, essais de réception sur site), après installation, dans l'environnement réel : alimentation, réseau, utilisateurs. On y vérifie l'intégration et ce qui ne pouvait pas l'être en usine.
+
+            Pour les systèmes d'automatisation de l'industrie de process, la norme IEC 62381 décrit ces essais.
+
+            La recette se conclut par un **procès-verbal de réception**, signé : réception **sans réserve**, **avec réserves** (défauts mineurs à corriger dans un délai fixé), ou **refusée** (défaut majeur). Chaque réserve corrigée est vérifiée puis déclarée **levée**, par écrit.
+
+            On remet aussi la **documentation** (plans conformes à ce qui a été réalisé, notices, schémas), la **formation** des utilisateurs et de la maintenance, les pièces de rechange et les sauvegardes des logiciels.
+          check:
+            q: Quelle est la différence entre FAT et SAT ?
+            choices:
+              - t: Le FAT se fait chez le fabricant avant expédition ; le SAT, sur le site du client après installation.
+                ok: true
+              - t: Le FAT vérifie les fonctions ; le SAT ne vérifie que la sécurité de l'installation.
+                why: Les deux vérifient des exigences ; la différence tient au lieu et à ce qu'on peut y tester.
+              - t: Le FAT est fait par le fournisseur seul ; le SAT, par le client seul.
+                why: Le client assiste en général aux deux ; c'est même tout l'intérêt du FAT.
+        - level: 3
+          title: Le plan de validation et le nombre d'essais
+          body: |
+            Le plan de validation d'un porte-échantillon chauffant :
+
+            | Exigence | Méthode | Mode opératoire | Critère d'acceptation | Lieu |
+            |---|---|---|---|---|
+            | EX-04 De 20 à 280 °C en moins de 15 min | Essai | Échantillon témoin, enregistrement à 1 Hz | Moins de 15 min, 3 essais sur 3 | FAT |
+            | EX-05 ± 2 °C pendant 30 min à 280 °C | Essai | Consigne 280 °C, 30 min enregistrées | Écart maximal ≤ 2 °C | FAT puis SAT |
+            | FC1 Parois accessibles < 50 °C | Essai | Caméra thermique, consigne 280 °C | Point le plus chaud < 50 °C | FAT |
+            | FC2 Encombrement | Inspection | Mesure des dimensions | ≤ 200 × 150 × 120 mm | FAT |
+            | FC3 Changement d'échantillon avec gants | Démonstration | Trois utilisateurs, gants de laboratoire | 3 changements sur 3 en moins de 2 min | SAT |
+            | Durée de vie de l'élément chauffant | Analyse | Données du fabricant, nombre de cycles prévu | Durée de vie supérieure à l'exploitation prévue | Dossier |
+
+            Chaque exigence du cahier des charges a au moins une ligne. Une exigence sans ligne n'est pas vérifiée ; un essai sans exigence est peut-être inutile. C'est la **traçabilité**.
+
+            Un essai réussi une fois peut être un coup de chance. Pour une exigence de fiabilité, fixe à l'avance le nombre d'essais et le nombre d'échecs tolérés. Un lecteur de codes doit lire au moins 99 % des étiquettes, testé sur un lot de 500 :
+
+            $$N_{\text{échecs max}} = (1 - 0{,}99) \times 500 = 5$$
+
+            Avec 7 étiquettes non lues, le taux de lecture vaut $493 / 500 = 98{,}6\ \%$ : non conforme.
+
+            Les essais longs se planifient : 2 000 cycles de 90 s représentent 50 h de banc, plus de deux jours en continu.
+        - level: 4
+          title: Ce qui se joue à la recette
+          body: |
+            **Pourquoi des critères écrits avant.** Si on découvre les résultats avant de fixer la règle, on débat de leur interprétation : « 2,3 °C, c'est presque 2 °C ». Signer le plan de validation, c'est se mettre d'accord sur les règles du jeu avant le match.
+
+            **Pourquoi ne pas sauter le FAT.** Un défaut trouvé à l'atelier se corrige dans la journée. Le même défaut trouvé sur site coûte un déplacement, un accès à négocier, parfois l'arrêt d'une installation. Supprimer le FAT pour gagner une semaine déplace les problèmes vers l'endroit où ils coûtent le plus.
+
+            **Les conditions d'essai.** Elles doivent reproduire celles de l'exigence : température ambiante, vrai échantillon, vrai opérateur. Un essai avec un échantillon idéal prouve peu de chose.
+
+            **Réserve mineure ou majeure.** Mineure : elle n'empêche pas l'usage (un capot rayé, une notice incomplète) ; on réceptionne avec réserves. Majeure : une exigence indispensable n'est pas tenue ; on ne réceptionne pas. Chaque réserve a, comme une action, un numéro, un responsable et une échéance.
+
+            **La nouvelle demande déguisée en réserve.** « Ça ne fait pas ce qui était écrit » est une réserve. « J'aimerais que ça fasse aussi… » est une demande de modification, qui suit son propre processus. Ne laisse pas la seconde se glisser dans la liste des premières.
+
+            **L'utilisation avant signature.** Selon les contrats, mettre l'équipement en production avant le procès-verbal peut être considéré comme une acceptation. Clarifie-le avant de laisser le client s'en servir.
+
+            **Après la signature**, la garantie commence et le client prend l'exploitation en main. D'où l'importance de remettre la documentation et la formation **avant** de signer. La clôture du projet (retour d'expérience, archivage) est traitée dans le domaine voisin consacré au pilotage.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            Phrases qui marchent :
+            - « Je vous propose de valider ensemble le plan de recette avant les essais. » / *"Let's agree on the acceptance test plan before we start testing."*
+            - « Cet essai vérifie l'exigence EX-05 ; le critère est un écart maximal de 2 °C. » / *"This test covers requirement EX-05; the pass criterion is a maximum deviation of 2 °C."*
+            - « C'est une nouvelle demande, pas une réserve ; je l'enregistre comme demande de modification. » / *"That's a new request rather than a punch-list item; I'll log it as a change request."*
+            - « Nous prononçons la réception avec deux réserves, à lever d'ici le 30. » / *"We accept the system with two punch-list items, to be closed by the 30th."*
+
+            | À éviter | À dire |
+            |---|---|
+            | « Ça a l'air de marcher, on signe ? » | « Les 14 essais du plan sont conformes ; il reste une réserve mineure sur la notice. » |
+            | « On verra les réglages fins après la réception. » | « Réserve R-02 : réglage à reprendre ; responsable, chef de projet ; échéance, le 30. » |
+            | *"Looks good to me."* | *"All 14 tests passed; one minor punch-list item remains on the manual."* |
+
+            Erreurs fréquentes des jeunes ingénieurs :
+            - improviser les essais le jour même ;
+            - tester dans des conditions idéales ;
+            - accepter des ajouts déguisés en réserves ;
+            - oublier la formation et la documentation ;
+            - laisser des réserves sans responsable ni date, ou ne pas faire signer le procès-verbal.
+      recap:
+        - "Recette = vérifier ; réception = accepter. Le procès-verbal signé transfère le livrable au client."
+        - "Plan de validation écrit et validé avant les essais : exigence, méthode, mode opératoire, critère, lieu."
+        - "Quatre méthodes de vérification : inspection, analyse, démonstration, essai."
+        - "FAT chez le fabricant avant expédition, SAT sur site après installation ; corriger au FAT coûte bien moins cher."
+        - "Réception sans réserve, avec réserves numérotées et datées, ou refusée ; une nouvelle demande n'est pas une réserve."
+        - "Documentation, formation et pièces de rechange se remettent avant la signature."
+      pieges: [pcl-adjectifs, pcl-oui-a-tout]
+    vocab:
+      - recette = acceptance testing
+      - réception = acceptance
+      - procès-verbal de réception = acceptance certificate
+      - réserve = punch-list item
+      - plan de validation = acceptance test plan
+      - essais de réception sur site = site acceptance test (SAT)
+    exercises:
+      - id: pcl-recette.1
+        type: qcm
+        level: 1
+        q: "Au SAT, le client dit : « C'est bien, mais il faudrait aussi pouvoir exporter les mesures ; je le mets en réserve. » L'export n'a jamais été demandé. Que réponds-tu ?"
+        choices:
+          - t: « C'est une nouvelle demande, pas une réserve ; je l'enregistre comme modification et je vous la chiffre. »
+            ok: true
+          - t: « D'accord, je l'ajoute aux réserves et je le fais avant la levée. »
+            why: Tu acceptes un ajout jamais prévu, sans coût ni délai, sous couvert de correction.
+          - t: « Non, ce n'était pas prévu, donc on n'en parle même pas. »
+            why: La demande est peut-être utile ; elle mérite d'être chiffrée, pas balayée.
+          - t: « On en reparle plus tard ; signons d'abord le procès-verbal sans réserve. »
+            why: Tu esquives ; le client signera en se sentant poussé, et la demande reviendra.
+        e: Une réserve signale qu'une exigence écrite n'est pas tenue. Une fonction nouvelle est une modification, qui suit son propre chemin ; écrit, chiffrage, arbitrage. La distinction protège ton budget et la relation.
+        piege: pcl-oui-a-tout
+      - id: pcl-recette.2
+        type: parsons
+        level: 2
+        lang: text
+        q: Remets dans l'ordre les étapes de la recette d'un équipement.
+        lines:
+          - "Rédiger le plan de validation et le faire valider par le client"
+          - "Réaliser les essais en usine (FAT) avec le client"
+          - "Expédier, installer et raccorder sur site"
+          - "Réaliser les essais sur site (SAT)"
+          - "Signer le procès-verbal de réception, avec ou sans réserves"
+          - "Lever les réserves et faire signer leur levée"
+        extra:
+          - "Fixer les critères d'acceptation après les essais"
+        e: Les critères se fixent avant les essais, sinon on débat de l'interprétation des résultats. Le FAT précède l'expédition, le SAT suit l'installation, et la levée des réserves clôt la recette.
+        piege: pcl-adjectifs
+      - id: pcl-recette.3
+        type: flash
+        level: 1
+        q: Cite les quatre méthodes de vérification d'une exigence.
+        back: |
+          Inspection : regarder, mesurer une dimension, vérifier un marquage.
+          Analyse : calcul, simulation, données du fabricant.
+          Démonstration : montrer que la fonction marche.
+          Essai : mesurer une performance dans des conditions définies.
+        e: Pour chaque exigence, choisis la méthode la plus simple qui tranche vraiment ; une performance chiffrée demande presque toujours un essai.
+      - id: pcl-recette.4
+        type: numeric
+        level: 2
+        q: Le plan de validation prévoit un essai d'endurance de 1 000 cycles. Un cycle dure 3 min 30 s. Combien d'heures de banc faut-il réserver au minimum ?
+        answer: 58.33
+        tol: 0.02
+        unit: "h"
+        calc: 1000 * 3.5 / 60
+        trap_values:
+          - v: 50
+            why: Tu as compté 3 min au lieu de 3 min 30 s ; ces 30 secondes pèsent plus de 8 heures sur 1 000 cycles.
+          - v: 55
+            why: Tu as converti 3 min 30 s en 3,3 min ; 30 secondes valent 0,5 min.
+          - v: 3500
+            why: C'est le résultat en minutes ; il faut encore diviser par 60.
+        e: 1 000 × 3,5 min = 3 500 min, soit 3 500 ÷ 60 ≈ 58,3 h ; plus de deux jours de banc en continu, à prévoir dans le planning avant le FAT, avec une surveillance de nuit si nécessaire.
+      - id: pcl-recette.5
+        type: qcm
+        level: 3
+        q: "Au FAT, le critère est « écart ≤ 2 °C pendant 30 min ». La mesure donne 2,3 °C au maximum. Le fabricant dit : « C'est presque 2 °C, et l'échantillon n'était pas idéal. » Que fais-tu ?"
+        choices:
+          - t: Tu notes l'essai non conforme ; on corrige ou on refait l'essai dans les conditions prévues, ou le client accorde une dérogation écrite.
+            ok: true
+          - t: Tu valides, car 0,3 °C d'écart est négligeable à 280 °C.
+            why: Le critère est écrit et signé ; le juger négligeable revient au client, par une dérogation, pas à toi.
+          - t: Tu refais l'essai jusqu'à passer sous 2 °C, et tu ne gardes que cette mesure.
+            why: Ne garder que l'essai favorable, c'est truquer la recette ; le défaut réapparaîtra en exploitation.
+          - t: Tu passes l'exigence à ± 2,5 °C dans le cahier des charges pour clore le point.
+            why: Modifier le critère pour qu'il passe, c'est réécrire seul le contrat ; la recette n'a plus de sens.
+        e: Un critère écrit avant les essais tranche sans débat. Hors critère, trois issues honnêtes ; corriger puis refaire l'essai, montrer que les conditions d'essai étaient fausses et le refaire correctement, ou obtenir une dérogation écrite du client.

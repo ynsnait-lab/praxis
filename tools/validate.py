@@ -132,6 +132,10 @@ def check_schema(modules, domains, calibre, pieges, concepts, defis, memos, rep:
         for k in ("id", "track", "title", "why", "fix"):
             if not p.get(k):
                 rep.err(f"piège {p.get('id')}", f"champ « {k} » manquant")
+        if p.get("track") in ("inge", "perso") and not p.get("why_short"):
+            rep.warn(f"piège {p.get('id')}", "champ « why_short » manquant (la phrase affichée sur la carte du piège)")
+        elif len(str(p.get("why_short", ""))) > 200:
+            rep.warn(f"piège {p.get('id')}", "why_short trop long (200 caractères max, vise 140)")
         for r in p.get("modules", []) or []:
             if r not in mod_ids:
                 rep.err(f"piège {p['id']}", f"module inconnu {r}")
@@ -152,6 +156,9 @@ def check_schema(modules, domains, calibre, pieges, concepts, defis, memos, rep:
             if pg not in piege_ids:
                 rep.err(where, f"piège inconnu {pg}")
         lesson = m.get("lesson") or ({"steps": m["steps"]} if m.get("steps") else None)
+        for src in (lesson or {}).get("sources") or []:
+            if not isinstance(src, dict) or not src.get("t") or not str(src.get("url", "")).startswith("https://"):
+                rep.err(where, f"source invalide (il faut t et une url en https://) : {src}")
         if lesson:
             last = 0
             for i, st in enumerate(lesson.get("steps", [])):
@@ -171,12 +178,30 @@ def check_schema(modules, domains, calibre, pieges, concepts, defis, memos, rep:
                         rep.err(sw, "mini-question sans bonne réponse")
         for ex in m.get("exercises", []) or []:
             check_ex_schema(ex, m, ids, piege_ids, rep)
+    vus = {}
+    for d in domains:
+        if d["id"] in vus:
+            rep.err(d.get("_file", "?"), f"domaine en double {d['id']} (déjà dans {vus[d['id']]})")
+        vus[d["id"]] = d.get("_file", "?")
     for dom, exs in calibre.items():
+        if dom not in vus:
+            rep.err(f"_calibre/{dom}", "quiz d'un domaine inconnu")
         for ex in exs:
             check_ex_schema(ex, {"id": f"calibre:{dom}", "track": "inge", "_file": f"_calibre/{dom}"}, ids, piege_ids, rep)
     for d in defis:
         if not d.get("id") or not d.get("title"):
             rep.err("defis.yaml", f"défi incomplet {d}")
+    vus_memos = set()
+    for mm in memos:
+        ou = f"fiche {mm.get('id')}"
+        for k in ("id", "title", "body"):
+            if not mm.get(k):
+                rep.err(ou, f"champ « {k} » manquant")
+        if mm.get("id") in vus_memos:
+            rep.err(ou, "identifiant de fiche en double")
+        vus_memos.add(mm.get("id"))
+        if mm.get("lang") not in ("python", "cpp", "both", "inge", "perso"):
+            rep.err(ou, f"lang inconnu : {mm.get('lang')} (python, cpp, both, inge ou perso)")
 
 
 def check_ex_schema(ex, m, ids, piege_ids, rep: Report):
@@ -431,6 +456,7 @@ def main():
     ap.add_argument("--only", default="")
     ap.add_argument("-j", type=int, default=os.cpu_count() or 4)
     ap.add_argument("-v", action="store_true")
+    ap.add_argument("--filtre", default="", help="n'afficher que les erreurs et avertissements qui contiennent ce texte")
     a = ap.parse_args()
     rep = Report()
     modules, domains, calibre, pieges, concepts, defis, memos = load_all()
@@ -447,6 +473,12 @@ def main():
                     rep.warn(where, w)
                 if not errs:
                     rep.ok += 1
+    if a.filtre:
+        hors = len([e for e in rep.errors if a.filtre not in e])
+        rep.errors = [e for e in rep.errors if a.filtre in e]
+        rep.warnings = [w for w in rep.warnings if a.filtre in w]
+        if hors:
+            print(f"({hors} erreur(s) hors du filtre « {a.filtre} » non affichées)")
     if a.v or rep.warnings:
         for w in rep.warnings:
             print(w)

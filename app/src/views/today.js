@@ -68,7 +68,7 @@ export function todayView() {
   // --- raccourcis
   page.append(h("div.group-head", { style: { marginTop: "30px" } }, h("h2", {}, "S'entraîner autrement")));
   page.append(h("div.grid3", {},
-    shortcut("Par piste", "Uniquement Python, C++ ou Ingé.", TRACKS.map((t) => h("a.btn.sm", { href: `#/session/track/${t}` }, TRACK_LABEL[t]))),
+    shortcut("Par piste", "Une seule piste à la fois.", TRACKS.map((t) => h("a.btn.sm", { href: `#/session/track/${t}` }, TRACK_LABEL[t]))),
     shortcut("Points faibles", "Les exercices que tu rates le plus souvent.", [h("a.btn.sm", { href: "#/session/weak" }, "Lancer")]),
     shortcut("Labs sur ta machine", "Du vrai code dans VS Code, vérifié par des tests.", [h("a.btn.sm", { href: "#/labs" }, "Voir les labs")])));
   return page;

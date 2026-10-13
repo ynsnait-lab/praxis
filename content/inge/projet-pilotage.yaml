@@ -1,0 +1,2301 @@
+id: projet-pilotage
+title: Piloter un projet
+en: Running a project
+desc: Cadrer, découper, estimer, planifier, suivre et clôturer un projet technique, avec les outils et les calculs du chef de projet.
+intro: |
+  Un projet technique échoue rarement sur la technique. Il échoue sur un délai fournisseur oublié, un risque connu que personne n'a traité, une tâche « à 90 % » pendant deux mois, un budget qui ne comptait pas les heures de l'équipe. Ce domaine te donne les outils pour éviter ces pièges sur des projets de quelques mois à deux ans : un banc d'essai, un équipement de laboratoire, une machine spéciale, avec 2 à 10 personnes, des achats et de la sous-traitance.
+
+  Le fil rouge est un **porte-échantillon chauffant** commandé par un laboratoire, de la demande à la livraison. On commence par le cycle de vie et le cadrage. On découpe ensuite le travail, on l'estime et on le planifie jusqu'au chemin critique. Viennent les risques, le budget, le suivi par la valeur acquise, les parties prenantes, l'agilité appliquée au matériel, les achats et la clôture.
+
+  Chaque notion monte en cinq niveaux, de l'image au terrain, avec un calcul chiffré dès qu'il y en a un. La relation avec le client (besoin, cahier des charges, exigences, réunions, comptes rendus, changements, recette) fait l'objet du domaine voisin qui lui est consacré.
+notions:
+  - id: ppi-cycle
+    title: Le cycle de vie d'un projet
+    en: The project life cycle
+    goal: Situer les phases, les jalons et les revues d'un projet technique, et expliquer pourquoi on fige ce qui est validé à chaque jalon.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Une maison ne se construit pas dans le désordre
+          body: |
+            Pour construire une maison, on dessine les plans, on obtient le permis, puis on coule les fondations, on monte les murs, le toit, et seulement ensuite on peint. Personne ne coule la dalle avant d'avoir décidé où passent les canalisations.
+
+            Entre deux étapes, on s'arrête pour vérifier. Une fois la dalle coulée, déplacer une évacuation coûte bien plus cher que déplacer un trait sur le plan.
+
+            Un projet technique suit la même logique : des **phases** qui s'enchaînent, et des **portes** qu'on franchit en connaissance de cause. Ce qui a été validé à une porte ne bouge plus sans une décision explicite.
+        - level: 2
+          title: Phases, jalons et revues
+          body: |
+            Un projet d'équipement traverse typiquement sept **phases** :
+
+            1. **Cadrage** : pourquoi, quoi, pour quand, pour combien.
+            2. **Conception préliminaire** : architecture et grands choix (cartouches ou film chauffant ? régulateur du commerce ou carte maison ?), premiers calculs.
+            3. **Conception détaillée** : plans cotés, nomenclature, schémas, notes de calcul, plan de vérification.
+            4. **Réalisation** : achats, usinage, câblage, logiciel.
+            5. **Intégration et vérification** : on assemble, on essaie chaque sous-ensemble puis le tout.
+            6. **Recette** : le client vérifie la conformité et accepte l'équipement.
+            7. **Exploitation et clôture** : mise en service, transfert, bilan, archivage.
+
+            Un **jalon** (*milestone*) est un événement de durée nulle qui marque la fin d'une phase ou un point de décision. La plupart des jalons sont des **revues**, des réunions formelles qui décident du passage à la suite :
+
+            - **réunion de lancement** (*kick-off*) : l'équipe et le client partagent le cadrage ;
+            - **revue de conception préliminaire** (*PDR*) : l'architecture tient-elle les exigences ?
+            - **revue de conception détaillée** (*CDR, critical design review*) : peut-on lancer fabrication et achats ?
+            - **revue de recette** : le client accepte-t-il l'équipement ?
+
+            Une revue a des **critères d'entrée** (documents disponibles et relus), des relecteurs qui n'ont pas conçu, et une sortie écrite : *go*, *go* avec réserves, ou *no-go*.
+
+            Le **cycle en V** dessine ces phases en V. La branche descendante **définit**, de plus en plus finement ; la branche montante **vérifie**, niveau par niveau, ce qui a été défini en face.
+
+            | On définit (descente) | On vérifie (remontée) |
+            |---|---|
+            | Besoin et cadrage | Recette |
+            | Spécification | Vérification du système complet |
+            | Conception préliminaire | Intégration des sous-ensembles |
+            | Conception détaillée | Essais unitaires des pièces et cartes |
+
+            La réalisation est la pointe du V.
+          check:
+            q: Ta revue de conception détaillée est prévue vendredi, mais les plans du corps chauffant ne sont pas finis. Que fais-tu ?
+            choices:
+              - t: Tu reportes la revue, ou tu la limites au reste du dossier avec une revue complémentaire pour le corps.
+                ok: true
+              - t: Tu tiens la revue à la date prévue et tu valides tout ; les plans seront finis pendant la fabrication.
+                why: Tu lancerais la fabrication sur un dossier que personne n'a relu. Un jalon se franchit sur des livrables, pas sur une date.
+              - t: Tu annules la revue, puisqu'elle sert surtout à rassurer le client.
+                why: Une revue sert d'abord à trouver les erreurs tant qu'elles coûtent peu à corriger.
+        - level: 3
+          title: Jalonner et chiffrer le coût d'un changement tardif
+          body: |
+            **La méthode.** Pour chaque jalon, écris les livrables attendus, le critère de passage et la date. Les dates s'obtiennent en cumulant les durées des phases. Exemple pour le porte-échantillon, livrable en 39 semaines :
+
+            | Phase | Durée (sem.) | Jalon de fin | Semaine |
+            |---|---|---|---|
+            | Cadrage | 3 | Note de cadrage validée | 3 |
+            | Conception préliminaire | 6 | Revue de conception préliminaire | 9 |
+            | Conception détaillée | 8 | Revue de conception détaillée | 17 |
+            | Réalisation | 12 | Pièces reçues et contrôlées | 29 |
+            | Intégration et vérification | 6 | Rapport de vérification | 35 |
+            | Recette | 2 | Procès-verbal de recette | 37 |
+            | Clôture | 2 | Bilan et retour d'expérience | 39 |
+
+            La revue de conception détaillée tombe en semaine $3 + 6 + 8 = 17$. L'intégration et la vérification pèsent $6/39 \approx 0{,}15$ du projet, soit 15 % : c'est la phase que les débutants oublient ou écrasent.
+
+            **Pourquoi figer.** Une modification coûte d'autant plus cher qu'elle arrive tard, car il faut refaire tout ce qui a été construit dessus. Un perçage de cartouche mal placé :
+
+            | Découvert en… | À refaire | Ordre de grandeur |
+            |---|---|---|
+            | Conception préliminaire | Une esquisse | 1 heure |
+            | Conception détaillée | Plan, nomenclature, calcul | 1 jour |
+            | Intégration | Refabrication, nouveau délai | semaines, milliers d'euros |
+            | Après livraison | Démontage, refabrication, essais | semaines, et la confiance du client |
+
+            Une règle empirique souvent citée : le coût d'une correction est multiplié par environ 10 à chaque phase franchie. Ce n'est pas une loi, mais l'ordre de grandeur est juste : trouve les erreurs en revue, sur le papier.
+        - level: 4
+          title: Figer n'est pas s'interdire de changer
+          body: |
+            **La référence.** Ce qui est validé à un jalon devient la **référence** (*baseline*) : plans à un indice donné, exigences, planning, budget. Après le jalon, on peut encore modifier, mais par une décision explicite : on mesure l'impact sur la qualité, le coût et le délai, on décide, on change l'indice et on prévient tout le monde. La gestion des demandes de modification est traitée dans le domaine voisin sur la relation client.
+
+            Sans référence, chacun travaille sur sa version : le dessinateur modifie l'indice B pendant que l'atelier usine l'indice A. Le défaut apparaît au montage.
+
+            **Les phases se chevauchent.** On commande souvent les pièces à long délai avant la fin de la conception détaillée. C'est de l'**ingénierie concourante** : on gagne des semaines, mais on fige plus tôt l'interface de la pièce commandée. Ce chevauchement se décide et s'écrit.
+
+            **Le V suppose un besoin stable.** Pour une partie très incertaine (une vitesse de chauffe jamais atteinte), on insère des boucles de prototypage : voir la notion sur les approches agiles et hybrides.
+
+            > [!piege] Le planning qui s'arrête à la fabrication
+            > L'intégration révèle les interfaces mal définies : connecteur qui ne passe pas, câble trop court. Si elle n'a que le temps qui reste, le premier retard d'usinage l'écrase. Estime-la comme les autres phases.
+
+            **Les référentiels.** Le *PMBOK Guide* du PMI et la norme ISO 21502 décrivent ce cycle ; les noms des phases varient selon les organisations, la logique reste.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            **Ce que tu fais.**
+
+            - Dès le cadrage, écris sur une page la liste des jalons, avec pour chacun les livrables et le critère de passage.
+            - Pour chaque revue, envoie le dossier quelques jours avant, invite un relecteur extérieur au projet, et sors avec un *go* ou *no-go* écrit et des actions datées.
+            - Tiens un tableau des indices des plans, des schémas et des versions du logiciel : tu sais ce qui est figé.
+            - Avant la revue de conception détaillée, chaque exigence a sa méthode de vérification (calcul, essai, inspection).
+
+            **Phrases utiles.**
+
+            - « On passe la revue si les plans sont relus et la nomenclature chiffrée. »
+            - *"The CDR is a go, with three actions to close before we release the drawings."*
+            - *"We baseline the design at the PDR; any later change needs a decision."*
+
+            **Erreurs fréquentes.**
+
+            - Tenir une revue sans dossier : elle devient une réunion d'information.
+            - Lancer la fabrication avant la revue de conception détaillée sans le dire.
+            - Découvrir à la recette qu'on n'a jamais défini comment vérifier une exigence.
+      recap:
+        - "Phases : cadrage, conception préliminaire, conception détaillée, réalisation, intégration et vérification, recette, exploitation et clôture."
+        - "Un jalon est un événement de durée nulle ; la plupart sont des revues qui décident du passage à la phase suivante."
+        - "Une revue a des critères d'entrée, des relecteurs extérieurs et une sortie écrite : go, go avec réserves ou no-go."
+        - "Cycle en V : la branche descendante définit, la branche montante vérifie chaque niveau en vis-à-vis."
+        - "On fige à chaque jalon parce qu'une modification coûte d'autant plus cher qu'elle arrive tard."
+      pieges: [ppi-planning-sans-marge]
+    vocab:
+      - jalon = milestone
+      - revue de conception préliminaire = preliminary design review (PDR)
+      - revue de conception détaillée = critical design review (CDR)
+      - référence figée = baseline
+      - cycle en V = V-model
+      - réunion de lancement = kick-off meeting
+    exercises:
+      - id: ppi-cycle.1
+        type: qcm
+        level: 1
+        q: Qu'est-ce qu'un jalon dans un projet ?
+        choices:
+          - t: Un événement de durée nulle qui marque la fin d'une phase ou un point de décision.
+            ok: true
+          - t: Une tâche courte, de moins d'une semaine, qu'on suit de près.
+            why: Un jalon ne dure pas, il marque un instant. Une tâche courte reste une tâche, avec une charge et une durée.
+          - t: La réunion d'avancement hebdomadaire de l'équipe.
+            why: Le point hebdomadaire est un rituel de suivi. Un jalon est un événement unique, lié à un livrable ou une décision.
+          - t: La date de fin du projet, et elle seule.
+            why: La fin du projet est un jalon, mais il y en a d'autres, à la fin de chaque phase.
+        e: Un jalon se franchit ou non ; il n'y a pas de jalon « à moitié ». C'est ce qui en fait un bon point de contrôle, au contraire d'un pourcentage d'avancement déclaré.
+      - id: ppi-cycle.2
+        type: qcm
+        level: 2
+        q: La revue de conception détaillée est passée. Une semaine plus tard, l'électronicien propose de remplacer les thermocouples par des sondes platine, plus précises. Que fais-tu ?
+        choices:
+          - t: Tu évalues l'impact (plans, achats, délai, coût), tu décides explicitement, puis tu mets à jour les indices et tu informes l'équipe.
+            ok: true
+          - t: Tu acceptes tout de suite, puisque c'est une amélioration de la précision.
+            why: Une amélioration a aussi un coût, un délai et des effets ailleurs (passages de câbles, entrées du régulateur). Sans évaluation, tu casses la référence.
+          - t: Tu refuses, car après la revue de conception plus rien ne peut changer.
+            why: Figer ne veut pas dire interdire. Une modification utile peut passer, après une décision qui en mesure l'impact.
+          - t: Tu laisses l'électronicien modifier son schéma ; tu verras à l'intégration.
+            why: C'est la recette des versions divergentes, découvertes au montage, au pire moment.
+        e: Après un jalon, le dossier validé devient la référence. Toute modification passe par une analyse d'impact et une décision tracée, puis les indices sont mis à jour pour que tout le monde travaille sur la même version.
+      - id: ppi-cycle.3
+        type: flash
+        level: 1
+        q: Dans le cycle en V, qu'est-ce qui fait face à la spécification ? Et à la conception détaillée ?
+        back: |
+          Face à la spécification : la vérification du système complet. Face à la conception détaillée : les essais unitaires des pièces et des cartes. Chaque niveau de la descente définit ce que son vis-à-vis de la remontée vérifiera. Tout en haut, la recette fait face au besoin.
+        e: À gauche, on définit en descendant ; à droite, on vérifie en remontant.
+      - id: ppi-cycle.4
+        type: parsons
+        level: 1
+        lang: text
+        q: Remets dans l'ordre les phases d'un projet d'équipement unique.
+        lines:
+          - Cadrage
+          - Conception préliminaire
+          - Conception détaillée
+          - Réalisation
+          - Intégration et vérification
+          - Recette
+          - Exploitation et clôture
+        extra:
+          - Industrialisation et production en série
+        e: Un équipement de laboratoire est un exemplaire unique ; il n'a pas de phase d'industrialisation. La recette vient après la vérification interne, jamais avant ; on ne présente au client que ce qu'on a déjà vérifié soi-même.
+      - id: ppi-cycle.5
+        type: numeric
+        level: 1
+        q: "Le laboratoire veut son équipement dans 40 semaines. Tes estimations : cadrage 3 semaines, conception préliminaire 6, conception détaillée 8, réalisation 13, recette 2, clôture 2. Combien de semaines reste-t-il pour l'intégration et la vérification ?"
+        answer: 6
+        tol: 0.02
+        unit: semaines
+        calc: 40 - (3 + 6 + 8 + 13 + 2 + 2)
+        trap_values:
+          - v: 10
+            why: Tu as oublié de retirer la recette et la clôture ; elles prennent aussi du temps avant l'échéance.
+          - v: 8
+            why: Tu as oublié l'une des deux dernières phases, la recette ou la clôture.
+          - v: 34
+            why: C'est la somme des autres phases, pas ce qui reste pour l'intégration.
+        e: "40 − (3 + 6 + 8 + 13 + 2 + 2) = 40 − 34 = 6 semaines. Six semaines sans aucune marge, c'est fragile : le premier retard d'usinage les mange. Mieux vaut le voir dès le cadrage et négocier la date, le périmètre ou une autre phase."
+        piege: ppi-planning-sans-marge
+  - id: ppi-cadrage
+    title: "Cadrer : objectifs, périmètre, qualité-coût-délai"
+    en: "Scoping: objectives, scope, quality-cost-time"
+    goal: Rédiger une note de cadrage avec des objectifs SMART, un hors périmètre écrit et un critère de succès, puis arbitrer dans le triangle qualité-coût-délai.
+    minutes: 13
+    lesson:
+      steps:
+        - level: 1
+          title: Le road trip à quatre
+          body: |
+            Avant un road trip à quatre, mieux vaut se mettre d'accord : où va-t-on, quand rentre-t-on, quel budget, qui conduit, et ce qu'on ne fera pas (« pas de détour par la côte »). Sinon chacun part avec un voyage différent en tête, et on s'en aperçoit au premier carrefour.
+
+            Le cadrage d'un projet, c'est cette discussion, écrite sur une ou deux pages et validée par ceux qui paient et ceux qui attendent le résultat. Il se fait avant de dessiner la première pièce.
+        - level: 2
+          title: La note de cadrage et l'objectif SMART
+          body: |
+            La **note de cadrage** (*project charter*) tient sur une à trois pages. Elle fixe :
+
+            - le **contexte et le besoin** : pourquoi ce projet existe ;
+            - les **objectifs**, mesurables ;
+            - le **périmètre** (*scope*) : ce que le projet livre, et le **hors périmètre** (*out of scope*), écrit noir sur blanc ;
+            - les livrables, les grands jalons, le budget et les ressources ;
+            - les **hypothèses** (*assumptions*) : ce qu'on tient pour vrai sans l'avoir vérifié (« l'atelier interne sera disponible en mars ») ;
+            - les **contraintes** (*constraints*) : ce qui est imposé (« compatible avec la bride existante », « livré avant l'arrêt d'été ») ;
+            - l'organisation : le **sponsor** (commanditaire), le chef de projet, l'équipe ;
+            - le **critère de succès** : comment on saura, à la fin, que le projet a réussi.
+
+            Le **sponsor** porte le projet : il le finance et il arbitre quand il faut choisir. Ce n'est pas forcément le demandeur, qui exprime le besoin et utilisera l'équipement.
+
+            Un objectif **SMART** est **S**pécifique, **M**esurable, **A**tteignable, **R**éaliste et **T**emporellement défini. Compare :
+
+            - « Faire un bon porte-échantillon chauffant. »
+            - « Chauffer un échantillon de 20 à 300 °C en moins de 15 minutes sous vide, avec une stabilité de ±0,5 °C, livré avant le 30 juin, pour 25 k€ d'achats et de sous-traitance. »
+
+            Le second se vérifie à la recette ; le premier se discute à l'infini.
+
+            Enfin, le **triangle qualité-coût-délai** (QCD) : les trois sont liés. Plus de performance coûte du temps ou de l'argent ; un délai plus court coûte de l'argent ou du périmètre. On ne peut pas tout fixer : on arbitre.
+          check:
+            q: Lequel de ces éléments a sa place dans le hors périmètre d'une note de cadrage ?
+            choices:
+              - t: « Le logiciel d'acquisition des données scientifiques n'est pas inclus. »
+                ok: true
+              - t: « La température maximale de l'échantillon est de 300 °C. »
+                why: C'est un objectif, donc une partie du périmètre.
+              - t: « L'atelier interne sera disponible en mars. »
+                why: C'est une hypothèse, à vérifier et à suivre comme un risque.
+        - level: 3
+          title: Arbitrer en euros
+          body: |
+            **La méthode.** Quand un aléa oblige à choisir, chiffre chaque option, puis ramène tout en euros avec le **coût d'une semaine de retard** :
+
+            $$C_{\text{option}} = C_{\text{direct}} + n_{\text{semaines}} \times C_{\text{semaine}}$$
+
+            Le coût d'une semaine de retard, c'est ce que coûte le projet qui dure : l'équipe qui reste mobilisée, le matériel loué, parfois une campagne d'essais manquée.
+
+            **Exemple.** En semaine 22, le sous-traitant annonce 4 semaines de retard sur le corps usiné. Une semaine de projet coûte environ 2 900 € : 1,5 personne à plein temps, 35 h par semaine, à 55 €/h, soit $1{,}5 \times 35 \times 55 \approx 2\,900$ €.
+
+            | Option | Surcoût direct | Retard | Coût total |
+            |---|---|---|---|
+            | A. Attendre | 0 € | 4 semaines | $4 \times 2\,900 = 11\,600$ € |
+            | B. Faire usiner en urgence ailleurs | 3 500 € | 1 semaine | $3\,500 + 2\,900 = 6\,400$ € |
+            | C. Prendre une matière disponible tout de suite, moins performante | 0 € | 1 semaine | 2 900 €, mais 300 °C non garantis |
+
+            L'option C est la moins chère, mais elle touche la qualité : elle exige l'accord du demandeur. Entre A et B, B fait économiser $11\,600 - 6\,400 = 5\,200$ €.
+
+            **Qui tranche ?** Le sponsor, sur ta proposition chiffrée. La note de cadrage l'aide si elle dit quel axe prime. Une façon simple de l'écrire :
+
+            | Axe | Fixe | À optimiser | Ajustable |
+            |---|---|---|---|
+            | Délai (arrêt d'été) | X | | |
+            | Qualité | | X | |
+            | Coût | | | X (jusqu'à +10 %) |
+        - level: 4
+          title: Ce que le cadrage cache
+          body: |
+            **Le triangle est une simplification** (on y ajoute le périmètre, les risques, les ressources), mais l'idée tient : un projet où qualité, coût et délai sont tous « impératifs » n'a pas été cadré, il a été souhaité.
+
+            **Une hypothèse est un risque déguisé.** « Le fournisseur livrera en 6 semaines », « l'atelier sera libre en mars » : si c'est faux, le projet glisse. Chaque hypothèse est soit vérifiée vite, soit inscrite au registre des risques avec un propriétaire.
+
+            > [!piege] L'hypothèse jamais vérifiée
+            > Une hypothèse écrite au cadrage puis oubliée devient un risque que personne ne suit. Le jour où elle tombe, c'est déjà un problème.
+
+            **Le hors périmètre protège tout le monde.** Ce qui n'est pas écrit sera supposé inclus par quelqu'un. « L'installation sur le banc d'expérience est faite par l'équipe d'accueil » évite une discussion pénible à la livraison.
+
+            **Cadrage et cahier des charges sont deux documents.** Le cadrage dit pourquoi, pour quand, pour combien et qui décide. Le cahier des charges détaille le besoin et les exigences ; il est traité dans le domaine voisin sur la relation client.
+
+            **SMART n'est pas une fin** : trois à cinq objectifs qui comptent valent mieux que vingt indicateurs.
+
+            **Sans sponsor, pas d'arbitrage** : tu portes seul des décisions qui ne sont pas les tiennes.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            **Ce que tu fais.**
+
+            - Rédige toi-même la note de cadrage, sur une ou deux pages ; une fiche modèle est dans les mémos du domaine.
+            - Fais-la relire par le demandeur et le sponsor, puis valider à la réunion de lancement. Un mail d'accord suffit, mais il faut une trace.
+            - Pose la question de l'arbitrage avant d'en avoir besoin : « Si on doit choisir entre le délai, le coût et les performances, qu'est-ce qui passe en premier ? »
+
+            **Phrases utiles.**
+
+            - « Qu'est-ce qui nous ferait dire, dans un an, que ce projet est réussi ? »
+            - *"What does success look like for you?"*
+            - *"This is out of scope for this phase, but we can quote it as an option."*
+            - *"Who signs off on the budget?"*
+
+            **Erreurs fréquentes.**
+
+            - Démarrer la conception avant que la note soit validée.
+            - Des objectifs non mesurables : « performant », « fiable », « rapide ».
+            - Aucun hors périmètre écrit.
+            - Confondre le demandeur et le sponsor.
+            - Un budget qui ne compte que les achats.
+      recap:
+        - "La note de cadrage tient sur une à trois pages : besoin, objectifs, périmètre et hors périmètre, jalons, budget, hypothèses, contraintes, organisation, critère de succès."
+        - "Un objectif SMART est spécifique, mesurable, atteignable, réaliste et daté ; il se vérifie à la recette."
+        - "Une hypothèse non vérifiée est un risque : on la vérifie vite ou on l'inscrit au registre des risques."
+        - "Le sponsor finance et arbitre ; le demandeur exprime le besoin ; ce n'est pas toujours la même personne."
+        - "Pour arbitrer dans le triangle qualité-coût-délai, ramène chaque option en euros avec le coût d'une semaine de retard."
+      pieges: [ppi-risque-dort]
+    vocab:
+      - note de cadrage = project charter
+      - périmètre = scope
+      - hors périmètre = out of scope
+      - hypothèse = assumption
+      - contrainte = constraint
+      - commanditaire = sponsor
+    exercises:
+      - id: ppi-cadrage.1
+        type: qcm
+        level: 1
+        q: Lequel de ces objectifs est SMART ?
+        choices:
+          - t: Chauffer l'échantillon de 20 à 300 °C en moins de 15 minutes, stabilité ±0,5 °C, livré avant le 30 juin.
+            ok: true
+          - t: Concevoir un porte-échantillon chauffant performant, fiable et facile à utiliser.
+            why: Rien n'y est mesurable ni daté. « Performant » et « fiable » se discuteront à l'infini à la recette.
+          - t: Chauffer le plus vite possible, avec la meilleure stabilité possible.
+            why: « Le plus possible » n'est pas une cible mesurable, et il n'y a pas d'échéance.
+          - t: Livrer avant le 30 juin un équipement qui satisfait pleinement le laboratoire.
+            why: L'échéance y est, mais « satisfait » ne dit pas quoi mesurer pour le vérifier.
+        e: Un objectif SMART se vérifie sans débat, avec une mesure et une date. C'est lui qui servira de base aux critères de recette.
+      - id: ppi-cadrage.2
+        type: qcm
+        level: 2
+        q: À la réunion de lancement, le demandeur ajoute « et bien sûr, vous ferez l'interface avec notre logiciel d'acquisition ». Ce n'est pas dans ta note de cadrage. Que fais-tu ?
+        choices:
+          - t: Tu dis que c'est hors périmètre de cette version, tu l'écris dans la note et tu proposes de l'estimer comme une option.
+            ok: true
+          - t: Tu acceptes pour préserver la relation ; tu verras le temps que ça prend.
+            why: Tu engages du travail ni estimé, ni budgété, ni planifié. La relation souffrira davantage au moment du retard.
+          - t: Tu refuses, puisque ce n'était pas dans la demande initiale.
+            why: Le besoin est peut-être légitime. Un refus sec ferme la discussion au lieu de la chiffrer.
+          - t: Tu ne dis rien sur le moment ; tu le feras plus tard si le temps le permet.
+            why: Le demandeur repartira convaincu que c'est inclus. Le silence vaut acceptation.
+        e: Le hors périmètre écrit sert exactement à ça. Tu reconnais le besoin, tu le sors du périmètre actuel par écrit et tu proposes de le chiffrer. Le sponsor décidera s'il l'ajoute, avec son coût et son délai.
+      - id: ppi-cadrage.3
+        type: flash
+        level: 1
+        q: Dans une note de cadrage, quelle est la différence entre une hypothèse et une contrainte ?
+        back: |
+          Une contrainte est imposée : budget plafonné, bride existante, livraison avant l'arrêt d'été. Une hypothèse est supposée vraie sans avoir été vérifiée : « l'atelier sera disponible en mars ». Une hypothèse se vérifie vite, ou se suit comme un risque, avec un propriétaire.
+        e: Une contrainte, on la subit ; une hypothèse, on la parie.
+        piege: ppi-risque-dort
+      - id: ppi-cadrage.4
+        type: numeric
+        level: 2
+        q: "Le sous-traitant annonce 4 semaines de retard sur le corps usiné. Option A : attendre (aucun surcoût, 4 semaines de retard). Option B : faire usiner en urgence ailleurs (3 500 € de surcoût, 1 semaine de retard). Une semaine de retard coûte 2 900 € au projet. Combien d'euros l'option B fait-elle économiser par rapport à l'option A ?"
+        answer: 5200
+        tol: 0.02
+        unit: "€"
+        calc: 4 * 2900 - (3500 + 1 * 2900)
+        trap_values:
+          - v: 8700
+            why: Tu as oublié le surcoût direct de 3 500 € de l'option B.
+          - v: 8100
+            why: Tu as oublié que l'option B coûte aussi une semaine de retard.
+          - v: 3500
+            why: Tu n'as comparé que les surcoûts directs ; le retard a un coût, il faut le compter.
+        e: "Option A : 4 × 2 900 = 11 600 €. Option B : 3 500 + 1 × 2 900 = 6 400 €. Écart : 11 600 − 6 400 = 5 200 € en faveur de B. Le moins cher à l'achat n'est pas le moins cher pour le projet."
+      - id: ppi-cadrage.5
+        type: qcm
+        level: 2
+        q: Le budget va dépasser de 15 % à cause d'un composant plus cher que prévu. Qui décide de la suite ?
+        choices:
+          - t: Le sponsor, sur ta proposition chiffrée des options.
+            ok: true
+          - t: Toi seul, puisque tu es le chef de projet.
+            why: Tu proposes et tu pilotes, mais un dépassement qui sort du mandat de la note de cadrage se remonte à celui qui finance.
+          - t: Le demandeur, puisque c'est lui qui utilisera l'équipement.
+            why: Il donne son avis sur l'impact technique, mais il ne porte pas forcément le budget.
+          - t: L'acheteur, puisque c'est une question de prix.
+            why: L'acheteur peut négocier, pas arbitrer entre coût, délai et performances du projet.
+        e: Ton rôle est d'arriver avec les options chiffrées (payer, réduire le périmètre, changer de composant, décaler) et une recommandation. Le sponsor tranche, et la décision s'écrit.
+  - id: ppi-wbs
+    title: Découper le travail
+    en: Work breakdown structure
+    goal: Construire l'organigramme des tâches (WBS) d'un projet en respectant la règle des 100 % et une granularité adaptée au suivi.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: On ne planifie pas « déménager »
+          body: |
+            « Déménager samedi » n'est pas une tâche qu'on peut confier ni suivre. « Louer le camion », « faire les cartons de la cuisine », « démonter le lit », « rendre les clés » : oui. Chacune a quelqu'un pour la faire, une durée qu'on devine et un résultat qu'on voit.
+
+            Découper un projet, c'est pareil : on descend jusqu'à des morceaux assez petits pour être confiés, estimés et cochés. Et on vérifie qu'on n'a rien oublié, comme le jour où l'on s'aperçoit qu'il fallait aussi résilier l'abonnement internet.
+        - level: 2
+          title: L'organigramme des tâches
+          body: |
+            L'**organigramme des tâches**, en anglais **WBS** (*work breakdown structure*), décompose hiérarchiquement **tout** le travail du projet :
+
+            - niveau 1 : le projet ;
+            - niveau 2 : les grands sous-ensembles (découpage **par produit**) ou les grandes phases (découpage **par phase**) ;
+            - niveaux suivants : jusqu'aux **lots de travail** (*work packages*).
+
+            Un **lot de travail** est le plus bas niveau de la WBS. Il a **un** responsable, un **livrable** (un résultat tangible et vérifiable : plan, pièce, rapport d'essai, logiciel), une charge, une durée et un coût estimables, et un **critère de fin** : « plans signés à l'indice A », pas « conception avancée ».
+
+            La **règle des 100 %** : la WBS contient tout le travail du projet, y compris la gestion de projet, les achats, les essais et la documentation, et rien d'autre. À chaque niveau, les enfants totalisent exactement leur parent.
+
+            Chaque élément reçoit un **code** (1, 1.2, 1.2.3) qu'on retrouve partout : planning, budget, saisie des heures, registre des risques.
+
+            Exemple pour le porte-échantillon :
+
+            1. **Gestion de projet** : 1.1 pilotage, 1.2 revues, 1.3 clôture.
+            2. **Mécanique** : 2.1 corps chauffant, 2.2 support et isolation thermique, 2.3 passages étanches.
+            3. **Électrique et contrôle-commande** : 3.1 chauffage et capteurs, 3.2 armoire et câblage, 3.3 régulation et logiciel.
+            4. **Intégration et essais** : 4.1 assemblage, 4.2 essais thermiques sous vide, 4.3 rapport de vérification.
+            5. **Documentation et transfert** : 5.1 dossier technique, 5.2 notice et formation.
+          check:
+            q: Ta WBS contient la mécanique, l'électrique et le logiciel, mais ni la gestion de projet ni les essais. Quelle règle enfreint-elle ?
+            choices:
+              - t: La règle des 100 %, car une partie du travail réel du projet n'y figure pas.
+                ok: true
+              - t: La règle d'un responsable unique par lot.
+                why: Rien ne dit que les lots présents n'ont pas de responsable ; le problème est ce qui manque.
+              - t: La règle de granularité, car les lots sont trop gros.
+                why: La taille des lots est une autre question ; ici, des pans entiers du travail sont absents.
+        - level: 3
+          title: Totaliser, contrôler, choisir la granularité
+          body: |
+            **Totaliser.** On estime la charge de chaque lot, puis on remonte les totaux. La règle des 100 % se vérifie par les chiffres : chaque parent est la somme exacte de ses enfants.
+
+            | Code | Élément (détail des lots, en heures) | Charge (h) |
+            |---|---|---|
+            | 1 | Gestion de projet (pilotage 90, revues 30, clôture 20) | 140 |
+            | 2 | Mécanique (corps 160, support 80, passages étanches 40) | 280 |
+            | 3 | Électrique (capteurs 60, câblage 90, logiciel 150) | 300 |
+            | 4 | Intégration et essais (assemblage 60, essais 120, rapport 30) | 210 |
+            | 5 | Documentation et transfert (dossier 50, notice 20) | 70 |
+            | | **Total** | **1 000** |
+
+            La partie « visible », mécanique et électrique, pèse 580 h. Le reste, qu'un débutant oublie volontiers, pèse $140 + 210 + 70 = 420$ h, soit 42 % du total. Une estimation limitée à la conception et à la fabrication serait trop basse : il faudrait l'augmenter de $420 / 580 \approx 0{,}72$, soit 72 %.
+
+            **Choisir la granularité.** Un lot doit être assez petit pour qu'on voie un retard à temps, et assez gros pour ne pas noyer l'équipe dans le suivi. Deux règles pratiques :
+
+            - un lot ne dure pas plus d'une ou deux périodes de suivi : avec un point hebdomadaire, une à deux semaines ;
+            - la règle empirique « 8/80 » : entre 8 et 80 heures de charge par lot.
+
+            Le lot 2.1, corps chauffant (160 h), est trop gros pour un suivi hebdomadaire. On le redécoupe : conception 60 h, mise en plan et nomenclature 50 h, suivi de fabrication 30 h, contrôle à réception 20 h. Total 160 h : la règle des 100 % tient à ce niveau aussi.
+        - level: 4
+          title: Ce que la WBS n'est pas
+          body: |
+            **La WBS n'est pas le planning.** Elle dit *quoi*, pas *quand* ni *dans quel ordre*. Le réseau des dépendances et le Gantt viennent ensuite, à partir des lots.
+
+            **Produit ou phase ?** En mécatronique, un découpage par produit au niveau 2 suit bien les responsabilités : un responsable pour la mécanique, un pour l'électrique. Mais les **interfaces** tombent entre deux lots : le passage des câbles dans le corps, la fixation des capteurs. Crée un lot d'intégration explicite, ou nomme un responsable pour chaque interface.
+
+            **WBS et arborescence produit.** L'arborescence produit (*PBS, product breakdown structure*) découpe l'objet en pièces et sous-ensembles. La WBS découpe le travail. La PBS sert souvent de squelette à la WBS, mais la WBS ajoute tout ce qui n'est pas une pièce : gestion, achats, essais, documentation, formation.
+
+            **Trop fin**, l'équipe passe son temps à saisir des heures sur 300 lignes. **Trop gros**, un lot reste « à 80 % » pendant des semaines.
+
+            > [!piege] Le lot trop gros qui reste à 90 %
+            > Un lot de deux mois sans livrable intermédiaire ne se suit qu'au jugé. Découpe-le jusqu'à ce que chaque morceau se termine par un résultat qu'on peut montrer.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            **Ce que tu fais.**
+
+            - Construis la WBS avec l'équipe, en une ou deux heures, au tableau ou dans un tableur, en partant des livrables finaux.
+            - Pour chaque lot, écris une ligne de « dictionnaire » : contenu, livrable, responsable, critère de fin.
+            - Ajoute les lots que tout le monde oublie : gestion de projet, consultations d'achat, essais, documentation, formation, transfert, clôture.
+            - Utilise les mêmes codes dans le planning, le budget et la saisie des heures.
+
+            **Phrases utiles.**
+
+            - « Quel est le livrable de ce lot ? Comment sait-on qu'il est fini ? »
+            - *"Who owns this work package?"*
+            - *"Is anything missing from the WBS: testing, documentation, training?"*
+            - *"Let's break this down further, into one- or two-week chunks."*
+
+            **Erreurs fréquentes.**
+
+            - Une WBS faite de verbes sans livrables (« étudier », « avancer sur »).
+            - Oublier les lots non techniques.
+            - Un lot partagé entre deux responsables.
+            - Des lots de deux mois, impossibles à suivre.
+      recap:
+        - "La WBS décompose tout le travail du projet en livrables puis en lots de travail ; elle dit quoi, pas quand."
+        - "Règle des 100 % : tout le travail du projet y figure, et rien d'autre ; chaque parent est la somme exacte de ses enfants."
+        - "Un lot de travail a un responsable unique, un livrable vérifiable, une charge estimable et un critère de fin."
+        - "Granularité : un lot dure une à deux périodes de suivi, typiquement entre 8 et 80 heures de charge."
+        - "Gestion de projet, essais et documentation peuvent peser près de la moitié des heures : ce sont les lots qu'on oublie."
+      pieges: [ppi-90-pourcent]
+    vocab:
+      - organigramme des tâches = work breakdown structure (WBS)
+      - lot de travail = work package
+      - livrable = deliverable
+      - règle des 100 % = 100% rule
+      - arborescence produit = product breakdown structure (PBS)
+    exercises:
+      - id: ppi-wbs.1
+        type: qcm
+        level: 1
+        q: Que dit la règle des 100 % d'une WBS ?
+        choices:
+          - t: La WBS contient tout le travail du projet et rien d'autre ; chaque élément est la somme exacte de ses enfants.
+            ok: true
+          - t: Chaque lot doit être terminé à 100 % avant qu'on commence le suivant.
+            why: La WBS ne dit rien de l'ordre des tâches ; l'enchaînement relève du planning.
+          - t: Le budget du projet doit être consommé à 100 % à la fin.
+            why: La règle porte sur le contenu du travail, pas sur la consommation du budget.
+          - t: Chaque lot doit être confié à une personne disponible à 100 %.
+            why: La disponibilité des personnes est une question de planning, pas de découpage.
+        e: La règle des 100 % sert de liste de contrôle. Si un travail réel du projet n'est dans aucun lot, il ne sera ni estimé, ni planifié, ni budgété, et il arrivera quand même.
+      - id: ppi-wbs.2
+        type: qcm
+        level: 2
+        q: Ton lot « conception mécanique » fait 280 h. Semaine après semaine, tu annonces 60 %, puis 70 %, puis 80 %, sans savoir quand tu finiras. Que fais-tu ?
+        choices:
+          - t: Tu le redécoupes en lots d'une à deux semaines, chacun terminé par un livrable vérifiable.
+            ok: true
+          - t: Tu donnes un pourcentage plus précis, au point près.
+            why: Un pourcentage plus précis reste une impression. Le problème est l'absence de livrables intermédiaires.
+          - t: Tu gardes le lot tel quel et tu suis les heures passées.
+            why: Les heures passées mesurent ce qui a été dépensé, pas ce qui a été produit.
+          - t: Tu arrêtes de suivre ce lot, puisque la conception ne se mesure pas.
+            why: La conception se mesure très bien en livrables : notes de calcul, plans, nomenclature.
+        e: Un gros lot flou se suit au jugé, et le jugé plafonne autour de 90 %. Des lots courts, terminés par un résultat qu'on peut montrer, donnent un avancement qui ne se discute pas.
+        piege: ppi-90-pourcent
+      - id: ppi-wbs.3
+        type: flash
+        level: 1
+        q: Qu'est-ce qu'un lot de travail (work package) ?
+        back: |
+          Le plus bas niveau de la WBS. Il a un responsable unique, un livrable vérifiable, une charge, une durée et un coût estimables, et un critère de fin. C'est l'unité qu'on planifie, qu'on budgète et qu'on suit.
+        e: Un lot se termine par un nom (un plan, une pièce, un rapport), pas par un verbe.
+      - id: ppi-wbs.4
+        type: numeric
+        level: 2
+        q: "Ta première estimation ne compte que la mécanique (280 h) et l'électrique (300 h). La WBS complète ajoute la gestion de projet (140 h), l'intégration et les essais (210 h) et la documentation (70 h). De combien de pour cent faut-il augmenter ta première estimation pour obtenir le total ?"
+        answer: 72.4
+        tol: 0.02
+        unit: "%"
+        calc: (140 + 210 + 70) / (280 + 300) * 100
+        trap_values:
+          - v: 42
+            why: Tu as rapporté l'écart au total complet (420 sur 1 000). La question demande l'augmentation par rapport à ta première estimation.
+          - v: 420
+            why: C'est l'écart en heures, pas en pourcentage.
+          - v: 172.4
+            why: C'est le total exprimé en pourcentage de la première estimation, pas l'augmentation.
+        e: "Heures oubliées : 140 + 210 + 70 = 420 h. Augmentation : 420 / 580 ≈ 0,724, soit +72 %. Le total réel est de 1 000 h, pas de 580 h."
+      - id: ppi-wbs.5
+        type: parsons
+        level: 2
+        lang: text
+        q: Remets dans l'ordre la construction d'une WBS.
+        lines:
+          - Lister les livrables finaux du projet
+          - Les regrouper en grands sous-ensembles au niveau 2
+          - Décomposer chaque sous-ensemble jusqu'aux lots de travail
+          - Vérifier la règle des 100 % (rien ne manque, rien en trop)
+          - Nommer un responsable et un critère de fin pour chaque lot
+          - Faire estimer la charge de chaque lot par son responsable
+        extra:
+          - Placer les lots sur le calendrier et tracer le Gantt
+        e: On part des livrables, on descend jusqu'aux lots, on contrôle la complétude, puis on attribue et on estime. Le calendrier vient après, dans le planning ; la WBS ne contient aucune date.
+  - id: ppi-estimer
+    title: Estimer charges et durées
+    en: Estimating effort and duration
+    goal: Estimer la charge et la durée d'une tâche par analogie, par paramètre ou à trois points (PERT), et dimensionner une provision pour aléas.
+    minutes: 14
+    lesson:
+      steps:
+        - level: 1
+          title: Le trajet du matin
+          body: |
+            Combien de temps pour aller au travail ? Vingt minutes si tout est fluide, vingt-cinq d'habitude, cinquante un jour de neige. Le jour d'un entretien important, tu ne pars pas vingt minutes avant : tu prends de la marge, parce que les retards arrivent plus souvent que les miracles.
+
+            Estimer une tâche, c'est pareil. La bonne réponse n'est pas un chiffre, c'est une fourchette, avec une idée de ce qui peut mal tourner.
+        - level: 2
+          title: Charge, durée et méthodes d'estimation
+          body: |
+            Deux grandeurs à ne jamais confondre :
+
+            - la **charge** (*effort*) : la quantité de travail, en **heures-personnes**. 40 h de charge, ce sont 40 heures de travail d'une personne ;
+            - la **durée** (*duration*) : le temps calendaire entre le début et la fin, en jours ouvrés ou en semaines.
+
+            Le passage de l'une à l'autre :
+
+            $$\text{durée} = \frac{\text{charge}}{\text{personnes} \times \text{heures par semaine} \times \text{disponibilité}} + \text{attentes}$$
+
+            Les attentes, ce sont les livraisons, les séchages, les validations par d'autres.
+
+            Quatre façons d'estimer :
+
+            - **analogique** : on part d'un projet comparable (« le dernier porte-échantillon a demandé 120 h de logiciel ») ; rapide, mais aussi bon que la mémoire et les archives ;
+            - **paramétrique** : un ratio historique multiplié par une quantité (« 4 h par plan de détail, 25 plans : 100 h ») ;
+            - **ascendante** (*bottom-up*) : on estime chaque lot de la WBS et on additionne ;
+            - **à trois points** : une valeur optimiste, une plus probable, une pessimiste (niveau 3).
+
+            Le **biais d'optimisme** (*optimism bias*) touche tout le monde : on estime le scénario où tout va bien, on oublie les interruptions, les réunions, les reprises.
+
+            La **provision pour aléas** (*contingency reserve*) couvre les risques identifiés ; elle est visible et gérée par le chef de projet. La **réserve de management** couvre l'imprévu total ; elle est tenue par le sponsor.
+          check:
+            q: Une tâche de 60 h de charge est confiée à un technicien disponible à 40 % sur ton projet, avec des semaines de 35 h. Quelle durée minimale ?
+            choices:
+              - t: Un peu plus de 4 semaines.
+                ok: true
+              - t: Moins de 2 semaines, puisque 60 h tiennent dans deux semaines de 35 h.
+                why: Tu as oublié la disponibilité. Le technicien ne donne que 0,4 × 35 = 14 h par semaine à ton projet.
+              - t: Moins d'une semaine, puisque 40 % de 60 h font 24 h.
+                why: La disponibilité ralentit le rythme, elle ne réduit pas le travail. Il faut toujours 60 h, à 14 h par semaine, soit 4,3 semaines.
+        - level: 3
+          title: L'estimation à trois points (PERT)
+          body: |
+            Pour une tâche incertaine, demande trois valeurs : **optimiste** $O$, **la plus probable** $M$, **pessimiste** $P$. La méthode PERT, née à la fin des années 1950 pour planifier un grand programme militaire, en tire une moyenne pondérée et un écart-type :
+
+            $$T_e = \frac{O + 4M + P}{6} \qquad \sigma = \frac{P - O}{6}$$
+
+            Les unités sont celles des estimations. Le poids 4 et le 6 au dénominateur viennent d'une approximation de la loi bêta : c'est une convention pratique, pas une loi physique.
+
+            **Exemple.** Usinage du corps chauffant : $O = 4$, $M = 6$, $P = 14$ semaines (si une reprise est nécessaire).
+
+            $$T_e = \frac{4 + 4 \times 6 + 14}{6} = 7 \text{ semaines} \qquad \sigma = \frac{14 - 4}{6} \approx 1{,}7 \text{ semaine}$$
+
+            $T_e$ dépasse $M$ : la queue pessimiste tire la moyenne vers le haut.
+
+            **Sur une chaîne de tâches**, les moyennes s'additionnent, et les **variances** $\sigma^2$ aussi, si les tâches sont indépendantes :
+
+            | Tâche | $O$ | $M$ | $P$ | $T_e$ | $\sigma$ |
+            |---|---|---|---|---|---|
+            | Conception détaillée | 5 | 6 | 9 | 6,33 | 0,67 |
+            | Usinage | 4 | 6 | 14 | 7,00 | 1,67 |
+            | Intégration et essais | 3 | 4 | 8 | 4,50 | 0,83 |
+            | **Chaîne** | | **16** | | **17,83** | **1,98** |
+
+            $$\sigma_{\text{chaîne}} = \sqrt{0{,}67^2 + 1{,}67^2 + 0{,}83^2} \approx 1{,}98 \text{ semaine}$$
+
+            Si tu annonces la somme des valeurs les plus probables, 16 semaines, tu n'as qu'environ une chance sur cinq de la tenir (approximation normale : $z = (16 - 17{,}83)/1{,}98 \approx -0{,}9$). À $T_e + \sigma \approx 20$ semaines, tu as environ 84 % de chances. La différence, 4 semaines, c'est ta **provision pour aléas**, justifiée par le calcul.
+        - level: 4
+          title: Pourquoi on se trompe dans le même sens
+          body: |
+            **Les retards se cumulent, les avances se perdent.** Une tâche finie en avance transmet rarement son avance : on peaufine, on attend la date prévue. Une tâche en retard, elle, décale tout. Le travail tend à remplir le temps disponible, et l'effort se concentre à l'approche de l'échéance. La distribution réelle penche vers la droite.
+
+            **Les chemins qui convergent.** L'intégration attend à la fois le corps usiné et l'armoire câblée. Si chacun a 80 % de chances d'être à l'heure, l'intégration ne démarre à l'heure qu'avec $0{,}8 \times 0{,}8 = 0{,}64$, soit 64 % de chances.
+
+            **L'indépendance est une hypothèse.** Si plusieurs tâches dépendent du même fournisseur ou de la même personne, leurs retards sont liés : la dispersion réelle est plus forte que le calcul.
+
+            **Ajouter du monde ne divise pas la durée.** Deux personnes ne câblent pas une armoire deux fois plus vite : il faut se coordonner, se partager les plans, former le nouveau venu. Sur une tâche déjà en retard, renforcer l'équipe peut même la ralentir au début.
+
+            > [!piege] 40 heures, donc une semaine ?
+            > Une charge n'est pas une durée. Écris toujours l'unité, et convertis avec la disponibilité réelle et les attentes.
+
+            **La provision doit rester visible.** Si chacun gonfle en douce sa propre estimation, la marge est consommée tâche par tâche. Mieux vaut des estimations honnêtes et une provision commune, en fin de chaîne, gérée par le chef de projet.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            **Ce que tu fais.**
+
+            - Fais estimer chaque tâche par la personne qui la fera, avec trois valeurs, pas une.
+            - Écris toujours l'unité : « 40 h de charge » ou « 3 semaines de durée ».
+            - Demande les délais fournisseurs par écrit, sur le devis ; ne les devine pas.
+            - Compare avec les heures réelles des projets précédents, si elles ont été archivées.
+            - Annonce une date avec un niveau de confiance : « 18 semaines au plus probable, 20 avec une bonne confiance ».
+
+            **Phrases utiles.**
+
+            - « C'est une charge ou une durée ? Tu es à combien sur ce projet ? »
+            - *"Is that effort or elapsed time?"*
+            - *"What's your best case, worst case and most likely?"*
+            - *"Our estimate is 18 weeks, plus a two-week contingency."*
+
+            **Erreurs fréquentes.**
+
+            - Une seule valeur, la plus probable, présentée comme une promesse.
+            - Estimer à la place de ceux qui feront le travail.
+            - Oublier les reprises, les relectures, les essais ratés.
+            - Cacher une marge dans chaque tâche au lieu d'une provision commune.
+      recap:
+        - "La charge se compte en heures-personnes, la durée en temps calendaire ; durée = charge / (heures par semaine × disponibilité × personnes) + attentes."
+        - "Méthodes : analogique (projet comparable), paramétrique (ratio × quantité), ascendante (somme des lots), à trois points."
+        - "PERT : Te = (O + 4M + P)/6 et σ = (P − O)/6 ; sur une chaîne, les moyennes et les variances s'additionnent."
+        - "La somme des valeurs les plus probables est une date optimiste, tenue bien moins d'une fois sur deux."
+        - "La provision pour aléas est visible, commune et gérée par le chef de projet ; elle se justifie par le calcul ou par les risques."
+      pieges: [ppi-charge-duree, ppi-planning-sans-marge]
+    vocab:
+      - charge = effort
+      - durée = duration
+      - heures-personnes = person-hours
+      - estimation à trois points = three-point estimate
+      - provision pour aléas = contingency reserve
+      - biais d'optimisme = optimism bias
+    exercises:
+      - id: ppi-estimer.1
+        type: qcm
+        level: 1
+        q: Quelle est la différence entre la charge et la durée d'une tâche ?
+        choices:
+          - t: La charge est la quantité de travail en heures-personnes ; la durée est le temps calendaire entre le début et la fin.
+            ok: true
+          - t: Ce sont deux mots pour la même chose, l'un plus formel que l'autre.
+            why: C'est la confusion la plus coûteuse en planification. 40 h de charge peuvent durer une semaine ou trois.
+          - t: La charge est le coût en euros, la durée est le temps de travail.
+            why: Le coût se déduit de la charge (heures × taux), mais la charge reste un temps de travail, en heures-personnes.
+          - t: La durée se compte en heures-personnes, la charge en semaines.
+            why: C'est l'inverse ; la charge en heures-personnes, la durée en temps calendaire.
+        e: Entre les deux, il y a la disponibilité réelle des personnes et les attentes. On estime d'abord la charge, puis on en déduit la durée.
+        piege: ppi-charge-duree
+      - id: ppi-estimer.2
+        type: qcm
+        level: 2
+        q: Le fournisseur du régulateur te dit « en général 5 semaines, 4 au mieux, 10 en cas de rupture de stock ». Quelle durée retiens-tu pour le planning ?
+        choices:
+          - t: Environ 6 semaines, la moyenne PERT, et tu commandes dès que possible.
+            ok: true
+          - t: 4 semaines, puisque le fournisseur dit que c'est possible.
+            why: C'est la valeur optimiste. Un planning bâti sur des valeurs optimistes est en retard dès le premier aléa.
+          - t: 10 semaines, pour ne prendre aucun risque.
+            why: Prendre le pire partout rend le planning infaisable et cache la marge. On prend la moyenne et on gère l'écart par une provision.
+          - t: 5 semaines, la valeur la plus probable.
+            why: Elle ignore la queue pessimiste. La moyenne vaut (4 + 4 × 5 + 10)/6 ≈ 5,7 semaines.
+        e: "PERT : (4 + 4 × 5 + 10)/6 = 34/6 ≈ 5,7 semaines, soit environ 6, avec σ = (10 − 4)/6 = 1 semaine. Et comme le délai ne court qu'à partir de la commande, commander tôt reste la meilleure protection."
+      - id: ppi-estimer.3
+        type: flash
+        level: 1
+        q: Donne les formules de l'estimation à trois points (PERT).
+        back: |
+          Durée moyenne $T_e = (O + 4M + P)/6$ et écart-type $\sigma = (P - O)/6$, avec $O$ optimiste, $M$ la plus probable, $P$ pessimiste. Sur une chaîne de tâches indépendantes, les moyennes s'additionnent, et les variances $\sigma^2$ aussi.
+        e: Quatre fois la plus probable, une fois chaque extrême, le tout sur six.
+      - id: ppi-estimer.4
+        type: numeric
+        level: 2
+        q: "L'usinage d'une pièce est estimé à 3 semaines au mieux, 5 semaines le plus probablement et 13 semaines au pire. Quelle est la durée moyenne PERT, en semaines ?"
+        answer: 6
+        tol: 0.02
+        unit: semaines
+        calc: (3 + 4 * 5 + 13) / 6
+        trap_values:
+          - v: 5
+            why: C'est la valeur la plus probable seule ; elle ignore l'asymétrie vers le pessimiste.
+          - v: 7
+            why: C'est la moyenne simple des trois valeurs ; PERT pondère la plus probable par 4.
+          - v: 3.5
+            why: Tu as divisé par 6 sans multiplier la valeur la plus probable par 4.
+        e: "Te = (3 + 4 × 5 + 13)/6 = 36/6 = 6 semaines, avec σ = (13 − 3)/6 ≈ 1,7 semaine. La moyenne dépasse la valeur la plus probable d'une semaine : c'est le poids du scénario pessimiste."
+      - id: ppi-estimer.5
+        type: numeric
+        level: 2
+        q: "Le câblage de l'armoire représente 90 h de charge. Le technicien est disponible à 50 % sur ton projet, sur des semaines de 35 h. Il faut ensuite 1 semaine d'attente pour le contrôle par un électricien habilité. Quelle est la durée totale, en semaines ?"
+        answer: 6.14
+        tol: 0.03
+        unit: semaines
+        calc: 90 / (0.5 * 35) + 1
+        trap_values:
+          - v: 3.57
+            why: Tu as oublié la disponibilité de 50 % ; le technicien ne donne que 17,5 h par semaine à ton projet.
+          - v: 5.14
+            why: Tu as oublié la semaine d'attente du contrôle.
+          - v: 2.57
+            why: Tu as divisé la charge par 35 h comme si le technicien était à plein temps, et oublié l'attente.
+        e: "90 / (0,5 × 35) = 90 / 17,5 ≈ 5,14 semaines de travail, plus 1 semaine d'attente : 6,14 semaines. La même charge, à plein temps et sans attente, ne durerait que 2,6 semaines."
+        piege: ppi-charge-duree
+  - id: ppi-planning
+    title: Gantt, réseau PERT et chemin critique
+    en: Gantt chart, PERT network and critical path
+    goal: Calculer les dates au plus tôt et au plus tard, les marges et le chemin critique d'un petit réseau de tâches, puis savoir où agir pour raccourcir le projet.
+    minutes: 16
+    lesson:
+      steps:
+        - level: 1
+          title: Le repas du dimanche
+          body: |
+            Le poulet cuit 35 minutes, puis la sauce se fait en 10 minutes avec son jus. Le riz cuit 20 minutes, et la table se met n'importe quand. À quelle heure peut-on manger ? Au plus tôt 45 minutes après le début : la chaîne poulet puis sauce l'impose.
+
+            Le riz, lui, a de la marge : tu peux le lancer jusqu'à 25 minutes après le début sans retarder le repas. Mais si le poulet prend 5 minutes de retard, tout le repas en prend 5. Cette chaîne la plus longue, sans aucune marge, c'est le **chemin critique**.
+        - level: 2
+          title: Réseau, dates, marges
+          body: |
+            Une **tâche** a une durée et des **prédécesseurs**. Le lien le plus courant est **fin-début** (*finish-to-start*) : B commence quand A est finie. Il existe aussi des liens début-début et fin-fin, avec parfois un décalage (une semaine de séchage).
+
+            Le **réseau PERT** représente les tâches et leurs liens. On le parcourt deux fois :
+
+            - **passe avant** : la **date de début au plus tôt** d'une tâche est la plus grande des dates de fin au plus tôt de ses prédécesseurs ;
+            - **passe arrière** : en partant de la fin du projet, la **date de fin au plus tard** d'une tâche est la plus petite des dates de début au plus tard de ses successeurs.
+
+            On en tire deux marges :
+
+            - la **marge totale** (*total float*) = début au plus tard − début au plus tôt : le retard possible sans retarder la fin du projet ;
+            - la **marge libre** (*free float*) : le retard possible sans retarder le début au plus tôt d'aucun successeur.
+
+            Le **chemin critique** (*critical path*) est la suite de tâches à marge totale nulle. Sa longueur est la durée minimale du projet. Un **jalon** est une tâche de durée nulle.
+
+            Le **diagramme de Gantt** place les tâches en barres sur un calendrier. Le réseau calcule ; le Gantt communique. Un Gantt sans liens entre les barres n'est qu'un dessin.
+
+            Un **délai d'approvisionnement** (*lead time*) est une tâche à part entière : « livraison du régulateur, 8 semaines ». Il est souvent sur le chemin critique.
+          check:
+            q: La tâche C a une marge totale de 3 jours et une marge libre nulle. Elle prend 2 jours de retard. Que se passe-t-il ?
+            choices:
+              - t: La fin du projet ne bouge pas, mais le successeur de C démarre 2 jours plus tard.
+                ok: true
+              - t: Le projet entier prend 2 jours de retard.
+                why: La marge totale de 3 jours absorbe ce retard ; la fin du projet ne bouge pas.
+              - t: Rien ne bouge, ni le projet ni les autres tâches.
+                why: La marge libre est nulle, donc le successeur de C est décalé, même si la fin du projet ne l'est pas.
+        - level: 3
+          title: Calculer le chemin critique
+          body: |
+            Le réseau du porte-échantillon, en semaines :
+
+            | Tâche | Contenu | Durée | Prédécesseurs |
+            |---|---|---|---|
+            | A | Conception détaillée | 6 | — |
+            | B | Commande et livraison du régulateur | 5 | A |
+            | C | Usinage du corps chauffant | 7 | A |
+            | D | Câblage de l'armoire | 3 | B |
+            | E | Assemblage mécanique | 2 | C |
+            | F | Intégration et essais | 4 | D, E |
+
+            **Passe avant.** A va de 0 à 6. B et C commencent à 6 ; B finit à 11, C à 13. D va de 11 à 14, E de 13 à 15. F attend D et E : elle commence à $\max(14, 15) = 15$ et finit à 19. **Durée du projet : 19 semaines.**
+
+            **Passe arrière.** F doit commencer au plus tard à $19 - 4 = 15$. D doit donc commencer à 12, et E à 13. B doit finir quand D commence, à 12, donc commencer à 7 ; C doit commencer à $13 - 7 = 6$. A doit finir à $\min(7, 6) = 6$.
+
+            **Marges.** B et D ont une marge totale de 1 semaine, qu'elles **partagent** : si B la consomme, D n'en a plus. La marge libre de B est nulle (D attend B), celle de D vaut 1. Le chemin critique est **A → C → E → F** : $6 + 7 + 2 + 4 = 19$.
+
+            Le programme ci-dessous refait ce calcul ; change une durée pour voir le chemin critique bouger.
+
+            **Compresser.** Pour gagner du temps, on agit sur le chemin critique : payer l'urgence (C de 7 à 5 semaines pour 2 000 €) ou chevaucher des tâches. Mais avec C à 5 semaines, A → C → E → F dure 17 semaines et A → B → D → F en dure 18 : le chemin critique a changé, et on ne gagne qu'**une** semaine, pas deux.
+          code: |
+            # Réseau : tâche -> (durée en semaines, prédécesseurs), dans l'ordre
+            taches = {
+                "A": (6, []),          # conception détaillée
+                "B": (5, ["A"]),       # commande et livraison du régulateur
+                "C": (7, ["A"]),       # usinage du corps chauffant
+                "D": (3, ["B"]),       # câblage de l'armoire
+                "E": (2, ["C"]),       # assemblage mécanique
+                "F": (4, ["D", "E"]),  # intégration et essais
+            }
+            tot, tard = {}, {}
+            for t, (d, preds) in taches.items():  # passe avant : début au plus tôt
+                tot[t] = max([tot[p] + taches[p][0] for p in preds], default=0)
+            fin = max(tot[t] + d for t, (d, _) in taches.items())
+            for t in reversed(list(taches)):  # passe arrière : début au plus tard
+                succ = [s for s in taches if t in taches[s][1]]
+                tard[t] = min([tard[s] for s in succ], default=fin) - taches[t][0]
+            print(f"Durée du projet : {fin} semaines")
+            for t in taches:
+                marge = tard[t] - tot[t]
+                etat = "critique" if marge == 0 else f"marge totale {marge} sem."
+                print(f"{t} : début au plus tôt {tot[t]:>2}, au plus tard {tard[t]:>2} -> {etat}")
+            print("Chemin critique :", " -> ".join(t for t in taches if tard[t] == tot[t]))
+          run: true
+          out: |
+            Durée du projet : 19 semaines
+            A : début au plus tôt  0, au plus tard  0 -> critique
+            B : début au plus tôt  6, au plus tard  7 -> marge totale 1 sem.
+            C : début au plus tôt  6, au plus tard  6 -> critique
+            D : début au plus tôt 11, au plus tard 12 -> marge totale 1 sem.
+            E : début au plus tôt 13, au plus tard 13 -> critique
+            F : début au plus tôt 15, au plus tard 15 -> critique
+            Chemin critique : A -> C -> E -> F
+        - level: 4
+          title: Ce que le calcul ne dit pas
+          body: |
+            **Les ressources ne sont pas infinies.** Le calcul suppose que chaque tâche a ses ressources. Si le même technicien câble l'armoire (D) et assemble la mécanique (E), ces tâches ne peuvent plus être en parallèle : il faut **lisser** la charge, et la durée s'allonge. La méthode de la **chaîne critique** tient compte des ressources et regroupe les marges en un tampon commun en fin de projet.
+
+            **Les chemins presque critiques comptent.** Un chemin avec une semaine de marge devient critique au premier retard. Surveille-le autant que le chemin critique.
+
+            **Les convergences retardent.** F attend D et E. Même si chacune a de bonnes chances d'être à l'heure, la probabilité que les deux le soient est plus faible.
+
+            **Le calendrier réel.** Une livraison de 8 semaines commandée le 20 juillet n'arrive pas mi-septembre si le fournisseur ferme en août. Intègre congés, fermetures et jours fériés.
+
+            **Les délais d'appro sont des tâches.** Ne les cache pas dans un décalage sur un lien : une tâche « livraison » a une date de commande au plus tard, un responsable et un statut qu'on suit.
+
+            > [!piege] Le planning sans marge ni délais d'appro
+            > Un planning tendu bout à bout, sans délais fournisseurs ni provision, est faux dès la première commande en retard. Mets les livraisons dans le réseau et garde une provision en fin de chemin critique.
+
+            > [!piege] La charge prise pour une durée
+            > Une tâche de 90 h n'occupe pas 90 h de calendrier. Entre les deux : la disponibilité de la personne et les attentes.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            **Ce que tu fais.**
+
+            - Pour 20 à 30 tâches, un tableur suffit ; au-delà, un logiciel de planification. L'outil compte moins que la discipline.
+            - Un planning de pilotage tient en 20 à 60 lignes : jalons visibles, chemin critique en évidence, une ligne « aujourd'hui ».
+            - Mets chaque livraison comme une tâche, avec la date de commande au plus tard.
+            - Ajoute les congés de l'équipe et les fermetures des fournisseurs.
+            - Mets à jour chaque semaine avec l'avancement réel, et garde le planning de référence pour comparer.
+
+            **Phrases utiles.**
+
+            - « Qu'est-ce qui est sur le chemin critique cette semaine ? »
+            - *"What's on the critical path?"*
+            - *"We have one week of float on the wiring."*
+            - *"The lead time is eight weeks, so the order must go out by week 12."*
+
+            **Erreurs fréquentes.**
+
+            - Un Gantt sans liens, aux dates saisies à la main : il ne recalcule rien quand une tâche glisse.
+            - Payer pour accélérer une tâche qui n'est pas critique.
+            - Oublier qu'en compressant, le chemin critique peut changer.
+      recap:
+        - "Passe avant : début au plus tôt = plus grande fin au plus tôt des prédécesseurs. Passe arrière : fin au plus tard = plus petit début au plus tard des successeurs."
+        - "Marge totale = début au plus tard − début au plus tôt ; la marge libre est le retard possible sans décaler aucun successeur."
+        - "Le chemin critique est la suite de tâches à marge totale nulle ; sa longueur est la durée minimale du projet."
+        - "Pour raccourcir le projet, on n'agit que sur le chemin critique, et on vérifie qu'un autre chemin ne devient pas critique."
+        - "Les délais d'approvisionnement sont des tâches du réseau, avec une date de commande au plus tard."
+      pieges: [ppi-planning-sans-marge, ppi-charge-duree]
+    vocab:
+      - chemin critique = critical path
+      - marge totale = total float
+      - marge libre = free float
+      - délai d'approvisionnement = lead time
+      - diagramme de Gantt = Gantt chart
+      - début au plus tôt = early start
+    exercises:
+      - id: ppi-planning.1
+        type: qcm
+        level: 1
+        q: Dans le réseau du cours, le chemin critique est A → C → E → F. Pour tenir la date, ton responsable propose de payer des heures supplémentaires sur le câblage (tâche D, marge totale 1 semaine). Qu'en penses-tu ?
+        choices:
+          - t: C'est inutile pour la date ; D n'est pas critique, il faut agir sur A, C, E ou F.
+            ok: true
+          - t: C'est une bonne idée, car toute tâche raccourcie fait gagner du temps au projet.
+            why: Raccourcir une tâche qui a de la marge augmente sa marge, pas la vitesse du projet.
+          - t: C'est une bonne idée, à condition de raccourcir aussi la tâche B.
+            why: Le chemin A → B → D → F dure 18 semaines contre 19 pour le chemin critique ; le raccourcir ne change pas la fin.
+          - t: On ne peut pas le savoir sans redessiner le Gantt à la main.
+            why: Les marges calculées suffisent ; une tâche à marge non nulle n'est pas critique.
+        e: La durée du projet est celle du chemin critique. Tout euro dépensé ailleurs ne fait gagner aucun jour. Le bon réflexe est de demander d'abord « est-ce critique ? ».
+      - id: ppi-planning.2
+        type: qcm
+        level: 2
+        q: Ton planning place la commande du régulateur (délai fournisseur 8 semaines) juste après la revue de conception détaillée, en semaine 17. Le câblage doit commencer en semaine 22. Que fais-tu ?
+        choices:
+          - t: Tu ajoutes la livraison comme une tâche de 8 semaines liée au câblage, et tu commandes plus tôt si le choix du régulateur peut être figé avant la revue.
+            ok: true
+          - t: Rien ; le câblage peut commencer avec un régulateur prêté par un autre service.
+            why: Câbler sur un appareil différent, c'est risquer de tout reprendre à l'arrivée du vrai. Le problème de planning reste entier.
+          - t: Tu demandes au fournisseur de livrer en 5 semaines.
+            why: Tu peux le demander, mais sans engagement écrit ce n'est qu'un espoir ; et le planning reste faux tant que la livraison n'y figure pas.
+          - t: Tu décales le câblage en semaine 25 sans prévenir personne.
+            why: Le décalage peut toucher le chemin critique et la date de fin ; il doit être visible et décidé.
+        e: Semaine 17 + 8 semaines = semaine 25, trois semaines après le début prévu du câblage. Un délai d'appro est une tâche du réseau. Figer tôt les composants à long délai, quitte à valider le reste plus tard, est souvent la meilleure parade.
+        piege: ppi-planning-sans-marge
+      - id: ppi-planning.3
+        type: flash
+        level: 1
+        q: Quelle est la différence entre marge totale et marge libre ?
+        back: |
+          Marge totale : le retard possible d'une tâche sans retarder la fin du projet (début au plus tard − début au plus tôt). Marge libre : le retard possible sans retarder le début au plus tôt d'aucun successeur. La marge totale se partage le long d'un chemin ; la marge libre appartient à la tâche.
+        e: Pour la marge totale, on regarde la fin du projet ; pour la marge libre, la tâche suivante.
+      - id: ppi-planning.4
+        type: numeric
+        level: 2
+        q: |
+          Quelle est la durée minimale de ce projet, en jours ?
+
+          | Tâche | Durée (jours) | Prédécesseurs |
+          |---|---|---|
+          | A | 3 | — |
+          | B | 5 | A |
+          | C | 2 | A |
+          | D | 4 | C |
+          | E | 3 | B, D |
+        answer: 12
+        tol: 0.02
+        unit: jours
+        calc: 3 + 2 + 4 + 3
+        trap_values:
+          - v: 11
+            why: C'est le chemin A → B → E. Le chemin A → C → D → E est plus long.
+          - v: 17
+            why: C'est la somme de toutes les durées, comme si les tâches étaient en série. B se déroule en parallèle de C et D.
+          - v: 9
+            why: Tu t'es arrêté à D et tu as oublié la dernière tâche, E, qui attend B et D.
+        e: "Deux chemins : A → B → E = 3 + 5 + 3 = 11 jours, et A → C → D → E = 3 + 2 + 4 + 3 = 12 jours. Le chemin critique est A → C → D → E, et B a une marge totale de 1 jour : la tâche la plus longue n'est pas forcément critique."
+      - id: ppi-planning.5
+        type: numeric
+        level: 3
+        q: |
+          Dans ce réseau (durées en semaines), on paie un usinage en urgence qui ramène C de 7 à 5 semaines. De combien de semaines le projet raccourcit-il ?
+
+          | Tâche | Durée | Prédécesseurs |
+          |---|---|---|
+          | A | 6 | — |
+          | B | 5 | A |
+          | C | 7 | A |
+          | D | 3 | B |
+          | E | 2 | C |
+          | F | 4 | D, E |
+        answer: 1
+        tol: 0.02
+        unit: semaine
+        calc: (6 + 7 + 2 + 4) - (6 + 5 + 3 + 4)
+        trap_values:
+          - v: 2
+            why: Tu as supposé que le chemin critique restait le même. Avec C à 5 semaines, A → B → D → F (18 semaines) devient critique.
+          - v: 0
+            why: C est bien sur le chemin critique initial ; le raccourcir fait gagner du temps, jusqu'à ce qu'un autre chemin prenne le relais.
+        e: "Avant : A → C → E → F = 6 + 7 + 2 + 4 = 19 semaines. Après : A → C → E → F = 17 et A → B → D → F = 6 + 5 + 3 + 4 = 18. Le projet passe à 18 semaines : on a payé deux semaines pour n'en gagner qu'une."
+  - id: ppi-risques
+    title: Gérer les risques
+    en: Risk management
+    goal: Identifier, coter et traiter les risques d'un projet dans un registre vivant, en calculant leur criticité et la valeur d'une action de réduction.
+    minutes: 14
+    lesson:
+      steps:
+        - level: 1
+          title: La randonnée en montagne
+          body: |
+            Avant une randonnée en montagne, tu regardes la météo, tu prends une frontale « au cas où », tu fixes une heure de demi-tour et tu laisses ton itinéraire à quelqu'un. Tu ne supprimes pas l'orage ; tu as décidé d'avance quoi faire s'il arrive.
+
+            Gérer les risques d'un projet, c'est exactement ça : réfléchir avant, quand les options sont nombreuses et bon marché, plutôt qu'improviser après.
+        - level: 2
+          title: Identifier, évaluer, répondre, suivre
+          body: |
+            Un **risque** est un événement incertain qui, s'il survient, touche les objectifs : délai, coût, performance, sécurité. On l'écrit en trois temps, **cause, événement, conséquence** : « un seul sous-traitant sait usiner le corps en cuivre ; il peut livrer en retard ; l'intégration glisserait de 4 semaines ».
+
+            Un **problème** (*issue*) est un risque qui s'est produit : il est certain, on le traite par un plan d'action. Une **opportunité** est un risque positif.
+
+            Le cycle de gestion :
+
+            1. **Identifier** : séance avec l'équipe, retours d'expérience, listes de contrôle, relecture des hypothèses du cadrage.
+            2. **Évaluer** : **probabilité** $P$ et **impact** $I$ sur une échelle de 1 à 4, puis **criticité** $C = P \times I$.
+            3. **Répondre**, pour une menace :
+               - **éviter** : changer le plan pour supprimer la cause (une pièce du catalogue au lieu d'une pièce spéciale) ;
+               - **réduire** (ou atténuer) : baisser la probabilité ou l'impact (second fournisseur, essai précoce) ;
+               - **transférer** : faire porter tout ou partie de l'impact par un tiers (contrat, pénalités, assurance) ;
+               - **accepter** : ne rien faire de plus, en gardant une provision et un plan de repli.
+            4. **Suivre** : revoir, mettre à jour, fermer les risques dont la fenêtre est passée.
+
+            Le *PMBOK Guide* ajoute une cinquième réponse, **remonter** (*escalate*) : signaler au niveau supérieur un risque qui dépasse le projet.
+
+            Le **registre des risques** (*risk register*) rassemble tout : identifiant, description, propriétaire, $P$, $I$, criticité, réponse, actions et échéances, statut. Chaque risque a **un propriétaire** (*risk owner*) : la personne qui le surveille et déclenche les actions.
+          check:
+            q: « Le fournisseur des cartouches chauffantes a annoncé hier 3 semaines de retard. » Est-ce un risque ?
+            choices:
+              - t: Non, c'est un problème ; il est certain, on le traite par un plan d'action.
+                ok: true
+              - t: Oui, un risque de probabilité maximale, à coter 4 sur 4.
+                why: Un événement certain n'est plus incertain ; on ne le cote pas, on le traite.
+              - t: Oui, tant qu'on n'a pas mesuré son impact sur le planning.
+                why: Ignorer l'impact ne rend pas l'événement incertain ; c'est déjà un problème, dont on évalue les conséquences.
+        - level: 3
+          title: Coter et chiffrer une réponse
+          body: |
+            **Les échelles** doivent être écrites, sinon chacun cote à sa façon. Exemple :
+
+            | Note | Probabilité | Impact délai | Impact coût |
+            |---|---|---|---|
+            | 1 | moins de 10 % | moins d'une semaine | moins de 1 k€ |
+            | 2 | 10 à 30 % | 1 à 2 semaines | 1 à 5 k€ |
+            | 3 | 30 à 60 % | 2 à 4 semaines | 5 à 15 k€ |
+            | 4 | plus de 60 % | plus de 4 semaines | plus de 15 k€ |
+
+            Criticité $C = P \times I$, de 1 à 16. Seuils possibles : 9 et plus, rouge, action obligatoire ; 4 à 8, orange, action ou surveillance ; 3 et moins, vert, on accepte et on surveille.
+
+            | Risque | $P$ | $I$ | $C$ | Réponse |
+            |---|---|---|---|---|
+            | Retard d'usinage du corps (sous-traitant unique) | 3 | 3 | 9 | Réduire : second usineur consulté |
+            | Fuite du passage étanche sous vide | 2 | 4 | 8 | Réduire : test d'étanchéité avant intégration |
+            | Atelier interne indisponible en mars (hypothèse) | 2 | 2 | 4 | Accepter : vérifier en janvier, sous-traitance en repli |
+
+            **La valeur attendue.** Pour savoir si une action vaut son coût, chiffre l'impact en euros et calcule la **valeur monétaire attendue** (*expected monetary value*) :
+
+            $$VMA = p \times \text{impact}$$
+
+            Retard d'usinage : probabilité 40 %, impact 4 semaines à 2 900 € la semaine, soit 11 600 €.
+
+            - Sans action : $0{,}4 \times 11\,600 = 4\,640$ €.
+            - Qualifier un second usineur coûte 1 200 € et ramène la probabilité à 10 % : $0{,}1 \times 11\,600 = 1\,160$ €.
+            - Gain net : $4\,640 - 1\,160 - 1\,200 = 2\,280$ €. L'action vaut le coup.
+
+            La somme des valeurs attendues des risques acceptés donne un ordre de grandeur de la **provision pour aléas**.
+        - level: 4
+          title: Les limites de la matrice
+          body: |
+            **Multiplier des notes est une convention.** Les notes de 1 à 4 sont des rangs, pas des mesures : un risque coté 1 × 4 n'est pas « équivalent » à un 2 × 2. La matrice sert à trier ; pour décider, chiffre en semaines ou en euros.
+
+            **La sécurité ne se négocie pas.** Une brûlure à 300 °C, une électrocution, une implosion sous vide : ces risques ne s'« acceptent » pas après un calcul de valeur attendue. Ils se traitent par la conception et les règles de sécurité ; pour une machine, l'appréciation du risque suit la norme ISO 12100.
+
+            **Une réponse crée parfois un risque.** Le second usineur ne connaît pas tes plans : risque de non-conformité. C'est un **risque secondaire** ; ce qui reste après la réponse est le **risque résiduel**.
+
+            **Les risques oubliés sont rarement techniques.** On pense à la fuite et à la surchauffe ; on oublie le départ d'une personne clé, l'atelier pris par une urgence, la commande bloquée par la clôture budgétaire de fin d'année.
+
+            **Les signes avant-coureurs.** Pour chaque risque important, note ce qui annonce qu'il approche : « le sous-traitant ne répond plus aux mails », « la pièce d'essai n'est pas arrivée en semaine 12 ». C'est ce qui déclenche le plan de repli à temps.
+
+            > [!piege] Le risque connu qui dort dans le registre
+            > Un risque sans propriétaire ni action datée n'est pas géré, il est seulement documenté. Bien des « surprises » de fin de projet figuraient déjà dans le registre du lancement.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            **Ce que tu fais.**
+
+            - Au lancement, une séance d'une heure avec l'équipe : « Qu'est-ce qui pourrait nous empêcher de tenir la date, le budget, les performances ? »
+            - Un tableur partagé suffit : 10 à 30 risques pour un projet de cette taille.
+            - Chaque risque a un propriétaire nommé, une action, une échéance et un signe avant-coureur.
+            - À chaque point d'équipe, les cinq risques les plus critiques ; une fois par mois et à chaque jalon, tout le registre.
+            - Un risque qui se produit passe au plan d'action ; un risque dont la fenêtre est passée se ferme.
+
+            **Phrases utiles.**
+
+            - « Qu'est-ce qui t'inquiète le plus sur ce projet ? »
+            - *"What keeps you up at night on this project?"*
+            - *"Who owns this risk?"*
+            - *"This risk has materialised; it's now an issue, let's switch to the action plan."*
+
+            **Erreurs fréquentes.**
+
+            - Un registre rempli au lancement, puis jamais rouvert.
+            - Des risques vagues (« problème technique ») qu'on ne peut pas traiter.
+            - Un propriétaire collectif : « l'équipe ».
+            - Coter des événements déjà arrivés au lieu de les traiter.
+      recap:
+        - "Un risque est incertain et futur, un problème est certain ; on écrit un risque en cause, événement, conséquence."
+        - "Criticité = probabilité × impact, sur des échelles écrites à l'avance ; elle sert à trier, pas à décider seule."
+        - "Réponses à une menace : éviter, réduire, transférer, accepter, ou remonter au niveau supérieur."
+        - "Valeur attendue = probabilité × impact en euros ; une action vaut le coup si elle fait baisser la valeur attendue de plus que ce qu'elle coûte."
+        - "Chaque risque a un propriétaire unique, une action datée et un signe avant-coureur ; le registre se revoit en réunion, régulièrement."
+      pieges: [ppi-risque-dort]
+    vocab:
+      - registre des risques = risk register
+      - propriétaire du risque = risk owner
+      - réduire, atténuer = mitigate
+      - transférer = transfer
+      - problème avéré = issue
+      - valeur monétaire attendue = expected monetary value (EMV)
+    exercises:
+      - id: ppi-risques.1
+        type: qcm
+        level: 1
+        q: Pour supprimer le risque de retard du sous-traitant unique, tu remplaces le corps usiné sur plan par une pièce standard du catalogue d'un fabricant. Quelle réponse au risque est-ce ?
+        choices:
+          - t: Éviter, car tu supprimes la cause du risque.
+            ok: true
+          - t: Réduire, car tu diminues la probabilité de retard.
+            why: Réduire garde la cause et en limite la probabilité ou l'impact ; ici, la cause, le sous-traitant unique, disparaît.
+          - t: Transférer, car c'est désormais le fabricant qui porte le risque.
+            why: Transférer, c'est faire porter l'impact par un tiers sur la même solution, par contrat ou assurance. Ici, tu as changé de solution.
+          - t: Accepter, car tu as changé de pièce sans rien négocier.
+            why: Accepter, c'est garder le risque tel quel, avec une provision ; ici, tu as modifié le plan.
+        e: Éviter, c'est changer le plan pour que le risque n'existe plus. C'est souvent la réponse la plus efficace, et elle a son propre coût, ici une pièce standard peut-être moins bien adaptée.
+      - id: ppi-risques.2
+        type: qcm
+        level: 2
+        q: Au lancement, l'équipe a inscrit « le passage étanche peut fuir sous vide », criticité 8, action « test d'étanchéité du sous-ensemble ». Trois mois plus tard, à l'intégration, ça fuit ; le test n'a jamais été fait. Quelle est la vraie faute ?
+        choices:
+          - t: Le risque n'avait ni propriétaire ni échéance, et le registre n'a jamais été revu.
+            ok: true
+          - t: La criticité était sous-estimée ; il fallait coter 16.
+            why: La cotation n'a rien changé ; l'action prévue était la bonne, elle n'a simplement jamais été faite.
+          - t: Il fallait transférer le risque au fournisseur du passage étanche.
+            why: Possible, mais même transféré, un risque se suit. La cause racine est l'absence de suivi.
+          - t: Aucune ; un risque identifié est un risque maîtrisé.
+            why: Identifier n'est que la première étape. Sans action suivie, le risque est seulement documenté.
+        e: Un risque est géré quand une personne précise porte une action datée, revue en réunion. Ici, l'action était connue et peu coûteuse ; c'est le suivi qui a manqué.
+        piege: ppi-risque-dort
+      - id: ppi-risques.3
+        type: flash
+        level: 1
+        q: Quelle est la différence entre un risque et un problème ?
+        back: |
+          Un risque est incertain et futur : on le prévient, dans le registre des risques. Un problème est certain, il s'est produit : on le traite, dans le plan d'action. Un risque qui se réalise devient un problème.
+        e: Le risque, c'est peut-être demain ; le problème, c'est déjà là.
+      - id: ppi-risques.4
+        type: numeric
+        level: 2
+        q: "Retard d'usinage : probabilité 40 %, coût s'il survient 4 semaines à 2 900 € la semaine. Une action qui coûte 1 200 € ramène la probabilité à 10 %. Quel est le gain net attendu de l'action, en euros ?"
+        answer: 2280
+        tol: 0.02
+        unit: "€"
+        calc: (0.4 - 0.1) * 4 * 2900 - 1200
+        trap_values:
+          - v: 3480
+            why: Tu as oublié de retirer le coût de l'action, 1 200 €.
+          - v: 3440
+            why: Tu as supposé que l'action supprimait complètement le risque ; il reste 10 % de probabilité.
+          - v: 4640
+            why: C'est la valeur attendue du risque sans action, pas le gain de l'action.
+        e: "Impact : 4 × 2 900 = 11 600 €. Valeur attendue avant : 0,4 × 11 600 = 4 640 €. Après : 0,1 × 11 600 = 1 160 €. Gain net : 4 640 − 1 160 − 1 200 = 2 280 €. L'action est rentable."
+      - id: ppi-risques.5
+        type: parsons
+        level: 1
+        lang: text
+        q: Remets dans l'ordre le traitement d'un risque, de sa découverte à son suivi.
+        lines:
+          - Formuler le risque en cause, événement et conséquence
+          - Coter la probabilité et l'impact
+          - Calculer la criticité et classer le risque
+          - Choisir une réponse et nommer un propriétaire
+          - Planifier l'action avec une échéance
+          - Revoir le risque au point d'équipe suivant
+        extra:
+          - Attendre qu'il survienne pour mesurer son impact réel
+        e: On ne cote qu'un risque bien formulé, et on ne choisit une réponse qu'après l'avoir classé. Le dernier temps, la revue, est celui qu'on oublie ; c'est lui qui fait qu'une action a vraiment lieu.
+        piege: ppi-risque-dort
+  - id: ppi-budget
+    title: Budget et coûts
+    en: Project budget and cost control
+    goal: Construire le coût complet d'un projet, distinguer budget, engagé, payé et reste à faire, puis calculer l'atterrissage et l'écart.
+    minutes: 13
+    lesson:
+      steps:
+        - level: 1
+          title: Le compte en banque et le devis
+          body: |
+            Tu fais refaire ta salle de bain. Ton compte affiche 3 200 €. Mais tu as signé le devis du plombier, 2 500 €, qu'il facturera à la fin des travaux. L'argent est encore là ; il n'est plus libre. Ton vrai solde est de 700 €.
+
+            Le budget d'un projet se lit de la même façon. Il ne suffit pas de regarder ce qui est déjà parti : il faut compter ce qui est déjà promis, et ce qu'il reste à dépenser pour finir. Le projet n'a plus d'argent le jour où l'on signe la commande, pas le jour où la facture arrive.
+        - level: 2
+          title: Du coût complet à l'atterrissage
+          body: |
+            Le **coût complet** réunit tout ce que le projet consomme, qu'une facture arrive ou non :
+
+            - les **heures** de l'équipe, converties en euros avec le **taux horaire** que donne le contrôle de gestion ;
+            - les **achats** : composants, matière ;
+            - la **sous-traitance** : usinage, traitement de surface ;
+            - les **essais** : étalonnage externe, consommables, location d'un moyen d'essai ;
+            - les **aléas** : une **provision** pour les risques que tu acceptes.
+
+            Les heures de l'équipe ne donnent lieu à aucune facture, c'est pourquoi on les oublie. Elles font pourtant souvent la moitié du coût d'un projet d'étude, ou davantage.
+
+            Pour chaque ligne, on suit quatre montants :
+
+            1. le **budget** : la référence décidée au départ ;
+            2. l'**engagé** : ce qui est commandé ou déjà pointé ; l'argent est promis, même sans facture ;
+            3. le **payé** : ce qui est facturé et réglé, ou les heures saisies ;
+            4. le **reste à faire** : ce qu'il faut encore dépenser pour finir, **réestimé** par ceux qui font le travail.
+
+            L'**atterrissage** (*estimate at completion*) est le coût final prévu : l'engagé, plus le reste à faire. L'**écart** est sa différence avec le budget.
+          check:
+            q: Tu viens de passer commande du corps usiné, 8 800 €. Le sous-traitant le livrera et le facturera dans sept semaines. Où ce montant apparaît-il dans ton suivi aujourd'hui ?
+            choices:
+              - t: Dans l'engagé, car la commande est ferme et l'argent est promis.
+                ok: true
+              - t: Nulle part, tant qu'il n'y a pas de facture ce n'est pas une dépense.
+                why: Une commande ferme oblige à payer. Si tu attends la facture, tu découvres le dépassement sept semaines trop tard.
+              - t: Dans le payé, puisque la commande est signée.
+                why: Le payé ne contient que ce qui est facturé et réglé. La signature crée un engagement, pas encore un paiement.
+              - t: Dans le reste à faire, puisque la pièce n'est pas livrée.
+                why: Le reste à faire porte sur ce qui n'est ni commandé ni dépensé. Ici, la commande est passée.
+        - level: 3
+          title: Le coût complet et l'atterrissage chiffrés
+          body: |
+            **Le coût complet du porte-échantillon.** Taux horaire : 55 €/h. La WBS donne 1 000 h.
+
+            | Poste | Contenu | Montant |
+            |---|---|---|
+            | Heures de l'équipe | $1\,000 \times 55$ | 55 000 € |
+            | Achats | cartouches, régulateur, sondes, passage étanche, armoire | 15 000 € |
+            | Sous-traitance | usinage du corps, traitement de surface | 10 000 € |
+            | Essais | étalonnage externe, hélium, consommables | 4 000 € |
+            | **Budget de référence** | | **84 000 €** |
+            | Provision pour aléas | 10 % du budget | 8 400 € |
+            | **Total à réserver** | | **92 400 €** |
+
+            Les achats et la sous-traitance (25 000 €, l'enveloppe du cadrage) ne font que 30 % du coût ; les heures en font 65 %.
+
+            **L'atterrissage d'une ligne.** À la semaine 18, sur cette enveloppe de 25 000 € :
+
+            | Montant | Valeur | Origine |
+            |---|---|---|
+            | Engagé | 18 000 € | corps 8 800, cartouches 3 600, régulateur 2 100, passage étanche 3 500 |
+            | dont payé | 5 700 € | cartouches et régulateur, livrés et facturés |
+            | Reste à commander | 7 500 € | sondes, armoire, traitement de surface, réestimés |
+
+            $$\text{atterrissage} = \text{engagé} + \text{reste à commander} = 18\,000 + 7\,500 = 25\,500 \text{ €}$$
+
+            L'écart est de $25\,000 - 25\,500 = -500$ €, un dépassement de 2 %. Si tu ne regardais que le payé, 5 700 €, tu croirais avoir dépensé 23 % de l'enveloppe et garder 19 300 € de marge. En réalité, il ne reste que 7 000 € non engagés pour 7 500 € de besoins.
+        - level: 4
+          title: Provision, taux et lectures trompeuses
+          body: |
+            **Le reste à faire n'est pas « budget moins dépensé ».** Cette soustraction suppose que le travail restant tient exactement dans l'argent restant, donc que tout va bien. C'est justement ce qu'on veut vérifier. Le reste à faire s'estime, avec ceux qui travaillent.
+
+            **La provision se garde au niveau du projet.** Si chacun glisse 10 % de marge dans sa ligne, elle se consomme sans qu'on la voie. Une provision centrale et visible ne se dépense que sur décision du chef de projet. Son ordre de grandeur vient du registre des risques : la somme des valeurs attendues des risques acceptés.
+
+            **Le taux horaire** vient du contrôle de gestion (salaire chargé et frais généraux), pas du salaire net d'une personne. Sur un projet interne, les heures ne sont pas facturées ; elles coûtent quand même.
+
+            **Écris les conventions.** HT ou TTC : l'écart est de 20 % avec le taux normal de TVA. Validité des devis, devise des achats hors zone euro. Et pense au coût de possession : le projet s'arrête à la livraison, l'équipement continue de coûter en maintenance et en étalonnage.
+
+            > [!piege] Mesurer l'avancement au temps passé
+            > Avoir consommé 60 % des heures ne veut pas dire avoir fait 60 % du travail. Présente toujours le consommé, l'avancement sur des livrables terminés et le reste à faire réestimé.
+        - level: 5
+          title: Sur le terrain
+          body: |
+            **Ce que tu fais.**
+
+            - Un tableur, une ligne par poste de la WBS, avec les mêmes codes que le planning : budget, engagé, payé, reste à faire, atterrissage, écart.
+            - Les heures se saisissent chaque semaine ; un engagement s'inscrit le jour du bon de commande ; une facture, à sa réception.
+            - Tous les 15 jours, les responsables de lot réestiment le reste à faire, et tu recalcules l'atterrissage.
+            - Tu fixes les seuils avec le commanditaire. Par exemple : atterrissage à plus de 5 % du budget, tu préviens ; à plus de 10 %, il faut une décision.
+
+            **Phrases utiles.**
+
+            - « Où en est-on : engagé, payé, reste à faire ? »
+            - *"What's our committed cost so far?"*
+            - *"Our estimate at completion is 3 percent over budget."*
+            - *"Is that figure net or gross of VAT?"*
+
+            **Erreurs fréquentes.**
+
+            - Ne suivre que le payé, qui arrive des semaines après la décision.
+            - Oublier les heures de l'équipe, les essais, le transport.
+            - Calculer le reste à faire comme « budget moins dépensé ».
+      recap:
+        - "Coût complet = heures × taux + achats + sous-traitance + essais + aléas ; les heures pèsent souvent la moitié ou plus et ne donnent lieu à aucune facture."
+        - "Pour chaque ligne, on suit le budget, l'engagé (commandé, donc promis), le payé (facturé et réglé) et le reste à faire."
+        - "Le reste à faire se réestime avec ceux qui travaillent ; ce n'est pas « budget moins dépensé »."
+        - "Atterrissage = engagé + reste à faire ; écart = budget − atterrissage."
+        - "Une provision centrale et visible vaut mieux qu'une marge cachée dans chaque ligne ; précise HT ou TTC."
+        - "Le payé arrive des semaines après la décision : suis l'engagé, pas seulement le payé."
+      pieges: [ppi-avancement-temps-passe]
+    vocab:
+      - budget de référence = cost baseline
+      - coût complet = fully loaded cost
+      - engagé = committed cost
+      - reste à faire = estimate to complete (ETC)
+      - atterrissage = estimate at completion (EAC)
+      - provision pour aléas = contingency reserve
+    exercises:
+      - id: ppi-budget.1
+        type: qcm
+        level: 1
+        q: Un collègue présente le budget du porte-échantillon : 25 000 € d'achats et de sous-traitance. Le commanditaire demande « C'est donc le coût du projet ? ». Quelle est la bonne réponse ?
+        choices:
+          - t: Non, il manque les heures de l'équipe (ici 55 000 €), les essais et la provision pour aléas.
+            ok: true
+          - t: Oui, les heures de l'équipe sont payées par les salaires et n'entrent pas dans le coût du projet.
+            why: Ces heures ne sont pas facturées au projet, mais elles ont un coût réel et ne servent pas à autre chose. Pour décider, il faut les compter.
+          - t: Oui, seule une facture constitue un coût de projet.
+            why: Un coût existe dès qu'une ressource est consommée. Le temps de l'équipe en est une, même sans facture.
+          - t: Non, mais il ne manque que la TVA, le reste est complet.
+            why: HT ou TTC compte, mais l'oubli majeur est ailleurs, car les heures pèsent ici 65 % du coût.
+        e: "Le coût complet inclut toutes les ressources consommées : 55 000 + 15 000 + 10 000 + 4 000 = 84 000 €, plus 8 400 € de provision. Les achats et la sous-traitance n'en font que 30 %."
+      - id: ppi-budget.2
+        type: qcm
+        level: 2
+        q: Le lot « programme de régulation » est budgété à 120 h. Le développeur a saisi 84 h et te dit « J'en suis à 70 %. » Que fais-tu ?
+        choices:
+          - t: Tu lui demandes ce qui reste à faire, en heures, puis tu calcules l'atterrissage, heures saisies plus reste à faire.
+            ok: true
+          - t: Tu notes 70 % d'avancement, puisque 84 h sur 120 h, c'est dans le budget.
+            why: 84 / 120 = 70 % est la part des heures consommées. Il rapporte sa dépense, pas le travail fait.
+          - t: Tu en déduis 36 h restantes (120 − 84) et tu les acceptes.
+            why: Le reste à faire n'est pas le budget restant. Supposer que le travail restant tient dans l'argent restant, c'est supposer l'absence de dérive.
+          - t: Tu attends d'avoir consommé les 120 h pour réestimer.
+            why: À ce moment, le budget est épuisé et tu n'as plus d'option. Le signal doit venir avant.
+        e: "84 / 120 = 70 % : le développeur donne la part des heures consommées, pas du travail fait. S'il estime le reste à 50 h, l'atterrissage est de 84 + 50 = 134 h, soit 14 h de plus que prévu (+12 %), donc 14 × 55 = 770 € au taux de 55 €/h."
+        piege: ppi-avancement-temps-passe
+      - id: ppi-budget.3
+        type: numeric
+        level: 2
+        q: "Sur une enveloppe d'achats de 25 000 €, tu as passé 21 300 € de commandes, dont 12 900 € sont déjà payés. Il reste à commander pour 3 100 €. Quel est l'atterrissage de cette ligne, en euros ?"
+        answer: 24400
+        tol: 0.01
+        unit: "€"
+        calc: 21300 + 3100
+        trap_values:
+          - v: 16000
+            why: Tu as additionné le payé (12 900 €) et le reste à commander. Les 8 400 € commandés mais non encore facturés sont déjà dus.
+          - v: 21300
+            why: Tu as oublié le reste à commander. L'atterrissage ajoute ce qui n'est pas encore commandé.
+          - v: 37300
+            why: Tu as compté le payé deux fois. Il fait déjà partie de l'engagé.
+        e: "Atterrissage = engagé + reste à commander = 21 300 + 3 100 = 24 400 €. Le payé fait partie de l'engagé et ne s'ajoute pas. Marge prévue : 25 000 − 24 400 = 600 €, soit 2,4 %."
+      - id: ppi-budget.4
+        type: flash
+        level: 1
+        q: Quelle est la différence entre l'engagé et le payé, et lequel faut-il suivre en priorité ?
+        back: |
+          L'engagé, c'est ce qui est commandé ou pointé : l'argent est promis, même sans facture. Le payé, c'est ce qui est facturé et réglé. On suit d'abord l'engagé, car il apparaît le jour de la décision, des semaines avant le payé.
+        e: Le solde du compte, c'est le payé ; le solde une fois les devis signés pris en compte, c'est l'engagé.
+      - id: ppi-budget.5
+        type: parsons
+        level: 2
+        lang: text
+        q: Remets dans l'ordre la construction d'un budget de projet.
+        lines:
+          - Reprendre les lots de la WBS et leur charge en heures
+          - Convertir les heures en euros avec le taux du contrôle de gestion
+          - Ajouter achats, sous-traitance et essais d'après les devis
+          - Ajouter une provision pour aléas calée sur le registre des risques
+          - Faire valider le budget de référence par le commanditaire
+          - Suivre chaque ligne en engagé, payé et reste à faire
+        extra:
+          - Glisser une marge de sécurité dans chaque ligne sans le dire
+        e: On part de la charge (la WBS), on la convertit en euros, on ajoute ce qui vient de l'extérieur, puis la provision. Le budget n'est une référence qu'une fois validé ; le suivi vient après. La marge cachée dans chaque ligne est ce qu'une provision centrale permet d'éviter.
+  - id: ppi-suivi
+    title: Suivre l'avancement
+    en: Tracking progress and earned value
+    goal: Mesurer l'avancement sur des faits, calculer les indicateurs de la valeur acquise (CPI, SPI, atterrissage) et alerter tôt avec un tableau de bord d'une page.
+    minutes: 15
+    lesson:
+      steps:
+        - level: 1
+          title: Le voyage en voiture
+          body: |
+            Tu pars en voiture pour 400 km. Après deux heures, la jauge de carburant est à moitié vide et le compteur affiche 150 km. « La moitié du réservoir est consommée » ne te dit presque rien. Avec 150 km pour la moitié du réservoir, tu peux faire 300 km au total : tu n'arriveras pas sans refaire le plein.
+
+            Suivre un projet, c'est lire ensemble trois cadrans : ce qui est dépensé (le carburant), ce qui est fait (les kilomètres) et ce qu'il reste à faire (la route devant toi), pour prévoir l'arrivée.
+        - level: 2
+          title: Dépensé, fait, reste à faire
+          body: |
+            Un suivi lit trois grandeurs, d'où l'on tire une prévision :
+
+            - le **consommé** : les heures et les euros dépensés ;
+            - l'**avancement physique** : la part du travail réellement terminée ;
+            - le **reste à faire** : ce qu'il faut encore faire pour finir, en heures et en livrables, **réestimé chaque semaine** par ceux qui travaillent ; c'est la donnée la plus utile ;
+
+            **Mesurer l'avancement sans tricher.** Un pourcentage donné au jugé ne vaut rien. Trois méthodes tiennent :
+
+            1. **Tout ou rien** : un lot vaut 0 % tant qu'il n'est pas terminé, 100 % ensuite. Pour des lots d'une à deux semaines.
+            2. **Étapes pondérées** : un lot long est coupé en étapes vérifiables, chacune avec un poids. Pour une pièce usinée : plan signé 20 %, commande passée 20 %, pièce reçue 40 %, pièce contrôlée 20 %.
+            3. **Unités produites** : 18 plans de détail validés sur 30, soit 60 %.
+
+            La **valeur acquise** (*earned value*) traduit cet avancement en euros, pour additionner des lots différents. À une date donnée, trois montants :
+
+            - **PV**, valeur planifiée : le budget du travail qui devait être fait ;
+            - **EV**, valeur acquise : le budget du travail réellement fait ;
+            - **AC**, coût réel : ce qui a été dépensé.
+          check:
+            q: Le lot « armoire de commande » est budgété à 10 000 €. D'après les étapes pondérées, 75 % du lot est fait ; tu y as déjà dépensé 9 000 €. Quelle est sa valeur acquise (EV) ?
+            choices:
+              - t: 7 500 €, soit 75 % du budget du lot.
+                ok: true
+              - t: 9 000 €, ce qui a été dépensé.
+                why: C'est le coût réel (AC). La valeur acquise se calcule sur le budget du travail fait, pas sur la dépense.
+              - t: 2 500 €, ce qui reste à faire.
+                why: 2 500 € est la valeur du travail restant (25 % du budget). La valeur acquise est celle du travail déjà fait.
+        - level: 3
+          title: Les indicateurs et l'atterrissage
+          body: |
+            **Des écarts et des indices.** Un écart est une différence en euros ; un indice est un rapport, autour de 1.
+
+            | Indicateur | Formule | Mauvais signe |
+            |---|---|---|
+            | Écart de délai SV | $EV - PV$ | négatif : en retard |
+            | Indice de délai SPI | $EV / PV$ | inférieur à 1 : en retard |
+            | Écart de coût CV | $EV - AC$ | négatif : plus cher que prévu |
+            | Indice de coût CPI | $EV / AC$ | inférieur à 1 : plus cher que prévu |
+
+            **Exemple.** Porte-échantillon, semaine 20 sur 40. Budget total (BAC, *budget at completion*) : 84 000 €. Planifié à ce jour : PV = 42 000 €. Fait : EV = 33 600 €. Dépensé : AC = 39 200 €.
+
+            - $SV = 33\,600 - 42\,000 = -8\,400$ € et $SPI = 33\,600 / 42\,000 = 0{,}80$ : en retard.
+            - $CV = 33\,600 - 39\,200 = -5\,600$ € et $CPI = 33\,600 / 39\,200 \approx 0{,}86$ : plus cher que prévu.
+
+            **L'atterrissage de tendance** suppose que la performance de coût actuelle se maintient :
+
+            $$EAC = \frac{BAC}{CPI} = \frac{84\,000}{0{,}857} \approx 98\,000 \text{ €}$$
+
+            Il reste à dépenser $ETC = EAC - AC = 58\,800$ €, et l'écart final prévu est $BAC - EAC = -14\,000$ €, soit 17 %. Côté délai, avec un SPI de 0,8, les 40 semaines en demandent environ $40 / 0{,}8 = 50$ : un ordre de grandeur, à confirmer sur le chemin critique.
+          code: |
+            bac, pv, ev, ac = 84000, 42000, 33600, 39200
+
+            def eur(x):
+                return f"{x:,.0f}".replace(",", " ")
+
+            cpi = ev / ac
+            eac = bac / cpi
+            print(f"SV  = {eur(ev - pv)} €    SPI = {ev / pv:.2f}")
+            print(f"CV  = {eur(ev - ac)} €    CPI = {cpi:.2f}")
+            print(f"EAC = {eur(eac)} €")
+            print(f"ETC = {eur(eac - ac)} €")
+            print(f"VAC = {eur(bac - eac)} €  ({(bac - eac) / bac * 100:.1f} %)")
+          run: true
+          out: |
+            SV  = -8 400 €    SPI = 0.80
+            CV  = -5 600 €    CPI = 0.86
+            EAC = 98 000 €
+            ETC = 58 800 €
+            VAC = -14 000 €  (-16.7 %)
+        - level: 4
+          title: Les limites des indicateurs
+          body: |
+            **Une valeur acquise vaut l'avancement qu'on lui donne.** Si les pourcentages sont déclarés au jugé, EV, CPI et SPI sont faux, même avec deux décimales.
+
+            > [!piege] Le « 90 % » qui dure des semaines
+            > Un lot gros et flou plafonne à 90 % : la fin du travail n'a jamais été estimée. Découpe en lots courts, mesure en tout ou rien, et demande « qu'est-ce qui reste, en heures ? ».
+
+            **Trois façons d'estimer l'atterrissage**, pour trois hypothèses :
+
+            | Hypothèse | Formule | Résultat |
+            |---|---|---|
+            | Le surcoût continue | $BAC / CPI$ | 98 000 € |
+            | Le surcoût était un accident isolé | $AC + (BAC - EV)$ | 89 600 € |
+            | L'équipe a réestimé le reste à faire | $AC + \text{reste à faire}$ | à calculer |
+
+            La troisième est la plus fiable quand l'équipe la fait sérieusement ; les deux autres la vérifient. Entre 89 600 et 98 000 €, demande : la cause du surcoût est-elle derrière nous ?
+
+            **Le SPI en euros se trompe en fin de projet.** Quand tout est fait, EV rejoint PV : le SPI revient à 1, même avec six mois de retard. Pour le délai, regarde le chemin critique et les jalons.
+
+            **Compte EV et AC au même moment.** Une pièce se compte à la réception, pas à la commande. Sinon l'argent engagé sans pièce reçue dégrade le CPI à tort.
+
+        - level: 5
+          title: Sur le terrain
+          body: |
+            **Ce que tu fais.**
+
+            - Chaque semaine, 20 minutes avec les responsables de lot : ce qui est fait, le reste à faire en heures, la date de fin prévue, les blocages.
+            - Tu calcules EV, AC, CPI, SPI et l'atterrissage, puis tu tires une page : la **météo projet** (fiche tableau de bord).
+            - Les seuils sont écrits avant d'en avoir besoin. Par exemple, coût vert sous 5 % d'écart prévu, orange de 5 à 10 %, rouge au-delà ; délai vert avec plus de 2 semaines de marge critique, orange de 0 à 2, rouge au-dessous.
+            - Tu alertes tôt : un orange annoncé tôt est une discussion, un rouge annoncé tard est une crise.
+
+            **Que dire en alerte.** Pas « on a un problème » : le constat, la cause, deux ou trois options chiffrées, ta recommandation, la décision attendue et sa date. À la semaine 20, l'atterrissage de 98 000 € dépasse le budget de 14 000 €, plus que la provision de 8 400 € : tu le dis maintenant (réduire le périmètre, décaler la date, ajouter des moyens).
+
+            **Phrases utiles.**
+
+            - « Qu'est-ce qui reste à faire, en heures, et pour quand ? »
+            - *"What's the estimate to complete?"*
+            - *"We're two weeks behind on the critical path; here are three options."*
+
+            **Erreurs fréquentes.**
+
+            - Une météo toujours verte, jusqu'au jour où elle devient rouge d'un coup.
+            - Attendre le comité de pilotage pour prévenir.
+      recap:
+        - "Un suivi lit ensemble le consommé, l'avancement physique et le reste à faire réestimé."
+        - "L'avancement se mesure sur des faits : tout ou rien, étapes pondérées, unités produites ; jamais au jugé."
+        - "PV est le travail prévu, EV le travail fait (en budget), AC le coût réel ; SPI = EV / PV, CPI = EV / AC ; sous 1, c'est mauvais."
+        - "Atterrissage de tendance : EAC = BAC / CPI ; compare-le au budget et à la provision."
+        - "Le SPI en euros devient trompeur en fin de projet ; pour le délai, regarde le chemin critique."
+        - "Un tableau de bord d'une page, des seuils fixés d'avance, et une alerte précoce avec des options chiffrées."
+      pieges: [ppi-avancement-temps-passe, ppi-90-pourcent]
+    vocab:
+      - valeur acquise = earned value (EV)
+      - valeur planifiée = planned value (PV)
+      - coût réel = actual cost (AC)
+      - indice de performance des coûts = cost performance index (CPI)
+      - atterrissage de tendance = estimate at completion (EAC)
+      - météo projet = RAG status (red, amber, green)
+    exercises:
+      - id: ppi-suivi.1
+        type: qcm
+        level: 1
+        q: Le lot « programme de régulation » est annoncé à 80 %, puis 85 %, puis 90 %, 90 %, 90 % pendant cinq semaines. Que changes-tu à la façon de le suivre ?
+        choices:
+          - t: Tu le découpes en lots d'une à deux semaines avec un livrable vérifiable, et tu demandes le reste à faire en heures.
+            ok: true
+          - t: Tu demandes à l'équipe de déclarer des pourcentages plus honnêtes.
+            why: Personne ne ment. Un pourcentage au jugé mesure une impression ; c'est la méthode de mesure qu'il faut changer, pas les personnes.
+          - t: Tu suis désormais les heures consommées chaque semaine.
+            why: Les heures consommées mesurent la dépense, pas l'avancement. Un lot peut brûler des heures à 90 % pendant des semaines.
+          - t: Tu ajoutes 10 % de marge sur ce lot pour absorber le retard.
+            why: Une marge ne dit pas ce qui reste à faire. Tu masques le problème de mesure au lieu de le résoudre.
+        e: Le 90 % est une impression, souvent le temps passé rapporté à l'estimation. Le remède est de couper en lots courts terminés par un livrable vérifiable (tout ou rien, ou étapes pondérées) et de poser la question « qu'est-ce qui reste, en heures ? ».
+        piege: ppi-90-pourcent
+      - id: ppi-suivi.2
+        type: qcm
+        level: 2
+        q: À la semaine 20, ton tableau de bord affiche un CPI de 1,10 et un SPI de 0,80. Que dis-tu au commanditaire ?
+        choices:
+          - t: Le travail fait coûte moins que prévu, mais le projet est en retard ; le sujet est le délai.
+            ok: true
+          - t: Le projet est en avance et sous le budget ; tout va bien.
+            why: Un SPI inférieur à 1 signifie qu'on a fait moins de travail que prévu à cette date. C'est un retard.
+          - t: Le projet est en retard et au-dessus du budget ; c'est une double alerte.
+            why: Un CPI supérieur à 1 signifie que chaque euro dépensé produit plus de travail que prévu. Le coût est sous contrôle.
+          - t: Les deux indices se contredisent, donc les données sont fausses.
+            why: Ils mesurent deux choses différentes et peuvent diverger. Un retard fait d'ailleurs souvent dépenser moins que prévu, pour l'instant.
+        e: CPI = EV / AC est supérieur à 1 quand l'argent est bien employé ; SPI = EV / PV est inférieur à 1 quand il y a moins de travail fait que prévu. Attention, si le retard se rattrape en heures supplémentaires, le coût montera. Regarde le chemin critique et le reste à faire.
+      - id: ppi-suivi.3
+        type: numeric
+        level: 2
+        q: "Banc d'essai : budget total BAC = 40 000 €. À ce jour, le travail prévu vaut PV = 24 000 €, le travail réellement fait vaut EV = 18 000 € et tu as dépensé AC = 22 500 €. En supposant que la performance de coût actuelle se maintienne, quel est l'atterrissage EAC, en euros ?"
+        answer: 50000
+        tol: 0.02
+        unit: "€"
+        calc: 40000 / (18000 / 22500)
+        trap_values:
+          - v: 44500
+            why: Tu as supposé que le surcoût de 4 500 € était un accident isolé (AC + BAC − EV). L'énoncé demande que la performance actuelle se maintienne, donc on divise par le CPI.
+          - v: 53333
+            why: Tu as divisé par le SPI (0,75) au lieu du CPI (0,8). Le SPI mesure le délai, pas le coût.
+        e: "CPI = 18 000 / 22 500 = 0,8. EAC = 40 000 / 0,8 = 50 000 €, soit 10 000 € de plus que le budget. Remarque : 22 500 / 40 000 = 56 % du budget est dépensé, mais 18 000 / 40 000 = 45 % du travail est fait. Lire le dépensé comme un avancement masque cet écart."
+        piege: ppi-avancement-temps-passe
+      - id: ppi-suivi.4
+        type: flash
+        level: 1
+        q: Que représentent PV, EV et AC, et comment obtient-on le SPI et le CPI ?
+        back: |
+          PV : le budget du travail prévu à cette date. EV : le budget du travail réellement fait. AC : ce qui a été dépensé. SPI = EV / PV pour le délai, CPI = EV / AC pour le coût ; sous 1, c'est mauvais.
+        e: EV est toujours au numérateur, car c'est le travail réellement fait, rapporté à ce qui était prévu (délai) ou à ce que ça a coûté (coût).
+      - id: ppi-suivi.5
+        type: parsons
+        level: 2
+        lang: text
+        q: Remets dans l'ordre la routine hebdomadaire de suivi.
+        lines:
+          - Recueillir les heures saisies et les engagements de la semaine
+          - Demander à chaque responsable de lot ce qui est fait et le reste à faire
+          - Calculer l'avancement, EV, CPI, SPI et l'atterrissage
+          - Colorer la météo avec les seuils convenus
+          - Préparer les options et la décision à demander
+          - Présenter une page au point d'équipe et au commanditaire
+        extra:
+          - Attendre la fin du mois pour mettre les chiffres à jour
+        e: On part des faits (heures, engagements, reste à faire), on calcule, on colore selon des seuils fixés d'avance, puis on prépare la décision avant de présenter. Mettre à jour une fois par mois, c'est découvrir les dérives quand elles ne sont plus rattrapables.
+  - id: ppi-acteurs
+    title: Parties prenantes et RACI
+    en: Stakeholders and RACI
+    goal: Cartographier les parties prenantes d'un projet, attribuer les rôles avec une matrice RACI (un seul A par ligne) et bâtir un plan de communication.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Le déménagement
+          body: |
+            Tu organises un déménagement avec cinq amis. Sur la liste, tu écris « louer le camion : on verra ». Le jour J, il n'y a pas de camion : chacun croyait que c'était un autre. Si tu avais écrit le nom d'une personne et une date, le camion serait là.
+
+            Et il y a le voisin du dessous. Il ne déménage pas, mais il peut te faire refuser l'ascenseur. Il n'était pas sur ta liste ; il pèse pourtant sur ton déménagement.
+
+            Un projet a ces deux besoins : une personne qui répond de chaque tâche, et une vue de tous ceux qui peuvent t'aider ou te bloquer, même hors de l'équipe.
+        - level: 2
+          title: Qui compte, qui fait quoi
+          body: |
+            Une **partie prenante** (*stakeholder*) est toute personne ou organisation qui influence le projet ou qui en subit les effets. Pour le porte-échantillon :
+
+            - le **commanditaire** (*sponsor*), qui finance et arbitre ;
+            - le **client** qui signe, et l'**utilisateur** qui s'en servira chaque jour ; ce n'est pas toujours la même personne ;
+            - l'**équipe** et les responsables dont elle dépend, comme le chef d'atelier qui prête des techniciens ;
+            - les **fournisseurs** et sous-traitants ;
+            - les fonctions support : achats, sécurité, maintenance, qualité.
+
+            On les place sur une **grille pouvoir/intérêt**. Le pouvoir est la capacité d'influencer ou de bloquer ; l'intérêt, ce que le projet change pour eux.
+
+            | | Intérêt faible | Intérêt fort |
+            |---|---|---|
+            | **Pouvoir fort** | Garder satisfait | Gérer de près |
+            | **Pouvoir faible** | Surveiller | Tenir informé |
+
+            La **matrice RACI** répond à « qui fait quoi ? ». Pour chaque tâche ou livrable, chaque personne reçoit au plus une lettre :
+
+            - **R** (*responsible*) : réalise ;
+            - **A** (*accountable*) : approuve et répond du résultat ; **un seul A par ligne** ;
+            - **C** (*consulted*) : consulté avant ; l'échange va dans les deux sens ;
+            - **I** (*informed*) : informé après ; l'information va dans un seul sens.
+          check:
+            q: Dans une ligne de ta matrice RACI, deux personnes ont un A. Quel est le problème ?
+            choices:
+              - t: En cas de désaccord, personne ne tranche vraiment : chacun attend l'autre.
+                ok: true
+              - t: Aucun, deux approbateurs font une double sécurité.
+                why: Deux approbateurs ralentissent et diluent la responsabilité. En cas de désaccord, il n'y a plus de décideur.
+              - t: Il manque un R, car deux A exigent deux R.
+                why: Aucun lien de ce genre. Une ligne a au moins un R, quel que soit le nombre de A, et la règle est un seul A.
+        - level: 3
+          title: La grille, le RACI et le plan
+          body: |
+            **La cartographie.** Pour le porte-échantillon :
+
+            | Partie prenante | Pouvoir | Intérêt | Traitement |
+            |---|---|---|---|
+            | Responsable du laboratoire client | fort | fort | gérer de près, point tous les 15 jours |
+            | Chef d'atelier (prête les techniciens) | fort | fort | gérer de près, disponibilités par écrit |
+            | Service sécurité | fort | faible | garder satisfait, consulté dès la conception |
+            | Technicien utilisateur | faible | fort | tenir informé, invité aux revues |
+
+            **Le RACI.** Cinq livrables, cinq rôles :
+
+            | Livrable | Chef de projet | Concepteur | Automaticien | Acheteur | Laboratoire |
+            |---|---|---|---|---|---|
+            | Cahier des charges validé | R | C | C | I | A |
+            | Plans du corps chauffant | A | R | C | I | I |
+            | Commande de l'usinage | A | C | I | R | I |
+            | Armoire de commande câblée | A | I | R | C | I |
+            | Essais de recette | R | C | R | I | A |
+
+            Trois vérifications : **un seul A par ligne**, **au moins un R**, pas trop de C (chacun ralentit). Compte aussi les lettres par colonne : une personne qui cumule les R est en surcharge.
+
+            **Le plan de communication** dit qui reçoit quoi, quand et par quel canal.
+
+            | Information | Pour qui | Quand | Canal |
+            |---|---|---|---|
+            | Point d'avancement | équipe | chaque semaine, 30 min | réunion |
+            | Tableau de bord | commanditaire, laboratoire | tous les 15 jours | une page par courriel |
+            | Alerte de dérive | commanditaire | sous 48 h | appel puis courriel |
+            | Revue de jalon | comité de pilotage | à chaque jalon | réunion et compte rendu |
+
+            **Pourquoi cadrer.** Avec $n$ personnes qui peuvent s'écrire, il y a $n(n-1)/2$ canaux : 15 pour 6 personnes, 45 pour 10.
+        - level: 4
+          title: Les limites du RACI
+          body: |
+            **Pouvoir et intérêt bougent.** Le service sécurité s'intéresse peu au projet au début, puis devient bloquant avant la première mise sous tension. Relis la grille à chaque jalon.
+
+            **Les oubliés font les changements tardifs.** L'utilisateur final, la maintenance, l'acheteur, la sécurité : quand on ne les consulte pas, ils arrivent en fin de projet avec des exigences nouvelles. Demande à chaque personne clé : « Qui d'autre devrait être au courant ? »
+
+            **Le chef de projet a rarement l'autorité hiérarchique.** Les techniciens répondent à leur chef d'atelier. Ton levier est un accord écrit sur la disponibilité (« 50 % jusqu'au 30 juin »), signé par la personne et son responsable. C'est lui qui rend ton calendrier crédible.
+
+            **Le A doit avoir l'autorité.** Un A qui ne peut ni décider ni dépenser est un faux A. Et le RACI ne règle pas la charge : il dit qui, pas combien de temps.
+
+            > [!piege] Le risque connu qui dort dans le registre
+            > Un risque dont le propriétaire est « l'équipe » n'a pas de propriétaire. Pour chaque risque et chaque action, nomme une personne et une échéance. Le RACI sert aussi à cela.
+
+        - level: 5
+          title: Sur le terrain
+          body: |
+            **Ce que tu fais.**
+
+            - Au lancement, 30 minutes avec le commanditaire et l'équipe pour lister les parties prenantes et placer chacune sur la grille.
+            - Dans la première semaine, un entretien individuel avec chaque personne à fort pouvoir : ses attentes, ce qui serait pour elle un succès, ce qui l'inquiète.
+            - Un RACI de 10 à 15 lignes, validé par chaque personne concernée et par son responsable, puis relu à chaque jalon.
+
+            **Phrases utiles.**
+
+            - « Qui décide ? »
+            - *"Who needs to be consulted before we commit?"*
+            - *"Can I count on 50 percent of your time until June?"*
+
+            **Erreurs fréquentes.**
+
+            - Un A « équipe », ou deux A sur la même ligne.
+            - Un RACI écrit seul, jamais validé par les intéressés.
+            - Tout le monde en copie de tout : les messages importants se noient.
+            - Découvrir en fin de projet un acteur clé que personne n'avait consulté.
+      recap:
+        - "Une partie prenante est toute personne qui influence le projet ou en subit les effets, dans l'équipe ou hors d'elle."
+        - "La grille pouvoir/intérêt dit comment traiter chacun : gérer de près, garder satisfait, tenir informé, surveiller."
+        - "RACI : R réalise, A approuve et répond du résultat (un seul par ligne), C est consulté avant, I est informé après."
+        - "Un propriétaire est une personne nommée, jamais « l'équipe » ; c'est vrai d'une tâche comme d'un risque."
+        - "Le plan de communication dit qui reçoit quoi, quand et comment ; avec n personnes il y a n(n−1)/2 canaux."
+      pieges: [ppi-risque-dort]
+    vocab:
+      - partie prenante = stakeholder
+      - commanditaire = sponsor
+      - matrice RACI = RACI matrix (responsibility assignment matrix)
+      - plan de communication = communication plan
+      - pouvoir et intérêt = power and interest
+      - propriétaire = owner
+    exercises:
+      - id: ppi-acteurs.1
+        type: qcm
+        level: 1
+        q: Deux semaines avant la livraison, le service sécurité, que personne n'avait consulté, exige des modifications de l'enceinte. Quelle erreur d'analyse des parties prenantes explique cette surprise ?
+        choices:
+          - t: On l'a traité comme un acteur sans pouvoir, alors qu'il pouvait bloquer la mise en service ; il fallait le consulter dès la conception.
+            ok: true
+          - t: On aurait dû lui envoyer le compte rendu chaque mois, pour l'information.
+            why: Informer est à sens unique. Un acteur à fort pouvoir se consulte avant les décisions ; l'informer après ne change rien à ses exigences.
+          - t: Aucune, un service de sécurité n'est pas une partie prenante du projet.
+            why: Toute personne qui peut influencer ou bloquer le projet en est une, qu'elle appartienne ou non à l'équipe.
+          - t: Il aurait dû avoir le R sur les plans de l'enceinte.
+            why: Le service sécurité valide, il ne conçoit pas. Lui donner le R mélange les rôles ; ce qui manquait, c'était le C.
+        e: "Pouvoir fort, intérêt faible : « garder satisfait », c'est-à-dire le consulter aux moments qui comptent, ici avant de figer la conception. Une exigence de sécurité découverte tard a le coût d'une modification de plans après commande."
+      - id: ppi-acteurs.2
+        type: qcm
+        level: 2
+        q: Au registre, le risque de retard d'usinage a pour propriétaire « l'équipe méca ». L'action « qualifier un second usineur » a deux A, la mécanique et les achats. Trois mois plus tard, rien n'a été fait. Que changes-tu ?
+        choices:
+          - t: Une personne nommée porte le risque, un seul A porte l'action, avec une échéance.
+            ok: true
+          - t: Tu ajoutes un C sur chaque ligne pour que quelqu'un surveille.
+            why: Un C est consulté, il ne porte rien. Ajouter des C multiplie les avis sans que personne n'agisse.
+          - t: Tu ajoutes un point mensuel de revue, sans changer les rôles.
+            why: Une revue sans propriétaire constate l'absence d'action sans la provoquer. Le point sert à suivre une action portée par quelqu'un.
+          - t: Tu te mets en A et en R sur toutes les actions.
+            why: Tu deviens le goulot d'étranglement. Garde le A sur ce que tu décides ; les R vont à ceux qui ont les compétences et le temps.
+        e: « L'équipe » et « les deux services » diluent la responsabilité, car chacun suppose que l'autre agit. Un risque ou une action sans nom et sans date n'est pas géré.
+        piege: ppi-risque-dort
+      - id: ppi-acteurs.3
+        type: numeric
+        level: 2
+        q: "Ton projet compte 6 personnes. Quatre autres arrivent (sous-traitant, acheteur, utilisateur, sécurité), pour un total de 10. Avec n × (n − 1) / 2 canaux de communication possibles, de combien le nombre de canaux augmente-t-il ?"
+        answer: 30
+        tol: 0.02
+        unit: "canaux"
+        calc: 10 * 9 / 2 - 6 * 5 / 2
+        trap_values:
+          - v: 4
+            why: Tu as compté les nouveaux arrivants, pas les canaux qu'ils créent.
+          - v: 24
+            why: Tu as compté les liens entre les 4 nouveaux et les 6 anciens (4 × 6) mais oublié les 6 liens entre les nouveaux eux-mêmes.
+          - v: 45
+            why: C'est le total pour 10 personnes. L'énoncé demande l'augmentation par rapport aux 15 canaux de départ.
+        e: "6 personnes : 6 × 5 / 2 = 15 canaux. 10 personnes : 10 × 9 / 2 = 45 canaux. Augmentation : 45 − 15 = 30. Le nombre de canaux croît comme le carré du nombre de personnes ; un plan de communication devient indispensable quand l'équipe s'élargit."
+      - id: ppi-acteurs.4
+        type: flash
+        level: 1
+        q: Que signifient R, A, C et I dans une matrice RACI, et quelle est la règle essentielle ?
+        back: |
+          R réalise. A approuve et répond du résultat : un seul par ligne. C est consulté avant (échange dans les deux sens). I est informé après (sens unique). Chaque ligne a au moins un R.
+        e: Un seul A, parce que si deux personnes approuvent, en cas de désaccord personne ne tranche.
+      - id: ppi-acteurs.5
+        type: parsons
+        level: 2
+        lang: text
+        q: Remets dans l'ordre la construction d'une matrice RACI.
+        lines:
+          - Lister les livrables ou lots, d'après la WBS
+          - Lister les personnes et rôles réellement disponibles
+          - Proposer un R et un A pour chaque ligne
+          - Ajouter les C et les I seulement quand ils servent
+          - Vérifier un seul A par ligne, au moins un R, et la charge par colonne
+          - Faire valider par chaque personne et par son responsable
+        extra:
+          - Mettre « l'équipe » en A sur les lignes sans porteur
+        e: On part de ce qu'il y a à faire, puis de ceux qui peuvent le faire. Les C et les I viennent en dernier, parce qu'ils ralentissent. La validation par la personne et son responsable transforme un tableau en engagement ; « l'équipe » en A est précisément ce que la vérification écarte.
+  - id: ppi-agile
+    title: L'agilité appliquée au matériel
+    en: Agile methods for hardware projects
+    goal: Expliquer ce que Scrum et Kanban apportent et ce qu'ils ne règlent pas, puis construire un cycle hybride pour un projet mécatronique, avec la loi de Little et la vélocité pour prévoir.
+    minutes: 13
+    lesson:
+      steps:
+        - level: 1
+          title: Goûter en cuisinant
+          body: |
+            Tu cuisines pour des invités que tu connais mal. Tu peux suivre la recette jusqu'au bout et découvrir à table que c'est trop épicé. Ou tu peux goûter en route, faire goûter une cuillère à quelqu'un, et corriger pendant qu'il est encore temps.
+
+            L'agilité, c'est goûter en cuisinant : livrer souvent un morceau qui fonctionne, le montrer au client, et ajuster. Mais certains ingrédients se commandent trois semaines à l'avance, et un gâteau raté ne se « corrige » pas dans le four. Le matériel a les mêmes limites : on itère là où c'est bon marché, on planifie là où c'est long et cher.
+        - level: 2
+          title: Scrum, Kanban, et le cycle hybride
+          body: |
+            Le **Manifeste agile** (2001) privilégie les échanges entre personnes, le produit qui fonctionne, la collaboration avec le client et l'adaptation au changement, plutôt que les processus, la documentation exhaustive, la négociation du contrat et le plan figé. « Plutôt que » ne veut pas dire « sans ».
+
+            **Scrum** organise le travail en **sprints** de durée fixe (un mois au plus, souvent deux semaines) :
+            - le **backlog produit** : la liste ordonnée de tout ce qui reste à faire, tenue par le **product owner** (le représentant du client) ;
+            - la **planification du sprint**, la **mêlée quotidienne** (*daily scrum*, 15 minutes), la **revue** (démonstration de l'**incrément** au client) et la **rétrospective** (ce qu'on améliore dans la façon de travailler) ;
+            - la **définition de « fini »** (*Definition of Done*) : les critères qu'un élément doit remplir pour compter comme terminé.
+
+            **Kanban** visualise le flux sur un tableau (à faire, en cours, à vérifier, fini) et **limite le travail en cours** (*WIP limit*) : on finit avant de commencer.
+
+            Pour le matériel, on construit souvent un **cycle hybride** : un cadre en V (exigences, revues, sécurité, interfaces, achats longs), et des itérations courtes à l'intérieur pour ce qui s'y prête : logiciel, maquettes imprimées en 3D, bancs d'essai, réglages.
+          check:
+            q: Sur le porte-échantillon chauffant, qu'est-ce qui se prête le mieux à des itérations de deux semaines ?
+            choices:
+              - t: Le logiciel de pilotage et les maquettes imprimées du support d'échantillon
+                ok: true
+              - t: La commande du corps usiné en inox, découpée en petites commandes successives
+                why: Une pièce usinée a un délai de plusieurs semaines et un coût fixe par lancement ; la refaire à chaque sprint coûterait une fortune. On la fige avant de la commander.
+              - t: L'analyse de risques sécurité, refaite de zéro à chaque sprint
+                why: L'analyse de risques se met à jour quand la conception change, mais elle reste un livrable du cadre, revu à des jalons.
+        - level: 3
+          title: Prévoir avec un flux et une vélocité
+          body: |
+            **La loi de Little** relie trois grandeurs d'un flux stable :
+
+            $$\text{délai de traversée} = \frac{\text{travail en cours}}{\text{débit}}$$
+
+            Si l'atelier a 12 lots en cours et en termine 4 par semaine, un lot met en moyenne $12/4 = 3$ semaines à traverser. Limite le travail en cours à 6 lots, avec le même débit : 1,5 semaine. Démarrer plus de choses ne fait rien sortir plus vite ; ça allonge l'attente de chacune.
+
+            **La vélocité** est ce qu'une équipe termine par sprint, mesurée sur les sprints passés (en points d'estimation ou en heures). Le logiciel de pilotage compte 60 points ; l'équipe fait entre 10 et 15 points par sprint de deux semaines :
+
+            $$\frac{60}{15} = 4 \text{ sprints} \quad\text{à}\quad \frac{60}{10} = 6 \text{ sprints, soit 8 à 12 semaines}$$
+
+            On annonce une fourchette, pas une date au jour près.
+
+            **Le prix d'une itération.** Une maquette imprimée en 3D coûte 2 jours et une quarantaine d'euros de matière ; la même pièce usinée en inox, 6 semaines et 1 800 €. On itère sur les maquettes jusqu'à ce que la forme soit validée, et on usine une fois.
+        - level: 4
+          title: Ce que l'agilité ne règle pas
+          body: |
+            - **Les délais physiques ne se sprintent pas.** Une commande de 8 semaines reste de 8 semaines. Les achats longs se planifient en dehors des sprints, avec leur date de commande au plus tard.
+            - **La sécurité et la conformité demandent des documents.** Une analyse de risques, un dossier de pression ou de sécurité laser ne se remplacent pas par une démonstration.
+            - **Le contrat.** Un contrat au forfait fixe le périmètre, le coût et le délai. L'agilité suppose qu'on puisse faire varier le périmètre ; il faut l'avoir négocié : coût et délai fixés, contenu priorisé.
+            - **Le client doit être disponible.** Sans product owner qui tranche et assiste aux revues, les sprints tournent à vide. C'est la cause d'échec la plus fréquente sur un projet client.
+            - **Agile ne veut pas dire sans plan.** Le backlog est un plan, ordonné et révisé. Et la définition de « fini » empêche le « fini à 90 % » qui dure : un élément est fini ou ne l'est pas.
+            - **Changer souvent a un coût.** Une interface mécanique modifiée après commande coûte une reprise. On fige les interfaces tôt, et on garde la liberté à l'intérieur.
+        - level: 5
+          title: Un hybride qui marche
+          body: |
+            Pour un équipement de laboratoire de quelques mois :
+            - **Cadre en V** : cahier des charges, revue de conception préliminaire, gel des interfaces et commande des pièces longues, revue de conception détaillée, recette.
+            - **Sprints de deux semaines** sur le logiciel et les réglages, avec une démonstration à l'utilisateur à chaque fin de sprint, même courte.
+            - **Prototypes tôt sur le point le plus risqué** : la tenue du chauffage, l'étanchéité, le contact thermique. On cherche à échouer vite, quand c'est encore bon marché.
+            - **Un tableau Kanban** pour l'atelier et les essais, avec une limite de travail en cours.
+            - **Une mêlée de 10 minutes** debout, trois questions : fait, à faire, bloqué.
+            - **Une rétrospective** à chaque jalon, notée, pour ne pas la perdre à la clôture.
+
+            En anglais : *« What's the definition of done for this part? »*, *« We'll freeze the interfaces before ordering. »*, *« Let's demo the GUI at the end of the sprint. »*
+      recap:
+        - "Scrum : sprints d'un mois au plus, backlog tenu par le product owner, mêlée quotidienne, revue avec démonstration, rétrospective."
+        - "Kanban : flux visible et travail en cours limité ; loi de Little : délai = travail en cours / débit."
+        - "Vélocité mesurée sur les sprints passés ; on annonce une fourchette : reste à faire / vélocité max à reste à faire / vélocité min."
+        - "Matériel : cycle hybride, cadre en V pour les exigences, la sécurité, les interfaces et les achats longs ; itérations courtes pour le logiciel et les maquettes."
+        - "La définition de « fini » remplace le « 90 % » ; le client doit être disponible pour trancher."
+      pieges: [ppi-90-pourcent, ppi-planning-sans-marge]
+    vocab:
+      - sprint = sprint
+      - backlog produit = product backlog
+      - mêlée quotidienne = daily scrum, stand-up meeting
+      - rétrospective = retrospective
+      - définition de « fini » = definition of done
+      - travail en cours = work in progress (WIP)
+      - vélocité = velocity
+      - geler les interfaces = to freeze the interfaces
+    exercises:
+      - id: ppi-agile.1
+        type: numeric
+        level: 1
+        q: Le tableau de l'atelier montre 15 pièces en cours. L'atelier en termine en moyenne 5 par semaine, à un rythme stable. Combien de semaines une nouvelle pièce met-elle en moyenne à traverser l'atelier ?
+        answer: 3
+        tol: 0.02
+        unit: semaines
+        calc: 15 / 5
+        trap_values:
+          - v: 0.33
+            why: Tu as divisé le débit par le travail en cours. Le délai vaut travail en cours / débit.
+          - v: 75
+            why: Tu as multiplié au lieu de diviser. Avec 5 pièces par semaine, 15 pièces s'écoulent en 3 semaines.
+        e: Loi de Little, délai = travail en cours / débit = 15 / 5 = 3 semaines. Pour raccourcir ce délai sans aller plus vite, on limite le nombre de pièces lancées en même temps.
+      - id: ppi-agile.2
+        type: numeric
+        level: 2
+        q: Il reste 84 points au backlog du logiciel. Sur les derniers sprints de deux semaines, l'équipe a terminé entre 12 et 14 points. Combien de semaines faut-il au pire, sans changement de périmètre ?
+        answer: 14
+        tol: 0.02
+        unit: semaines
+        calc: 84 / 12 * 2
+        trap_values:
+          - v: 7
+            why: C'est le nombre de sprints. Chaque sprint dure deux semaines.
+          - v: 12
+            why: C'est le cas le plus favorable, avec 14 points par sprint. Au pire, on prend la vélocité la plus basse.
+        e: 84 / 12 = 7 sprints au pire, soit 14 semaines ; 84 / 14 = 6 sprints au mieux, soit 12 semaines. On annonce « 12 à 14 semaines », et on revoit la fourchette à chaque sprint.
+      - id: ppi-agile.3
+        type: qcm
+        level: 2
+        q: Un client veut « un projet agile » pour son banc d'essai, mais il ne peut venir à aucune revue de sprint et répond aux questions en trois semaines. Que proposes-tu ?
+        choices:
+          - t: Un cycle plus classique, avec des jalons validés par écrit, et des démonstrations groupées aux jalons où il peut venir
+            ok: true
+          - t: Des sprints quand même, l'équipe tranchera seule les questions du client
+            why: Sans client qui tranche, l'équipe devine le besoin. Les écarts ne se voient qu'à la recette, quand ils coûtent cher.
+          - t: Des sprints d'une semaine, pour multiplier les occasions de le voir
+            why: Il n'est déjà pas disponible toutes les deux semaines. Des sprints plus courts ne le rendront pas plus présent.
+          - t: Supprimer le cahier des charges, puisque l'agilité s'en passe
+            why: L'agilité ne supprime pas les exigences ; elle les ordonne et les révise avec le client. Sans client présent, c'est le cahier des charges qui le remplace.
+        e: Une méthode agile repose sur un retour fréquent du client. S'il est indisponible, on choisit une méthode qui demande moins sa présence, et on le dit au cadrage. La méthode s'adapte au projet, pas l'inverse.
+      - id: ppi-agile.4
+        type: qcm
+        level: 3
+        q: Pendant le sprint 3, le client demande de déplacer le passage des fils du porte-échantillon. Le corps usiné est commandé depuis deux semaines. Quelle réponse est la plus juste ?
+        choices:
+          - t: L'interface est figée depuis la commande ; on chiffre la reprise et on la soumet au client comme un changement
+            ok: true
+          - t: On accepte, c'est l'esprit agile de s'adapter au changement
+            why: S'adapter, oui, mais pas gratuitement. Le corps est en fabrication ; le changement coûte une reprise et des semaines, et le client doit le savoir avant de décider.
+          - t: On refuse, le périmètre d'un sprint ne change jamais
+            why: Le sprint en cours se protège, mais une demande peut entrer au backlog. Ici, la vraie question est le coût de la reprise, pas la règle du sprint.
+          - t: On le note pour une version 2, sans en parler au client
+            why: Décider seul de reporter une demande du client, sans le lui dire, abîme la confiance. On chiffre et on lui laisse le choix.
+        e: L'agilité accueille le changement en le rendant visible et chiffré. Une interface figée et commandée se change par une demande de modification, avec son coût et son délai, comme dans un projet classique.
+      - id: ppi-agile.5
+        type: flash
+        level: 1
+        q: Cite les quatre rendez-vous d'un sprint Scrum et leur but.
+        back: |
+          - Planification : choisir ce qu'on livre dans le sprint.
+          - Mêlée quotidienne (15 minutes) : se synchroniser et lever les blocages.
+          - Revue : montrer l'incrément au client et recueillir son avis.
+          - Rétrospective : améliorer la façon de travailler de l'équipe.
+        e: La revue parle du produit, la rétrospective parle de l'équipe. Les confondre, c'est perdre l'une des deux.
+  - id: ppi-achats
+    title: Acheter et sous-traiter
+    en: Purchasing and subcontracting
+    goal: Dérouler la chaîne d'achat, de la spécification à la réception, calculer la date de commande au plus tard et comparer des offres en coût complet pour le projet.
+    minutes: 13
+    lesson:
+      steps:
+        - level: 1
+          title: Le traiteur du mariage
+          body: |
+            Pour un mariage, on réserve le traiteur des mois à l'avance, on fait des essayages pour la robe, on confirme le nombre d'invités par écrit. La date de la fête dépend du fournisseur le plus lent, pas de la bonne volonté des mariés.
+
+            Dans un projet technique, c'est pareil. La moitié du budget part souvent en achats et en sous-traitance, et les délais des fournisseurs pèsent souvent plus lourd que le travail de l'équipe. Un achat, c'est une petite négociation, un contrat et une tâche du planning.
+        - level: 2
+          title: La chaîne d'achat
+          body: |
+            1. **Le besoin** : une **spécification d'achat** (plan coté, matière, tolérances, quantité, documents attendus, date de besoin).
+            2. **La consultation** : une **demande de prix** (*request for quotation*, RFQ) à plusieurs fournisseurs, avec la même spécification pour tous.
+            3. **La comparaison des offres** : prix, délai, conformité à la spécification, garanties, transport, documents. Le **moins-disant** (le moins cher) n'est pas toujours le **mieux-disant** (le meilleur rapport global).
+            4. **La demande d'achat** interne, puis le **bon de commande** (*purchase order*, PO) : c'est lui qui engage juridiquement l'organisme.
+            5. **L'accusé de réception de commande** du fournisseur : il confirme prix et date. Le délai court souvent « à réception de commande ».
+            6. **Le suivi** : relances et point à mi-délai, pas le jour prévu.
+            7. **La réception** : quantité, état, conformité au plan, certificats ; puis la facture et le paiement.
+
+            **Acheter ou faire ?** (*make or buy*) On sous-traite ce que l'atelier ne sait pas faire, n'a pas le temps de faire, ou fait plus cher.
+
+            **Deux formes de contrat** : le **forfait** (prix ferme pour un résultat défini par la spécification ; le fournisseur porte le risque, mais tout changement passe par un avenant) et la **régie** (paiement au temps passé ; souple, mais c'est toi qui portes le risque de dérive).
+
+            Les organismes publics et les grands instituts ont des **règles internes d'achat** : au-delà de certains seuils, il faut plusieurs devis, puis un appel d'offres, qui prend des semaines de plus. Renseigne-toi dès le cadrage.
+          check:
+            q: Qu'est-ce qui engage juridiquement ton organisme vis-à-vis du fournisseur ?
+            choices:
+              - t: Le bon de commande signé
+                ok: true
+              - t: La demande de prix envoyée au fournisseur
+                why: Une demande de prix n'engage à rien ; c'est une question. Elle peut d'ailleurs partir à plusieurs fournisseurs.
+              - t: Le devis reçu du fournisseur
+                why: Le devis est une offre du fournisseur. Elle n'engage l'organisme que lorsqu'il l'accepte par un bon de commande.
+              - t: Un accord par téléphone avec le commercial
+                why: Un accord oral est fragile et contourne le circuit d'achat ; le fournisseur qui démarre sans commande prend un risque, et toi aussi.
+        - level: 3
+          title: La date de commande et le coût complet
+          body: |
+            **La date de commande au plus tard** se calcule à rebours, depuis la date de besoin :
+
+            $$S_{\text{demande}} = S_{\text{besoin}} - (\text{marge} + \text{contrôle} + \text{transport} + \text{délai fournisseur} + \text{circuit interne})$$
+
+            Le corps usiné du porte-échantillon est nécessaire à l'assemblage en semaine 24. Contrôle à réception 1 semaine, transport compris dans le délai, usinage 8 semaines à réception de commande, circuit interne (demande, validation, bon de commande) 2 semaines, marge 1 semaine :
+
+            $$24 - (1 + 1 + 8 + 2) = 12$$
+
+            La demande d'achat doit partir en semaine 12, donc les plans du corps doivent être figés avant : bien avant la fin de la conception détaillée.
+
+            **Comparer des offres en coût complet.** Une semaine de retard coûte environ 2 900 € au projet (1,5 personne, 35 h, 55 €/h). Deux offres pour le corps :
+
+            | Offre | Prix | Délai |
+            |---|---|---|
+            | A | 4 200 € | 8 semaines |
+            | B | 5 000 € | 5 semaines |
+
+            - Si la pièce est sur le **chemin critique**, B fait gagner 3 semaines, soit $3 \times 2\,900 = 8\,700$ €, pour 800 € de plus : B est meilleure de 7 900 €.
+            - Si la pièce a 4 semaines de **marge totale**, les 3 semaines gagnées ne raccourcissent rien : A est meilleure de 800 €.
+
+            Le prix d'achat seul ne dit pas quelle offre est la moins chère pour le projet.
+        - level: 4
+          title: Les pièges du contrat et de la qualité
+          body: |
+            - **Une offre conforme, pas seulement moins chère.** Vérifie ligne à ligne : matière, tolérances, traitement de surface, nettoyage pour le vide, certificats, documentation, emballage, transport. L'offre la moins chère est souvent celle qui a oublié quelque chose.
+            - **Les certificats matière.** Pour une pièce sous vide, sous pression ou à haute température, on exige souvent un certificat de contrôle **3.1** selon la norme EN 10204, qui relie la pièce à la coulée et à ses analyses. Le demander après la commande, c'est souvent trop tard.
+            - **Les conditions.** Tes conditions générales d'achat et les conditions de vente du fournisseur peuvent se contredire (garantie, pénalités, propriété des plans). Lis ce que confirme l'accusé de réception.
+            - **Qui paie le transport et porte le risque** se dit avec les Incoterms (par exemple EXW, départ usine, ou DAP, rendu au lieu convenu). Une pièce cassée en route sous EXW est ton problème.
+            - **Le fournisseur unique** est un risque : faillite, saturation, pièce arrêtée. Inscris-le au registre des risques, avec une solution de repli.
+            - **Les tolérances coûtent.** Une tolérance serrée inutile multiplie le prix de l'usinage et le délai. Elle se discute avec le bureau d'études avant la consultation.
+        - level: 5
+          title: Les réflexes de l'acheteur technique
+          body: |
+            - **Repère les achats longs** dès la conception préliminaire et demande les délais par écrit, avec leur date de validité.
+            - **Une même spécification pour tous** les fournisseurs consultés, sinon les offres ne se comparent pas.
+            - **Un tableau de suivi** des commandes : référence, fournisseur, date de commande, date confirmée, date de besoin, marge. Revu chaque semaine.
+            - **Appelle à mi-délai** : « Le matériau est-il arrivé ? La pièce est-elle lancée ? » Un retard annoncé tôt se gère ; découvert le jour de la livraison, il se subit.
+            - **À la réception** : quantité, état de l'emballage, cotes critiques, certificats. Toute réserve s'écrit sur le bon de livraison.
+            - **Jamais de démarrage sur un simple accord oral** : le fournisseur attend la commande, et toi aussi.
+
+            En anglais : *« What's your lead time from PO? »*, *« Can you confirm the delivery date in writing? »*, *« We need a 3.1 material certificate with the parts. »*
+      recap:
+        - "Chaîne : spécification, demande de prix, comparaison, demande d'achat, bon de commande, accusé de réception, suivi, réception, facture."
+        - "Le bon de commande engage l'organisme ; le devis n'est qu'une offre du fournisseur."
+        - "Commande au plus tard = besoin − (marge + contrôle + transport + délai fournisseur + circuit interne)."
+        - "Coût complet d'une offre = prix + semaines de retard sur le chemin critique × coût d'une semaine ; hors chemin critique, la marge absorbe le délai."
+        - "Forfait : prix ferme, avenant pour tout changement ; régie : au temps passé, risque de dérive pour l'acheteur."
+        - "Achats longs repérés tôt, suivi hebdomadaire, appel à mi-délai, contrôle et certificats à réception."
+      pieges: [ppi-planning-sans-marge]
+    vocab:
+      - demande de prix = request for quotation (RFQ)
+      - devis = quote, quotation
+      - bon de commande = purchase order (PO)
+      - accusé de réception de commande = order acknowledgement
+      - délai de livraison = lead time
+      - sous-traitant = subcontractor
+      - certificat matière = material certificate, mill certificate
+      - réserve à la livraison = delivery claim
+    exercises:
+      - id: ppi-achats.1
+        type: numeric
+        level: 1
+        q: Une pièce est nécessaire en semaine 30. Contrôle à réception 1 semaine, délai fournisseur 10 semaines (transport compris) à réception de commande, circuit interne 3 semaines, marge 2 semaines. En quelle semaine la demande d'achat doit-elle partir au plus tard ?
+        answer: 14
+        tol: 0.001
+        unit: semaine
+        calc: 30 - (1 + 10 + 3 + 2)
+        trap_values:
+          - v: 20
+            why: Tu n'as retiré que le délai fournisseur. Le circuit interne, le contrôle et la marge prennent aussi des semaines.
+          - v: 17
+            why: Tu as oublié le circuit interne. Entre la demande d'achat et le bon de commande signé, il se passe 3 semaines.
+        e: 30 − (1 + 10 + 3 + 2) = 14. Pour envoyer la demande en semaine 14, il faut que la spécification soit prête avant ; c'est elle qui fixe la vraie date limite de la conception de cette pièce.
+      - id: ppi-achats.2
+        type: numeric
+        level: 2
+        q: "Deux offres pour une pièce du chemin critique : A à 6 000 € livrée en 9 semaines, B à 7 500 € livrée en 6 semaines. Une semaine de retard coûte 2 900 € au projet. Combien d'euros B fait-elle économiser au projet par rapport à A ?"
+        answer: 7200
+        tol: 0.01
+        unit: €
+        calc: 3 * 2900 - (7500 - 6000)
+        trap_values:
+          - v: -1500
+            why: Tu n'as comparé que les prix. Sur le chemin critique, les 3 semaines gagnées valent de l'argent.
+          - v: 8700
+            why: Tu as oublié que B coûte 1 500 € de plus à l'achat.
+        e: B fait gagner 3 semaines, soit 3 × 2 900 = 8 700 €, et coûte 1 500 € de plus. Économie nette, 7 200 €. Si la pièce avait 3 semaines de marge ou plus, ce gain disparaîtrait et A serait la bonne offre.
+      - id: ppi-achats.3
+        type: qcm
+        level: 2
+        q: Trois devis pour une bride sous vide. Le moins cher est 30 % sous les autres, mais ne mentionne ni nettoyage pour l'ultravide ni certificat matière. Que fais-tu ?
+        choices:
+          - t: Je demande aux trois fournisseurs de chiffrer exactement la même spécification, nettoyage et certificat compris, puis je compare
+            ok: true
+          - t: Je prends le moins cher, l'écart de prix est trop important pour être ignoré
+            why: S'il manque le nettoyage et le certificat, ce n'est pas la même pièce. L'écart vient peut-être justement de ce qui manque.
+          - t: J'écarte d'office le moins cher, un prix bas cache toujours un problème
+            why: Un prix bas peut être honnête. On ne juge pas sur l'impression, on compare des offres sur la même base.
+          - t: Je commande chez le moins cher et je ferai nettoyer la pièce à l'atelier
+            why: Peut-être, mais seulement si tu as chiffré ce nettoyage et vérifié qu'il est faisable. Et le certificat matière ne se rattrape pas après coup.
+        e: On ne compare que des offres conformes à la même spécification. Le moins-disant devient mieux-disant seulement s'il remplit le besoin entier. Sinon, on ajoute à son prix ce qu'il faudra faire ou acheter en plus.
+      - id: ppi-achats.4
+        type: parsons
+        level: 1
+        lang: text
+        q: Remets dans l'ordre les étapes d'un achat de pièce sous-traitée.
+        lines:
+          - Rédiger la spécification d'achat
+          - Envoyer la demande de prix à plusieurs fournisseurs
+          - Comparer les offres sur la même base
+          - Émettre le bon de commande
+          - Recevoir l'accusé de réception avec la date confirmée
+          - Relancer à mi-délai
+          - Contrôler la pièce et les certificats à réception
+        extra:
+          - Payer la facture avant la livraison pour gagner du temps
+        e: Le paiement vient après la réception et le contrôle, sauf acompte prévu au contrat. Payer avant, c'est perdre son seul levier si la pièce n'est pas conforme.
+      - id: ppi-achats.5
+        type: flash
+        level: 1
+        q: Que vérifies-tu à la réception d'une pièce sous-traitée ?
+        back: |
+          - La quantité et la référence, par rapport au bon de commande.
+          - L'état de l'emballage et de la pièce.
+          - Les cotes critiques du plan.
+          - Les documents demandés : certificats matière, rapports de contrôle.
+          Toute réserve s'écrit sur le bon de livraison, le jour même.
+        e: Une réserve écrite le jour de la livraison est facile à faire valoir. Découvrir le défaut trois semaines plus tard, à l'assemblage, est une autre histoire.
+  - id: ppi-cloture
+    title: Clôturer un projet
+    en: Closing a project
+    goal: Mener la clôture administrative, technique et humaine d'un projet, faire le bilan chiffré par rapport au cadrage et tirer un retour d'expérience utilisable par le projet suivant.
+    minutes: 12
+    lesson:
+      steps:
+        - level: 1
+          title: Rendre les clés
+          body: |
+            Quand tu quittes un appartement en location, tu ne pars pas en claquant la porte. Il y a l'état des lieux, la remise des clés, la résiliation de l'électricité, la dernière facture, l'adresse pour le courrier. Si tu sautes ces étapes, la caution ne revient pas et les factures te suivent pendant des mois.
+
+            Un projet, c'est pareil. Livrer l'équipement n'est pas le finir. Tant que les comptes sont ouverts, que les plans ne sont pas à jour et que personne n'a dit ce qu'on a appris, le projet traîne, et le suivant refait les mêmes erreurs.
+        - level: 2
+          title: Les quatre clôtures
+          body: |
+            - **La clôture contractuelle** : la **recette** est prononcée par écrit (avec ou sans réserves), et les **réserves** sont levées ou planifiées. C'est l'objet du domaine sur la relation client.
+            - **La clôture administrative** : dernières commandes réceptionnées, dernières factures payées, comptes du projet fermés pour qu'on n'y impute plus d'heures, garanties et contrats de maintenance rangés.
+            - **La clôture technique** : le **dossier de fin de projet**. Plans conformes à l'exécution (*as-built*), schémas électriques à jour, notice d'utilisation et de maintenance, analyse de risques finale, rapports d'essais et procès-verbal de recette, liste des pièces de rechange, logiciel versionné dans un dépôt, avec sa configuration.
+            - **La clôture humaine** : passation à l'exploitation (formation des utilisateurs, contact pour la garantie), libération de l'équipe, remerciements.
+
+            Et la plus utile pour la suite : le **retour d'expérience** (REX, *lessons learned*). On compare le prévu au réalisé, on cherche les causes, et on transforme chaque leçon en changement concret : un modèle, une liste de vérification, une règle de planification.
+          check:
+            q: L'équipement fonctionne chez le client depuis un mois. Le projet est-il terminé ?
+            choices:
+              - t: Pas forcément, il faut aussi la recette écrite, les comptes fermés, le dossier de fin de projet et le retour d'expérience
+                ok: true
+              - t: Oui, le client s'en sert, c'est la preuve qu'il est satisfait
+                why: Le client s'en sert peut-être avec des réserves non levées, et sans plans à jour ni notice. Ce qui manque reviendra à la première panne.
+              - t: Oui, dès que la dernière facture du fournisseur est payée
+                why: C'est la clôture administrative seulement. Le dossier technique et le retour d'expérience restent à faire.
+        - level: 3
+          title: Le bilan chiffré
+          body: |
+            Le bilan compare le **cadrage** (la référence) au **réalisé**, avec les mêmes définitions :
+
+            $$\text{écart} = \frac{\text{réalisé} - \text{prévu}}{\text{prévu}}$$
+
+            Pour le porte-échantillon :
+
+            | | Prévu | Réalisé | Écart |
+            |---|---|---|---|
+            | Délai | 39 semaines | 43 semaines | + 10,3 % |
+            | Coût complet | 95 k€ | 103 k€ | + 8,4 % |
+            | Achats et sous-traitance | 25 k€ | 27 k€ | + 8,0 % |
+            | Heures | 1 270 h | 1 380 h | + 8,7 % |
+            | Objectifs techniques | 20 à 300 °C en 15 min, ±0,5 °C | tenus, ±0,3 °C | atteint |
+
+            Puis on **explique les écarts** par les faits : 3 semaines de retard du corps usiné (risque identifié mais non traité), 1 semaine de reprise de câblage. Les 110 heures de plus (environ 6 k€ à 55 €/h) viennent surtout de ces 4 semaines, pendant lesquelles une partie de l'équipe est restée mobilisée ; les 2 k€ d'achats en plus, des connecteurs et du faisceau refaits pendant la reprise.
+
+            **Une leçon s'écrit en quatre temps** : le fait, son effet, sa cause, la recommandation, avec un propriétaire. Par exemple : « Le corps est arrivé avec 3 semaines de retard (fait), ce qui a décalé l'assemblage et la recette (effet). La commande est partie après la revue de conception détaillée (cause). Désormais, les pièces longues sont figées et commandées dès la conception préliminaire ; ajouté au modèle de planning par le chef de projet (recommandation). »
+        - level: 4
+          title: Pourquoi on la bâcle, et ce que ça coûte
+          body: |
+            La clôture arrive quand l'équipe est déjà partie sur le projet suivant, que personne ne la finance et que le client a ce qu'il voulait. Elle est donc souvent bâclée. Or :
+            - **le dossier de fin de projet sert pendant des années** : à la première panne, à la première modification, au technicien qui n'a jamais vu l'équipement. Sans plans à jour, il refait l'inventaire du câblage à la main, en jours de travail ;
+            - **un compte de projet laissé ouvert** continue de recevoir des heures et des commandes qui n'ont rien à y faire, et fausse le bilan ;
+            - **un retour d'expérience générique ne sert à rien** : « mieux communiquer » ou « anticiper davantage » ne changent aucune pratique. Une leçon utile se traduit en modification d'un outil, avec un nom et une date ;
+            - **le REX n'est pas un tribunal.** On analyse des causes, pas des coupables ; sinon, les faits gênants disparaissent du bilan.
+
+            Relire le registre des risques à la clôture est particulièrement instructif : quels risques se sont produits, lesquels étaient identifiés, lesquels avaient une action. C'est souvent là que se trouve la leçon la plus utile.
+        - level: 5
+          title: La liste de clôture
+          body: |
+            Dans les deux à quatre semaines qui suivent la livraison :
+            1. **Recette** signée, réserves levées ou planifiées avec une date.
+            2. **Administratif** : commandes soldées, factures payées, compte du projet fermé.
+            3. **Dossier de fin de projet** rangé à un endroit connu : plans *as-built*, schémas, notice, analyse de risques, rapports d'essais, rechanges, logiciel versionné.
+            4. **Passation** : utilisateurs formés, contact et durée de garantie connus.
+            5. **Réunion de retour d'expérience** d'une à deux heures, avec l'équipe et, si possible, le client.
+            6. **Rapport de clôture d'une page** : bilan chiffré, écarts expliqués, trois à cinq leçons avec leur propriétaire, diffusé aux parties prenantes.
+            7. **Remercier** l'équipe et les fournisseurs qui ont tenu leurs engagements.
+
+            En anglais : *« Where are the as-built drawings? »*, *« Let's hold a lessons-learned session next week. »*, *« The punch list is closed, we can sign off. »*
+      recap:
+        - "Quatre clôtures : contractuelle (recette, réserves), administrative (commandes, factures, compte fermé), technique (dossier de fin de projet), humaine (passation, équipe)."
+        - "Dossier de fin de projet : plans as-built, schémas, notice, analyse de risques, rapports d'essais, rechanges, logiciel versionné."
+        - "Bilan : écart = (réalisé − prévu) / prévu, sur le délai, le coût, les heures et les objectifs, avec les causes."
+        - "Une leçon : fait, effet, cause, recommandation, propriétaire ; « mieux communiquer » n'en est pas une."
+        - "Relire le registre des risques à la clôture : quels risques identifiés se sont produits sans action."
+      pieges: [ppi-risque-dort]
+    vocab:
+      - clôture de projet = project closure, close-out
+      - dossier de fin de projet = close-out documentation
+      - plans conformes à l'exécution = as-built drawings
+      - liste des réserves = punch list
+      - passation = handover
+      - retour d'expérience = lessons learned
+      - rapport de clôture = close-out report
+    exercises:
+      - id: ppi-cloture.1
+        type: numeric
+        level: 1
+        q: Un projet était budgété à 60 k€ en coût complet. Il a coûté 66,6 k€. Quel est l'écart de coût, en pourcentage du budget ?
+        answer: 11
+        tol: 0.02
+        unit: "%"
+        calc: (66.6 - 60) / 60 * 100
+        trap_values:
+          - v: 9.9
+            why: Tu as divisé par le réalisé (66,6 k€). L'écart se rapporte au prévu, la référence du cadrage.
+          - v: 6.6
+            why: C'est l'écart en k€, pas en pourcentage.
+        e: (66,6 − 60) / 60 = 0,11, soit + 11 %. Le chiffre ne suffit pas, le bilan doit dire d'où viennent ces 6,6 k€.
+      - id: ppi-cloture.2
+        type: qcm
+        level: 2
+        q: Laquelle de ces leçons de retour d'expérience est vraiment utilisable par le projet suivant ?
+        choices:
+          - t: « Les pièces à long délai seront figées et commandées dès la conception préliminaire ; règle ajoutée au modèle de planning par le chef de projet. »
+            ok: true
+          - t: « Il faudra mieux communiquer avec le fournisseur. »
+            why: Trop vague, sans action ni propriétaire. Personne ne saura quoi faire différemment.
+          - t: « Le technicien de câblage a fait des erreurs. »
+            why: C'est un coupable, pas une cause. Pourquoi l'erreur a-t-elle été possible, et pourquoi n'a-t-elle pas été vue plus tôt ?
+          - t: « Le projet a pris 4 semaines de retard. »
+            why: C'est un fait, le début d'une leçon. Il manque l'effet, la cause et ce qu'on change.
+        e: Une leçon utile part d'un fait, remonte à une cause et se termine par un changement concret, écrit dans un outil, avec un propriétaire. Sinon, elle reste dans le rapport et le projet suivant refait la même chose.
+        piege: ppi-risque-dort
+      - id: ppi-cloture.3
+        type: qcm
+        level: 2
+        q: Le bilan d'un projet montre 3 semaines de retard et 6 k€ de dépassement. Une semaine de projet coûte environ 2 000 € en temps d'équipe. Que peux-tu en conclure ?
+        choices:
+          - t: Le retard peut expliquer à lui seul le dépassement, c'est la première piste à vérifier sur les heures imputées
+            ok: true
+          - t: Le retard et le dépassement sont deux problèmes indépendants
+            why: Quand l'équipe reste mobilisée plus longtemps, le coût suit. 3 semaines à 2 000 € font exactement l'écart.
+          - t: Les achats ont forcément dérivé de 6 k€
+            why: Rien ne l'indique. Le temps d'équipe suffit à expliquer l'écart ; il faut regarder ligne par ligne.
+          - t: On ne peut rien conclure sans refaire toute la comptabilité
+            why: L'ordre de grandeur oriente l'analyse ; le détail viendra des lignes du budget.
+        e: 3 × 2 000 = 6 000 €. Le retard suffit à expliquer l'écart si l'équipe est restée mobilisée ; on le vérifie sur les heures imputées. Si les heures n'ont pas bougé, la cause est ailleurs, dans les achats ou la sous-traitance.
+      - id: ppi-cloture.4
+        type: parsons
+        level: 1
+        lang: text
+        q: Remets dans l'ordre les étapes de la clôture d'un projet.
+        lines:
+          - Faire signer la recette et planifier la levée des réserves
+          - Solder les commandes et fermer le compte du projet
+          - Ranger le dossier de fin de projet
+          - Former les utilisateurs et organiser la passation
+          - Tenir la réunion de retour d'expérience
+          - Diffuser le rapport de clôture
+        extra:
+          - Supprimer le registre des risques, devenu inutile
+        e: Le registre des risques ne se supprime pas ; il se relit au retour d'expérience, et il sert de point de départ au projet suivant.
+      - id: ppi-cloture.5
+        type: flash
+        level: 1
+        q: Que contient un dossier de fin de projet pour un équipement de laboratoire ?
+        back: |
+          Les plans conformes à l'exécution, les schémas électriques à jour, la notice d'utilisation et de maintenance, l'analyse de risques finale, les rapports d'essais et le procès-verbal de recette, la liste des pièces de rechange, et le logiciel versionné avec sa configuration.
+        e: Le test, c'est le technicien qui découvre l'équipement dans cinq ans. Peut-il le dépanner avec ce dossier, sans appeler personne ?

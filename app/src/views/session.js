@@ -1,6 +1,6 @@
 // Déroulé d'une séance : un exercice à la fois, relances des erreurs, bilan final.
 import { h, clear } from "../dom.js";
-import { C, TRACK_LABEL, nextLesson, trackOfEx } from "../content.js";
+import { C, TRACKS, TRACK_LABEL, nextLesson, trackOfEx } from "../content.js";
 import { buildSession, summary } from "../engine.js";
 import { recordAnswer, getState } from "../store.js";
 import { renderExercise } from "./exercise.js";
@@ -131,7 +131,7 @@ function renderEnd(page) {
     next ? `Prochaine révision de ces exercices : ${formatDays(next)}. ` : "",
     sm.due ? `${plural(sm.due, "exercice encore dû", "exercices encore dus")}. ` : "Plus rien de dû pour aujourd'hui. ",
     sm.newAvail ? `${plural(sm.newAvail, "nouvel exercice disponible", "nouveaux exercices disponibles")}.` : ""));
-  const nl = ["python", "cpp", "inge"].map(nextLesson).filter(Boolean)[0];
+  const nl = TRACKS.map(nextLesson).filter(Boolean)[0];
   page.append(h("div.actions", { style: { marginTop: "18px" } },
     h("button.btn.primary", { onclick: () => { current = null; go(s.scope.type === "daily" ? "#/session/again" : location.hash); } }, "Encore une série"),
     nl ? h("a.btn", { href: `#/m/${nl}` }, `Cours suivant : ${C.modules[nl].title}`) : null,
@@ -143,7 +143,7 @@ function kpi(v, l) {
 }
 
 function emptyView(page, scope) {
-  const nl = ["python", "cpp", "inge"].map((t) => [t, nextLesson(t)]).filter((x) => x[1]);
+  const nl = TRACKS.map((t) => [t, nextLesson(t)]).filter((x) => x[1]);
   page.append(
     h("div.page-head", {}, h("div", {}, h("span.eyebrow", {}, scopeTitle(scope)), h("h1", {}, "Rien à faire ici pour l'instant"))),
     h("div.panel", {}, h("div.stack.g14", {},

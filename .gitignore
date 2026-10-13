@@ -25,3 +25,6 @@ build/
 !.vscode/settings.json
 !.vscode/extensions.json
 !.vscode/tasks.json
+
+# Piste perso (contenu privé, jamais publié) : voir prive/LISEZMOI.md
+/prive/

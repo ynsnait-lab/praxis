@@ -1,6 +1,6 @@
 // Progression : chiffres clés, activité, prévisions, modules à retravailler.
 import { h } from "../dom.js";
-import { C, TRACKS, TRACK_LONG, allModules, exercisesOf, lessonRead } from "../content.js";
+import { C, TRACKS, TRACK_LONG, GROUPED, allModules, exercisesOf, lessonRead, trackOfEx } from "../content.js";
 import { getState, today, trapStatus } from "../store.js";
 import { mastery } from "../engine.js";
 import { DAY, isMastered } from "../fsrs.js";
@@ -30,7 +30,7 @@ export function statsView() {
   // par piste
   const rows = TRACKS.map((t) => {
     const ids = allModules().filter((m) => C.modules[m].track === t).flatMap((m) => exercisesOf(m))
-      .concat(t === "inge" ? C.tracks.inge.groups.flatMap((g) => g.quiz || []) : []);
+      .concat(GROUPED.has(t) ? C.tracks[t].groups.flatMap((g) => g.quiz || []) : []);
     const m = mastery(ids);
     const jt = j30.filter((j) => C.ex[j[1]] && trackOf(j[1]) === t);
     const acc = jt.length ? Math.round((100 * jt.filter((j) => j[2] >= 2).length) / jt.length) : null;
@@ -84,8 +84,7 @@ export function statsView() {
 }
 
 function trackOf(exId) {
-  const e = C.ex[exId];
-  return C.modules[e.mod] ? C.modules[e.mod].track : "inge";
+  return trackOfEx(C.ex[exId]);
 }
 function kpi(v, l) { return h("div.kpi", {}, h("div.v", {}, v), h("div.l", {}, l)); }
 function section(title, content) {

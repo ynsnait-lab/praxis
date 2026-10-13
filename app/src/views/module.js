@@ -1,7 +1,7 @@
 // Page d'un module / d'une notion : cours en crescendo, exercices, pièges.
 import { h, clear } from "../dom.js";
 import { md, codeHTML, inline } from "../md.js";
-import { C, TRACK_LABEL, TRACK_LONG, TYPE_LABEL, EX_LEVEL, levelLabel, lessonRead, groupOf, modIndex, modOrder, exercisesOf } from "../content.js";
+import { C, TRACK_LABEL, TRACK_LONG, GROUPED, trackHome, TYPE_LABEL, EX_LEVEL, levelLabel, lessonRead, groupOf, modIndex, modOrder, exercisesOf } from "../content.js";
 import { getState, markLesson, trapStatus, settings } from "../store.js";
 import { mastery } from "../engine.js";
 import { isDue, isMastered } from "../fsrs.js";
@@ -20,11 +20,11 @@ export function moduleView(parts) {
   }
   const tab = parts[2] || (m.lesson ? "cours" : "exos");
   const g = groupOf(id);
-  const dom = m.track === "inge" ? C.domains[m.domain] : null;
+  const dom = GROUPED.has(m.track) ? C.domains[m.domain] : null;
   const crumbs = h("div.crumbs", {},
-    h("a", { href: `#/parcours/${m.track}` }, TRACK_LONG[m.track]), h("span", {}, "›"),
+    h("a", { href: trackHome(m.track) }, TRACK_LONG[m.track]), h("span", {}, "›"),
     dom ? h("a", { href: `#/d/${dom.id}` }, dom.title) : h("span", {}, g ? g.title : ""),
-    h("span", {}, "›"), h("span", {}, `${m.track === "inge" ? "Notion" : "Module"} ${modIndex(id)}`));
+    h("span", {}, "›"), h("span", {}, `${GROUPED.has(m.track) ? "Notion" : "Module"} ${modIndex(id)}`));
   const read = lessonRead(id);
   const levels = m.lesson ? [...new Set(m.lesson.steps.map((s) => s.level))] : [];
   const exIds = exercisesOf(id);
@@ -121,6 +121,13 @@ function renderLesson(body, m) {
       tail.append(h("div.stack.g8", {}, h("span.eyebrow", {}, "Pièges de ce cours"),
         h("div.grid2", {}, pg.map((p) => trapCard(p)))));
     }
+    const sources = (L.sources || []).filter((src) => src && /^https:\/\//.test(src.url || ""));
+    if (sources.length) {
+      tail.append(h("div.stack.g8", {}, h("span.eyebrow", {}, "Pour aller plus loin"),
+        h("ul.sources", {}, sources.map((src) => h("li", {},
+          h("a", { href: src.url, target: "_blank", rel: "noopener" }, src.t || src.url),
+          src.note ? h("span.small.muted", { html: ` — ${inline(src.note)}` }) : null)))));
+    }
     const read = lessonRead(m.id);
     const nEx = (m.ex || []).length;
     const nextId = nextInOrder(m);
@@ -138,7 +145,7 @@ function renderLesson(body, m) {
 }
 
 function nextInOrder(m) {
-  const order = m.track === "inge" ? C.tracks.inge.groups.flatMap((g) => g.modules) : modOrder(m.track);
+  const order = GROUPED.has(m.track) ? C.tracks[m.track].groups.flatMap((g) => g.modules) : modOrder(m.track);
   const i = order.indexOf(m.id);
   return i >= 0 && i + 1 < order.length ? order[i + 1] : null;
 }
@@ -320,17 +327,17 @@ export function domainView(parts) {
   const all = [...dom.modules.flatMap((m) => C.modules[m].ex || []), ...(dom.quiz || [])];
   const ms = mastery(all);
   page.append(h("div.lesson-head", {},
-    h("div.crumbs", {}, h("a", { href: "#/parcours/inge" }, "Culture ingé"), h("span", {}, "›"), h("span", {}, dom.title)),
+    h("div.crumbs", {}, h("a", { href: trackHome(dom.track || "inge") }, TRACK_LONG[dom.track || "inge"]), h("span", {}, "›"), h("span", {}, dom.title)),
     h("h1", {}, dom.title),
     dom.en ? h("div.en", {}, `EN · ${dom.en}`) : null,
     dom.intro ? h("div.prose.lg", { html: md(dom.intro) }) : null,
-    h("div.row", {}, trackPill("inge"), h("span.pill", {}, plural(dom.modules.length, "notion", "notions")), h("span.pill", {}, plural(all.length, "question", "questions")),
+    h("div.row", {}, trackPill(dom.track || "inge"), h("span.pill", {}, plural(dom.modules.length, "notion", "notions")), h("span.pill", {}, plural(all.length, "question", "questions")),
       h("span.spacer"), h("div", { style: { width: "140px" } }, masteryBar(ms)))));
   page.append(h("div.mod-list", {}, dom.modules.map((mid, i) => modRow(mid, i + 1))));
   if (dom.quiz && dom.quiz.length) {
     const qm = mastery(dom.quiz);
     page.append(h("div.panel", { style: { marginTop: "18px" } }, h("div.row", {},
-      h("div.stack.g4", {}, h("strong", {}, "Quiz du domaine"), h("span.small.muted", {}, `${dom.quiz.length} questions de culture ingé, avec explication. ${qm.seen} déjà vues.`)),
+      h("div.stack.g4", {}, h("strong", {}, "Quiz du domaine"), h("span.small.muted", {}, `${dom.quiz.length} questions de synthèse sur le domaine, avec explication. ${qm.seen} déjà vues.`)),
       h("span.spacer"), h("a.btn.primary", { href: `#/session/quiz/${dom.id}` }, "Lancer le quiz"))));
   }
   return page;

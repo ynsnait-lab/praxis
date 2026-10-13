@@ -1,7 +1,7 @@
 // Fiches : mémos, formulaire ingé (récapitulatifs des notions), glossaire français → anglais.
 import { h, clear } from "../dom.js";
 import { md, inline } from "../md.js";
-import { C } from "../content.js";
+import { C, TRACKS, GROUPED, TRACK_LONG, TRACK_LABEL } from "../content.js";
 import { go } from "../ui.js";
 
 export function fichesView(parts) {
@@ -22,7 +22,7 @@ function memos() {
   return h("div.stack.g8", {}, (C.memos || []).map((m) =>
     h("a.mod-row", { href: `#/memo/${m.id}`, style: { gridTemplateColumns: "minmax(0,1fr) auto" } },
       h("div.stack.g4", {}, h("span.t", {}, m.title), h("span.g", {}, m.summary || "")),
-      h("span.pill", {}, m.lang === "both" ? "Python + C++" : m.lang === "cpp" ? "C++" : m.lang === "inge" ? "Ingé" : "Python"))));
+      h("span.pill", {}, m.lang === "both" ? "Python + C++" : TRACK_LABEL[m.lang] || "Python"))));
 }
 
 export function memoView(parts) {
@@ -38,7 +38,9 @@ export function memoView(parts) {
 
 function formulaire() {
   const box = h("div.stack.g28");
-  for (const g of C.tracks.inge.groups) {
+  const groupes = TRACKS.filter((t) => GROUPED.has(t)).flatMap((t) => C.tracks[t].groups.map((g, i) => ({ ...g, piste: i === 0 && t !== "inge" ? TRACK_LONG[t] : null })));
+  for (const g of groupes) {
+    if (g.piste) box.append(h("h2.fam-title", {}, g.piste));
     const items = g.modules.map((id) => C.modules[id]).filter((m) => m.lesson && m.lesson.recap && m.lesson.recap.length);
     if (!items.length) continue;
     box.append(h("div.stack.g10", {},

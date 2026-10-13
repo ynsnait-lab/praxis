@@ -312,7 +312,8 @@ final class Lanceur: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNaviga
         ]))
         let routes: [(String, String, String)] = [
             ("Aujourd'hui", "", "1"), ("Parcours", "parcours", "2"), ("Pièges", "pieges", "3"), ("Labs", "labs", "4"),
-            ("Fiches", "fiches", "5"), ("Progression", "stats", "6"), ("Séance du jour", "session", "j"), ("Réglages", "reglages", ","),
+            ("Fiches", "fiches", "5"), ("Progression", "stats", "6"), ("Ma piste", "perso", "7"),
+            ("Séance du jour", "session", "j"), ("Réglages", "reglages", ","),
         ]
         principal.addItem(sousMenu("Aller", routes.map { titre, route, touche in
             let i = element(titre, #selector(aller(_:)), touche)

@@ -1,6 +1,6 @@
 // Construction des séances : révisions dues + nouveautés, entrelacées entre les pistes,
 // avec priorité aux pièges dans lesquels tu es tombé récemment.
-import { C, TRACKS, modOrder, isOpen, exercisesOf, trackOfEx } from "./content.js";
+import { C, TRACKS, GROUPED, modOrder, isOpen, exercisesOf, trackOfEx } from "./content.js";
 import { getState } from "./store.js";
 import { isDue, retrievability } from "./fsrs.js";
 
@@ -26,8 +26,8 @@ export function newCandidates(track) {
     if (!isOpen(id)) return;
     for (const e of sortNew(exercisesOf(id))) if (!st.cards[e]) out.push(e);
   };
-  if (track === "inge") {
-    for (const g of C.tracks.inge.groups) {
+  if (GROUPED.has(track)) {
+    for (const g of C.tracks[track].groups) {
       for (const m of g.modules) pushFrom(m);
       pushFrom(`quiz:${g.id}`);
     }

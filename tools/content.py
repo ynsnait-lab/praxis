@@ -14,6 +14,7 @@ Usage : python3 tools/content.py [--out dist/content.json]
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 from datetime import date
@@ -23,6 +24,9 @@ import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 CONTENT = ROOT / "content"
+# Piste personnelle facultative : un dossier prive/ hors du dépôt public (ignoré par git), avec la même
+# structure que la culture ingé : piste.yaml, domaines/*.yaml, _calibre/*.yaml, pieges/*.yaml, memos.yaml.
+PRIVE = Path(os.environ.get("PRAXIS_PRIVE") or ROOT / "prive")
 
 TEXT_KEYS = {
     "q", "t", "why", "e", "title", "goal", "hint", "back", "why_short", "en", "unit", "summary", "answer",
@@ -87,11 +91,25 @@ def preprocess(src: str) -> str:
     return "\n".join(out)
 
 
+# Écriture à plusieurs en parallèle : PRAXIS_DOMAINES=a,b ne charge, dans les zones d'écriture partagées
+# (prive/ et les dossiers content/pieges/ et content/memos/), que les fichiers de ces noms ;
+# PRAXIS_TOLERANT=1 saute un fichier YAML invalide au lieu de tout arrêter, en le signalant.
+DOMAINES_FILTRE = {s.strip() for s in os.environ.get("PRAXIS_DOMAINES", "").split(",") if s.strip()}
+TOLERANT = os.environ.get("PRAXIS_TOLERANT") == "1"
+
+
+def retenu(p: Path) -> bool:
+    return not DOMAINES_FILTRE or p.stem in DOMAINES_FILTRE
+
+
 def load(path) -> object:
     text = Path(path).read_text(encoding="utf-8")
     try:
         return yaml.safe_load(preprocess(text))
     except yaml.YAMLError as e:
+        if TOLERANT:
+            print(f"! fichier ignoré, YAML invalide : {path}\n{e}", file=sys.stderr)
+            return None
         raise SystemExit(f"YAML invalide dans {path} :\n{e}") from e
 
 
@@ -122,30 +140,65 @@ def load_raw():
             m["vocab"] = _vocab(m.get("vocab"))
             modules.append(m)
     domains = []
-    for p in sorted((CONTENT / "inge").glob("*.yaml")):
-        d = load(p)
-        d["_file"] = str(p.relative_to(ROOT))
-        d["vocab"] = _vocab(d.get("vocab"))
-        domains.append(d)
-        for n in d.get("notions") or []:
-            n["track"] = "inge"
-            n["domain"] = d["id"]
-            n["_file"] = d["_file"]
-            n["vocab"] = _vocab(n.get("vocab"))
-            modules.append(n)
     quiz = {}
-    for p in sorted((CONTENT / "inge" / "_calibre").glob("*.yaml")):
-        c = load(p)
-        quiz.setdefault(c["domain"], []).extend(c.get("exercises") or [])
+
+    def charger_domaines(dossier: Path, track: str, filtrer: bool = True):
+        for p in sorted(dossier.glob("*.yaml")):
+            if filtrer and not retenu(p):
+                continue
+            d = load(p)
+            if not d:
+                continue
+            d["_file"] = str(p.relative_to(ROOT)) if p.is_relative_to(ROOT) else str(p)
+            d["track"] = track
+            d["vocab"] = _vocab(d.get("vocab"))
+            domains.append(d)
+            for n in d.get("notions") or []:
+                n["track"] = track
+                n["domain"] = d["id"]
+                n["_file"] = d["_file"]
+                n["vocab"] = _vocab(n.get("vocab"))
+                modules.append(n)
+
+    def charger_quiz(dossier: Path, filtrer: bool = True):
+        for p in sorted(dossier.glob("*.yaml")):
+            if filtrer and not retenu(p):
+                continue
+            c = load(p)
+            if c:
+                quiz.setdefault(c["domain"], []).extend(c.get("exercises") or [])
+
+    def listes(dossier: Path, track: str | None = None):
+        """Pièges ou mémos rangés un fichier par thème (dossier pieges/ ou memos/)."""
+        out = []
+        for p in sorted(dossier.glob("*.yaml")) if dossier.is_dir() else []:
+            if not retenu(p):
+                continue
+            for item in load(p) or []:
+                if track:
+                    item.setdefault("track", track)
+                out.append(item)
+        return out
+
+    charger_domaines(CONTENT / "inge", "inge", filtrer=False)
+    charger_quiz(CONTENT / "inge" / "_calibre", filtrer=False)
+    opt = lambda name, default: load(CONTENT / name) if (CONTENT / name).exists() else default  # noqa: E731
+    pieges = (opt("pieges.yaml", []) or []) + listes(CONTENT / "pieges", "inge")
+    concepts = opt("concepts.yaml", {}) or {}
+    memos = (opt("memos.yaml", []) or []) + listes(CONTENT / "memos")
+    meta = opt("meta.yaml", {}) or {}
+    glossaire = opt("glossaire.yaml", []) or []
+
+    if (PRIVE / "piste.yaml").is_file():
+        tracks["perso"] = load(PRIVE / "piste.yaml")
+        charger_domaines(PRIVE / "domaines", "perso")
+        charger_quiz(PRIVE / "_calibre")
+        pieges += listes(PRIVE / "pieges", "perso")
+        memos = memos + listes(PRIVE / "memos")
+
     for d in domains:
         if d.get("exercises"):
             quiz.setdefault(d["id"], [])[:0] = d["exercises"]
-    opt = lambda name, default: load(CONTENT / name) if (CONTENT / name).exists() else default  # noqa: E731
-    pieges = opt("pieges.yaml", []) or []
-    concepts = opt("concepts.yaml", {}) or {}
-    memos = opt("memos.yaml", []) or []
-    meta = opt("meta.yaml", {}) or {}
-    glossaire = opt("glossaire.yaml", []) or []
     return dict(tracks=tracks, modules=modules, domains=domains, quiz=quiz, pieges=pieges, concepts=concepts,
                 defis=[], memos=memos, labs=load_labs(), meta=meta, glossaire=glossaire)
 
@@ -289,30 +342,39 @@ def build(warn=print):
         C["tracks"][track] = {"id": track, "title": T[track]["title"], "desc": T[track].get("desc", ""), "groups": groups}
 
     doms = {d["id"]: d for d in R["domains"]}
-    igroups = []
-    for did in T["inge"]["domains"]:
-        d = doms.get(did, {"id": did, "title": did, "notions": []})
-        mods = []
-        for n in d.get("notions") or []:
-            add(n, {"domain": did, "domainTitle": d.get("title", did)})
-            mods.append(n["id"])
-        quiz = []
-        for e in R["quiz"].get(did, []):
-            C["ex"][e["id"]] = ex_out(e, f"quiz:{did}", None)
-            quiz.append(e["id"])
-        for fr, en in d.get("vocab") or []:
-            C["glossary"].append([fr, en, d.get("title", did), None])
-        if not mods and not quiz:
-            continue
-        C["domains"][did] = {"id": did, "title": d.get("title", did), "en": d.get("en", ""), "intro": d.get("intro", ""), "modules": mods, "quiz": quiz}
-        igroups.append({"id": did, "title": d.get("title", did), "en": d.get("en", ""), "desc": d.get("desc", ""), "modules": mods, "quiz": quiz})
-    present = {g["id"] for g in igroups}
-    fams = []
-    for f in T["inge"].get("families") or []:
-        ds = [d for d in f.get("domains", []) if d in present]
-        if ds:
-            fams.append({"title": f["title"], "domains": ds})
-    C["tracks"]["inge"] = {"id": "inge", "title": T["inge"]["title"], "desc": T["inge"].get("desc", ""), "groups": igroups, "families": fams}
+
+    def piste_en_domaines(key):
+        """Culture ingé, et la piste perso facultative : des domaines de notions, chacun avec son quiz."""
+        igroups = []
+        for did in T[key]["domains"]:
+            d = doms.get(did, {"id": did, "title": did, "notions": []})
+            mods = []
+            for n in d.get("notions") or []:
+                add(n, {"domain": did, "domainTitle": d.get("title", did)})
+                mods.append(n["id"])
+            quiz = []
+            for e in R["quiz"].get(did, []):
+                C["ex"][e["id"]] = ex_out(e, f"quiz:{did}", None)
+                quiz.append(e["id"])
+            for fr, en in d.get("vocab") or []:
+                C["glossary"].append([fr, en, d.get("title", did), None])
+            if not mods and not quiz:
+                continue
+            C["domains"][did] = {"id": did, "track": key, "title": d.get("title", did), "en": d.get("en", ""),
+                                 "intro": d.get("intro", ""), "modules": mods, "quiz": quiz}
+            igroups.append({"id": did, "title": d.get("title", did), "en": d.get("en", ""), "desc": d.get("desc", ""), "modules": mods, "quiz": quiz})
+        present = {g["id"] for g in igroups}
+        fams = []
+        for f in T[key].get("families") or []:
+            ds = [d for d in f.get("domains", []) if d in present]
+            if ds:
+                fams.append({"title": f["title"], "domains": ds})
+        C["tracks"][key] = {"id": key, "title": T[key]["title"], "short": T[key].get("short", ""), "desc": T[key].get("desc", ""),
+                            "groups": igroups, "families": fams}
+
+    piste_en_domaines("inge")
+    if "perso" in T:
+        piste_en_domaines("perso")
 
     taught = {}
     for m in C["modules"].values():
