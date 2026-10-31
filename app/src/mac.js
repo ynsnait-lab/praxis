@@ -59,7 +59,7 @@ export function planDuJour() {
     .map(([d]) => d)
     .sort()
     .slice(-60);
-  return { title, subtitle, minutes, jours, serie: st.streak.cur || 0 };
+  return { title, subtitle, minutes, jours, serie: st.streak.cur || 0, serieDernierJour: st.streak.last || null };
 }
 
 export function seanceTerminee(bilan) {

@@ -124,7 +124,7 @@ private struct MenuContent: View {
         } else {
             Text("Aucun rappel actif")
         }
-        Text(log.practicedToday ? "Séance du jour faite · série \(log.streak) j" : "Pas encore pratiqué aujourd'hui")
+        Text(log.practicedToday ? "Séance du jour faite · série \(scheduler.streak) j" : "Pas encore pratiqué aujourd'hui · série \(scheduler.streak) j")
         Text("Au programme : \(scheduler.plan.title) (\(scheduler.plan.minutes) min)")
 
         Divider()
@@ -197,7 +197,7 @@ struct SettingsView: View {
             }
 
             Section("Journal") {
-                LabeledContent("Série en cours", value: "\(log.streak) jours")
+                LabeledContent("Séances terminées d'affilée", value: "\(log.streak) jours")
                 LabeledContent("Séances cette semaine", value: "\(log.sessionsThisWeek) / \(store.weeklyGoal)")
                 ForEach(Array(log.skips.suffix(5).reversed()), id: \.self) { skip in
                     LabeledContent(skip.date.formatted(date: .abbreviated, time: .shortened), value: skip.reason)

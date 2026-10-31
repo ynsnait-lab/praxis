@@ -8,8 +8,18 @@ struct PraxisPlan: Codable, Equatable {
     var subtitle: String
     var minutes: Int
     var jours: [String]?
+    /// La série affichée par Praxis (jours d'affilée avec au moins une réponse), et son dernier jour.
     var serie: Int?
+    var serieDernierJour: String?
     var maj: String?
+
+    /// La série de Praxis si elle tient encore (dernier jour aujourd'hui ou hier), sinon 0.
+    var liveStreak: Int {
+        guard let serie, let last = serieDernierJour else { return 0 }
+        let today = Scheduler.dayStamp(.now)
+        let yesterday = Scheduler.dayStamp(Calendar.current.date(byAdding: .day, value: -1, to: .now) ?? .now)
+        return last == today || last == yesterday ? serie : 0
+    }
 
     static let fallback = PraxisPlan(title: "Séance Praxis", subtitle: "Ouvre Praxis pour voir le programme du jour", minutes: 20)
 }

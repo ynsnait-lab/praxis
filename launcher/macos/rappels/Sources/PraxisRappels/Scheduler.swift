@@ -99,6 +99,9 @@ final class Scheduler: ObservableObject {
         if let days = plan.jours { log.sync(days: days) }
     }
 
+    /// La série montrée à l'utilisateur : celle de Praxis quand elle est plus longue que celle des séances terminées.
+    var streak: Int { max(log.streak, plan.liveStreak) }
+
     private func sessionCompleted() {
         log.recordSession()
         if active != nil { finish(hideAfter: 0) }
@@ -121,7 +124,7 @@ final class Scheduler: ObservableObject {
             reminder: alert.reminder,
             level: alert.level,
             session: plan,
-            streak: log.streak,
+            streak: streak,
             week: log.week,
             sessionsThisWeek: log.sessionsThisWeek,
             weeklyGoal: store.weeklyGoal,
@@ -187,7 +190,7 @@ final class Scheduler: ObservableObject {
         panel.hide(after: delay)
     }
 
-    static func dayStamp(_ date: Date) -> String {
+    nonisolated static func dayStamp(_ date: Date) -> String {
         let c = Calendar.current.dateComponents([.year, .month, .day], from: date)
         return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
     }
