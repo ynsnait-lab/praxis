@@ -13,6 +13,10 @@ Il faut les outils en ligne de commande de Xcode (`xcode-select --install`), Nod
 
 L'app garde ta progression d'un lancement à l'autre. Elle est séparée de celle de ton navigateur et de ta page Claude : pour passer de l'une à l'autre, *Réglages → Exporter*, puis *Importer* de l'autre côté.
 
+## Les rappels de pratique
+
+`./praxis rappels` installe **Praxis Rappels**, un petit agent de la barre des menus qui rappelle de pratiquer aux horaires choisis, avec une alerte qui monte en intensité si on l'ignore. Son bouton *Lancer* ouvre Praxis.app directement sur la séance du jour (adresse `praxis://seance`), et Praxis.app lui signale chaque séance terminée. Détails : [`macos/rappels/README.md`](macos/rappels/README.md).
+
 ## Si le projet change de place
 
 L'app retient le dossier du projet au moment où elle est construite. S'il est déplacé, elle te demande où il est (ou menu *Praxis → Choisir le dossier du projet…*). Tu peux aussi relancer `./praxis launcher` depuis le nouveau dossier.

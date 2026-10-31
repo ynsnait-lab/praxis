@@ -192,6 +192,11 @@ export function recordAnswer(exId, grade, info = {}) {
   return result;
 }
 
+// Une séance est allée jusqu'au bilan : la journée compte comme pratiquée (voir mac.js, Praxis Rappels).
+export function markSessionDone() {
+  update((s) => bumpDay(s, (d) => { d.s = (d.s || 0) + 1; }));
+}
+
 export function markLesson(modId, patch) {
   update((s) => {
     const l = (s.lessons[modId] ||= { read: 0, step: 1 });
@@ -236,7 +241,7 @@ export function mergeState(base, other) {
   }
   for (const [d, vb] of Object.entries(b.days)) {
     const va = a.days[d];
-    a.days[d] = va ? { n: Math.max(va.n, vb.n), ok: Math.max(va.ok, vb.ok), ms: Math.max(va.ms, vb.ms), l: Math.max(va.l || 0, vb.l || 0) } : vb;
+    a.days[d] = va ? { n: Math.max(va.n, vb.n), ok: Math.max(va.ok, vb.ok), ms: Math.max(va.ms, vb.ms), l: Math.max(va.l || 0, vb.l || 0), s: Math.max(va.s || 0, vb.s || 0) } : vb;
   }
   const seen = new Set(a.journal.map((j) => j[0] + j[1]));
   for (const j of b.journal) if (!seen.has(j[0] + j[1])) a.journal.push(j);

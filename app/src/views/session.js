@@ -2,7 +2,8 @@
 import { h, clear } from "../dom.js";
 import { C, TRACKS, TRACK_LABEL, nextLesson, trackOfEx } from "../content.js";
 import { buildSession, summary } from "../engine.js";
-import { recordAnswer, getState } from "../store.js";
+import { recordAnswer, getState, markSessionDone } from "../store.js";
+import { seanceTerminee } from "../mac.js";
 import { renderExercise } from "./exercise.js";
 import { formatDays } from "../fsrs.js";
 import { fmtMs, plural, go } from "../ui.js";
@@ -98,6 +99,11 @@ function renderEnd(page) {
   const firstTry = new Map();
   for (const r of res) if (!firstTry.has(r.id)) firstTry.set(r.id, r);
   const missed = [...firstTry.values()].filter((r) => r.grade === 1);
+  if (!s.reported && res.length && (s.scope.type === "daily" || res.length >= 5)) {
+    s.reported = true;
+    markSessionDone();
+    seanceTerminee({ seance: s.scope.type, reponses: res.length, justes: ok, minutes: Math.round((Date.now() - s.started) / 60000) });
+  }
   const sm = summary();
   page.append(
     h("div.page-head", {}, h("div", {}, h("span.eyebrow", {}, "Bilan"), h("h1", {}, scopeTitle(s.scope)))),

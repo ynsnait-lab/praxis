@@ -5,6 +5,9 @@
 // ou quitter (Cmd+Q) arrête le serveur. La progression est gardée par la WKWebView, d'un lancement
 // à l'autre (adresse fixe : http://127.0.0.1:47821).
 //
+// Elle sert aussi de pont avec Praxis Rappels (launcher/macos/rappels) : la page lui annonce la séance du jour
+// et chaque séance terminée (message « praxis »), et l'adresse praxis://seance ouvre directement la séance.
+//
 // Construite par launcher/macos/build.sh, via ./praxis launcher.
 import AppKit
 import WebKit
@@ -13,6 +16,14 @@ let PORT = 47821
 let ADRESSE = URL(string: "http://127.0.0.1:\(PORT)/")!
 let CLE_DOSSIER = "dossierPraxis"
 let AUTOTEST = ProcessInfo.processInfo.environment["PRAXIS_AUTOTEST"] != nil
+/// Notification distribuée à chaque séance terminée, écoutée par Praxis Rappels.
+let SEANCE_TERMINEE = Notification.Name("io.github.ynsnait-lab.praxis.seanceTerminee")
+/// Séance du jour et journées pratiquées, relues par Praxis Rappels avant chaque alerte.
+let FICHIER_PLAN: URL = FileManager.default.homeDirectoryForCurrentUser
+    .appendingPathComponent("Library/Application Support/Praxis/next_session.json")
+/// praxis://seance, praxis://reglages… : la page à ouvrir.
+let ROUTES_URL = ["seance": "session", "accueil": "", "aujourdhui": "", "parcours": "parcours", "pieges": "pieges",
+                  "labs": "labs", "fiches": "fiches", "progression": "stats", "reglages": "reglages", "perso": "perso"]
 
 // Journal du lanceur (~/Library/Logs/Praxis/lanceur.log, lisible dans l'app Console) : utile si l'app ne démarre pas.
 let FICHIER_JOURNAL: URL = {
@@ -34,7 +45,8 @@ func noter(_ texte: String) {
 }
 
 @MainActor
-final class Lanceur: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigationDelegate, WKUIDelegate, WKDownloadDelegate {
+final class Lanceur: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigationDelegate, WKUIDelegate, WKDownloadDelegate,
+                      WKScriptMessageHandler {
     var fenetre: NSWindow!
     var vue: WKWebView!
     var serveur: Process?
@@ -43,6 +55,7 @@ final class Lanceur: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNaviga
     var enFermeture = false
     var observationTitre: NSKeyValueObservation?
     var telechargements: [ObjectIdentifier: URL] = [:]
+    var routeEnAttente: String?
 
     // MARK: cycle de vie
 
@@ -193,7 +206,57 @@ final class Lanceur: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNaviga
 
     func ouvrirApp() {
         pret = true
-        vue.load(URLRequest(url: ADRESSE))
+        var adresse = ADRESSE
+        if let route = routeEnAttente, let avecRoute = URL(string: "#/\(route)", relativeTo: ADRESSE)?.absoluteURL {
+            adresse = avecRoute
+        }
+        routeEnAttente = nil
+        vue.load(URLRequest(url: adresse))
+    }
+
+    // MARK: adresses praxis://… (Praxis Rappels ouvre praxis://seance)
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        guard let url = urls.first(where: { $0.scheme == "praxis" }) else { return }
+        let route = ROUTES_URL[url.host ?? ""] ?? ""
+        noter("adresse reçue : \(url.absoluteString)")
+        if pret, let vue {
+            vue.evaluateJavaScript("location.hash = '#/\(route)'")
+        } else {
+            routeEnAttente = route
+        }
+        fenetre?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    // MARK: messages de la page (séance du jour, séance terminée)
+
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        let origine = message.frameInfo.securityOrigin
+        guard origine.host == "127.0.0.1", origine.port == PORT,
+              let corps = message.body as? [String: Any], let type = corps["type"] as? String else { return }
+        switch type {
+        case "plan":
+            var plan = corps
+            plan.removeValue(forKey: "type")
+            plan["maj"] = ISO8601DateFormatter().string(from: Date())
+            ecrirePlan(plan)
+        case "seance-terminee":
+            var infos: [String: String] = [:]
+            for (cle, valeur) in corps where cle != "type" { infos[cle] = "\(valeur)" }
+            noter("séance terminée : \(infos.sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)" }.joined(separator: " "))")
+            DistributedNotificationCenter.default().postNotificationName(SEANCE_TERMINEE, object: nil, userInfo: infos,
+                                                                         deliverImmediately: true)
+        default:
+            break
+        }
+    }
+
+    func ecrirePlan(_ plan: [String: Any]) {
+        guard JSONSerialization.isValidJSONObject(plan),
+              let donnees = try? JSONSerialization.data(withJSONObject: plan, options: [.prettyPrinted, .sortedKeys]) else { return }
+        try? FileManager.default.createDirectory(at: FICHIER_PLAN.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? donnees.write(to: FICHIER_PLAN, options: .atomic)
     }
 
     // MARK: pages de chargement et d'erreur
@@ -240,6 +303,7 @@ final class Lanceur: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNaviga
         let config = WKWebViewConfiguration()
         config.websiteDataStore = .default()
         config.preferences.javaScriptCanOpenWindowsAutomatically = false
+        config.userContentController.add(self, name: "praxis")
         vue = WKWebView(frame: .zero, configuration: config)
         vue.navigationDelegate = self
         vue.uiDelegate = self

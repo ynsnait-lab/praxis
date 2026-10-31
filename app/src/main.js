@@ -5,6 +5,7 @@ import { getState, onChange, persistNow } from "./store.js";
 import { initSync, flush } from "./sync.js";
 import { summary } from "./engine.js";
 import { applyTheme } from "./theme.js";
+import { demarrerPontMac } from "./mac.js";
 import { todayView } from "./views/today.js";
 import { parcoursView, persoView } from "./views/parcours.js";
 import { moduleView, domainView } from "./views/module.js";
@@ -123,6 +124,7 @@ function boot() {
   // rafraîchir les compteurs de la barre après chaque réponse sans tout redessiner
   onChange(() => drawChrome(parseRoute()));
   window.addEventListener("pagehide", () => { persistNow(); flush(); });
+  demarrerPontMac();
 }
 
 boot();

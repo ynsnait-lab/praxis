@@ -1,0 +1,648 @@
+<title>Praxis Alerte</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout : salle de contrôle — un écran Mac simulé en tête, la console de réglage dessous.
+   Look sombre unique, assumé (panneau d'annonciateur industriel). */
+:root {
+  color-scheme: dark;
+  --bg: #0d1116;
+  --panel: #141a21;
+  --panel-2: #1a222b;
+  --line: #27313d;
+  --fg: #e7ebf0;
+  --muted: #8b97a7;
+  --amber: #ffb547;
+  --amber-deep: #b87510;
+  --red: #ff4b3a;
+  --ok: #4fd18b;
+  --font-display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --font-body: "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-body);
+  font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 64px;
+}
+.wrap { max-width: 1160px; margin: 0 auto; display: grid; gap: 28px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+/* ---------- En-tête ---------- */
+.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.brand-mark { width: 38px; height: 38px; border-radius: 9px; background: var(--amber); display: grid; place-items: center; }
+.brand-mark svg { width: 22px; height: 22px; }
+.brand h1 { font-family: var(--font-display); font-weight: 900; font-size: 40px; letter-spacing: .02em; line-height: 1; text-transform: uppercase; }
+.brand p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+.next { font-family: var(--font-mono); font-size: 13px; color: var(--muted); text-align: right; }
+.next b { color: var(--fg); font-weight: 600; }
+
+/* ---------- Écran Mac simulé ---------- */
+.stage { display: grid; gap: 12px; }
+.stage-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.seg { display: inline-flex; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 3px; gap: 2px; }
+.seg button { border: 0; background: transparent; padding: 7px 12px; border-radius: 7px; font-size: 13px; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--panel-2); color: var(--fg); box-shadow: inset 0 0 0 1px var(--line); }
+.seg button .lv { font-family: var(--font-mono); font-size: 11px; margin-right: 6px; color: var(--amber); }
+.seg button[data-level="3"] .lv { color: var(--red); }
+.btn { border: 1px solid var(--line); background: var(--panel); padding: 8px 14px; border-radius: 9px; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; }
+.btn:hover { background: var(--panel-2); }
+.btn.amber { background: var(--amber); color: #1a1206; border-color: var(--amber); font-weight: 600; }
+.btn.amber:hover { filter: brightness(1.06); }
+.tools { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.screen-wrap { position: relative; width: 100%; aspect-ratio: 16 / 10; max-width: 100%; border-radius: 14px; overflow: hidden; box-shadow: 0 0 0 1px var(--line), 0 30px 80px -30px #000; background: #000; }
+.screen { position: absolute; top: 0; left: 0; width: 1280px; height: 800px; transform-origin: 0 0; transform: scale(var(--s, 1)); overflow: hidden; font-family: -apple-system, "SF Pro Text", var(--font-body); }
+.wallpaper { position: absolute; inset: 0; background:
+  radial-gradient(60% 70% at 18% 85%, #2f5b63 0%, transparent 60%),
+  radial-gradient(55% 60% at 85% 20%, #6b4a2a 0%, transparent 60%),
+  radial-gradient(80% 80% at 60% 70%, #1d3242 0%, transparent 70%),
+  linear-gradient(160deg, #1b2836, #0f161e); }
+.menubar { position: absolute; top: 0; left: 0; right: 0; height: 28px; background: rgba(20,24,30,.55); backdrop-filter: blur(20px); display: flex; align-items: center; justify-content: space-between; padding: 0 14px; font-size: 13px; color: #f2f4f7; z-index: 5; }
+.menubar .l, .menubar .r { display: flex; gap: 18px; align-items: center; }
+.menubar .l b { font-weight: 700; }
+.mb-praxis { width: 18px; height: 18px; border-radius: 5px; display: grid; place-items: center; position: relative; }
+.mb-praxis svg { width: 14px; height: 14px; }
+.mb-praxis.hot::after { content: ""; position: absolute; top: -2px; right: -3px; width: 7px; height: 7px; border-radius: 50%; background: var(--red); box-shadow: 0 0 6px var(--red); }
+.mb-toast { position: absolute; top: 34px; right: 120px; background: rgba(30,34,40,.9); border: 1px solid rgba(255,255,255,.1); padding: 8px 12px; border-radius: 9px; font-size: 13px; color: #eef; z-index: 6; opacity: 0; transform: translateY(-6px); transition: .3s; }
+.mb-toast.show { opacity: 1; transform: none; }
+
+.win { position: absolute; border-radius: 11px; background: rgba(28,32,38,.92); box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 20px 50px rgba(0,0,0,.5); overflow: hidden; }
+.win .tb { height: 30px; display: flex; align-items: center; gap: 7px; padding: 0 12px; background: rgba(255,255,255,.04); font-size: 12px; color: #a9b2bf; }
+.win .tb i { width: 11px; height: 11px; border-radius: 50%; background: #4a515b; display: inline-block; }
+.win .tb span { margin-left: 10px; }
+.code { padding: 14px 18px; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.75; color: #c6cfdb; white-space: pre; }
+.code .k { color: #ff9e64; } .code .c { color: #6b7686; } .code .n { color: #8fd1ff; }
+.dock { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; padding: 7px; border-radius: 18px; background: rgba(40,46,54,.45); backdrop-filter: blur(20px); box-shadow: 0 0 0 1px rgba(255,255,255,.08); z-index: 4; }
+.dock i { width: 46px; height: 46px; border-radius: 11px; display: block; }
+.dock i.px { background: var(--amber); display: grid; place-items: center; }
+.dock i.px svg { width: 26px; height: 26px; }
+
+/* ---------- Composant alerte (partagé maquette / taille réelle) ---------- */
+.alert { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; font-family: var(--font-body); color: var(--fg); }
+.alert.real { position: fixed; z-index: 1000; overflow: auto; padding: 24px max(16px, env(safe-area-inset-left, 0px)); }
+.backdrop { position: absolute; inset: 0; background: rgba(6,9,13,.42); backdrop-filter: blur(14px) saturate(.8); animation: fadeIn .45s ease-out both; }
+.alert.real .backdrop { position: fixed; }
+.lvl-3 .backdrop { background: rgba(20,4,4,.62); }
+.vignette { position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 160px 30px rgba(255,75,58,.35); animation: breathe 2.4s ease-in-out infinite; }
+.alert.real .vignette { position: fixed; }
+
+.stripes { position: absolute; left: 0; right: 0; height: 14px; z-index: 1;
+  background: repeating-linear-gradient(-45deg, var(--amber) 0 16px, #121212 16px 32px);
+  background-size: 45.25px 45.25px; animation: stripeIn .5s .1s cubic-bezier(.2,.9,.2,1) both, stripeRun 1.2s linear infinite; }
+.alert.real .stripes { position: fixed; }
+.stripes.t { top: 0; } .stripes.b { bottom: 0; --dir: 1; }
+.lvl-3 .stripes { background-image: repeating-linear-gradient(-45deg, var(--red) 0 16px, #121212 16px 32px); height: 20px; }
+
+.card { position: relative; z-index: 2; width: 600px; max-width: calc(100% - 32px); background: linear-gradient(180deg, #171e26, #11161c); border: 1px solid #2c3744; border-radius: 18px; padding: 28px 30px 24px; display: grid; gap: 20px;
+  box-shadow: 0 0 0 1px rgba(255,181,71,.18), 0 40px 120px -20px rgba(0,0,0,.8), 0 0 80px -20px rgba(255,181,71,.25);
+  animation: cardIn .6s .15s cubic-bezier(.18,1.25,.4,1) both; }
+.lvl-3 .card { width: 680px; border-color: #5a2520; box-shadow: 0 0 0 1px rgba(255,75,58,.35), 0 40px 120px -20px rgba(0,0,0,.8), 0 0 120px -20px rgba(255,75,58,.45); }
+
+.head { display: flex; gap: 20px; align-items: center; }
+.lamp { position: relative; width: 74px; height: 74px; flex: none; display: grid; place-items: center; }
+.lamp .ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--amber); opacity: 0; animation: ring 2.4s cubic-bezier(.2,.6,.3,1) infinite; }
+.lamp .ring:nth-child(2) { animation-delay: .8s; } .lamp .ring:nth-child(3) { animation-delay: 1.6s; }
+.lamp .core { width: 52px; height: 52px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #ffe0a8, var(--amber) 45%, var(--amber-deep)); display: grid; place-items: center; animation: glow 1.2s ease-in-out infinite alternate; }
+.lamp .core svg { width: 26px; height: 26px; }
+.lvl-3 .lamp .ring { border-color: var(--red); animation-duration: 1.4s; }
+.lvl-3 .lamp .core { background: radial-gradient(circle at 40% 35%, #ffb3a8, var(--red) 45%, #8f1d12); animation-duration: .5s; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--amber); }
+.lvl-3 .eyebrow { color: var(--red); }
+.head h2 { font-family: var(--font-display); font-weight: 800; font-size: 46px; line-height: .95; letter-spacing: .005em; text-transform: uppercase; margin-top: 6px; }
+
+.session { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; padding: 16px 18px; border-radius: 12px; background: rgba(255,255,255,.03); border: 1px solid #26303b; }
+.session .lab { grid-column: 1 / -1; font-family: var(--font-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.session .topic { font-size: 20px; font-weight: 600; }
+.session .sub { color: #b4bdc9; font-size: 14px; min-width: 0; }
+.session .dur { grid-row: 2 / 4; grid-column: 2; align-self: center; font-family: var(--font-mono); font-size: 26px; font-weight: 500; color: var(--fg); text-align: right; line-height: 1; }
+.session .dur small { display: block; font-size: 11px; color: var(--muted); letter-spacing: .1em; margin-top: 4px; }
+
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: #26303b; border-radius: 12px; overflow: hidden; border: 1px solid #26303b; }
+.stat { background: #141a21; padding: 12px 14px; }
+.stat .v { font-family: var(--font-mono); font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.stat .v.streak { color: var(--amber); }
+.stat .k { font-size: 12px; color: var(--muted); }
+.week { display: flex; gap: 6px; margin-top: 8px; }
+.week span { width: 18px; height: 18px; border-radius: 5px; font-family: var(--font-mono); font-size: 10px; display: grid; place-items: center; color: var(--muted); background: #1f2730; }
+.week span.done { background: var(--ok); color: #06200f; }
+.week span.today { background: transparent; box-shadow: inset 0 0 0 1.5px var(--amber); color: var(--amber); animation: blink 1s steps(2) infinite; }
+
+.window { display: grid; gap: 7px; }
+.window .row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
+.window .row b { font-family: var(--font-mono); color: var(--fg); font-variant-numeric: tabular-nums; font-weight: 500; }
+.bar { height: 6px; border-radius: 3px; background: #222b35; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--amber); width: 100%; transform-origin: left; transition: transform 1s linear; }
+.lvl-3 .bar i { background: var(--red); }
+
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.go { flex: 1 1 220px; border: 0; border-radius: 12px; padding: 15px 18px; background: var(--amber); color: #1a1206; font-size: 17px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 10px; transition: transform .12s, filter .12s; }
+.go:hover { filter: brightness(1.07); } .go:active { transform: scale(.98); }
+.go kbd { font-family: var(--font-mono); font-size: 12px; padding: 2px 6px; border-radius: 5px; background: rgba(0,0,0,.14); }
+.lvl-3 .go { background: var(--red); color: #fff; }
+.snooze { border: 1px solid #33404e; background: transparent; border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+.snooze:hover { background: #1c242d; }
+.snooze[disabled] { opacity: .35; cursor: not-allowed; }
+.skip { border: 0; background: none; color: var(--muted); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; padding: 6px 4px; }
+.skip:hover { color: var(--fg); }
+
+.confirm { display: grid; gap: 10px; padding: 14px 16px; border-radius: 12px; border: 1px solid #5a2520; background: rgba(255,75,58,.06); }
+.confirm p { margin: 0; font-size: 14px; }
+.confirm input { width: 100%; padding: 10px 12px; border-radius: 9px; border: 1px solid #33404e; background: #0f1419; color: var(--fg); font: inherit; font-size: 14px; }
+.confirm .actions button { font-size: 14px; }
+.danger { border: 1px solid var(--red); background: transparent; color: var(--red); border-radius: 10px; padding: 9px 14px; }
+.danger[disabled] { opacity: .4; cursor: not-allowed; }
+
+.success { text-align: center; display: grid; gap: 8px; justify-items: center; padding: 18px 0 6px; }
+.success .check { width: 72px; height: 72px; border-radius: 50%; background: var(--ok); display: grid; place-items: center; animation: pop .5s cubic-bezier(.2,1.4,.4,1) both; }
+.success .check svg { width: 36px; height: 36px; }
+.success h3 { font-family: var(--font-display); font-weight: 800; font-size: 40px; text-transform: uppercase; line-height: 1; }
+.success p { margin: 0; color: var(--muted); }
+
+/* Niveau 1 : bannière discrète en haut à droite */
+.banner { position: absolute; top: 38px; right: 14px; z-index: 20; width: 370px; max-width: calc(100% - 28px); display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; padding: 14px; border-radius: 16px; background: rgba(32,37,44,.86); backdrop-filter: blur(24px); box-shadow: 0 0 0 1px rgba(255,255,255,.1), 0 18px 40px rgba(0,0,0,.45); animation: slideIn .5s cubic-bezier(.2,1.1,.3,1) both; font-family: -apple-system, var(--font-body); color: #f1f3f6; }
+.alert.real ~ .x, .banner.real { position: fixed; top: max(16px, env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); z-index: 1000; }
+.banner .ic { width: 38px; height: 38px; border-radius: 9px; background: var(--amber); display: grid; place-items: center; grid-row: span 2; position: relative; }
+.banner .ic::after { content: ""; position: absolute; inset: -4px; border-radius: 12px; border: 2px solid var(--amber); animation: ring 2s infinite; }
+.banner .ic svg { width: 22px; height: 22px; }
+.banner .t { font-size: 13px; font-weight: 600; display: flex; justify-content: space-between; gap: 8px; }
+.banner .t small { color: #a3acb8; font-weight: 400; }
+.banner .m { font-size: 13px; color: #d2d8e0; }
+.banner .b { grid-column: 1 / -1; display: flex; gap: 8px; margin-top: 6px; }
+.banner .b button { flex: 1; border: 0; border-radius: 8px; padding: 7px; font-size: 13px; background: rgba(255,255,255,.1); }
+.banner .b button.p { background: var(--amber); color: #1a1206; font-weight: 600; }
+
+@keyframes fadeIn { from { opacity: 0; backdrop-filter: blur(0); } }
+@keyframes cardIn { from { opacity: 0; transform: translateY(28px) scale(.94); } }
+@keyframes stripeIn { from { transform: scaleX(0); } }
+@keyframes stripeRun { to { background-position: 45.25px 0; } }
+@keyframes ring { 0% { transform: scale(.7); opacity: .7; } 100% { transform: scale(1.9); opacity: 0; } }
+@keyframes glow { from { box-shadow: 0 0 10px 0 rgba(255,181,71,.4); } to { box-shadow: 0 0 34px 6px rgba(255,181,71,.65); } }
+.lvl-3 .lamp .core { box-shadow: 0 0 30px 6px rgba(255,75,58,.6); }
+@keyframes breathe { 50% { opacity: .35; } }
+@keyframes blink { 50% { opacity: .35; } }
+@keyframes slideIn { from { opacity: 0; transform: translateX(40px); } }
+@keyframes pop { from { transform: scale(.4); opacity: 0; } }
+.leaving .card, .leaving .banner { transition: .35s; opacity: 0; transform: scale(.96) translateY(10px); }
+.leaving .backdrop, .leaving .stripes, .leaving .vignette { transition: .4s; opacity: 0; }
+
+/* ---------- Console de réglage ---------- */
+.console { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .console { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 16px; min-width: 0; }
+.panel-h { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.panel h2 { font-family: var(--font-display); font-weight: 800; font-size: 26px; text-transform: uppercase; letter-spacing: .02em; }
+.panel .hint { color: var(--muted); font-size: 13px; margin: 0; }
+
+.rem { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px 16px; align-items: center; padding: 14px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); }
+.rem.off { opacity: .5; }
+.rem input[type="time"] { font-family: var(--font-mono); font-size: 26px; font-weight: 500; background: transparent; border: 0; color: var(--fg); padding: 0; width: 6.2ch; }
+.rem input[type="text"] { width: 100%; background: transparent; border: 0; border-bottom: 1px dashed #3a4654; color: var(--fg); font: inherit; font-weight: 500; padding: 2px 0; }
+.rem .meta { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; grid-column: 1 / -1; }
+.days { display: flex; gap: 4px; }
+.days button { width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--line); background: transparent; font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.days button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); font-weight: 600; }
+select { background: #10151b; color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; font: inherit; font-size: 13px; }
+.rem .right { display: flex; gap: 6px; align-items: center; }
+.icon-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line); background: transparent; display: grid; place-items: center; color: var(--muted); }
+.icon-btn:hover { color: var(--fg); background: #222b35; }
+.icon-btn svg { width: 16px; height: 16px; }
+.switch { position: relative; width: 38px; height: 22px; border-radius: 11px; border: 0; background: #2b3540; flex: none; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #cfd6df; transition: .2s; }
+.switch[aria-checked="true"] { background: var(--amber); }
+.switch[aria-checked="true"]::after { transform: translateX(16px); background: #1a1206; }
+.chip { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; border: 1px solid currentColor; }
+.chip.l1 { color: #9fb4c9; } .chip.l2 { color: var(--amber); } .chip.l3 { color: var(--red); }
+.list { display: grid; gap: 10px; }
+
+.field { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.field:last-child { border-bottom: 0; }
+.field label { font-size: 14px; }
+.field small { display: block; color: var(--muted); font-size: 12px; }
+
+.ladder { display: grid; gap: 0; }
+.step { display: grid; grid-template-columns: 34px minmax(0,1fr); gap: 12px; padding: 10px 0; }
+.step .n { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font-family: var(--font-mono); font-weight: 600; font-size: 13px; border: 1.5px solid currentColor; }
+.step:nth-child(1) .n { color: #9fb4c9; } .step:nth-child(2) .n { color: var(--amber); } .step:nth-child(3) .n { color: var(--red); }
+.step b { font-weight: 600; } .step p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+
+.handoff { font-size: 14px; }
+.handoff table { width: 100%; border-collapse: collapse; }
+.handoff td { padding: 9px 10px 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.handoff td:first-child { font-family: var(--font-mono); font-size: 12.5px; color: var(--amber); white-space: nowrap; }
+.handoff td:last-child { color: #c4ccd6; }
+.tbl { overflow-x: auto; }
+.note { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+
+@media (max-width: 560px) {
+  .head h2 { font-size: 34px; }
+  .lamp { width: 58px; height: 58px; } .lamp .core { width: 42px; height: 42px; }
+  .card { padding: 22px 18px 18px; }
+  .stats { grid-template-columns: 1fr 1fr; } .stat:first-child { grid-column: 1 / -1; }
+  .next { text-align: left; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1206" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 20h18L12 3Z"/><path d="M12 10v4"/><circle cx="12" cy="17" r=".6" fill="#1a1206"/></svg></div>
+      <div>
+        <h1>Praxis Alerte</h1>
+        <p>Rappel de pratique pour macOS · maquette interactive</p>
+      </div>
+    </div>
+    <div class="next" id="nextLabel">Prochain rappel : —</div>
+  </header>
+
+  <section class="stage">
+    <div class="stage-bar">
+      <div class="seg" role="group" aria-label="Niveau d'alerte">
+        <button data-level="1" aria-pressed="false"><span class="lv">N1</span>Signal</button>
+        <button data-level="2" aria-pressed="true"><span class="lv">N2</span>Alerte</button>
+        <button data-level="3" aria-pressed="false"><span class="lv">N3</span>Urgence</button>
+      </div>
+      <div class="tools">
+        <button class="btn" id="replay"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>Rejouer l'escalade</button>
+        <button class="btn" id="sound" aria-pressed="false">Son : coupé</button>
+        <button class="btn amber" id="real">Déclencher en taille réelle</button>
+      </div>
+    </div>
+
+    <div class="screen-wrap" id="screenWrap">
+      <div class="screen" id="screen">
+        <div class="wallpaper"></div>
+        <div class="menubar">
+          <div class="l"><b>Finder</b><span>Fichier</span><span>Édition</span><span>Présentation</span><span>Aller</span><span>Fenêtre</span><span>Aide</span></div>
+          <div class="r">
+            <div class="mb-praxis" id="mbIcon"><svg viewBox="0 0 24 24" fill="none" stroke="#ffb547" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 20h18L12 3Z"/></svg></div>
+            <span>100 %</span>
+            <span id="mbClock">ven. 30 oct. 18:30</span>
+          </div>
+        </div>
+        <div class="mb-toast" id="mbToast">Rappel reporté à 18:40</div>
+
+        <div class="win" style="left:70px;top:70px;width:640px;height:420px">
+          <div class="tb"><i></i><i></i><i></i><span>pid_tuning.py — labs/py-12</span></div>
+          <div class="code"><span class="c"># Réglage Ziegler–Nichols en boucle fermée</span>
+<span class="k">def</span> <span class="n">zn_pid</span>(Ku, Tu):
+    Kp = <span class="n">0.6</span> * Ku
+    Ti = Tu / <span class="n">2</span>
+    Td = Tu / <span class="n">8</span>
+    <span class="k">return</span> Kp, Kp / Ti, Kp * Td
+
+<span class="c"># four cryostat : oscillation entretenue mesurée</span>
+Ku, Tu = <span class="n">4.2</span>, <span class="n">38.0</span>   <span class="c"># gain critique, période (s)</span>
+kp, ki, kd = zn_pid(Ku, Tu)
+print(<span class="n">f"Kp={kp:.2f}  Ki={ki:.3f}  Kd={kd:.2f}"</span>)</div>
+        </div>
+        <div class="win" style="left:620px;top:220px;width:520px;height:330px">
+          <div class="tb"><i></i><i></i><i></i><span>Notes — Alternance S43</span></div>
+          <div class="code" style="font-family:-apple-system,var(--font-body);font-size:14px;white-space:normal;line-height:1.6">
+            <b style="color:#fff">Semaine 43</b><br>
+            • Plan du porte-échantillon v3 envoyé<br>
+            • Vérifier couple moteur pas-à-pas (axe Z)<br>
+            • Mémoire M2 : plan détaillé avant le 15/11<br>
+            • Praxis : 1 séance / jour, 25 min minimum
+          </div>
+        </div>
+        <div class="dock">
+          <i style="background:#3b82c4"></i><i style="background:#e8e8ea"></i><i style="background:#2a2f36"></i><i style="background:#5ca86b"></i>
+          <i class="px"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1206" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 20h18L12 3Z"/></svg></i>
+          <i style="background:#c9563c"></i><i style="background:#7d6bd1"></i>
+        </div>
+
+        <div id="mockLayer"></div>
+      </div>
+    </div>
+    <div class="note">Données d'exemple : série, séances et sujets sont fictifs. Entrée lance Praxis, Échap reporte.</div>
+  </section>
+
+  <section class="console">
+    <div class="panel">
+      <div class="panel-h">
+        <h2>Horaires</h2>
+        <button class="btn" id="addRem"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>Ajouter un rappel</button>
+      </div>
+      <p class="hint">Chaque rappel a son niveau de départ. S'il est ignoré, il monte d'un cran à la fin de la fenêtre.</p>
+      <div class="list" id="remList"></div>
+    </div>
+
+    <div style="display:grid;gap:20px;min-width:0">
+      <div class="panel">
+        <h2>Escalade</h2>
+        <div class="ladder">
+          <div class="step"><span class="n">N1</span><div><b>Signal</b><p>Bannière en haut à droite, un son discret. Ne bloque rien.</p></div></div>
+          <div class="step"><span class="n">N2</span><div><b>Alerte</b><p>Écran flouté, carte centrale, bandes de danger. Passe devant toutes les fenêtres, même en plein écran.</p></div></div>
+          <div class="step"><span class="n">N3</span><div><b>Urgence</b><p>Rouge, plus de report possible. Seul « Pas aujourd'hui » avec une raison écrite permet de fermer.</p></div></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Règles</h2>
+        <div>
+          <div class="field"><label for="win">Fenêtre avant escalade<small>Temps pour réagir avant le niveau suivant</small></label>
+            <select id="win"><option value="5">5 min</option><option value="10">10 min</option><option value="15" selected>15 min</option><option value="30">30 min</option></select></div>
+          <div class="field"><label for="snz">Durée d'un report</label>
+            <select id="snz"><option value="5">5 min</option><option value="10" selected>10 min</option><option value="15">15 min</option></select></div>
+          <div class="field"><label for="maxSnz">Reports autorisés<small>Par rappel, ensuite le bouton se grise</small></label>
+            <select id="maxSnz"><option value="0">0</option><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option></select></div>
+          <div class="field"><label id="lblSkip">Silence si séance déjà faite<small>Praxis signale la fin de séance à l'agent</small></label>
+            <button class="switch" role="switch" aria-checked="true" aria-labelledby="lblSkip" id="skipDone"></button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel handoff">
+    <div class="panel-h"><h2>Pour Claude sur le Mac</h2><span class="note">PraxisReminder/ · SwiftUI + AppKit · macOS 14+</span></div>
+    <p class="hint">Le squelette Swift reprend cette maquette. Voici où chaque morceau vit.</p>
+    <div class="tbl"><table>
+      <tr><td>PraxisReminderApp.swift</td><td>Agent de barre des menus (pas d'icône dans le Dock), menu rapide, fenêtre Réglages.</td></tr>
+      <tr><td>Scheduler.swift</td><td>Vérifie les horaires toutes les 15 s, gère reports, escalade N1 → N3, rattrapage au réveil du Mac.</td></tr>
+      <tr><td>AlertPanelController.swift</td><td>NSPanel sans bordure au niveau écran de veille, présent sur tous les Spaces et par-dessus le plein écran.</td></tr>
+      <tr><td>AlertView.swift</td><td>La carte : lampe pulsée, bandes animées, compte à rebours, série, actions clavier.</td></tr>
+      <tr><td>PraxisBridge.swift</td><td>Lance Praxis, lit la prochaine séance, écoute la notification « séance terminée ».</td></tr>
+      <tr><td>HANDOFF.md</td><td>Brief complet : ce qui reste à brancher côté Praxis, points non testés, idées d'évolution.</td></tr>
+    </table></div>
+  </section>
+</div>
+
+<script>
+(() => {
+  const LAMP_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="#1a1206" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 20h18L12 3Z"/><path d="M12 10v4"/><circle cx="12" cy="17" r=".7" fill="#1a1206"/></svg>';
+  const CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="#06200f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
+  const DAY_LABELS = ['L','M','M','J','V','S','D'];
+  const TOPICS = [
+    { t: 'Asservissement PID', s: 'Réglage Ziegler–Nichols : K<sub>u</sub>, T<sub>u</sub> → K<sub>p</sub>, T<sub>i</sub>, T<sub>d</sub>', m: 25 },
+    { t: 'Révision flash · Laplace', s: 'Pôles, zéros et stabilité d\'un 2<sup>e</sup> ordre', m: 10 },
+    { t: 'RDM · poutre encastrée', s: 'Flèche en bout : f = F·L³ / 3EI', m: 45 },
+    { t: 'Moteur pas-à-pas', s: 'Micro-pas, couple de maintien et résonance', m: 25 }
+  ];
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('praxis-alerte:' + k); return v ? JSON.parse(v) : d; } catch { return d; } },
+    set(k, v) { try { localStorage.setItem('praxis-alerte:' + k, JSON.stringify(v)); } catch {} }
+  };
+  let reminders = store.get('reminders', [
+    { id: 1, time: '07:45', days: [1,1,1,1,1,0,0], label: 'Révision flash', level: 1, on: true, topic: 1 },
+    { id: 2, time: '18:30', days: [1,1,1,1,1,0,0], label: 'Séance principale', level: 2, on: true, topic: 0 },
+    { id: 3, time: '10:00', days: [0,0,0,0,0,1,0], label: 'Projet long du week-end', level: 3, on: true, topic: 2 }
+  ]);
+  const rules = { win: 15, snz: 10, maxSnz: 2 };
+  let level = 2, soundOn = false, current = reminders[1], snoozesUsed = 0, timers = [], tick = null;
+
+  // ---- échelle de l'écran simulé ----
+  const wrap = document.getElementById('screenWrap'), screen = document.getElementById('screen');
+  new ResizeObserver(() => screen.style.setProperty('--s', wrap.clientWidth / 1280)).observe(wrap);
+
+  // ---- données de semaine (exemple) ----
+  const todayIdx = (new Date().getDay() + 6) % 7;
+  const weekHTML = () => DAY_LABELS.map((d, i) => `<span class="${i < todayIdx ? 'done' : i === todayIdx ? 'today' : ''}">${d}</span>`).join('');
+
+  // ---- son ----
+  let actx;
+  function beep(lv) {
+    if (!soundOn) return;
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      const seq = lv === 3 ? [880, 660, 880, 660] : lv === 2 ? [660, 880] : [880];
+      seq.forEach((f, i) => {
+        const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime + i * 0.18;
+        o.type = lv === 3 ? 'square' : 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(lv === 3 ? .08 : .15, t + .02); g.gain.exponentialRampToValueAtTime(.001, t + .16);
+        o.connect(g).connect(actx.destination); o.start(t); o.stop(t + .17);
+      });
+    } catch {}
+  }
+
+  // ---- rendu de l'alerte ----
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  function clearTimers() { timers.forEach(clearTimeout); timers = []; clearInterval(tick); }
+
+  function bannerHTML(r, real) {
+    return `<div class="banner ${real ? 'real' : ''}" role="alert">
+      <div class="ic">${LAMP_SVG}</div>
+      <div class="t"><span>Praxis</span><small>maintenant</small></div>
+      <div class="m"><b>${esc(r.label)}</b> · ${r.time}. ${TOPICS[r.topic].t}, ${TOPICS[r.topic].m} min.</div>
+      <div class="b"><button class="p" data-act="go">Lancer</button><button data-act="snooze">Dans ${rules.snz} min</button></div>
+    </div>`;
+  }
+  function cardHTML(r, lv) {
+    const tp = TOPICS[r.topic], left = rules.maxSnz - snoozesUsed;
+    const canSnooze = lv < 3 && left > 0;
+    return `<div class="backdrop"></div>${lv === 3 ? '<div class="vignette"></div>' : ''}
+      <div class="stripes t"></div><div class="stripes b"></div>
+      <div class="card" role="alertdialog" aria-labelledby="alertTitle">
+        <div class="head">
+          <div class="lamp"><span class="ring"></span><span class="ring"></span><span class="ring"></span><div class="core">${LAMP_SVG}</div></div>
+          <div>
+            <div class="eyebrow">Praxis · ${r.time} · ${lv === 3 ? 'Dernier rappel' : esc(r.label)}</div>
+            <h2 id="alertTitle">${lv === 3 ? 'Maintenant.<br>Pas plus tard.' : 'C\'est l\'heure<br>de pratiquer.'}</h2>
+          </div>
+        </div>
+        <div class="session">
+          <div class="lab">Séance du jour</div>
+          <div class="topic">${tp.t}</div>
+          <div class="sub">${tp.s}</div>
+          <div class="dur">${tp.m}<small>MIN</small></div>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="v streak">12 j</div><div class="k">Série en cours</div><div class="week">${weekHTML()}</div></div>
+          <div class="stat"><div class="v">${todayIdx}/6</div><div class="k">Séances cette semaine</div></div>
+          <div class="stat"><div class="v">21:10</div><div class="k">Dernière séance, hier</div></div>
+        </div>
+        <div class="window">
+          <div class="row"><span>${lv === 3 ? 'Série perdue dans' : 'Escalade au niveau ' + (lv + 1) + ' dans'}</span><b id="cd">${rules.win}:00</b></div>
+          <div class="bar"><i id="cdBar"></i></div>
+        </div>
+        <div class="actions" id="actions">
+          <button class="go" data-act="go">Lancer Praxis <kbd>⏎</kbd></button>
+          <button class="snooze" data-act="snooze" ${canSnooze ? '' : 'disabled'}>${lv === 3 ? 'Report impossible' : `Dans ${rules.snz} min · ${left} restant${left > 1 ? 's' : ''}`}</button>
+          <button class="skip" data-act="skip">Pas aujourd'hui</button>
+        </div>
+      </div>`;
+  }
+
+  function host(real) {
+    if (real) { let h = document.getElementById('realLayer'); if (!h) { h = document.createElement('div'); h.id = 'realLayer'; document.body.appendChild(h); } return h; }
+    return document.getElementById('mockLayer');
+  }
+  function show(lv, { real = false } = {}) {
+    clearTimers(); closeAll(true);
+    level = lv; syncSeg();
+    document.getElementById('mbIcon').classList.add('hot');
+    const h = host(real);
+    if (lv === 1) h.innerHTML = bannerHTML(current, real);
+    else {
+      h.innerHTML = `<div class="alert lvl-${lv} ${real ? 'real' : ''}">${cardHTML(current, lv)}</div>`;
+      startCountdown();
+      const go = h.querySelector('.go'); go && go.focus({ preventScroll: true });
+    }
+    h.dataset.real = real ? '1' : '';
+    beep(lv);
+  }
+  function startCountdown() {
+    // la démo compte en accéléré : 1 s réelle = 1 min de fenêtre
+    let total = rules.win * 60, left = total;
+    const cd = () => document.getElementById('cd'), bar = () => document.getElementById('cdBar');
+    tick = setInterval(() => {
+      left = Math.max(0, left - 60 / 4);
+      const m = Math.floor(left / 60), s = Math.floor(left % 60);
+      if (cd()) cd().textContent = `${m}:${String(s).padStart(2, '0')}`;
+      if (bar()) bar().style.transform = `scaleX(${left / total})`;
+      if (left <= 0) { clearInterval(tick); if (level < 3) timers.push(setTimeout(() => show(level + 1, { real: isReal() }), 400)); }
+    }, 250);
+  }
+  const isReal = () => !!document.getElementById('realLayer')?.innerHTML;
+  function closeAll(instant) {
+    ['mockLayer', 'realLayer'].forEach(id => {
+      const h = document.getElementById(id); if (!h || !h.innerHTML) return;
+      if (instant) { h.innerHTML = ''; return; }
+      h.firstElementChild.classList.add('leaving');
+      timers.push(setTimeout(() => { h.innerHTML = ''; if (id === 'realLayer') h.remove(); }, 420));
+    });
+  }
+  function toast(msg) {
+    const t = document.getElementById('mbToast'); t.textContent = msg; t.classList.add('show');
+    timers.push(setTimeout(() => t.classList.remove('show'), 2200));
+  }
+  function addMinutes(hhmm, n) { const [h, m] = hhmm.split(':').map(Number); const d = new Date(0, 0, 0, h, m + n); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; }
+
+  function act(kind, h) {
+    if (kind === 'go') {
+      clearTimers();
+      const card = h.querySelector('.card');
+      if (card) {
+        card.innerHTML = `<div class="success"><div class="check">${CHECK_SVG}</div><h3>Série : 13 jours</h3><p>Praxis s'ouvre. ${TOPICS[current.topic].m} minutes, concentré.</p></div>`;
+        h.querySelectorAll('.stripes,.vignette').forEach(e => e.remove());
+        timers.push(setTimeout(() => closeAll(), 1700));
+      } else closeAll();
+      document.getElementById('mbIcon').classList.remove('hot');
+    } else if (kind === 'snooze') {
+      snoozesUsed++; clearTimers(); closeAll();
+      toast(`Rappel reporté à ${addMinutes(current.time, rules.snz * snoozesUsed)}`);
+    } else if (kind === 'skip') {
+      clearInterval(tick);
+      h.querySelector('#actions').outerHTML = `<div class="confirm">
+        <p>Ta série de 12 jours repartira à zéro. Écris pourquoi, pour t'en souvenir dimanche.</p>
+        <input id="reason" type="text" placeholder="Ex. : réunion tardive, retour à 23 h" autocomplete="off">
+        <div class="actions"><button class="danger" data-act="confirmSkip" disabled>Confirmer, pas aujourd'hui</button><button class="skip" data-act="back">Retour</button></div>
+      </div>`;
+      const inp = h.querySelector('#reason'), btn = h.querySelector('[data-act="confirmSkip"]');
+      inp.focus(); inp.addEventListener('input', () => btn.disabled = inp.value.trim().length < 6);
+    } else if (kind === 'confirmSkip') {
+      clearTimers(); closeAll(); document.getElementById('mbIcon').classList.remove('hot'); toast('Journée sautée, raison enregistrée');
+    } else if (kind === 'back') {
+      show(level, { real: isReal() });
+    }
+  }
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const h = b.closest('#mockLayer, #realLayer'); if (h) act(b.dataset.act, h);
+  });
+  document.addEventListener('keydown', e => {
+    const h = isReal() ? document.getElementById('realLayer') : document.getElementById('mockLayer');
+    if (!h || !h.innerHTML || e.target.matches('input, select')) return;
+    if (e.key === 'Enter' && h.querySelector('[data-act="go"]')) { e.preventDefault(); act('go', h); }
+    if (e.key === 'Escape') { const s = h.querySelector('[data-act="snooze"]:not([disabled])'); s ? act('snooze', h) : (isReal() && closeAll()); }
+  });
+
+  // ---- barre de contrôle ----
+  function syncSeg() { document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.level === level))); }
+  document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => { snoozesUsed = 0; show(+b.dataset.level); }));
+  document.getElementById('replay').addEventListener('click', () => {
+    snoozesUsed = 0; show(1);
+    timers.push(setTimeout(() => show(2), 3200));
+  });
+  document.getElementById('real').addEventListener('click', () => { snoozesUsed = 0; show(Math.max(level, 2), { real: true }); });
+  document.getElementById('sound').addEventListener('click', e => {
+    soundOn = !soundOn; e.currentTarget.setAttribute('aria-pressed', String(soundOn));
+    e.currentTarget.textContent = 'Son : ' + (soundOn ? 'activé' : 'coupé'); if (soundOn) beep(1);
+  });
+  ['win', 'snz', 'maxSnz'].forEach(id => {
+    const el = document.getElementById(id); rules[id] = +el.value;
+    el.addEventListener('change', () => { rules[id] = +el.value; });
+  });
+  document.getElementById('skipDone').addEventListener('click', e => e.currentTarget.setAttribute('aria-checked', String(e.currentTarget.getAttribute('aria-checked') !== 'true')));
+
+  // ---- liste des rappels ----
+  const list = document.getElementById('remList');
+  function renderList() {
+    list.innerHTML = reminders.map(r => `<div class="rem ${r.on ? '' : 'off'}" data-id="${r.id}">
+      <input type="time" id="t${r.id}" value="${r.time}" aria-label="Heure">
+      <input type="text" id="l${r.id}" value="${esc(r.label)}" aria-label="Nom du rappel">
+      <div class="right">
+        <button class="icon-btn" data-test title="Tester ce rappel" aria-label="Tester ce rappel"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l12-7z"/></svg></button>
+        <button class="icon-btn" data-del title="Supprimer" aria-label="Supprimer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 7h14M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>
+        <button class="switch" role="switch" aria-checked="${r.on}" aria-label="Activer" data-on></button>
+      </div>
+      <div class="meta">
+        <div class="days">${DAY_LABELS.map((d, i) => `<button aria-pressed="${!!r.days[i]}" data-day="${i}">${d}</button>`).join('')}</div>
+        <select id="v${r.id}" aria-label="Niveau de départ">
+          ${[1, 2, 3].map(n => `<option value="${n}" ${r.level === n ? 'selected' : ''}>Départ N${n} · ${['Signal', 'Alerte', 'Urgence'][n - 1]}</option>`).join('')}
+        </select>
+        <span class="chip l${r.level}">${TOPICS[r.topic].m} min</span>
+      </div>
+    </div>`).join('');
+    updateNext();
+  }
+  const save = () => { store.set('reminders', reminders); updateNext(); };
+  const byEl = el => reminders.find(r => r.id === +el.closest('.rem').dataset.id);
+  list.addEventListener('click', e => {
+    const r = e.target.closest('.rem') && byEl(e.target); if (!r) return;
+    if (e.target.closest('[data-day]')) { const i = +e.target.closest('[data-day]').dataset.day; r.days[i] = r.days[i] ? 0 : 1; save(); renderList(); }
+    else if (e.target.closest('[data-on]')) { r.on = !r.on; save(); renderList(); }
+    else if (e.target.closest('[data-del]')) { reminders = reminders.filter(x => x !== r); save(); renderList(); }
+    else if (e.target.closest('[data-test]')) { current = r; snoozesUsed = 0; setClock(r.time); show(r.level); wrap.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  });
+  list.addEventListener('change', e => {
+    const r = byEl(e.target); if (!r) return;
+    if (e.target.type === 'time') r.time = e.target.value || r.time;
+    if (e.target.type === 'text') r.label = e.target.value.trim() || r.label;
+    if (e.target.tagName === 'SELECT') { r.level = +e.target.value; renderList(); }
+    save();
+  });
+  document.getElementById('addRem').addEventListener('click', () => {
+    const id = Math.max(0, ...reminders.map(r => r.id)) + 1;
+    reminders.push({ id, time: '21:00', days: [1,1,1,1,1,1,1], label: 'Nouveau rappel', level: 2, on: true, topic: 3 });
+    save(); renderList(); document.getElementById('l' + id).select();
+  });
+
+  function nextFire() {
+    const now = new Date(); let best = null;
+    for (let add = 0; add < 8; add++) for (const r of reminders) {
+      if (!r.on) continue;
+      const d = new Date(now); d.setDate(now.getDate() + add);
+      const [h, m] = r.time.split(':').map(Number); d.setHours(h, m, 0, 0);
+      if (d <= now || !r.days[(d.getDay() + 6) % 7]) continue;
+      if (!best || d < best.d) best = { r, d };
+    }
+    return best;
+  }
+  function updateNext() {
+    const n = nextFire(), el = document.getElementById('nextLabel');
+    if (!n) { el.innerHTML = 'Aucun rappel actif'; return; }
+    const diff = Math.round((n.d - new Date()) / 60000), h = Math.floor(diff / 60), m = diff % 60;
+    const day = n.d.toDateString() === new Date().toDateString() ? 'aujourd\'hui' : n.d.toLocaleDateString('fr-FR', { weekday: 'long' });
+    el.innerHTML = `Prochain rappel : <b>${day} ${n.r.time}</b> · ${esc(n.r.label)}<br>dans ${h ? h + ' h ' : ''}${m} min`;
+  }
+  function setClock(t) {
+    const d = new Date().toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+    document.getElementById('mbClock').textContent = `${d} ${t}`;
+  }
+  setInterval(updateNext, 30000);
+
+  renderList(); setClock(current.time);
+  // état de repos : l'alerte N2 est visible dès le chargement
+  show(2);
+})();
+</script>

@@ -10,6 +10,10 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 
+# Swift : construction de Praxis Rappels
+.build/
+.swiftpm/
+
 # C++ : dossiers de build des labs
 labs/*/build/
 build/

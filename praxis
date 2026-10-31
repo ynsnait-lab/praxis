@@ -11,6 +11,7 @@
   ./praxis reset py-01       remet le code de départ du lab (via git)
   ./praxis app               construit l'app et l'ouvre en local (demande Node.js)
   ./praxis launcher          installe Praxis.app sur macOS (Launchpad, Dock, Spotlight)
+  ./praxis rappels           installe Praxis Rappels : des rappels de pratique dans la barre des menus (macOS)
 
 Options de check : --solution (vérifie la solution de référence), --verbose.
 """
@@ -582,6 +583,16 @@ def cmd_launcher(args: argparse.Namespace) -> int:
     return subprocess.run(["bash", str(RACINE / "launcher" / "macos" / "build.sh")], cwd=RACINE).returncode
 
 
+def cmd_rappels(args: argparse.Namespace) -> int:
+    if platform.system() != "Darwin":
+        print(avert("Praxis Rappels est une app macOS."))
+        return 1
+    if not shutil.which("swift"):
+        print(ko("Le compilateur Swift manque : xcode-select --install"))
+        return 1
+    return subprocess.run(["bash", str(RACINE / "launcher" / "macos" / "rappels" / "build.sh")], cwd=RACINE).returncode
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="praxis", description="Les labs Praxis, sur ta machine.")
     p.add_argument("-v", "--verbose", action="store_true", help="afficher les commandes lancées")
@@ -607,13 +618,14 @@ def main(argv: list[str] | None = None) -> int:
     pa.add_argument("--rebuild", action="store_true", help="reconstruire même si l'app est à jour")
     pa.add_argument("--parent-pid", type=int, default=0, help=argparse.SUPPRESS)
     sub.add_parser("launcher", help="installer l'app Praxis pour macOS (Launchpad, Dock)")
+    sub.add_parser("rappels", help="installer Praxis Rappels, les rappels de pratique dans la barre des menus (macOS)")
     args = p.parse_args(argv)
     if not args.cmd:
         p.print_help()
         return 0
     return {"doctor": cmd_doctor, "setup": cmd_setup, "list": cmd_list, "next": cmd_next, "check": cmd_check,
             "hint": cmd_hint, "solution": cmd_solution, "reset": cmd_reset, "app": cmd_app,
-            "launcher": cmd_launcher}[args.cmd](args)
+            "launcher": cmd_launcher, "rappels": cmd_rappels}[args.cmd](args)
 
 
 if __name__ == "__main__":

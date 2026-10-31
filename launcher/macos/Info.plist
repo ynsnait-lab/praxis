@@ -28,6 +28,17 @@
 	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string>Python, C++ et culture d'ingénieur, en crescendo. Licence MIT.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>io.github.ynsnait-lab.praxis</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>praxis</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>
