@@ -7,6 +7,7 @@ import SwiftUI
 //
 // Options de lancement (pour essayer) :
 //   --tester 1|2|3        affiche tout de suite une alerte de ce niveau
+//   --reglages            ouvre tout de suite la fenêtre des horaires et réglages
 //   --apercu <dossier>    dessine les alertes en PNG dans ce dossier, puis quitte (aucune fenêtre)
 
 @main
@@ -23,12 +24,6 @@ struct PraxisRappelsApp: App {
         } label: {
             MenuBarIcon(scheduler: model.scheduler)
         }
-
-        Settings {
-            SettingsView()
-                .environmentObject(model.store)
-                .environmentObject(model.log)
-        }
     }
 }
 
@@ -43,10 +38,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Une seule instance : deux agents joueraient chaque rappel deux fois.
+        if let id = Bundle.main.bundleIdentifier,
+           NSRunningApplication.runningApplications(withBundleIdentifier: id).contains(where: { $0 != .current }) {
+            Journal.note("une autre instance tourne déjà : celle-ci s'arrête")
+            NSApp.terminate(nil)
+            return
+        }
         // Agent de barre des menus : pas d'icône dans le Dock.
         NSApp.setActivationPolicy(.accessory)
         MainActor.assumeIsolated {
             AppModel.shared.start()
+            if CommandLine.arguments.contains("--reglages") { SettingsWindow.shared.show() }
             LoginItem.registerOnFirstLaunch()
             let args = CommandLine.arguments
             if let i = args.firstIndex(of: "--tester"), i + 1 < args.count,
@@ -129,6 +132,17 @@ private struct MenuContent: View {
 
         Divider()
 
+        Section("Rappels") {
+            ForEach(store.reminders.filter(\.isEnabled)) { r in
+                Text("\(r.timeString) · \(r.daysString) · \(r.label) (N\(r.startLevel.rawValue)\(r.ceiling > r.startLevel ? "→N\(r.ceiling.rawValue)" : ""))")
+            }
+            if !store.reminders.contains(where: \.isEnabled) { Text("Aucun rappel actif") }
+            Button("Changer les horaires…") { SettingsWindow.shared.show() }
+                .keyboardShortcut(",")
+        }
+
+        Divider()
+
         Button("Ouvrir Praxis sur la séance") { PraxisBridge.launch(bundleID: store.rules.praxisBundleID) }
         Menu("Tester l'alerte") {
             ForEach(AlertLevel.allCases) { level in
@@ -140,14 +154,42 @@ private struct MenuContent: View {
 
         Divider()
 
-        SettingsLink { Text("Réglages…") }
-            .keyboardShortcut(",")
+        Button("Journal des rappels") { NSWorkspace.shared.open(Journal.url) }
         Button("Quitter Praxis Rappels") { NSApp.terminate(nil) }
             .keyboardShortcut("q")
     }
 }
 
 // MARK: - Réglages
+
+/// Fenêtre des horaires et réglages, ouverte au premier plan même si une autre app est active
+/// (la fenêtre Réglages standard de SwiftUI s'ouvre souvent derrière, pour un agent sans icône dans le Dock).
+@MainActor
+final class SettingsWindow: NSObject, NSWindowDelegate {
+    static let shared = SettingsWindow()
+    private var window: NSWindow?
+
+    func show() {
+        if window == nil {
+            let model = AppModel.shared
+            let view = SettingsView()
+                .environmentObject(model.store)
+                .environmentObject(model.log)
+            let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 680, height: 720),
+                             styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+            w.title = "Praxis Rappels · horaires et réglages"
+            w.contentView = NSHostingView(rootView: view)
+            w.isReleasedWhenClosed = false
+            w.delegate = self
+            w.center()
+            w.setFrameAutosaveName("PraxisRappelsReglages")
+            window = w
+        }
+        NSApp.activate()
+        window?.makeKeyAndOrderFront(nil)
+        window?.orderFrontRegardless()
+    }
+}
 
 struct SettingsView: View {
     @EnvironmentObject private var store: ReminderStore
@@ -156,7 +198,7 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Section("Horaires") {
+            Section {
                 ForEach($store.reminders) { $reminder in
                     ReminderRow(reminder: $reminder) {
                         let id = reminder.id
@@ -170,6 +212,11 @@ struct SettingsView: View {
                 } label: {
                     Label("Ajouter un rappel", systemImage: "plus")
                 }
+            } header: {
+                Text("Horaires")
+            } footer: {
+                Text("Clique sur l'heure pour la changer, et sur les lettres pour choisir les jours. N1 : une bannière discrète, sans bloquer. N2 : l'écran se floute. N3 : urgence rouge, sans report. « Départ » est le premier niveau, « Au plus » le niveau à ne jamais dépasser : mets N1 aux deux pour un rappel qui ne bloque jamais l'écran.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
 
             Section("Règles") {
@@ -205,7 +252,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(minWidth: 560, minHeight: 640)
+        .frame(minWidth: 640, minHeight: 640)
         .onAppear { NSApp.activate() }
     }
 }
@@ -221,6 +268,16 @@ private struct ReminderRow: View {
             let c = Calendar.current.dateComponents([.hour, .minute], from: date)
             reminder.hour = c.hour ?? reminder.hour
             reminder.minute = c.minute ?? reminder.minute
+        }
+    }
+
+    /// « Au plus » : jamais sous le niveau de départ.
+    private var ceiling: Binding<AlertLevel> {
+        Binding {
+            reminder.ceiling
+        } set: { level in
+            reminder.maxLevel = level
+            if reminder.startLevel > level { reminder.startLevel = level }
         }
     }
 
@@ -249,6 +306,10 @@ private struct ReminderRow: View {
                 Spacer()
                 Picker("Départ", selection: $reminder.startLevel) {
                     ForEach(AlertLevel.allCases) { Text("N\($0.rawValue) · \($0.title)").tag($0) }
+                }
+                .fixedSize()
+                Picker("Au plus", selection: ceiling) {
+                    ForEach(AlertLevel.allCases) { Text("N\($0.rawValue)").tag($0) }
                 }
                 .fixedSize()
             }

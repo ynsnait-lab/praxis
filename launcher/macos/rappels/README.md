@@ -16,11 +16,19 @@ construit **Praxis Rappels.app**, l'installe dans *Applications* et la lance : u
 | N2 · Alerte | l'écran flouté, une carte au centre ; Entrée lance Praxis, Échap reporte | Submarine | oui, deux fois |
 | N3 · Urgence | la même carte, en rouge | Sosumi, répété | non |
 
-Sans réaction pendant la fenêtre d'escalade (15 min par défaut), l'alerte passe au niveau suivant. « Pas aujourd'hui » demande d'écrire pourquoi (six caractères au moins) : les raisons sont gardées dans le journal des réglages.
+Sans réaction pendant la fenêtre d'escalade (15 min par défaut), l'alerte passe au niveau suivant, sans jamais dépasser le niveau **« Au plus »** du rappel (N1 pour un rappel qui ne doit jamais bloquer l'écran). « Pas aujourd'hui » demande d'écrire pourquoi (six caractères au moins) : les raisons sont gardées dans le journal des réglages. La bannière N1 se ferme d'un clic.
 
-Un rappel manqué pendant la veille est rejoué au réveil s'il date de moins d'une heure. Si une séance est déjà faite dans la journée, les rappels suivants se taisent.
+- **Une seule alerte à la fois** : si plusieurs rappels sont dus en même temps (Mac rouvert après une veille), seul le plus récent s'affiche.
+- **Rien quand personne ne regarde** : Mac en veille, capot fermé, écran éteint ou session verrouillée, aucune alerte ne se déclenche ni ne monte de niveau. Un rappel manqué s'affiche au retour s'il date de moins de trois heures, à son niveau de départ.
+- Si une séance est déjà faite dans la journée, les rappels suivants se taisent.
 
-Rappels proposés au départ, modifiables dans *Réglages…* : 7 h 45 en semaine (révision flash, N1), 18 h 30 en semaine (séance principale, N2), samedi 10 h (projet long, N3).
+## Changer les horaires
+
+Clic sur le triangle de la barre des menus → **Changer les horaires…** (ou ⌘, quand le menu est ouvert). Pour chaque rappel : l'heure, le nom, l'interrupteur, les jours (clic sur les lettres), le niveau de départ et le niveau « Au plus ». Le menu du triangle liste les rappels actifs.
+
+Rappels proposés au départ : 18 h 30 en semaine (séance principale, N2 puis N3), samedi 18 h (séance du week-end, N2 puis N3), et 7 h 45 en semaine (révision flash, N1 au plus), fourni éteint.
+
+Ce qui s'est passé est noté dans `~/Library/Logs/Praxis/rappels.log` (menu du triangle → *Journal des rappels*).
 
 ## Avec Praxis.app
 
@@ -39,15 +47,17 @@ cd launcher/macos/rappels
 swift build                                   # compile (Swift 5.9+, macOS 14+)
 .build/debug/PraxisRappels --apercu /tmp/ap   # dessine chaque alerte en PNG, sans rien afficher
 .build/debug/PraxisRappels --tester 2         # affiche tout de suite une alerte N2
+.build/debug/PraxisRappels --reglages         # ouvre la fenêtre des horaires
 ```
 
 `maquette.html` est la maquette de référence des alertes (à ouvrir dans Safari) : couleurs, hiérarchie, animations.
 
 | Fichier | Rôle |
 |---|---|
-| `App.swift` | point d'entrée, menu du triangle, réglages, ouverture au démarrage |
+| `App.swift` | point d'entrée, menu du triangle, fenêtre des horaires, ouverture au démarrage, instance unique |
 | `Models.swift` | rappels, niveaux, règles, journal de pratique (série, semaine, journées sautées) |
-| `Scheduler.swift` | minuterie (15 s et réveil du Mac), déclenchement, report, escalade |
+| `Scheduler.swift` | minuterie (15 s), déclenchement d'un seul rappel à la fois, report, escalade plafonnée |
+| `Presence.swift` | qui est devant l'écran (veille, écran, verrouillage), et le journal `rappels.log` |
 | `AlertPanelController.swift` | panneau sans bordure au-dessus de tout, y compris les apps en plein écran |
 | `AlertView.swift` | les vues SwiftUI des alertes |
 | `PraxisBridge.swift` | le seul point de contact avec Praxis (adresse, fichier, notification) |

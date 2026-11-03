@@ -33,9 +33,20 @@ struct Reminder: Codable, Identifiable, Hashable {
     var weekdays: Set<Int>
     var label: String
     var startLevel: AlertLevel
+    /// Niveau à ne pas dépasser (nil : jusqu'à l'urgence). N1 pour un rappel qui ne doit jamais bloquer l'écran.
+    var maxLevel: AlertLevel?
     var isEnabled = true
 
     var timeString: String { String(format: "%02d:%02d", hour, minute) }
+
+    /// Le plus haut niveau que ce rappel peut atteindre.
+    var ceiling: AlertLevel { max(maxLevel ?? .urgence, startLevel) }
+
+    /// « L M M J V », dans l'ordre de la semaine.
+    var daysString: String {
+        let days = weekdayDisplayOrder.filter { weekdays.contains($0.weekday) }.map(\.letter)
+        return days.count == 7 ? "tous les jours" : days.joined(separator: " ")
+    }
 
     /// Date de déclenchement de ce rappel pour le jour qui contient `day`, ou nil si le jour n'est pas actif.
     func fireDate(on day: Date, calendar: Calendar = .current) -> Date? {
@@ -44,11 +55,21 @@ struct Reminder: Codable, Identifiable, Hashable {
         return calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day)
     }
 
-    /// Rappels proposés au premier lancement : modifiables dans les réglages.
+    /// Rappels proposés au premier lancement, modifiables dans les réglages : en fin de journée,
+    /// quand un écran bloqué est le bienvenu. Le rappel du matin est fourni éteint, et ne dépasse jamais la bannière.
     static let examples: [Reminder] = [
-        Reminder(hour: 7, minute: 45, weekdays: [2, 3, 4, 5, 6], label: "Révision flash", startLevel: .signal),
         Reminder(hour: 18, minute: 30, weekdays: [2, 3, 4, 5, 6], label: "Séance principale", startLevel: .alerte),
-        Reminder(hour: 10, minute: 0, weekdays: [7], label: "Projet long du week-end", startLevel: .urgence),
+        Reminder(hour: 18, minute: 0, weekdays: [7], label: "Séance du week-end", startLevel: .alerte),
+        Reminder(hour: 7, minute: 45, weekdays: [2, 3, 4, 5, 6], label: "Révision flash", startLevel: .signal,
+                 maxLevel: .signal, isEnabled: false),
+    ]
+
+    /// Signature des premiers rappels par défaut (7 h 45 en semaine, 18 h 30, samedi 10 h en urgence).
+    var legacySignature: String { "\(hour):\(minute):\(weekdays.sorted()):\(label):\(startLevel.rawValue):\(isEnabled)" }
+    static let legacyDefaults: Set<String> = [
+        "7:45:[2, 3, 4, 5, 6]:Révision flash:1:true",
+        "18:30:[2, 3, 4, 5, 6]:Séance principale:2:true",
+        "10:0:[7]:Projet long du week-end:3:true",
     ]
 }
 
@@ -99,10 +120,18 @@ final class ReminderStore: ObservableObject {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         let decoder = JSONDecoder()
-        reminders = defaults.data(forKey: Key.reminders)
+        var stored = defaults.data(forKey: Key.reminders)
             .flatMap { try? decoder.decode([Reminder].self, from: $0) } ?? Reminder.examples
+        // Les premiers rappels par défaut bloquaient l'écran le matin : s'ils n'ont jamais été modifiés,
+        // on passe aux nouveaux (fin de journée). Des rappels personnalisés ne sont jamais touchés.
+        if Set(stored.map(\.legacySignature)) == Reminder.legacyDefaults && stored.count == 3 {
+            stored = Reminder.examples
+            Journal.note("rappels par défaut mis à jour : fin de journée, matin éteint")
+        }
+        reminders = stored
         rules = defaults.data(forKey: Key.rules)
             .flatMap { try? decoder.decode(ReminderRules.self, from: $0) } ?? ReminderRules()
+        save()
     }
 
     private func save() {

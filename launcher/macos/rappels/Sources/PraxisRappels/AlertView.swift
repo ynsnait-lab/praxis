@@ -18,6 +18,8 @@ final class AlertViewModel: ObservableObject {
     let snoozesLeft: Int
     let snoozeMinutes: Int
     let escalationWindow: TimeInterval
+    /// Faux quand le rappel est déjà à son niveau plafond : pas de compte à rebours d'escalade.
+    let escalates: Bool
     let deadline: Date
 
     @Published var phase: Phase = .prompt
@@ -26,10 +28,11 @@ final class AlertViewModel: ObservableObject {
     var onLaunch: () -> Void = {}
     var onSnooze: () -> Void = {}
     var onSkip: (String) -> Void = { _ in }
+    var onDismiss: () -> Void = {}
 
     init(reminder: Reminder, level: AlertLevel, session: PraxisPlan, streak: Int,
          week: [DayState], sessionsThisWeek: Int, weeklyGoal: Int, lastSession: Date?, snoozesLeft: Int,
-         snoozeMinutes: Int, escalationWindow: TimeInterval) {
+         snoozeMinutes: Int, escalationWindow: TimeInterval, escalates: Bool = true) {
         self.reminder = reminder
         self.level = level
         self.session = session
@@ -41,13 +44,16 @@ final class AlertViewModel: ObservableObject {
         self.snoozesLeft = snoozesLeft
         self.snoozeMinutes = snoozeMinutes
         self.escalationWindow = escalationWindow
+        self.escalates = escalates
         self.deadline = Date.now.addingTimeInterval(escalationWindow)
     }
 
     var accent: Color { level == .urgence ? .pxRed : .pxAmber }
     var canSnooze: Bool { level < .urgence && snoozesLeft > 0 }
 
+    /// Un seul lancement, même si l'on clique plusieurs fois pendant l'animation.
     func launch() {
+        guard phase != .launched else { return }
         phase = .launched
         onLaunch()
     }
@@ -129,6 +135,10 @@ private struct BannerView: View {
                 Button("Dans \(model.snoozeMinutes) min") { model.onSnooze() }
                     .buttonStyle(PxButtonStyle(kind: .secondary, accent: .pxAmber, compact: true))
                     .disabled(!model.canSnooze)
+                Spacer()
+                Button("Fermer") { model.onDismiss() }
+                    .buttonStyle(PxButtonStyle(kind: .link, accent: .pxAmber, compact: true))
+                    .keyboardShortcut(.cancelAction)
             }
         }
         .padding(14)
@@ -191,7 +201,7 @@ private struct AlertCard: View {
                 header
                 sessionBox
                 stats
-                countdown
+                if model.escalates { countdown }
                 if model.phase == .prompt { actions } else { confirmSkip }
             }
         }

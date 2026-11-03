@@ -7,6 +7,12 @@ final class KeyPanel: NSPanel {
     override var canBecomeMain: Bool { true }
 }
 
+/// Vue SwiftUI qui accepte le premier clic : sans cela, quand l'alerte n'était pas encore au premier plan,
+/// le premier clic ne servait qu'à l'activer et il fallait appuyer une deuxième fois sur le bouton.
+final class FirstClickHostingView<Content: View>: NSHostingView<Content> {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+}
+
 /// Affiche l'alerte par-dessus tout : autres apps, Spaces, plein écran.
 @MainActor
 final class AlertPanelController {
@@ -31,14 +37,14 @@ final class AlertPanelController {
             panel.level = .screenSaver
         }
 
-        panel.contentView = NSHostingView(rootView: AlertRootView(model: model))
+        panel.contentView = FirstClickHostingView(rootView: AlertRootView(model: model))
         panel.setFrame(frame, display: true)
         if !panel.isVisible { panel.alphaValue = 0 }
         panel.orderFrontRegardless()
 
         if model.level >= .alerte {
             NSApp.activate()
-            panel.makeKey()
+            panel.makeKeyAndOrderFront(nil)
         }
 
         NSAnimationContext.runAnimationGroup { ctx in
