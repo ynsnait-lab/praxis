@@ -47,5 +47,5 @@ if [ -x "$LSREGISTER" ]; then "$LSREGISTER" -f "$DEST/$NOM.app" >/dev/null 2>&1 
 open "$DEST/$NOM.app"
 
 echo "✓ $NOM installée dans ${DEST/#$HOME/~} et lancée : un triangle apparaît dans la barre des menus."
-echo "  Horaires et règles : clic sur le triangle → Réglages…"
+echo "  Changer les horaires : clic sur le triangle → Changer les horaires…"
 echo "  Elle s'ouvre toute seule au démarrage du Mac (Réglages Système → Général → Ouverture)."
