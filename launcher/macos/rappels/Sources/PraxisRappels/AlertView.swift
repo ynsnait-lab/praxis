@@ -15,24 +15,33 @@ final class AlertViewModel: ObservableObject {
     let sessionsThisWeek: Int
     let weeklyGoal: Int
     let lastSession: Date?
+    /// Jours entiers depuis la dernière séance (nil : aucune séance connue).
+    let daysSinceLast: Int?
     let snoozesLeft: Int
     let snoozeMinutes: Int
     let escalationWindow: TimeInterval
     /// Faux quand le rappel est déjà à son niveau plafond : pas de compte à rebours d'escalade.
     let escalates: Bool
+    /// Relance après un « Lancer » sans séance terminée.
+    let followUp: Bool
+    /// Il est tard : le rappel n'est qu'une bannière.
+    let late: Bool
     let deadline: Date
 
     @Published var phase: Phase = .prompt
     @Published var skipReason = ""
+    @Published var launchedExpress = false
 
-    var onLaunch: () -> Void = {}
+    /// Reçoit vrai pour la séance express, faux pour la séance du jour.
+    var onLaunch: (Bool) -> Void = { _ in }
     var onSnooze: () -> Void = {}
     var onSkip: (String) -> Void = { _ in }
     var onDismiss: () -> Void = {}
 
     init(reminder: Reminder, level: AlertLevel, session: PraxisPlan, streak: Int,
-         week: [DayState], sessionsThisWeek: Int, weeklyGoal: Int, lastSession: Date?, snoozesLeft: Int,
-         snoozeMinutes: Int, escalationWindow: TimeInterval, escalates: Bool = true) {
+         week: [DayState], sessionsThisWeek: Int, weeklyGoal: Int, lastSession: Date?, daysSinceLast: Int? = nil,
+         snoozesLeft: Int, snoozeMinutes: Int, escalationWindow: TimeInterval, escalates: Bool = true,
+         followUp: Bool = false, late: Bool = false) {
         self.reminder = reminder
         self.level = level
         self.session = session
@@ -41,6 +50,9 @@ final class AlertViewModel: ObservableObject {
         self.sessionsThisWeek = sessionsThisWeek
         self.weeklyGoal = weeklyGoal
         self.lastSession = lastSession
+        self.daysSinceLast = daysSinceLast
+        self.followUp = followUp
+        self.late = late
         self.snoozesLeft = snoozesLeft
         self.snoozeMinutes = snoozeMinutes
         self.escalationWindow = escalationWindow
@@ -51,12 +63,25 @@ final class AlertViewModel: ObservableObject {
     var accent: Color { level == .urgence ? .pxRed : .pxAmber }
     var canSnooze: Bool { level < .urgence && snoozesLeft > 0 }
 
+    /// La séance express (six exercices, cinq minutes), quand elle est plus courte que la séance du jour.
+    var express: (n: Int, minutes: Int)? { session.express }
+    /// Après une pause d'au moins quatre jours : on reprend par la séance courte.
+    var reprise: Bool { Regles.reprise(daysSinceLast: daysSinceLast) }
+    /// La séance express passe devant la séance complète : après une pause, tard le soir, ou en relance.
+    var expressFirst: Bool { express != nil && (reprise || late || followUp) }
+
     /// Un seul lancement, même si l'on clique plusieurs fois pendant l'animation.
-    func launch() {
+    func launch(express: Bool = false) {
         guard phase != .launched else { return }
+        launchedExpress = express
         phase = .launched
-        onLaunch()
+        onLaunch(express)
     }
+
+    /// Entrée : la séance mise en avant.
+    func launchDefault() { launch(express: expressFirst) }
+
+    static func exercices(_ n: Int) -> String { n > 1 ? "\(n) exercices" : "\(n) exercice" }
 }
 
 /// Petit état d'animation (« apparu », « affiché »). Remplace `@State`, qui est devenu une macro dans le SDK
@@ -108,6 +133,19 @@ private struct BannerView: View {
     @ObservedObject var model: AlertViewModel
     @StateObject private var appeared = Flag(renderingSnapshot)
 
+    /// Le texte de la bannière (en Markdown : le gras marque ce dont il s'agit).
+    private var message: String {
+        let rappel = "**\(model.reminder.label)** · \(model.reminder.timeString)."
+        let express = model.express.map { "\(AlertViewModel.exercices($0.n)), \($0.minutes) min" }
+        if model.followUp {
+            return "**Séance lancée, pas terminée.** " + (express.map { "\($0) : assez pour que la journée compte." }
+                ?? "Encore \(model.session.minutes) min et la journée compte.")
+        }
+        if model.late, let express { return "\(rappel) Il est tard : la séance express suffit. \(express)." }
+        if model.reprise, let express { return "\(rappel) Reprise en douceur : \(express)." }
+        return "\(rappel) \(model.session.title), \(model.session.minutes) min."
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 12) {
@@ -123,15 +161,28 @@ private struct BannerView: View {
                         Spacer()
                         Text("maintenant").font(.system(size: 12)).foregroundStyle(.secondary)
                     }
-                    Text("**\(model.reminder.label)** · \(model.reminder.timeString). \(model.session.title), \(model.session.minutes) min.")
+                    Text(LocalizedStringKey(message))
                         .font(.system(size: 13)).foregroundStyle(Color.pxText.opacity(0.85))
-                        .lineLimit(2)
+                        .lineLimit(3)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             HStack(spacing: 8) {
-                Button("Lancer") { model.launch() }
-                    .buttonStyle(PxButtonStyle(kind: .primary, accent: .pxAmber, compact: true))
-                    .keyboardShortcut(.defaultAction)
+                if model.expressFirst, let express = model.express {
+                    Button("Express · \(express.minutes) min") { model.launch(express: true) }
+                        .buttonStyle(PxButtonStyle(kind: .primary, accent: .pxAmber, compact: true))
+                        .keyboardShortcut(.defaultAction)
+                    Button("Complète") { model.launch() }
+                        .buttonStyle(PxButtonStyle(kind: .secondary, accent: .pxAmber, compact: true))
+                } else {
+                    Button("Lancer") { model.launch() }
+                        .buttonStyle(PxButtonStyle(kind: .primary, accent: .pxAmber, compact: true))
+                        .keyboardShortcut(.defaultAction)
+                    if let express = model.express {
+                        Button("Express · \(express.minutes) min") { model.launch(express: true) }
+                            .buttonStyle(PxButtonStyle(kind: .secondary, accent: .pxAmber, compact: true))
+                    }
+                }
                 Button("Dans \(model.snoozeMinutes) min") { model.onSnooze() }
                     .buttonStyle(PxButtonStyle(kind: .secondary, accent: .pxAmber, compact: true))
                     .disabled(!model.canSnooze)
@@ -196,7 +247,8 @@ private struct AlertCard: View {
         VStack(alignment: .leading, spacing: 20) {
             switch model.phase {
             case .launched:
-                LaunchedView(streak: model.streak + 1, minutes: model.session.minutes)
+                LaunchedView(streak: model.streak + 1,
+                             minutes: model.launchedExpress ? (model.express?.minutes ?? 5) : model.session.minutes)
             case .prompt, .confirmSkip:
                 header
                 sessionBox
@@ -237,17 +289,23 @@ private struct AlertCard: View {
     }
 
     private var sessionBox: some View {
-        HStack(alignment: .center, spacing: 16) {
+        // Après une pause, la carte présente la séance courte : c'est elle que lance la touche Entrée.
+        let express = model.expressFirst ? model.express : nil
+        let pause = model.daysSinceLast.map { "Dernière séance il y a \($0) jours. " } ?? ""
+        return HStack(alignment: .center, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("SÉANCE DU JOUR")
+                Text(express == nil ? "SÉANCE DU JOUR" : model.reprise ? "REPRISE EN DOUCEUR" : "SÉANCE EXPRESS")
                     .font(.system(size: 11, design: .monospaced)).tracking(1.2)
                     .foregroundStyle(Color.pxMuted)
-                Text(model.session.title).font(.system(size: 20, weight: .semibold))
-                Text(model.session.subtitle).font(.system(size: 14)).foregroundStyle(Color.pxText.opacity(0.75))
+                Text(express.map { "\(AlertViewModel.exercices($0.n)) pour \(model.reprise ? "redémarrer" : "tenir la journée")" } ?? model.session.title)
+                    .font(.system(size: 20, weight: .semibold))
+                Text(express == nil ? model.session.subtitle
+                     : model.reprise ? "\(pause)Cinq minutes, et la série repart." : "Les révisions les plus urgentes, rien de plus.")
+                    .font(.system(size: 14)).foregroundStyle(Color.pxText.opacity(0.75))
             }
             Spacer(minLength: 0)
             VStack(alignment: .trailing, spacing: 2) {
-                Text("\(model.session.minutes)").font(.system(size: 26, weight: .medium, design: .monospaced))
+                Text("\(express?.minutes ?? model.session.minutes)").font(.system(size: 26, weight: .medium, design: .monospaced))
                 Text("MIN").font(.system(size: 11, design: .monospaced)).foregroundStyle(Color.pxMuted)
             }
         }
@@ -263,8 +321,7 @@ private struct AlertCard: View {
                 WeekStrip(week: model.week).padding(.top, 6)
             }
             StatCell(value: "\(model.sessionsThisWeek)/\(model.weeklyGoal)", label: "Séances cette semaine")
-            StatCell(value: model.lastSession.map { $0.formatted(date: .omitted, time: .shortened) } ?? "—",
-                     label: lastSessionLabel)
+            StatCell(value: lastSessionValue, label: lastSessionLabel)
         }
         .fixedSize(horizontal: false, vertical: true)
         .background(Color.pxLine)
@@ -272,11 +329,18 @@ private struct AlertCard: View {
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.pxLine))
     }
 
+    private var lastSessionValue: String {
+        guard let last = model.lastSession else { return "—" }
+        if Calendar.current.isDateInToday(last) { return last.formatted(date: .omitted, time: .shortened) }
+        if Calendar.current.isDateInYesterday(last) { return "hier" }
+        return "\(model.daysSinceLast ?? 0) j"
+    }
+
     private var lastSessionLabel: String {
         guard let last = model.lastSession else { return "Aucune séance" }
         if Calendar.current.isDateInToday(last) { return "Dernière séance, aujourd'hui" }
-        if Calendar.current.isDateInYesterday(last) { return "Dernière séance, hier" }
-        return "Dernière séance, " + last.formatted(.dateTime.weekday(.wide))
+        if Calendar.current.isDateInYesterday(last) { return "Dernière séance" }
+        return "sans séance"
     }
 
     private var countdown: some View {
@@ -284,7 +348,8 @@ private struct AlertCard: View {
             let left = max(0, model.deadline.timeIntervalSince(ctx.date))
             VStack(spacing: 7) {
                 HStack {
-                    Text(model.level == .urgence ? "Série perdue dans" : "Escalade au niveau \(model.level.rawValue + 1) dans")
+                    Text(model.level == .urgence ? (model.streak > 0 ? "Série perdue dans" : "Nouveau rappel sonore dans")
+                                                 : "Escalade au niveau \(model.level.rawValue + 1) dans")
                         .font(.system(size: 13)).foregroundStyle(Color.pxMuted)
                     Spacer()
                     Text(String(format: "%d:%02d", Int(left) / 60, Int(left) % 60))
@@ -304,28 +369,46 @@ private struct AlertCard: View {
         }
     }
 
+    /// Deux façons de dire oui en haut (la séance mise en avant, et l'autre), deux façons de remettre en dessous.
     private var actions: some View {
-        HStack(spacing: 10) {
-            Button { model.launch() } label: {
-                HStack(spacing: 10) {
-                    Text("Lancer Praxis")
-                    Text("⏎").font(.system(size: 12, design: .monospaced))
-                        .padding(.horizontal, 6).padding(.vertical, 2)
-                        .background(Color.black.opacity(0.14)).clipShape(RoundedRectangle(cornerRadius: 5))
+        VStack(spacing: 10) {
+            HStack(spacing: 10) {
+                Button { model.launchDefault() } label: {
+                    HStack(spacing: 10) {
+                        Text(primaryTitle)
+                        Text("⏎").font(.system(size: 12, design: .monospaced))
+                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .background(Color.black.opacity(0.14)).clipShape(RoundedRectangle(cornerRadius: 5))
+                    }
+                    .frame(maxWidth: .infinity)
                 }
-                .frame(maxWidth: .infinity)
+                .buttonStyle(PxButtonStyle(kind: .primary, accent: model.accent))
+                .keyboardShortcut(.defaultAction)
+
+                if let express = model.express {
+                    Button(model.expressFirst ? "Séance complète · \(model.session.minutes) min" : "Express · \(express.minutes) min") {
+                        model.launch(express: !model.expressFirst)
+                    }
+                    .buttonStyle(PxButtonStyle(kind: .secondary, accent: model.accent))
+                }
             }
-            .buttonStyle(PxButtonStyle(kind: .primary, accent: model.accent))
-            .keyboardShortcut(.defaultAction)
-
-            Button(snoozeTitle) { model.onSnooze() }
-                .buttonStyle(PxButtonStyle(kind: .secondary, accent: model.accent))
-                .keyboardShortcut(.cancelAction)
-                .disabled(!model.canSnooze)
-
-            Button("Pas aujourd'hui") { model.phase = .confirmSkip }
-                .buttonStyle(PxButtonStyle(kind: .link, accent: model.accent))
+            HStack(spacing: 10) {
+                Button(snoozeTitle) { model.onSnooze() }
+                    .buttonStyle(PxButtonStyle(kind: .secondary, accent: model.accent, compact: true))
+                    .keyboardShortcut(.cancelAction)
+                    .disabled(!model.canSnooze)
+                Spacer()
+                Button("Pas aujourd'hui") { model.phase = .confirmSkip }
+                    .buttonStyle(PxButtonStyle(kind: .link, accent: model.accent, compact: true))
+            }
         }
+    }
+
+    private var primaryTitle: String {
+        if model.expressFirst, let express = model.express {
+            return "\(model.reprise ? "Reprendre" : "Séance express") · \(express.minutes) min"
+        }
+        return "Lancer Praxis · \(model.session.minutes) min"
     }
 
     private var snoozeTitle: String {
@@ -336,8 +419,10 @@ private struct AlertCard: View {
 
     private var confirmSkip: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Ta série de \(model.streak) jours repartira à zéro. Écris pourquoi, pour t'en souvenir dimanche.")
+            Text((model.streak > 0 ? "Ta série de \(model.streak) jour\(model.streak > 1 ? "s" : "") repartira à zéro. " : "")
+                 + "Écris pourquoi : les raisons sont gardées dans le journal des réglages, pour voir ce qui te fait sauter des séances.")
                 .font(.system(size: 14))
+                .fixedSize(horizontal: false, vertical: true)
             TextField("Ex. : réunion tardive, retour à 23 h", text: $model.skipReason)
                 .textFieldStyle(.roundedBorder)
             HStack {
@@ -517,7 +602,7 @@ private struct LaunchedView: View {
             .frame(width: 72, height: 72)
             .scaleEffect(popped.on ? 1 : 0.4)
             .opacity(popped.on ? 1 : 0)
-            Text("SÉRIE : \(streak) JOURS")
+            Text("SÉRIE : \(streak) JOUR\(streak > 1 ? "S" : "")")
                 .font(.system(size: 40, weight: .heavy)).fontWidth(.condensed)
             Text("Praxis s'ouvre sur ta séance. \(minutes) minutes, concentré.")
                 .foregroundStyle(Color.pxMuted)

@@ -6,7 +6,8 @@
 // à l'autre (adresse fixe : http://127.0.0.1:47821).
 //
 // Elle sert aussi de pont avec Praxis Rappels (launcher/macos/rappels) : la page lui annonce la séance du jour
-// et chaque séance terminée (message « praxis »), et l'adresse praxis://seance ouvre directement la séance.
+// et chaque séance terminée (message « praxis »), et l'adresse praxis://seance ouvre directement la séance
+// (praxis://seance/express : la séance courte). Au lancement, elle relance Praxis Rappels si elle est arrêtée.
 //
 // Construite par launcher/macos/build.sh, via ./praxis launcher.
 import AppKit
@@ -21,6 +22,8 @@ let SEANCE_TERMINEE = Notification.Name("io.github.ynsnait-lab.praxis.seanceTerm
 /// Séance du jour et journées pratiquées, relues par Praxis Rappels avant chaque alerte.
 let FICHIER_PLAN: URL = FileManager.default.homeDirectoryForCurrentUser
     .appendingPathComponent("Library/Application Support/Praxis/next_session.json")
+/// Praxis Rappels, l'agent de la barre des menus (launcher/macos/rappels).
+let ID_RAPPELS = "io.github.ynsnait-lab.praxis.rappels"
 /// praxis://seance, praxis://reglages… : la page à ouvrir.
 let ROUTES_URL = ["seance": "session", "accueil": "", "aujourdhui": "", "parcours": "parcours", "pieges": "pieges",
                   "labs": "labs", "fiches": "fiches", "progression": "stats", "reglages": "reglages", "perso": "perso"]
@@ -66,6 +69,20 @@ final class Lanceur: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNaviga
         construireMenus()
         construireFenetre()
         demarrer()
+        reveillerRappels()
+    }
+
+    /// Sans Praxis Rappels en route, plus aucun rappel : si elle est installée mais arrêtée, on la relance, en arrière-plan.
+    func reveillerRappels() {
+        guard !AUTOTEST, NSRunningApplication.runningApplications(withBundleIdentifier: ID_RAPPELS).isEmpty,
+              let app = NSWorkspace.shared.urlForApplication(withBundleIdentifier: ID_RAPPELS) else { return }
+        let config = NSWorkspace.OpenConfiguration()
+        config.activates = false
+        config.addsToRecentItems = false
+        NSWorkspace.shared.openApplication(at: app, configuration: config) { _, erreur in
+            noter(erreur.map { "Praxis Rappels était arrêtée, relance impossible : \($0.localizedDescription)" }
+                  ?? "Praxis Rappels était arrêtée : relancée")
+        }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
@@ -218,7 +235,8 @@ final class Lanceur: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNaviga
 
     func application(_ application: NSApplication, open urls: [URL]) {
         guard let url = urls.first(where: { $0.scheme == "praxis" }) else { return }
-        let route = ROUTES_URL[url.host ?? ""] ?? ""
+        var route = ROUTES_URL[url.host ?? ""] ?? ""
+        if url.host == "seance", url.path == "/express" { route = "session/express" }   // la séance courte
         noter("adresse reçue : \(url.absoluteString)")
         if pret, let vue {
             vue.evaluateJavaScript("location.hash = '#/\(route)'")

@@ -27,7 +27,7 @@ final class AlertPanelController {
 
         let frame: NSRect
         if model.level == .signal {
-            let size = NSSize(width: 420, height: 180)
+            let size = NSSize(width: 470, height: 196)
             let visible = screen.visibleFrame
             frame = NSRect(x: visible.maxX - size.width - 8, y: visible.maxY - size.height - 8,
                            width: size.width, height: size.height)

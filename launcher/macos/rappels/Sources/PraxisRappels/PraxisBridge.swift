@@ -12,6 +12,15 @@ struct PraxisPlan: Codable, Equatable {
     var serie: Int?
     var serieDernierJour: String?
     var maj: String?
+    /// La séance express annoncée par Praxis (absente d'un fichier écrit par une version plus ancienne).
+    var expressN: Int?
+    var expressMin: Int?
+
+    /// La séance express à proposer à côté de la séance du jour, si elle est plus courte qu'elle.
+    var express: (n: Int, minutes: Int)? {
+        let n = expressN ?? 6, m = expressMin ?? 5
+        return m < minutes ? (n, m) : nil
+    }
 
     /// La série de Praxis si elle tient encore (dernier jour aujourd'hui ou hier), sinon 0.
     var liveStreak: Int {
@@ -28,18 +37,20 @@ struct PraxisPlan: Codable, Equatable {
 @MainActor
 enum PraxisBridge {
     nonisolated static let defaultBundleID = "io.github.ynsnait-lab.praxis"
-    /// Praxis.app ouvre directement la séance du jour à cette adresse.
+    /// Praxis.app ouvre directement la séance du jour à cette adresse, et la séance express (six exercices) à la seconde.
     static let sessionURL = URL(string: "praxis://seance")!
+    static let expressURL = URL(string: "praxis://seance/express")!
 
     // MARK: Lancer Praxis sur la séance du jour
 
-    static func launch(bundleID: String) {
+    static func launch(bundleID: String, express: Bool = false) {
         let workspace = NSWorkspace.shared
         let config = NSWorkspace.OpenConfiguration()
         config.activates = true
-        if workspace.urlForApplication(toOpen: sessionURL) != nil {
-            workspace.open(sessionURL, configuration: config) { _, error in
-                if let error { NSLog("Praxis Rappels : praxis://seance n'a pas abouti (\(error.localizedDescription))") }
+        let address = express ? expressURL : sessionURL
+        if workspace.urlForApplication(toOpen: address) != nil {
+            workspace.open(address, configuration: config) { _, error in
+                if let error { NSLog("Praxis Rappels : \(address.absoluteString) n'a pas abouti (\(error.localizedDescription))") }
             }
             return
         }

@@ -89,6 +89,12 @@ struct ReminderRules: Codable, Equatable {
     var countLaunchAsSession = false
     var soundEnabled = true
     var praxisBundleID = PraxisBridge.defaultBundleID
+    /// Heure du soir (en minutes depuis minuit) à partir de laquelle plus rien ne bloque l'écran : un rappel
+    /// en retard devient une simple bannière, sans escalade. 0 : pas de limite.
+    var calmAfter = 22 * 60 + 30
+    /// « Lancer » ne vaut pas séance : si elle n'est pas terminée au bout de ce délai, une bannière le rappelle
+    /// une fois. 0 : pas de relance.
+    var followUpMinutes = 30
 
     init() {}
 
@@ -104,6 +110,8 @@ struct ReminderRules: Codable, Equatable {
         countLaunchAsSession = try c.decodeIfPresent(Bool.self, forKey: .countLaunchAsSession) ?? d.countLaunchAsSession
         soundEnabled = try c.decodeIfPresent(Bool.self, forKey: .soundEnabled) ?? d.soundEnabled
         praxisBundleID = try c.decodeIfPresent(String.self, forKey: .praxisBundleID) ?? d.praxisBundleID
+        calmAfter = try c.decodeIfPresent(Int.self, forKey: .calmAfter) ?? d.calmAfter
+        followUpMinutes = try c.decodeIfPresent(Int.self, forKey: .followUpMinutes) ?? d.followUpMinutes
     }
 }
 
@@ -113,9 +121,15 @@ struct ReminderRules: Codable, Equatable {
 final class ReminderStore: ObservableObject {
     @Published var reminders: [Reminder] { didSet { save() } }
     @Published var rules: ReminderRules { didSet { save() } }
+    /// Rappels suspendus jusqu'à cette date (vacances, soirée prise) : rien ne se déclenche avant.
+    @Published var pausedUntil: Date? {
+        didSet {
+            if let pausedUntil { defaults.set(pausedUntil, forKey: Key.paused) } else { defaults.removeObject(forKey: Key.paused) }
+        }
+    }
 
     private let defaults: UserDefaults
-    private enum Key { static let reminders = "reminders.v1", rules = "rules.v1" }
+    private enum Key { static let reminders = "reminders.v1", rules = "rules.v1", paused = "pausedUntil.v1" }
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -131,8 +145,18 @@ final class ReminderStore: ObservableObject {
         reminders = stored
         rules = defaults.data(forKey: Key.rules)
             .flatMap { try? decoder.decode(ReminderRules.self, from: $0) } ?? ReminderRules()
+        if let until = defaults.object(forKey: Key.paused) as? Date, until > .now { pausedUntil = until }
         save()
     }
+
+    /// Suspend les rappels pour `days` jours : jusqu'à 5 h du matin, pour que le rappel du soir du dernier jour soit sauté
+    /// et que celui du lendemain sonne normalement.
+    func pause(days: Int, from now: Date = .now, calendar: Calendar = .current) {
+        let day = calendar.date(byAdding: .day, value: max(1, days), to: calendar.startOfDay(for: now)) ?? now
+        pausedUntil = calendar.date(bySettingHour: 5, minute: 0, second: 0, of: day) ?? day
+    }
+
+    var isPaused: Bool { (pausedUntil ?? .distantPast) > .now }
 
     private func save() {
         let encoder = JSONEncoder()
@@ -222,6 +246,12 @@ final class PracticeLog: ObservableObject {
     var practicedToday: Bool { sessions.contains { calendar.isDateInToday($0) } }
 
     var lastSession: Date? { sessions.max() }
+
+    /// Jours entiers écoulés depuis la dernière séance (0 : aujourd'hui), ou nil si aucune séance n'est connue.
+    var daysSinceLastSession: Int? {
+        guard let last = lastSession else { return nil }
+        return calendar.dateComponents([.day], from: calendar.startOfDay(for: last), to: calendar.startOfDay(for: .now)).day
+    }
 
     /// Jours consécutifs avec séance, en partant d'aujourd'hui (ou d'hier si aujourd'hui n'est pas encore fait).
     var streak: Int {

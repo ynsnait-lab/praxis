@@ -5,10 +5,16 @@ import SwiftUI
 // Praxis Rappels : un agent de barre des menus (pas d'icône dans le Dock) qui rappelle de pratiquer sur Praxis
 // aux horaires choisis, avec une alerte qui monte en intensité si on l'ignore.
 //
+// L'agent ne s'arrête que par son menu (« Quitter Praxis Rappels ») ou sur demande du système : ⌘Q, tapé par réflexe
+// devant la fenêtre des horaires ou une alerte, ferme la fenêtre mais laisse les rappels en route.
+// Rouvrir l'app alors qu'elle tourne déjà affiche la fenêtre des horaires.
+//
 // Options de lancement (pour essayer) :
 //   --tester 1|2|3        affiche tout de suite une alerte de ce niveau
 //   --reglages            ouvre tout de suite la fenêtre des horaires et réglages
 //   --apercu <dossier>    dessine les alertes en PNG dans ce dossier, puis quitte (aucune fenêtre)
+//   --verifier            rejoue les règles de déclenchement sur des cas datés, puis quitte (aucune fenêtre)
+//   --essai-cmdq          demande à l'agent en route de faire comme si l'on tapait ⌘Q : il doit rester en route
 
 @main
 struct PraxisRappelsApp: App {
@@ -22,7 +28,7 @@ struct PraxisRappelsApp: App {
                 .environmentObject(model.log)
                 .environmentObject(model.scheduler)
         } label: {
-            MenuBarIcon(scheduler: model.scheduler)
+            MenuBarIcon(scheduler: model.scheduler, log: model.log, store: model.store)
         }
     }
 }
@@ -35,13 +41,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             MainActor.assumeIsolated { Apercu.render(into: URL(fileURLWithPath: dossier)) }
             exit(0)
         }
+        if args.contains("--verifier") { exit(Verification.run() ? 0 : 1) }
+        if args.contains("--essai-cmdq") {
+            DistributedNotificationCenter.default().postNotificationName(Lifecycle.tryCommandQ, object: nil, userInfo: nil,
+                                                                         deliverImmediately: true)
+            RunLoop.current.run(until: Date().addingTimeInterval(0.5))   // le temps que la notification parte
+            exit(0)
+        }
+    }
+
+    /// Fermer la fenêtre des horaires ne doit jamais arrêter l'agent.
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+
+    /// Rouvrir l'app (Launchpad, Spotlight, Finder) alors qu'elle tourne : on montre la fenêtre des horaires.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        MainActor.assumeIsolated {
+            guard Lifecycle.started else { return }
+            Journal.note("app rouverte alors qu'elle tourne déjà : fenêtre des horaires")
+            SettingsWindow.shared.show()
+        }
+        return false
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Une seule instance : deux agents joueraient chaque rappel deux fois.
+        // Une seule instance : deux agents joueraient chaque rappel deux fois. Rouvrir l'app (Launchpad, Spotlight)
+        // alors qu'elle tourne déjà fait apparaître la fenêtre des horaires de l'instance en route.
         if let id = Bundle.main.bundleIdentifier,
            NSRunningApplication.runningApplications(withBundleIdentifier: id).contains(where: { $0 != .current }) {
-            Journal.note("une autre instance tourne déjà : celle-ci s'arrête")
+            DistributedNotificationCenter.default().postNotificationName(Lifecycle.showSettings, object: nil, userInfo: nil,
+                                                                         deliverImmediately: true)
+            MainActor.assumeIsolated { Lifecycle.quitRequested = true }
             NSApp.terminate(nil)
             return
         }
@@ -49,6 +78,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         MainActor.assumeIsolated {
             AppModel.shared.start()
+            Lifecycle.observeShowSettings()
             if CommandLine.arguments.contains("--reglages") { SettingsWindow.shared.show() }
             LoginItem.registerOnFirstLaunch()
             let args = CommandLine.arguments
@@ -57,6 +87,90 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 AppModel.shared.scheduler.test(level: level)
             }
         }
+    }
+
+    /// ⌘Q ne quitte pas l'agent : sans lui, plus aucun rappel, et rien ne le signale. Seuls le menu du triangle,
+    /// le système (fermeture de session, extinction) et l'installation d'une mise à jour peuvent l'arrêter.
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        MainActor.assumeIsolated { () -> NSApplication.TerminateReply in
+            if Lifecycle.quitRequested { return .terminateNow }
+            if let event = NSAppleEventManager.shared().currentAppleEvent,
+               event.eventClass == AEEventClass(kCoreEventClass), event.eventID == AEEventID(kAEQuitApplication) {
+                Lifecycle.reason = "demandé par le système ou par une mise à jour"
+                return .terminateNow
+            }
+            Journal.note("⌘Q : fenêtre fermée, les rappels restent en route (pour arrêter : menu du triangle → Quitter)")
+            SettingsWindow.shared.close()
+            return .terminateCancel
+        }
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        MainActor.assumeIsolated {
+            guard Lifecycle.started else { return }
+            UserDefaults.standard.set(true, forKey: Lifecycle.cleanExitKey)
+            Journal.note("arrêt · \(Lifecycle.reason)")
+        }
+    }
+}
+
+/// Ce qui touche à l'arrêt de l'agent et à ses relances.
+@MainActor
+enum Lifecycle {
+    /// Vrai quand l'arrêt est voulu : menu « Quitter », ou seconde instance qui cède la place.
+    static var quitRequested = false
+    static var reason = "raison inconnue"
+    static var started = false
+    private static var observers: [NSObjectProtocol] = []
+    nonisolated static let cleanExitKey = "cleanExit.v1"
+    nonisolated static let lastAliveKey = "lastAlive.v1"
+
+    /// Envoyée par une seconde instance qui démarre : l'instance en route montre la fenêtre des horaires.
+    nonisolated static let showSettings = Notification.Name("io.github.ynsnait-lab.praxis.rappels.ouvrirReglages")
+    /// Envoyée par --essai-cmdq : l'instance en route fait exactement ce que fait ⌘Q, pour vérifier qu'elle y résiste.
+    nonisolated static let tryCommandQ = Notification.Name("io.github.ynsnait-lab.praxis.rappels.essaiCmdQ")
+
+    static func observeShowSettings() {
+        started = true
+        noteUncleanExit()
+        let center = DistributedNotificationCenter.default()
+        observers.append(center.addObserver(forName: showSettings, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated {
+                Journal.note("app rouverte alors qu'elle tourne déjà : fenêtre des horaires")
+                SettingsWindow.shared.show()
+            }
+        })
+        observers.append(center.addObserver(forName: tryCommandQ, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated {
+                Journal.note("essai : même demande d'arrêt que ⌘Q")
+                NSApp.terminate(nil)
+            }
+        })
+    }
+
+    /// Si le lancement précédent ne s'est pas terminé proprement (plantage, arrêt forcé), le journal le dit :
+    /// un agent qui disparaît sans prévenir, ce sont des rappels qui ne sonnent plus.
+    private static func noteUncleanExit() {
+        let defaults = UserDefaults.standard
+        if defaults.object(forKey: cleanExitKey) != nil, !defaults.bool(forKey: cleanExitKey) {
+            let last = (defaults.object(forKey: lastAliveKey) as? Date)?.formatted(date: .abbreviated, time: .shortened) ?? "date inconnue"
+            Journal.note("le lancement précédent s'est arrêté sans prévenir (plantage, arrêt forcé ou extinction brutale) · vu en route pour la dernière fois : \(last)")
+        }
+        defaults.set(false, forKey: cleanExitKey)
+        defaults.set(Date.now, forKey: lastAliveKey)
+    }
+
+    /// Appelé régulièrement par la minuterie : date à laquelle l'agent tournait encore.
+    static func heartbeat(_ now: Date) {
+        let defaults = UserDefaults.standard
+        if let last = defaults.object(forKey: lastAliveKey) as? Date, now.timeIntervalSince(last) < 300 { return }
+        defaults.set(now, forKey: lastAliveKey)
+    }
+
+    static func quit() {
+        quitRequested = true
+        reason = "menu « Quitter »"
+        NSApp.terminate(nil)
     }
 }
 
@@ -107,12 +221,20 @@ final class LoginItem: ObservableObject {
 
 // MARK: - Menu
 
-/// Triangle vide au repos, plein quand une alerte est en cours ou reportée.
+/// L'état du jour d'un coup d'œil : triangle vide (séance à faire), coche (séance faite), triangle plein
+/// (alerte en cours ou reportée), lune (rappels suspendus).
 private struct MenuBarIcon: View {
     @ObservedObject var scheduler: Scheduler
+    @ObservedObject var log: PracticeLog
+    @ObservedObject var store: ReminderStore
 
     var body: some View {
-        Image(systemName: scheduler.active == nil ? "triangle" : "exclamationmark.triangle.fill")
+        switch scheduler.status {
+        case .alert: Image(systemName: "exclamationmark.triangle.fill")
+        case .paused: Image(systemName: "moon.zzz")
+        case .done: Image(systemName: "checkmark.circle")
+        case .idle: Image(systemName: "triangle")
+        }
     }
 }
 
@@ -122,13 +244,24 @@ private struct MenuContent: View {
     @EnvironmentObject private var scheduler: Scheduler
 
     var body: some View {
-        if let next = store.nextFire() {
+        if let until = store.pausedUntil, store.isPaused {
+            Text("Rappels suspendus jusqu'à \(until.formatted(.dateTime.weekday(.wide).day().month().hour().minute()))")
+        } else if let next = store.nextFire() {
             Text("Prochain : \(next.date.formatted(.dateTime.weekday(.abbreviated).hour().minute())) · \(next.reminder.label)")
         } else {
             Text("Aucun rappel actif")
         }
         Text(log.practicedToday ? "Séance du jour faite · série \(scheduler.streak) j" : "Pas encore pratiqué aujourd'hui · série \(scheduler.streak) j")
-        Text("Au programme : \(scheduler.plan.title) (\(scheduler.plan.minutes) min)")
+        Text("Cette semaine : \(log.sessionsThisWeek)/\(store.weeklyGoal) séances")
+
+        Divider()
+
+        Button("Séance du jour · \(scheduler.plan.minutes) min") { scheduler.launchFromMenu(express: false) }
+        if let express = scheduler.plan.express {
+            Button("Séance express · \(express.minutes) min") { scheduler.launchFromMenu(express: true) }
+        }
+        Button("J'ai pratiqué aujourd'hui") { log.recordSession() }
+            .disabled(log.practicedToday)
 
         Divider()
 
@@ -141,22 +274,25 @@ private struct MenuContent: View {
                 .keyboardShortcut(",")
         }
 
-        Divider()
-
-        Button("Ouvrir Praxis sur la séance") { PraxisBridge.launch(bundleID: store.rules.praxisBundleID) }
+        if store.isPaused {
+            Button("Reprendre les rappels") { scheduler.resume() }
+        } else {
+            Menu("Suspendre les rappels") {
+                Button("Jusqu'à demain") { scheduler.pause(days: 1) }
+                Button("3 jours") { scheduler.pause(days: 3) }
+                Button("Une semaine") { scheduler.pause(days: 7) }
+            }
+        }
         Menu("Tester l'alerte") {
             ForEach(AlertLevel.allCases) { level in
                 Button("N\(level.rawValue) · \(level.title)") { scheduler.test(level: level) }
             }
         }
-        Button("J'ai pratiqué aujourd'hui") { log.recordSession() }
-            .disabled(log.practicedToday)
 
         Divider()
 
         Button("Journal des rappels") { NSWorkspace.shared.open(Journal.url) }
-        Button("Quitter Praxis Rappels") { NSApp.terminate(nil) }
-            .keyboardShortcut("q")
+        Button("Quitter Praxis Rappels") { Lifecycle.quit() }
     }
 }
 
@@ -189,6 +325,8 @@ final class SettingsWindow: NSObject, NSWindowDelegate {
         window?.makeKeyAndOrderFront(nil)
         window?.orderFrontRegardless()
     }
+
+    func close() { window?.close() }
 }
 
 struct SettingsView: View {
@@ -228,7 +366,19 @@ struct SettingsView: View {
                 }
                 Stepper("Reports autorisés : \(store.rules.maxSnoozes)", value: $store.rules.maxSnoozes, in: 0...3)
                 Toggle("Silence si la séance du jour est déjà faite", isOn: $store.rules.silenceIfPracticedToday)
+                Picker("Plus d'écran bloqué après", selection: $store.rules.calmAfter) {
+                    Text("Pas de limite").tag(0)
+                    ForEach([21 * 60 + 30, 22 * 60, 22 * 60 + 30, 23 * 60, 23 * 60 + 30], id: \.self) { m in
+                        Text(String(format: "%d h %02d", m / 60, m % 60)).tag(m)
+                    }
+                }
+                Picker("Relance si la séance lancée n'est pas terminée", selection: $store.rules.followUpMinutes) {
+                    Text("Jamais").tag(0)
+                    ForEach([20, 30, 45, 60], id: \.self) { Text("après \($0) min").tag($0) }
+                }
                 Toggle("Son", isOn: $store.rules.soundEnabled)
+                Text("Passé l'heure limite, un rappel en retard n'est plus qu'une bannière qui propose la séance express, et ne monte plus de niveau. La relance est une bannière, une seule fois : « Lancer » ne vaut pas séance.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
 
             Section("Praxis") {

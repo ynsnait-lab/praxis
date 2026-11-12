@@ -38,8 +38,10 @@ codesign --force --sign - --identifier "$ID" "$APP" >/dev/null 2>&1   # signatur
 
 mkdir -p "$DEST"
 if pgrep -xq PraxisRappels; then
-  osascript -e "tell application id \"$ID\" to quit" >/dev/null 2>&1 || pkill -x PraxisRappels || true
-  sleep 1
+  # la version en route cède la place (elle n'obéit plus à Cmd+Q, mais toujours à cette demande)
+  osascript -e "tell application id \"$ID\" to quit" >/dev/null 2>&1 || true
+  for _ in 1 2 3 4 5 6; do pgrep -xq PraxisRappels || break; sleep 0.5; done
+  pkill -x PraxisRappels 2>/dev/null || true
 fi
 ditto "$APP" "$DEST/$NOM.app"
 LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
@@ -49,3 +51,4 @@ open "$DEST/$NOM.app"
 echo "✓ $NOM installée dans ${DEST/#$HOME/~} et lancée : un triangle apparaît dans la barre des menus."
 echo "  Changer les horaires : clic sur le triangle → Changer les horaires…"
 echo "  Elle s'ouvre toute seule au démarrage du Mac (Réglages Système → Général → Ouverture)."
+echo "  Cmd+Q ne l'arrête pas : pour l'arrêter, clic sur le triangle → Quitter Praxis Rappels."

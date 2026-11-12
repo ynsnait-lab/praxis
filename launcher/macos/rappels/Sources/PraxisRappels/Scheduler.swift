@@ -1,14 +1,14 @@
 import AppKit
 import Foundation
 
-/// Décide quand afficher une alerte, à quel niveau, et ce que font les boutons.
+/// Décide quand afficher une alerte, à quel niveau, et ce que font les boutons. Les règles elles-mêmes sont dans Regles.swift.
 ///
-/// Trois règles évitent les alertes qui « s'additionnent » :
-/// - une seule alerte à la fois : si plusieurs rappels sont dus en même temps (après une veille), seul le plus récent
-///   s'affiche, les autres sont considérés comme passés ;
-/// - rien ne se déclenche ni ne monte de niveau quand personne n'est devant l'écran (veille, capot fermé, session
-///   verrouillée) : l'alerte attend le retour, au niveau où elle était, avec un compte à rebours neuf ;
-/// - un rappel ne dépasse jamais son niveau plafond (par exemple N1 pour un rappel du matin).
+/// - Une seule alerte à la fois : si plusieurs rappels sont dus en même temps (après une veille), seul le plus récent
+///   s'affiche, les autres sont considérés comme passés.
+/// - Rien ne se déclenche ni ne monte de niveau quand personne n'est devant l'écran (veille, capot fermé, session
+///   verrouillée) : l'alerte attend le retour, avec un compte à rebours neuf. Une alerte de la veille est abandonnée.
+/// - Un rappel ne dépasse jamais son niveau plafond, et tard le soir plus rien ne bloque l'écran : une bannière.
+/// - « Lancer » ne vaut pas séance : si elle n'est pas terminée une demi-heure plus tard, une bannière le rappelle une fois.
 @MainActor
 final class Scheduler: ObservableObject {
 
@@ -17,7 +17,15 @@ final class Scheduler: ObservableObject {
         var level: AlertLevel
         var snoozesUsed = 0
         var snoozedUntil: Date?
+        /// Relance après un « Lancer » sans séance terminée : une bannière, une seule fois.
+        var followUp = false
+        /// Alerte d'essai (menu « Tester l'alerte ») : affichée telle quelle, quelle que soit l'heure.
+        var isTest = false
+        /// Jour de création : une alerte restée en attente toute la nuit ne revient pas le lendemain matin.
+        var day = Regles.dayStamp(.now)
     }
+
+    enum Status { case idle, alert, done, paused }
 
     @Published private(set) var active: ActiveAlert?
     /// Séance du jour annoncée par Praxis (relue avant chaque alerte et à chaque mise à jour du fichier).
@@ -31,6 +39,7 @@ final class Scheduler: ObservableObject {
     private var escalationTimer: Timer?
     private var observers: [NSObjectProtocol] = []
     private var planDate: Date?
+    private var lastDay = ""
 
     /// Un rappel manqué (Mac en veille, capot fermé) s'affiche au retour s'il date de moins de trois heures :
     /// la séance de 18 h 30 attend qu'on rouvre le Mac en rentrant.
@@ -46,7 +55,7 @@ final class Scheduler: ObservableObject {
         self.log = log
         self.panel = panel
         let saved = UserDefaults.standard.stringArray(forKey: "firedKeys.v1") ?? []
-        let today = Self.dayStamp(.now)
+        let today = Regles.dayStamp(.now)
         firedKeys = Set(saved.filter { $0.hasSuffix(today) })
     }
 
@@ -61,42 +70,61 @@ final class Scheduler: ObservableObject {
         observers.append(PraxisBridge.observeSessionCompleted { [weak self] in
             self?.sessionCompleted()
         })
-        Journal.note("démarrage · \(store.reminders.filter(\.isEnabled).map { "\($0.timeString) \($0.daysString) N\($0.startLevel.rawValue)→N\($0.ceiling.rawValue)" }.joined(separator: " ; "))")
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "essai"
+        Journal.note("démarrage (\(version)) · \(store.reminders.filter(\.isEnabled).map { "\($0.timeString) \($0.daysString) N\($0.startLevel.rawValue)→N\($0.ceiling.rawValue)" }.joined(separator: " ; "))")
         tick()
+    }
+
+    /// Ce que montre l'icône de la barre des menus.
+    var status: Status {
+        if let alert = active, !alert.followUp || alert.snoozedUntil == nil { return .alert }
+        if store.isPaused { return .paused }
+        return log.practicedToday ? .done : .idle
     }
 
     // MARK: - Boucle principale
 
     func tick(now: Date = .now) {
+        Lifecycle.heartbeat(now)
         refreshPlan()
-        let today = Self.dayStamp(now)
+        let today = Regles.dayStamp(now)
+        if today != lastDay {
+            lastDay = today
+            objectWillChange.send()   // « séance faite » redevient « à faire » dans la barre des menus
+        }
         if firedKeys.contains(where: { !$0.hasSuffix(today) }) {
             firedKeys = firedKeys.filter { $0.hasSuffix(today) }
+        }
+        if let until = store.pausedUntil, now >= until {
+            store.pausedUntil = nil
+            Journal.note("fin de la suspension des rappels")
         }
         // Personne devant l'écran (veille, réveil sombre de la nuit, session verrouillée) : on attend.
         guard presence.isPresent else { return }
 
         if var alert = active {
+            if dropIfStale(alert, today: today) { return }
             if let until = alert.snoozedUntil, now >= until {
                 alert.snoozedUntil = nil
-                alert.level = min(max(alert.level, .alerte), alert.reminder.ceiling)
+                if alert.followUp {
+                    // La séance a peut-être été faite sans que Praxis le signale (page fermée avant le bilan).
+                    if log.practicedToday { finish(hideAfter: 0); return }
+                    Journal.note("séance lancée mais pas terminée : bannière de relance")
+                } else {
+                    alert.level = Regles.levelAfterSnooze(alert.reminder, current: alert.level, calm: isCalm(now))
+                    Journal.note("fin du report · \(alert.reminder.label) · N\(alert.level.rawValue)")
+                }
                 active = alert
-                Journal.note("fin du report · \(alert.reminder.label) · N\(alert.level.rawValue)")
                 present(alert)
             }
             return
         }
+        guard !store.isPaused else { return }
 
         // Tous les rappels dus et pas encore joués : on les marque tous, on n'en affiche qu'un, le plus récent.
-        var due: [(reminder: Reminder, fire: Date)] = []
-        for reminder in store.reminders where reminder.isEnabled {
-            guard let fire = reminder.fireDate(on: now),
-                  now >= fire, now.timeIntervalSince(fire) < catchUpWindow,
-                  !firedKeys.contains(key(reminder, fire)) else { continue }
-            due.append((reminder, fire))
-        }
+        let due = Regles.due(store.reminders, now: now, fired: firedKeys, window: catchUpWindow)
         guard let latest = due.max(by: { $0.fire < $1.fire }) else { return }
-        for item in due { firedKeys.insert(key(item.reminder, item.fire)) }
+        for item in due { firedKeys.insert(Regles.key(item.reminder, item.fire)) }
         if due.count > 1 {
             Journal.note("rappels regroupés : \(due.map { $0.reminder.timeString }.joined(separator: ", ")) → un seul affiché")
         }
@@ -104,15 +132,32 @@ final class Scheduler: ObservableObject {
             Journal.note("rappel \(latest.reminder.timeString) · silencieux, séance déjà faite")
             return
         }
+        let calm = isCalm(now)
+        let level = Regles.startLevel(latest.reminder, calm: calm)
         let late = Int(now.timeIntervalSince(latest.fire) / 60)
-        Journal.note("rappel \(latest.reminder.timeString) · \(latest.reminder.label) · N\(latest.reminder.startLevel.rawValue)\(late > 1 ? " · \(late) min de retard" : "")")
-        let alert = ActiveAlert(reminder: latest.reminder, level: latest.reminder.startLevel)
+        Journal.note("rappel \(latest.reminder.timeString) · \(latest.reminder.label) · N\(level.rawValue)"
+                     + (late > 1 ? " · \(late) min de retard" : "") + (calm && level < latest.reminder.startLevel ? " · tard : bannière seulement" : ""))
+        let alert = ActiveAlert(reminder: latest.reminder, level: level, day: today)
         active = alert
         present(alert)
     }
 
-    private func key(_ reminder: Reminder, _ fire: Date) -> String {
-        "\(reminder.id.uuidString)@\(Self.dayStamp(fire))"
+    private func isCalm(_ now: Date = .now) -> Bool {
+        Regles.isCalm(now, calmAfter: store.rules.calmAfter)
+    }
+
+    /// Le niveau que cette alerte ne peut pas dépasser maintenant.
+    private func ceiling(of alert: ActiveAlert) -> AlertLevel {
+        if alert.followUp || alert.isTest { return alert.level }
+        return Regles.ceiling(alert.reminder, current: alert.level, calm: isCalm())
+    }
+
+    /// Une alerte née un autre jour (capot fermé le soir, rouvert le lendemain) n'a plus lieu d'être.
+    private func dropIfStale(_ alert: ActiveAlert, today: String) -> Bool {
+        guard alert.day != today else { return false }
+        Journal.note("alerte du \(alert.day) abandonnée : la journée est passée")
+        finish(hideAfter: 0)
+        return true
     }
 
     /// Relit le fichier de Praxis s'il a changé : séance du jour et journées déjà pratiquées.
@@ -137,18 +182,38 @@ final class Scheduler: ObservableObject {
 
     private func userLeft() {
         escalationTimer?.invalidate()
-        guard let alert = active else { return }
+        guard let alert = active, alert.snoozedUntil == nil else { return }
         Journal.note("absent (\(presence.reason)) : alerte N\(alert.level.rawValue) mise en attente")
         panel.hide()
     }
 
     private func userReturned() {
-        if let alert = active, alert.snoozedUntil == nil {
-            Journal.note("retour : alerte N\(alert.level.rawValue) réaffichée, compte à rebours remis à zéro")
-            present(alert)
+        guard var alert = active, alert.snoozedUntil == nil else { tick(); return }
+        if dropIfStale(alert, today: Regles.dayStamp(.now)) { tick(); return }
+        if !alert.isTest, isCalm(), alert.level > .signal {
+            alert.level = .signal
+            active = alert
+            Journal.note("retour tard le soir : l'alerte revient en bannière")
         } else {
-            tick()
+            Journal.note("retour : alerte N\(alert.level.rawValue) réaffichée, compte à rebours remis à zéro")
         }
+        present(alert)
+    }
+
+    // MARK: - Suspension
+
+    func pause(days: Int) {
+        store.pause(days: days)
+        if let until = store.pausedUntil {
+            Journal.note("rappels suspendus jusqu'au \(until.formatted(date: .abbreviated, time: .shortened))")
+        }
+        if active != nil { finish(hideAfter: 0) }
+    }
+
+    func resume() {
+        store.pausedUntil = nil
+        Journal.note("rappels repris")
+        tick()
     }
 
     /// Déclenchement manuel (menu « Tester l'alerte », ou --tester N au lancement).
@@ -156,10 +221,20 @@ final class Scheduler: ObservableObject {
         var reminder = store.nextFire()?.reminder ?? Reminder.examples[0]
         reminder.startLevel = level
         reminder.maxLevel = level
-        let alert = ActiveAlert(reminder: reminder, level: level)
+        let alert = ActiveAlert(reminder: reminder, level: level, isTest: true)
         Journal.note("test N\(level.rawValue)")
         active = alert
         present(alert)
+    }
+
+    /// Ouvre Praxis sur la séance, depuis le menu : même effet que le bouton de l'alerte.
+    func launchFromMenu(express: Bool) {
+        if active != nil {
+            handleLaunch(express: express)
+        } else {
+            Journal.note(express ? "menu : séance express" : "menu : séance du jour")
+            PraxisBridge.launch(bundleID: store.rules.praxisBundleID, express: express)
+        }
     }
 
     // MARK: - Affichage
@@ -167,6 +242,7 @@ final class Scheduler: ObservableObject {
     private func present(_ alert: ActiveAlert) {
         refreshPlan()
         let rules = store.rules
+        let escalates = alert.level < ceiling(of: alert) || alert.level == .urgence
         let model = AlertViewModel(
             reminder: alert.reminder,
             level: alert.level,
@@ -176,19 +252,22 @@ final class Scheduler: ObservableObject {
             sessionsThisWeek: log.sessionsThisWeek,
             weeklyGoal: store.weeklyGoal,
             lastSession: log.lastSession,
+            daysSinceLast: log.daysSinceLastSession,
             snoozesLeft: alert.level == .urgence ? 0 : max(0, rules.maxSnoozes - alert.snoozesUsed),
             snoozeMinutes: rules.snoozeMinutes,
             escalationWindow: TimeInterval(rules.escalationMinutes * 60),
-            escalates: alert.level < alert.reminder.ceiling || alert.level == .urgence
+            escalates: escalates,
+            followUp: alert.followUp,
+            late: !alert.isTest && !alert.followUp && isCalm()
         )
-        model.onLaunch = { [weak self] in self?.handleLaunch() }
+        model.onLaunch = { [weak self] express in self?.handleLaunch(express: express) }
         model.onSnooze = { [weak self] in self?.handleSnooze() }
         model.onSkip = { [weak self] reason in self?.handleSkip(reason: reason) }
         model.onDismiss = { [weak self] in self?.handleDismiss() }
 
         panel.show(model)
         if rules.soundEnabled { SoundPlayer.play(alert.level) }
-        if alert.level < alert.reminder.ceiling || alert.level == .urgence {
+        if escalates {
             scheduleEscalation(after: TimeInterval(rules.escalationMinutes * 60))
         } else {
             escalationTimer?.invalidate()
@@ -205,7 +284,7 @@ final class Scheduler: ObservableObject {
     private func escalate() {
         // Pas d'escalade sans personne pour la voir : le retour réaffichera l'alerte à son niveau actuel.
         guard presence.isPresent, var alert = active, alert.snoozedUntil == nil else { return }
-        if let next = alert.level.next, next <= alert.reminder.ceiling {
+        if let next = alert.level.next, next <= ceiling(of: alert) {
             alert.level = next
             active = alert
             Journal.note("escalade · N\(next.rawValue)")
@@ -219,12 +298,22 @@ final class Scheduler: ObservableObject {
 
     // MARK: - Actions
 
-    private func handleLaunch() {
-        guard active != nil else { return }
-        Journal.note("lancer Praxis")
-        PraxisBridge.launch(bundleID: store.rules.praxisBundleID)
+    private func handleLaunch(express: Bool) {
+        guard let alert = active else { return }
+        Journal.note(express ? "lancer Praxis · séance express" : "lancer Praxis · séance du jour")
+        PraxisBridge.launch(bundleID: store.rules.praxisBundleID, express: express)
         if store.rules.countLaunchAsSession { log.recordSession() }
-        finish(hideAfter: 1.6) // laisse le temps à l'écran « Série » de s'afficher
+        escalationTimer?.invalidate()
+        let minutes = store.rules.followUpMinutes
+        if minutes > 0, !alert.followUp, !alert.isTest, !store.rules.countLaunchAsSession {
+            // On vérifiera que la séance est allée au bout : sinon, une bannière, une seule fois.
+            active = ActiveAlert(reminder: alert.reminder, level: .signal,
+                                 snoozedUntil: Date.now.addingTimeInterval(TimeInterval(minutes * 60)),
+                                 followUp: true, day: alert.day)
+        } else {
+            active = nil
+        }
+        panel.hide(after: 1.6) // laisse le temps à l'écran « Série » de s'afficher
     }
 
     private func handleSnooze() {
@@ -257,10 +346,7 @@ final class Scheduler: ObservableObject {
         panel.hide(after: delay)
     }
 
-    nonisolated static func dayStamp(_ date: Date) -> String {
-        let c = Calendar.current.dateComponents([.year, .month, .day], from: date)
-        return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
-    }
+    nonisolated static func dayStamp(_ date: Date) -> String { Regles.dayStamp(date) }
 }
 
 enum SoundPlayer {

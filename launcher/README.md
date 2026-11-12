@@ -15,7 +15,7 @@ L'app garde ta progression d'un lancement à l'autre. Elle est séparée de cell
 
 ## Les rappels de pratique
 
-`./praxis rappels` installe **Praxis Rappels**, un petit agent de la barre des menus qui rappelle de pratiquer aux horaires choisis, avec une alerte qui monte en intensité si on l'ignore. Son bouton *Lancer* ouvre Praxis.app directement sur la séance du jour (adresse `praxis://seance`), et Praxis.app lui signale chaque séance terminée. Détails : [`macos/rappels/README.md`](macos/rappels/README.md).
+`./praxis rappels` installe **Praxis Rappels**, un petit agent de la barre des menus qui rappelle de pratiquer aux horaires choisis, avec une alerte qui monte en intensité si on l'ignore. Ses boutons ouvrent Praxis.app directement sur la séance du jour (adresse `praxis://seance`) ou sur la séance express de cinq minutes (`praxis://seance/express`), et Praxis.app lui signale chaque séance terminée. À chaque ouverture, Praxis.app relance l'agent s'il ne tourne pas. Détails : [`macos/rappels/README.md`](macos/rappels/README.md).
 
 ## Si le projet change de place
 
