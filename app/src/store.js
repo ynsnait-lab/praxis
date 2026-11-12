@@ -24,6 +24,19 @@ export function today(t = Date.now()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+// Nombre de jours depuis la dernière journée d'activité (0 : aujourd'hui), ou null si l'on n'a encore rien fait.
+export function daysSinceLast(now = Date.now()) {
+  const last = state.streak.last;
+  if (!last) return null;
+  return Math.max(0, Math.round((Date.parse(today(now)) - Date.parse(last)) / DAY));
+}
+// À partir de quatre jours sans pratique, l'accueil propose une reprise courte plutôt que la séance complète.
+export const REPRISE_JOURS = 4;
+export function enReprise(now = Date.now()) {
+  const n = daysSinceLast(now);
+  return n !== null && n >= REPRISE_JOURS && Object.keys(state.cards).length > 0;
+}
+
 export function defaultState() {
   return {
     v: 2,

@@ -16,6 +16,8 @@ Un entraînement pour apprendre **Python**, le **C++** et la **culture d'ingéni
 
 Chaque module suit la même pente : un cours découpé en petites étapes (de « jamais vu » à « niveau ingénieur »), des exemples exécutables dans la page (Python tourne dans le navigateur grâce à Pyodide), puis des exercices : prédire une sortie, trouver le bug, compléter, écrire. Les cartes reviennent au bon moment grâce à la révision espacée (FSRS).
 
+Pas le temps ? La **séance express** fait tenir l'essentiel en cinq minutes : les six révisions les plus urgentes, et la journée compte. Après quelques jours sans pratique, c'est elle que l'accueil propose en premier, pour reprendre en douceur.
+
 La progression reste dans le navigateur ; *Réglages → Exporter* la sauvegarde dans un fichier JSON.
 
 ## L'app sur ton Mac
@@ -23,9 +25,10 @@ La progression reste dans le navigateur ; *Réglages → Exporter* la sauvegarde
 ```shell
 ./praxis app        # construit l'app et l'ouvre dans ton navigateur (http://localhost:8000)
 ./praxis launcher   # macOS : installe Praxis.app, à lancer depuis le Launchpad, Spotlight ou le Dock
+./praxis rappels    # macOS : installe Praxis Rappels, qui rappelle de pratiquer aux heures choisies
 ```
 
-Praxis.app ouvre Praxis dans sa propre fenêtre et s'occupe du serveur local toute seule. Voir [launcher/README.md](launcher/README.md).
+Praxis.app ouvre Praxis dans sa propre fenêtre et s'occupe du serveur local toute seule. Praxis Rappels vit dans la barre des menus : à l'heure dite, une alerte propose la séance du jour ou la séance express, et monte d'un cran si on l'ignore. Voir [launcher/README.md](launcher/README.md).
 
 ## Les labs, sur ta machine
 

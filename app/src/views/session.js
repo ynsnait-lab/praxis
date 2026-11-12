@@ -19,6 +19,7 @@ function scopeFromParts(parts) {
   if (kind === "weak") return { type: "weak" };
   if (kind === "all") return { type: "module", id, all: true };
   if (kind === "one") return { type: "one", id };
+  if (kind === "express") return { type: "express" };
   return { type: "daily" };
 }
 
@@ -45,6 +46,7 @@ function scopeTitle(scope) {
   if (scope.type === "track") return `Piste ${TRACK_LABEL[scope.id] || ""}`;
   if (scope.type === "weak") return "Points faibles";
   if (scope.type === "one") return "Exercice";
+  if (scope.type === "express") return "Séance express";
   return "Séance du jour";
 }
 
@@ -99,14 +101,15 @@ function renderEnd(page) {
   const firstTry = new Map();
   for (const r of res) if (!firstTry.has(r.id)) firstTry.set(r.id, r);
   const missed = [...firstTry.values()].filter((r) => r.grade === 1);
-  if (!s.reported && res.length && (s.scope.type === "daily" || res.length >= 5)) {
+  if (!s.reported && res.length && (s.scope.type === "daily" || s.scope.type === "express" || res.length >= 5)) {
     s.reported = true;
     markSessionDone();
     seanceTerminee({ seance: s.scope.type, reponses: res.length, justes: ok, minutes: Math.round((Date.now() - s.started) / 60000) });
   }
   const sm = summary();
   page.append(
-    h("div.page-head", {}, h("div", {}, h("span.eyebrow", {}, "Bilan"), h("h1", {}, scopeTitle(s.scope)))),
+    h("div.page-head", {}, h("div", {}, h("span.eyebrow", {}, "Bilan"), h("h1", {}, scopeTitle(s.scope)),
+      s.scope.type === "express" ? h("p.sub", {}, "La journée compte. Tu peux t'arrêter là, ou continuer sur ta lancée.") : null)),
     h("div.kpis", {},
       kpi(`${ok}/${res.length}`, "réponses justes"),
       kpi(res.length ? `${Math.round((100 * ok) / res.length)} %` : "—", "réussite"),
@@ -138,8 +141,12 @@ function renderEnd(page) {
     sm.due ? `${plural(sm.due, "exercice encore dû", "exercices encore dus")}. ` : "Plus rien de dû pour aujourd'hui. ",
     sm.newAvail ? `${plural(sm.newAvail, "nouvel exercice disponible", "nouveaux exercices disponibles")}.` : ""));
   const nl = TRACKS.map(nextLesson).filter(Boolean)[0];
+  const reste = sm.dueN + sm.newN;
   page.append(h("div.actions", { style: { marginTop: "18px" } },
-    h("button.btn.primary", { onclick: () => { current = null; go(s.scope.type === "daily" ? "#/session/again" : location.hash); } }, "Encore une série"),
+    s.scope.type === "express"
+      ? (reste ? h("button.btn.primary", { onclick: () => { current = null; go("#/session/again"); } },
+        `Continuer : ${plural(reste, "exercice", "exercices")}, ~${sm.minutes} min`) : null)
+      : h("button.btn.primary", { onclick: () => { current = null; go(s.scope.type === "daily" ? "#/session/again" : location.hash); } }, "Encore une série"),
     nl ? h("a.btn", { href: `#/m/${nl}` }, `Cours suivant : ${C.modules[nl].title}`) : null,
     h("a.btn.ghost", { href: "#/" }, "Retour à l'accueil")));
 }
@@ -153,7 +160,7 @@ function emptyView(page, scope) {
   page.append(
     h("div.page-head", {}, h("div", {}, h("span.eyebrow", {}, scopeTitle(scope)), h("h1", {}, "Rien à faire ici pour l'instant"))),
     h("div.panel", {}, h("div.stack.g14", {},
-      h("p", {}, scope.type === "daily"
+      h("p", {}, scope.type === "daily" || scope.type === "express"
         ? "Aucune révision n'est due et aucun nouvel exercice n'est débloqué. Les exercices d'un module entrent dans tes séances quand tu as lu son cours."
         : "Cette sélection ne contient pas d'exercice."),
       nl.length ? h("div.stack.g8", {}, h("span.eyebrow", {}, "Prochains cours"),

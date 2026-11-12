@@ -5,6 +5,8 @@ import { getState } from "./store.js";
 import { isDue, retrievability } from "./fsrs.js";
 
 const SEC_PER_CARD = 45;
+// Séance express : six exercices, cinq minutes. Assez court pour ne jamais avoir de raison de sauter une journée.
+export const EXPRESS_CARDS = 6;
 
 function trackEnabled(tr) {
   const s = getState().settings;
@@ -63,7 +65,9 @@ export function summary() {
   const maxCards = Math.max(6, Math.round((s.sessionMin * 60) / SEC_PER_CARD));
   const dueN = Math.min(due.length, maxCards);
   const newN = Math.min(newAvail, s.newPerSession, Math.max(0, maxCards - dueN));
-  return { due: due.length, dueN, newN, newAvail, perTrack, minutes: Math.max(1, Math.round(((dueN + newN) * SEC_PER_CARD) / 60)) };
+  const expressN = Math.min(EXPRESS_CARDS, due.length + Math.min(newAvail, s.newPerSession));
+  const minutesOf = (n) => Math.max(1, Math.round((n * SEC_PER_CARD) / 60));
+  return { due: due.length, dueN, newN, newAvail, perTrack, minutes: minutesOf(dueN + newN), expressN, expressMin: minutesOf(expressN) };
 }
 
 function interleave(lists) {
@@ -100,6 +104,13 @@ export function buildSession(scope = { type: "daily" }) {
     const due = dueIds(now).filter((id) => trackOfEx(C.ex[id]) === scope.id).sort((a, b) => st.cards[a].due - st.cards[b].due);
     const fresh = newCandidates(scope.id).slice(0, s.newPerSession);
     return [...due.slice(0, maxCards), ...fresh].slice(0, maxCards);
+  }
+  if (scope.type === "express") {
+    // les révisions les plus urgentes d'abord (pièges récents en tête), complétées par des nouveautés s'il reste de la place
+    const due = dueIds(now).sort((a, b) => trapBoost(b) - trapBoost(a) || st.cards[a].due - st.cards[b].due).slice(0, EXPRESS_CARDS);
+    const room = Math.min(EXPRESS_CARDS - due.length, s.newPerSession);
+    const fresh = room > 0 ? interleave(TRACKS.filter(trackEnabled).map((t) => newCandidates(t))).slice(0, room) : [];
+    return [...due, ...fresh];
   }
   // séance du jour
   const due = dueIds(now).sort((a, b) => trapBoost(b) - trapBoost(a) || st.cards[a].due - st.cards[b].due).slice(0, maxCards);

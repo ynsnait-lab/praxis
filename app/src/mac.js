@@ -59,7 +59,11 @@ export function planDuJour() {
     .map(([d]) => d)
     .sort()
     .slice(-60);
-  return { title, subtitle, minutes, jours, serie: st.streak.cur || 0, serieDernierJour: st.streak.last || null };
+  // La séance express (praxis://seance/express) : l'alerte la propose à côté de la séance du jour quand elle est plus courte,
+  // et en premier après une pause. Sans exercice à faire, ou si la séance du jour est déjà courte, on annonce la même durée.
+  const courte = sm.expressN > 0 && total > sm.expressN;
+  return { title, subtitle, minutes, jours, serie: st.streak.cur || 0, serieDernierJour: st.streak.last || null,
+    expressN: courte ? sm.expressN : 0, expressMin: courte ? sm.expressMin : minutes };
 }
 
 export function seanceTerminee(bilan) {

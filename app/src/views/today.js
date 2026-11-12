@@ -2,7 +2,7 @@
 import { h } from "../dom.js";
 import { C, TRACKS, TRACK_LABEL, TRACK_LONG, nextLesson, lessonRead, modOrder } from "../content.js";
 import { summary } from "../engine.js";
-import { getState, today, trapStatus } from "../store.js";
+import { getState, today, trapStatus, daysSinceLast, enReprise } from "../store.js";
 import { DAY } from "../fsrs.js";
 import { trapCard } from "./module.js";
 import { plural, trackPill, fmtMs } from "../ui.js";
@@ -12,6 +12,7 @@ export function todayView() {
   const sm = summary();
   const page = h("div.page");
   const firstVisit = !Object.keys(st.cards).length && !Object.values(st.lessons).some((l) => l.read);
+  const reprise = enReprise() && sm.expressN > 0;
   const hour = new Date().getHours();
   const hello = hour < 6 ? "Bonne nuit" : hour < 12 ? "Bonjour" : hour < 18 ? "Bon après-midi" : "Bonsoir";
   const prenom = String(st.settings.prenom || C.owner || "").trim();
@@ -20,7 +21,8 @@ export function todayView() {
     h("h1", {}, firstVisit ? "Bienvenue dans Praxis" : (prenom ? `${hello}, ${prenom}` : hello)),
     h("p.sub", {}, firstVisit
       ? "Des petits cours qui partent de zéro et montent en crescendo, des exercices qui reviennent au bon moment, et des pièges pour apprendre à ne plus tomber dedans."
-      : st.streak.cur > 1 ? `${st.streak.cur} jours d'affilée. Record : ${st.streak.best}.` : "Une séance courte chaque jour vaut mieux qu'une longue par semaine."))));
+      : reprise ? `Dernière séance il y a ${daysSinceLast()} jours. On reprend en douceur : ${plural(sm.expressN, "exercice", "exercices")}, ${sm.expressMin} minutes, et la série repart.`
+        : st.streak.cur > 1 ? `${st.streak.cur} jours d'affilée. Record : ${st.streak.best}.` : "Une séance courte chaque jour vaut mieux qu'une longue par semaine."))));
 
   // --- séance du jour
   const total = sm.dueN + sm.newN;
@@ -32,7 +34,13 @@ export function todayView() {
         fig(sm.newN, sm.newN > 1 ? "nouveaux exercices" : "nouvel exercice"),
         fig(total ? `~${sm.minutes}` : "0", "minutes")),
       total
-        ? h("div.actions", {}, h("a.btn.primary.big", { href: "#/session" }, "Commencer la séance"),
+        ? h("div.stack.g8", {}, h("div.actions", {},
+          // la séance express n'a d'intérêt que si elle est plus courte que la séance du jour
+          ...(total <= sm.expressN ? [h("a.btn.primary.big", { href: "#/session" }, "Commencer la séance")]
+            : reprise ? [h("a.btn.primary.big", { href: "#/session/express" }, `Reprendre · ${sm.expressMin} min`),
+              h("a.btn.big", { href: "#/session" }, `Séance complète · ${sm.minutes} min`)]
+              : [h("a.btn.primary.big", { href: "#/session" }, "Commencer la séance"),
+                h("a.btn.big", { href: "#/session/express", title: `${plural(sm.expressN, "exercice", "exercices")} : les révisions les plus urgentes` }, `Express · ${sm.expressMin} min`)])),
           sm.due > sm.dueN ? h("span.small.muted", {}, `${sm.due - sm.dueN} autres révisions attendront la prochaine séance`) : null)
         : h("div.stack.g8", {}, h("p", {}, firstVisit ? "Commence par lire un premier cours : ses exercices rejoindront tes séances." : "Rien de dû. Lis le cours suivant pour débloquer de nouveaux exercices."),
           h("div.actions", {}, ...TRACKS.map((t) => nextLesson(t)).filter(Boolean).slice(0, 1).map((id) => h("a.btn.primary", { href: `#/m/${id}` }, `Lire : ${C.modules[id].title}`))))),
